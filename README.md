@@ -48,7 +48,7 @@ In this window you can toggle viscous mode, set a freestream and time step, and 
 
 Once flow and boundary structures are created, and the simulation parameters are set as desired, press the *RUN* button to start the simulation. At any time you can press *PAUSE* to pause the simulation or *Reset* to go back to the original conditions. At any time, you can left-click and drag on the flow field to move your point of view, or use the scroll wheel to zoom and unzoom.
 
-Pictured below is a simulation of viscous flow over a circle at Reynolds number 200 after two steps:
+Pictured below is a simulation of viscous flow over a circle at Reynolds number 200 after two steps. The blue and red fields represent negative and positive vorticity (rotation). This is created by flow sliding over the solid bondary. Because this flow solver uses vortex methods, we only require computational elements (vortex particles) where there is vorticity.
 
 ![screenshot](media/Screenshot_v4c.png?raw=true "2D flow over a circular cylinder at Re=200")
 
