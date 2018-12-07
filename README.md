@@ -11,27 +11,45 @@ This open-source code is aimed at users interested in understanding vortex metho
 ## Build and run
 This code uses some C++14 features, so should compile on GCC 5, Clang 3.3, MSVC 19.10, and Intel 16.0 compilers.
 
+#### Prerequisites
 Users will also need CMake and GLFW version 3 on their machines to build this, other requirements are included in this distribution. Get glfw3 on Fedora with
 
-    sudo yum install glfw3-devel eigen3-devel
+    sudo yum install cmake glfw3-devel eigen3-devel
 
 or on Ubuntu with
 
-    sudo apt-get install glfw3-dev libeigen3-dev
+    sudo apt-get install cmake glfw3-dev libeigen3-dev
 
 or on OSX via [Homebrew](https://docs.brew.sh/Installation) with
 
     brew install cmake glfw eigen
 
-Upon installation of the prerequisites, the following commands should build and run the program:
+#### Optional libraries
+[Vc](https://github.com/VcDevel/Vc) is a vectorization library, and Omega2D uses it to greatly accelerate the velocity evaluations. This package can be built and installed external to Omega2D with
 
+    git clone https://github.com/VcDevel/Vc.git
+    cd Vc
     mkdir build
     cd build
-    cmake -DCMAKE_BUILD_TYPE=Release ..
+    cmake -DCMAKE_INSTALL_PREFIX=/opt/Vc -DBUILD_TESTING=OFF ..
+    make -j 4
+    sudo make install
+    cd ../..
+
+#### Compile and run
+Upon installation of the prerequisites, the following commands should build Omega2D.
+
+    git clone git@github.com:Applied-Scientific-Research/Omega2D.git
+    cd Omega2D
+    mkdir build
+    cd build
+    cmake -DCMAKE_BUILD_TYPE=Release -DUSE_OMP=ON -DUSE_VC=OFF ..
     make
     ./Omega2D.bin
 
-On OSX, to get OpenMP parallization of the solver, you need to install and use GCC with brew, and use a special `cmake` command:
+If you were able to build and install Vc, then you should set `-DUSE_VC=ON` in the above `cmake` command.
+
+On OSX, to get OpenMP parallization of the solver, you may need to use Clang, or install and use GCC with brew, and use a special `cmake` command:
 
     brew install gcc
     cmake -DCMAKE_C_COMPILER=/usr/local/bin/gcc-7 -DCMAKE_CXX_COMPILER=/usr/local/bin/g++-7 ..
@@ -52,7 +70,7 @@ Pictured below is a simulation of viscous flow over a circle at Reynolds number 
 
 ![screenshot](media/Screenshot_v4c.png?raw=true "2D flow over a circular cylinder at Re=200")
 
-## To Do
+## To do
 Tasks to consider or implement:
 
 * Replace core architecture (using std::variant and Collection)
