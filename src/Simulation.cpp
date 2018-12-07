@@ -105,6 +105,28 @@ void Simulation::reset() {
 }
 
 //
+// Check all aspects of the simulation for conditions that should stop the run
+//
+std::string Simulation::check_simulation() {
+  std::string retstr;
+
+  // Check for no bodies and no particles
+  // retstr.append("No flow features and no bodies - try adding one or both.\n");
+
+  // Check for a body and no particles and no freestream
+  // retstr.append("No flow features and zero freestream speed - try adding one or both.\n");
+
+  // Check for conditions that lead to loss of accuracy
+  float max_elong = 0.0;
+  //for (auto &coll: vort) {
+    //std::visit([&](auto& elem) { max_elong = std::max(max_elong, elem.get_max_elong(); }, coll);
+  //}
+  if (max_elong > 2.0) retstr.append("Elongation threshold exceeded! Reset and reduce the time step size.\n");
+
+  return retstr;
+}
+
+//
 // query and get() the future if possible
 //
 bool Simulation::test_for_new_results() {

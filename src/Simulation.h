@@ -14,6 +14,7 @@
 #include "Diffusion.h"
 #include "Vorticity.h"
 
+#include <string>
 #include <future>
 
 template <class T>
@@ -60,6 +61,7 @@ public:
   void init_bcs();
   bool is_initialized();
   void set_initialized();
+  std::string check_simulation();
   bool test_for_new_results();
 
   // graphics pass-through calls
@@ -72,7 +74,6 @@ private:
   float re;
   float dt;
   float fs[2];
-  //std::array<RealType,2> freestream({1.0, 0.0});
 
   // Object to contain all Lagrangian elements
   Vorticity<float,uint16_t> vort;
