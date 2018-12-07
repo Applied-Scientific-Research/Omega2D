@@ -116,7 +116,7 @@ void Diffusion<S,A,I>::step(const double               _dt,
   _vort.reset_vels();
 
   // ensure that we have a current h_nu
-  vrm.reset_hnu(std::sqrt(_dt/_re));
+  vrm.set_hnu(std::sqrt(_dt/_re));
 
   // ensure that it knows to allow or disallow adaptive radii
   //vrm.set_adaptive_radii(adaptive_radii);

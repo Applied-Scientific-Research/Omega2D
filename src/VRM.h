@@ -35,8 +35,8 @@ class VRM {
 public:
   VRM();
   VRM(const CT);
+  void set_hnu(const ST);
   ST get_hnu();
-  void reset_hnu(const ST);
 
   // all-to-all diffuse; can change array sizes
   void diffuse_all(std::vector<ST>&, std::vector<ST>&,
@@ -146,25 +146,14 @@ void VRM<ST,CT,MAXMOM>::initialize_sites() {
 }
 
 template <class ST, class CT, uint8_t MAXMOM>
+void VRM<ST,CT,MAXMOM>::set_hnu(const ST _newhnu) {
+  h_nu = _newhnu;
+}
+
+template <class ST, class CT, uint8_t MAXMOM>
 ST VRM<ST,CT,MAXMOM>::get_hnu() {
   return (ST)h_nu;
 }
-
-template <class ST, class CT, uint8_t MAXMOM>
-void VRM<ST,CT,MAXMOM>::reset_hnu(const ST _hnu) {
-  h_nu = _hnu;
-}
-
-/*
-template <class ST, class CT, uint8_t MAXMOM>
-void VRM<ST,CT,MAXMOM>::set_num_moments(const int32_t _nmom) {
-  num_moments = _nmom;
-  num_rows = (num_moments+1) * (num_moments+2) / 2;
-  max_near = 18 * num_moments;
-  std::cout << "num_moments set to " << num_moments << std::endl;
-}
-*/
-
 
 //
 // use a ring of sites to determine the location of a new particle
