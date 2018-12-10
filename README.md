@@ -12,7 +12,7 @@ This open-source code is aimed at users interested in understanding vortex metho
 This code uses some C++14 features, so should compile on GCC 5, Clang 3.3, MSVC 19.10, and Intel 16.0 compilers.
 
 #### Prerequisites
-Users will also need CMake and GLFW version 3 on their machines to build this, other requirements are included in this distribution. Get glfw3 on Fedora with
+Users will also need CMake and GLFW version 3 on their machines to build this, other requirements are included in this distribution. Get these on Fedora with
 
     sudo yum install cmake glfw3-devel eigen3-devel
 
@@ -73,6 +73,9 @@ Pictured below is a simulation of viscous flow over a circle at Reynolds number 
 ## To do
 Tasks to consider or implement:
 
+* Ideal initial interface: lots of stuff hidden, just a graphical menu with circles, squares, vortex patches, etc. Each has handles that you can drag to resize and reposition the element; all sizes/locations quantized to 0.1 or 0.05. "Expert" box lets you change Re, dt, etc.
+* Add an animated GIF to the page to show how to set up a run?
+* Have "status" line indicate when we're waiting for a step to finish after we've hit pause
 * Replace core architecture (using std::variant and Collection)
 * Instead of manipulating the projection matrix, have the mouse change the view matrix (assume model matrix is unity), see [here](https://solarianprogrammer.com/2013/05/22/opengl-101-matrices-projection-view-model/) for a nice write-up on the three OpenGL matrices
 * Support multiple Lagrangian element collections under an Elements structure
@@ -81,7 +84,6 @@ Tasks to consider or implement:
 * Make more of the sliders dynamic (like dt and color) - be able to add new particles while a sim is running
 * Right-click on the draw screen to add features - hard? can imgui handle it?
 * Draw something when you add a feature (so we know it's doing something)
-* Find code that computes influence of thick-"cored" panels on a point - see Pate's dissertation
 * Create an OpenGL compute shader routine for the particle-particle influence
 * Add option to draw particles as thin white dots/lines "Draw elements"
 * Generalize bodies to allow squares and circles in the GUI
@@ -102,6 +104,7 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~Find code that computes influence of thick-"cored" panels on a point - see Pate's dissertation - nope.~~
 * ~~Move code to public repository~~
 
 ## Thanks
