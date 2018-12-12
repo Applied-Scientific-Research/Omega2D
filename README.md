@@ -73,6 +73,8 @@ Pictured below is a simulation of viscous flow over a circle at Reynolds number 
 ## To do
 Tasks to consider or implement:
 
+* Add a "ms/frame" and "FPS" for the simulation component also
+* Add a batch mode also - once you get json reading and png writing working
 * If we're adding png output, might as well add a "Record" button!
 * Add warning when there are no flow structures or boundary structures
 * Add warning when there are bodies, but no freestream and no flow structures and no particles (because nothing will happen)
