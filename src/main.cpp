@@ -79,7 +79,7 @@ void mouse_callback(GLFWwindow* /*_thiswin*/,
 
     // change the size
     const float oldsize = (*_size);
-    (*_size) *= pow(1.05f, io.MouseWheel);
+    (*_size) *= pow(1.1f, io.MouseWheel);
 
     // and adjust the center such that the zoom occurs about the pointer!
     //const float ar = (float)display_h / (float)display_w;
