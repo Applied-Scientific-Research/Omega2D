@@ -399,9 +399,9 @@ int main(int, char**)
 
           case 1:
             // a blob of multiple vorticies
-            ImGui::SliderFloat("strength", &str, -1.0f, 1.0f, "%.4f");
-            ImGui::SliderFloat("radius", &rad, sim.get_ips(), 20.0f*sim.get_ips(), "%.4f");
-            ImGui::SliderFloat("softness", &soft, sim.get_ips(), rad, "%.4f");
+            ImGui::SliderFloat("strength", &str, -5.0f, 5.0f, "%.4f");
+            ImGui::SliderFloat("radius", &rad, sim.get_ips(), 1.0f, "%.4f");
+            ImGui::SliderFloat("softness", &soft, sim.get_ips(), 1.0f, "%.4f");
             ImGui::TextWrapped("This feature will add about %d particles", (int)(0.785398175*pow((2*rad+soft)/sim.get_ips(), 2)));
             if (ImGui::Button("Add vortex blob")) {
               ffeatures.emplace_back(std::make_unique<VortexBlob>(xc[0], xc[1], str, rad, soft));
