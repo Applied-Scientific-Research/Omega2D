@@ -86,7 +86,6 @@ Tasks to consider or implement:
 * Instead of manipulating the projection matrix, have the mouse change the view matrix (assume model matrix is unity), see [here](https://solarianprogrammer.com/2013/05/22/opengl-101-matrices-projection-view-model/) for a nice write-up on the three OpenGL matrices
 * Support multiple Lagrangian element collections under an Elements structure
 * Support faster VRM by caching values from first half to use in second half
-* Space bar pauses and resumes simulation (need to capture keyboard inputs)
 * Make more of the sliders dynamic (like dt and color) - be able to add new particles while a sim is running
 * Right-click on the draw screen to add features - hard? can imgui handle it?
 * Draw something when you add a feature (so we know it's doing something)
@@ -110,6 +109,7 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~Space bar pauses and resumes simulation (need to capture keyboard inputs)~~
 * ~~Add warning when there are no flow structures or boundary structures~~
 * ~~Add warning when there are bodies, but no freestream and no flow structures and no particles (because nothing will happen)~~
 * ~~Make the sections of the GUI collapsable~~

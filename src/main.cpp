@@ -531,11 +531,13 @@ int main(int, char**)
       if (sim_is_running) {
         ImGui::Text("Simulation is running...time = %g", sim.get_time());
         if (ImGui::Button("PAUSE", ImVec2(200,0))) sim_is_running = false;
+        if (ImGui::IsKeyPressed(32)) sim_is_running = false;
       } else {
         ImGui::Text("Simulation is not running, time = %g", sim.get_time());
         if (ImGui::Button("RUN", ImVec2(200,0))) sim_is_running = true;
         ImGui::SameLine();
         if (ImGui::Button("Step", ImVec2(120,0))) begin_single_step = true;
+        if (ImGui::IsKeyPressed(32)) sim_is_running = true;
       }
       ImGui::SameLine();
       if (ImGui::Button("Reset", ImVec2(120,0))) {
