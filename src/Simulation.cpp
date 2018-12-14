@@ -9,6 +9,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <limits>
 
 // constructor
 Simulation::Simulation()
@@ -107,21 +108,37 @@ void Simulation::reset() {
 //
 // Check all aspects of the simulation for conditions that should stop the run
 //
-std::string Simulation::check_simulation() {
+std::string Simulation::check_simulation(const size_t _nff, const size_t _nbf) {
   std::string retstr;
 
   // Check for no bodies and no particles
-  // retstr.append("No flow features and no bodies - try adding one or both.\n");
+  if (_nbf == 0 and vort.get_n() == 0) {
+    retstr.append("No flow features and no bodies. Add one or both, reset, and run.\n");
+  }
 
-  // Check for a body and no particles and no freestream
-  // retstr.append("No flow features and zero freestream speed - try adding one or both.\n");
+  // Check for a body and no particles
+  if (_nbf > 0 and vort.get_n() == 0) {
+
+    // AND no freestream
+    if (fs[0]*fs[0]+fs[1]*fs[1] < std::numeric_limits<float>::epsilon()) {
+      retstr.append("No flow features and zero freestream speed - try adding one or both.\n");
+      return retstr;
+    }
+
+    // AND no viscosity
+    if (not diff.get_diffuse()) {
+      retstr.append("You have a solid body, but no diffusion. It will not shed vorticity. Turn on viscosity or add a flow feature, reset, and run.\n");
+    }
+  }
 
   // Check for conditions that lead to loss of accuracy
-  float max_elong = 0.0;
+  // like vorticity-based Courant number
+  //static bool ignore_warning = false;
+  //float max_elong = 0.0;
   //for (auto &coll: vort) {
     //std::visit([&](auto& elem) { max_elong = std::max(max_elong, elem.get_max_elong(); }, coll);
   //}
-  if (max_elong > 2.0) retstr.append("Elongation threshold exceeded! Reset and reduce the time step size.\n");
+  //if (max_elong > 2.0) retstr.append("Elongation threshold exceeded! Reset and reduce the time step size.\n");
 
   return retstr;
 }

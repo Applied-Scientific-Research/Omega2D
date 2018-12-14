@@ -61,7 +61,7 @@ public:
   void init_bcs();
   bool is_initialized();
   void set_initialized();
-  std::string check_simulation();
+  std::string check_simulation(const size_t, const size_t);
   bool test_for_new_results();
 
   // graphics pass-through calls

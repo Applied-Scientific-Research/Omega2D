@@ -233,7 +233,7 @@ int main(int, char**)
       }
 
       // check flow for blow-up or errors
-      sim_err_msg = sim.check_simulation();
+      sim_err_msg = sim.check_simulation(ffeatures.size(), bfeatures.size());
 
       if (sim_err_msg.empty()) {
         // the last simulation step was fine, OK to continue
