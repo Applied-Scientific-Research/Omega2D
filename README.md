@@ -76,13 +76,13 @@ Tasks to consider or implement:
 * Add a "ms/frame" and "FPS" for the simulation component also
 * Add a batch mode also - once you get json reading and png writing working
 * If we're adding png output, might as well add a "Record" button!
-* Add warning when there are no flow structures or boundary structures
-* Add warning when there are bodies, but no freestream and no flow structures and no particles (because nothing will happen)
+* ~~Add warning when there are no flow structures or boundary structures~~
+* ~~Add warning when there are bodies, but no freestream and no flow structures and no particles (because nothing will happen)~~
 * Add "got it" button to first section (the welcome section)
 * Make the sections of the GUI collapsable
 * Add a "Run to time..." button to allow users to run a sim up to an exact time
 * Add "Save setup", "Save flow", and "Save image" buttons
-* Limit the upper level for dt to 0.1, lower level for Re at 10, limit circle radius between 0.01 and 10.0 but use logarithmic slider!
+* ~~Limit the upper level for dt to 0.1, lower level for Re at 10, limit circle radius between 0.01 and 10.0 but use logarithmic slider!~~
 * Ideal initial interface: lots of stuff hidden, just a graphical menu with circles, squares, vortex patches, etc. Each has handles that you can drag to resize and reposition the element; all sizes/locations quantized to 0.1 or 0.05. "Expert" box lets you change Re, dt, etc.
 * Add an animated GIF to the page to show how to set up a run?
 * Have "status" line indicate when we're waiting for a step to finish after we've hit pause
