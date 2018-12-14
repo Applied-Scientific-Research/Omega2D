@@ -133,8 +133,12 @@ void compute_projection_matrix(GLFWwindow*         _thiswin,
   last_h = display_h;
 }
 
-int main(int, char**)
-{
+
+// execution starts here
+
+int main(int argc, char const *argv[]) {
+  std::cout << std::endl << "Omega2D GUI" << std::endl;
+
   // Set up vortex particle simulation
   Simulation sim;
   std::vector< std::unique_ptr<FlowFeature> > ffeatures;
@@ -152,7 +156,7 @@ int main(int, char**)
 #if __APPLE__
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
-  GLFWwindow* window = glfwCreateWindow(1280, 720, "Omega2D with ImGui", nullptr, nullptr);
+  GLFWwindow* window = glfwCreateWindow(1280, 720, "Omega2D GUI", nullptr, nullptr);
   glfwMakeContextCurrent(window);
   glfwSwapInterval(1); // Enable vsync
 
@@ -209,13 +213,11 @@ int main(int, char**)
     bool is_ready = sim.test_for_new_results();
 
     // see if we should start a new step
-    //std::cout << "is_ready " << is_ready << "  sim_is_running " << sim_is_running << "  begin_single_step " << begin_single_step << std::endl;
-
     if (is_ready and (sim_is_running || begin_single_step)) {
 
       // if particles are not yet created, make them
       if (not sim.is_initialized()) {
-        std::cout << "Initializing simulation" << std::endl;
+        std::cout << std::endl << "Initializing simulation" << std::endl;
 
         // initialize particle distributions
         for (auto const& ff: ffeatures) {
@@ -449,6 +451,7 @@ int main(int, char**)
         ImGui::EndPopup();
       }
 
+
       // button and modal window for adding new boundary objects
       ImGui::SameLine();
       if (ImGui::Button("Add new boundary structure")) ImGui::OpenPopup("New boundary structure");
@@ -565,7 +568,7 @@ int main(int, char**)
 
     }
 
-    // done drawing the Omega2D window
+    // done drawing the Omega2D UI window
     ImGui::End();
     }
 
