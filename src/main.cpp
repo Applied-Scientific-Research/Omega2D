@@ -291,11 +291,12 @@ int main(int, char**)
     //
     {
 
-      ImGui::Begin("Omega2D");
-      ImGui::TextWrapped("Welcome to Omega2D. First set your simulation globals, then add one or more flow structures, then press RUN. Have fun!");
+    ImGui::Begin("Omega2D");
+    ImGui::TextWrapped("Welcome to Omega2D. First set your simulation globals, then add one or more flow structures, then press RUN. Have fun!");
 
-      ImGui::Separator();
-      ImGui::Text("Simulation globals");
+    ImGui::Spacing();
+    if (ImGui::CollapsingHeader("Simulation globals", ImGuiTreeNodeFlags_DefaultOpen)) {
+
       ImGui::SliderFloat("Time step", sim.addr_dt(), 0.001f, 0.1f, "%.4f", 2.0f);
       ImGui::Checkbox("Fluid is viscous (diffuses)", &is_viscous);
       if (is_viscous) {
@@ -314,9 +315,10 @@ int main(int, char**)
         sim.set_re_for_ips(my_ips);
       }
       ImGui::InputFloat2("Freestream speed", sim.addr_fs());
+    }
 
-      ImGui::Separator();
-      ImGui::Text("Flow structures");
+    ImGui::Spacing();
+    if (ImGui::CollapsingHeader("Flow structures", ImGuiTreeNodeFlags_DefaultOpen)) {
 
       int buttonIDs = 10;
 
@@ -501,8 +503,10 @@ int main(int, char**)
         ImGui::EndPopup();
       }
 
-      ImGui::Separator();
-      ImGui::Text("Rendering parameters");
+    } // end flow structures
+
+    ImGui::Spacing();
+    if (ImGui::CollapsingHeader("Rendering parameters")) {
       ImGui::ColorEdit3("positive circulation", (float*)&pos_circ_color);
       ImGui::ColorEdit3("negative circulation", (float*)&neg_circ_color);
       ImGui::ColorEdit3("background color", (float*)&clear_color);
@@ -515,8 +519,15 @@ int main(int, char**)
         vsize = 2.0f;
       }
 
+      // add button to recenter on all vorticity?
 
+      // help separate this from the final info
       ImGui::Separator();
+    }
+    ImGui::Spacing();
+
+    // all the other stuff
+    {
       if (sim_is_running) {
         ImGui::Text("Simulation is running...time = %g", sim.get_time());
         if (ImGui::Button("PAUSE", ImVec2(200,0))) sim_is_running = false;
@@ -534,21 +545,26 @@ int main(int, char**)
         std::cout << "Reset complete" << std::endl;
       }
 
-      ImGui::Separator();
+      ImGui::Spacing();
+      //ImGui::Separator();
       /*
       ImGui::Text("Open additional windows");
       if (ImGui::Button("Plot statistics")) show_stats_window ^= 1;
       ImGui::SameLine();
       if (ImGui::Button("Show terminal output")) show_terminal_window ^= 1;
       ImGui::SameLine();
-      if (ImGui::Button("ImGui Samples")) show_test_window ^= 1;
-      //if (ImGui::Button("Another Window")) show_another_window ^= 1;
       */
-      ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+      //if (ImGui::Button("ImGui Samples")) show_test_window ^= 1;
+      //if (ImGui::Button("Another Window")) show_another_window ^= 1;
+
+      ImGui::Text("Draw frame rate: %.2f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
       ImGui::Text("Number of panels: %ld  Number of particles: %ld", sim.get_npanels(), sim.get_nparts());
 
-      ImGui::End();
+    }
+
+    // done drawing the Omega2D window
+    ImGui::End();
     }
 
     // Show the simulation stats as 2D plots
