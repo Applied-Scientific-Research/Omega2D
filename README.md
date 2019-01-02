@@ -73,11 +73,12 @@ Pictured below is a simulation of viscous flow over a circle at Reynolds number 
 ## To do
 Tasks to consider or implement:
 
+* Move the GUI and pre-run parts of the various Body classes into their own class/file and out of main.cpp and Body.h
 * When running, grey out the dt and Re fields - those are the only things you can't change
 * Add a "ms/frame" and "FPS" for the simulation component also
-* Add a batch mode also - once you get json reading and png writing working
+* Add a batch mode also - once you get json reading and png writing working - do we really need this?
 * If we're adding png output, might as well add a "Record" button!
-* Add "got it" button to first section (the welcome section)
+* Add "got it" button to first section (the welcome section) to make it go away (forever?)
 * Add a "Run to time..." button to allow users to run a sim up to an exact time
 * Add "Save setup", "Save flow", and "Save image" buttons
 * Ideal initial interface: lots of stuff hidden, just a graphical menu with circles, squares, vortex patches, etc. Each has handles that you can drag to resize and reposition the element; all sizes/locations quantized to 0.1 or 0.05. "Expert" box lets you change Re, dt, etc.
