@@ -130,18 +130,51 @@ std::vector<S> Circle<S>::discretize(const S _ds) {
   printf("Adding circle with %ld panels\n", num_panels);
 
   // coordinates of nodes
-  std::vector<S> retval(2*num_panels);
+  std::vector<S> retvec(2*num_panels);
 
   // outside is to the left walking from one point to the next
   // so go CW around the circle starting at theta=0 (+x axis)
   for (size_t i=0; i<num_panels; i++) {
-    retval[2*i]   = this->pos[0] + rad * cos(2.0 * M_PI * (S)i / (S)num_panels);
-    retval[2*i+1] = this->pos[1] - rad * sin(2.0 * M_PI * (S)i / (S)num_panels);
+    retvec[2*i]   = this->pos[0] + rad * cos(2.0 * M_PI * (S)i / (S)num_panels);
+    retvec[2*i+1] = this->pos[1] - rad * sin(2.0 * M_PI * (S)i / (S)num_panels);
   }
 
-  //return std::array< std::vector<S>,2 >(x,y);
-  return retval;
+  return retvec;
 }
+
+
+// discretize into an array of nodes
+/*
+template <class S>
+std::vector<S> Oval<S>::discretize(const S _ds) {
+
+  // how many panels?
+  size_t num_panels = std::min(10000, std::max(5, (int)(2.0*rad*M_PI / _ds)));
+
+  printf("Adding circle with %ld panels\n", num_panels);
+
+  const S rotation = M_PI * ((float)rand()/(float)RAND_MAX);
+  const S r1 = 1.0 + ((float)rand()/(float)RAND_MAX);
+  const S r2 = 1.0 / r1;
+
+  // coordinates of nodes
+  std::vector<S> retvec(2*num_panels);
+
+  // outside is to the left walking from one point to the next
+  // so go CW around the circle starting at theta=0 (+x axis)
+  for (size_t i=0; i<num_panels; i++) {
+    const S theta = 2.0 * M_PI * (S)i / (S)num_panels;
+    //retvec[2*i]   = this->pos[0] + rad * r1 * cos(theta);
+    //retvec[2*i+1] = this->pos[1] - rad * r2 * sin(theta);
+    const S dx = rad * r1 * cos(theta);
+    const S dy = -rad * r2 * sin(theta);
+    retvec[2*i]   = this->pos[0] + dx*cos(rotation) - dy*sin(rotation);
+    retvec[2*i+1] = this->pos[1] + dx*sin(rotation) + dy*cos(rotation);
+  }
+
+  return retvec;
+}
+*/
 
 
 //------------------------------------------------------------------------
