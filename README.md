@@ -73,6 +73,7 @@ Pictured below is a simulation of viscous flow over a circle at Reynolds number 
 ## To do
 Tasks to consider or implement:
 
+* When running, grey out the dt and Re fields - those are the only things you can't change
 * Add a "ms/frame" and "FPS" for the simulation component also
 * Add a batch mode also - once you get json reading and png writing working
 * If we're adding png output, might as well add a "Record" button!
