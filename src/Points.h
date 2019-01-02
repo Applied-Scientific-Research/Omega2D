@@ -40,7 +40,7 @@ public:
     std::cout << "  new collection with " << (_in.size()/4) << " particles..." << std::endl;
 
     // make sure we have a complete input vector
-    assert(_in.size() % 7 == 0);
+    assert(_in.size() % 4 == 0);
 
     // this initialization specific to Points
     for (size_t d=0; d<Dimensions; ++d) {
@@ -49,20 +49,18 @@ public:
         this->x[d][i] = _in[4*i+d];
       }
     }
-    this->r.resize(this->n);
+    r.resize(this->n);
     for (size_t i=0; i<this->n; ++i) {
-      this->r[i] = _in[4*i+3];
+      r[i] = _in[4*i+3];
     }
 
     // optional strength in base class
     if (_e != inert) {
       // need to assign it a vector first!
-      std::array<Vector<S>,3> new_s;
-      for (size_t d=0; d<3; ++d) {
-        new_s[d].resize(this->n);
-        for (size_t i=0; i<this->n; ++i) {
-          new_s[d][i] = _in[7*i+d+3];
-        }
+      Vector<S> new_s;
+      new_s.resize(this->n);
+      for (size_t i=0; i<this->n; ++i) {
+        new_s[i] = _in[4*i+2];
       }
       this->s = std::move(new_s);
     }
@@ -73,6 +71,9 @@ public:
     }
   }
 
+  const Vector<S>& get_rad() const { return r; }
+  Vector<S>&       get_rad()       { return r; }
+
   void add_new(std::vector<float>& _in) {
     // remember old size and incoming size
     const size_t nold = this->n;
@@ -81,6 +82,12 @@ public:
 
     // must explicitly call the method in the base class first
     ElementBase<S>::add_new(_in);
+
+    // then do local stuff
+    r.resize(nold+nnew);
+    for (size_t i=0; i<nnew; ++i) {
+      r[nold+i] = _in[4*i+3];
+    }
   }
 
   // up-size all arrays to the new size, filling with sane values
@@ -92,6 +99,13 @@ public:
     ElementBase<S>::resize(_nnew);
 
     if (_nnew == currn) return;
+
+    // radii here
+    const size_t thisn = r.size();
+    r.resize(_nnew);
+    for (size_t i=thisn; i<_nnew; ++i) {
+      r[i] = 1.0;
+    }
   }
 
   void zero_vels() {
@@ -224,7 +238,7 @@ public:
       glBufferData(GL_ARRAY_BUFFER, 0, this->x[i].data(), GL_STATIC_DRAW);
     }
     glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
-    glBufferData(GL_ARRAY_BUFFER, 0, this->r.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 0, r.data(), GL_STATIC_DRAW);
     if (this->s) {
       glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
       glBufferData(GL_ARRAY_BUFFER, 0, (*this->s).data(), GL_STATIC_DRAW);
@@ -314,15 +328,15 @@ public:
         // the positions
         glBindBuffer(GL_ARRAY_BUFFER, vbo[i]);
         glBufferData(GL_ARRAY_BUFFER, vlen, this->x[i].data(), GL_DYNAMIC_DRAW);
-        // the strengths
-        if (this->s) {
-          glBindBuffer(GL_ARRAY_BUFFER, vbo[i+3]);
-          glBufferData(GL_ARRAY_BUFFER, vlen, (*this->s)[i].data(), GL_DYNAMIC_DRAW);
-        }
+      }
+      // the strengths
+      if (this->s) {
+        glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
+        glBufferData(GL_ARRAY_BUFFER, vlen, (*this->s).data(), GL_DYNAMIC_DRAW);
       }
       // the radii
-      glBindBuffer(GL_ARRAY_BUFFER, vbo[6]);
-      glBufferData(GL_ARRAY_BUFFER, vlen, this->r.data(), GL_DYNAMIC_DRAW);
+      glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
+      glBufferData(GL_ARRAY_BUFFER, vlen, r.data(), GL_DYNAMIC_DRAW);
     }
   }
 
@@ -380,12 +394,15 @@ public:
 protected:
   // movement
   //std::optional<Body&> b;
+
+  // state vector
+  Vector<S> r;					// thickness/radius
   // in 3D, this is where elong and ug would be
 
 private:
 #ifdef USE_GL
   // OpenGL stuff
-  GLuint vao, vbo[7];
+  GLuint vao, vbo[4];
   GLuint draw_blob_program;
   GLint projmat_attribute, quad_attribute;
   GLint pos_color_attribute, neg_color_attribute, str_scale_attribute;

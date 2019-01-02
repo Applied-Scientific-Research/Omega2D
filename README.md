@@ -73,6 +73,8 @@ Pictured below is a simulation of viscous flow over a circle at Reynolds number 
 ## To do
 Tasks to consider or implement:
 
+* Replace core architecture (using std::variant and Collection)
+* Get new arch to create a rake of inert particles, compute their motion, and draw them
 * Move the GUI and pre-run parts of the various Body classes into their own class/file and out of main.cpp and Body.h
 * When running, grey out the dt and Re fields - those are the only things you can't change
 * Add a "ms/frame" and "FPS" for the simulation component also
@@ -84,7 +86,6 @@ Tasks to consider or implement:
 * Ideal initial interface: lots of stuff hidden, just a graphical menu with circles, squares, vortex patches, etc. Each has handles that you can drag to resize and reposition the element; all sizes/locations quantized to 0.1 or 0.05. "Expert" box lets you change Re, dt, etc.
 * Add an animated GIF to the page to show how to set up a run?
 * Have "status" line indicate when we're waiting for a step to finish after we've hit pause
-* Replace core architecture (using std::variant and Collection)
 * Instead of manipulating the projection matrix, have the mouse change the view matrix (assume model matrix is unity), see [here](https://solarianprogrammer.com/2013/05/22/opengl-101-matrices-projection-view-model/) for a nice write-up on the three OpenGL matrices
 * Support multiple Lagrangian element collections under an Elements structure
 * Support faster VRM by caching values from first half to use in second half
@@ -111,6 +112,7 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~Move radius from ElementBase to Points~~
 * ~~Space bar pauses and resumes simulation (need to capture keyboard inputs)~~
 * ~~Add warning when there are no flow structures or boundary structures~~
 * ~~Add warning when there are bodies, but no freestream and no flow structures and no particles (because nothing will happen)~~
