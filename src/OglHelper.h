@@ -6,7 +6,13 @@
  */
 
 #pragma once
+
+// for glad
+#ifdef _WIN32
+  #define APIENTRY __stdcall
+#endif
 #include "glad.h"
+
 #include <cstdint>
 
 template <class T>
