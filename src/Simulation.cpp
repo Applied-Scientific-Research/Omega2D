@@ -18,6 +18,7 @@ Simulation::Simulation()
     fs{0.0,0.0},
     vort(),
     bdry(),
+    fldpt(),
     diff(),
     conv(),
     time(0.0),

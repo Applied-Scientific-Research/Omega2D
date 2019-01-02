@@ -80,16 +80,16 @@ private:
 
   // Object to contain all Lagrangian elements
   Vorticity<float,uint16_t> vort;
-  //std::vector<Collection> vort;
+  //std::vector<Collection> vort;	// active elements
 
   // Object to contain all Reactive elements
   //   inside is the vector of bodies and inlets and liftinglines/kuttapoints
   //   and the Panels list of all unknowns discretized representations
   Boundaries<float,uint16_t> bdry;
-  //std::vector<Collection> bdry;
+  //std::vector<Collection> bdry;	// reactive-active elements like BEM surfaces
 
   // Object with all of the non-reactive, non-active (inert) points
-  //std::vector<Collection> fldpt;        // tracers and field points
+  std::vector<Collection> fldpt;	// tracers and field points
 
   // Diffusion will resolve exchange of strength among particles and between panels and particles
   // Note that NNLS needs doubles for its compute type or else it will fail
