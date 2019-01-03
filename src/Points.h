@@ -33,29 +33,50 @@ template <class S>
 class Points: public ElementBase<S> {
 public:
   // flexible constructor - use input 4*n vector (x, y, s, r)
+  //                         or input 2*n vector (x, y)
   Points(const std::vector<S>& _in, const elem_t _e, const move_t _m)
-    : ElementBase<S>(_in.size()/4, _e, _m),
+    : ElementBase<S>(0, _e, _m),
       max_strength(-1.0) {
 
-    std::cout << "  new collection with " << (_in.size()/4) << " particles..." << std::endl;
+    size_t nper = 4;
+    if (_e == inert) {
+      nper = 2;
+      std::cout << "  new collection with " << (_in.size()/nper) << " tracers..." << std::endl;
+    } else {
+      nper = 4;
+      std::cout << "  new collection with " << (_in.size()/nper) << " vortons..." << std::endl;
+    }
+
+    // need to reset the base class n
+    this->n = _in.size()/nper;
 
     // make sure we have a complete input vector
-    assert(_in.size() % 4 == 0);
+    assert(_in.size() % nper == 0);
 
     // this initialization specific to Points
     for (size_t d=0; d<Dimensions; ++d) {
       this->x[d].resize(this->n);
       for (size_t i=0; i<this->n; ++i) {
-        this->x[d][i] = _in[4*i+d];
+        this->x[d][i] = _in[nper*i+d];
       }
     }
-    r.resize(this->n);
-    for (size_t i=0; i<this->n; ++i) {
-      r[i] = _in[4*i+3];
-    }
 
-    // optional strength in base class
-    if (_e != inert) {
+
+    if (_e == inert) {
+      // field points need no radius, but we must set one anyway so that vel evals work
+      r.resize(this->n);
+      for (size_t i=0; i<this->n; ++i) {
+        r[i] = 0.0;
+      }
+
+    } else {
+      // active vortons need a radius
+      r.resize(this->n);
+      for (size_t i=0; i<this->n; ++i) {
+        r[i] = _in[4*i+3];
+      }
+
+      // optional strength in base class
       // need to assign it a vector first!
       Vector<S> new_s;
       new_s.resize(this->n);

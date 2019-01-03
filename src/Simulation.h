@@ -53,6 +53,7 @@ public:
 
   // receive and add a set of particles
   void add_particles(std::vector<float>);
+  void add_tracers(std::vector<float>);
   void add_boundary(bdryType, std::vector<float>);
 
   // act on stuff
@@ -80,7 +81,7 @@ private:
 
   // Object to contain all Lagrangian elements
   Vorticity<float,uint16_t> vort;
-  //std::vector<Collection> vort;	// active elements
+  std::vector<Collection> vort2;	// active elements
 
   // Object to contain all Reactive elements
   //   inside is the vector of bodies and inlets and liftinglines/kuttapoints

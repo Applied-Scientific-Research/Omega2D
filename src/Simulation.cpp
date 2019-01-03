@@ -6,10 +6,12 @@
  */
 
 #include "Simulation.h"
+#include "Points.h"
 
 #include <cassert>
 #include <cmath>
 #include <limits>
+#include <variant>
 
 // constructor
 Simulation::Simulation()
@@ -17,6 +19,7 @@ Simulation::Simulation()
     dt(0.01),
     fs{0.0,0.0},
     vort(),
+    vort2(),
     bdry(),
     fldpt(),
     diff(),
@@ -211,7 +214,7 @@ void Simulation::step() {
   time += (double)dt;
 }
 
-// set up the particles
+// add some vortex particles
 void Simulation::add_particles(std::vector<float> _xysr) {
 
   if (_xysr.size() == 0) return;
@@ -220,12 +223,45 @@ void Simulation::add_particles(std::vector<float> _xysr) {
   assert(_xysr.size() % 4 == 0);
 
   // add the vdelta to each particle and pass it on
+  const float thisvd = get_vdelta();
   for (size_t i=3; i<_xysr.size(); i+=4) {
-    _xysr[i] = get_vdelta();
+    _xysr[i] = thisvd;
   }
 
   // also add to vorticity
   vort.add_new(_xysr);
+
+  // add to new archtecture's vorticity (vort2)
+  // if no collections exist
+  if (vort2.size() == 0) {
+    // make a new collection
+    vort2.push_back(Points<float>(_xysr, active, lagrangian));      // vortons
+  } else {
+    // THIS MUST USE A VISITOR
+    // HACK - add all particles to first collection
+    std::visit([&](auto& elem) { elem.add_new(_xysr); }, vort2.back());
+  }
+}
+
+// add some tracer particles
+void Simulation::add_tracers(std::vector<float> _xy) {
+
+  if (_xy.size() == 0) return;
+
+  // make sure we're getting full points
+  assert(_xy.size() % 2 == 0);
+
+  // add to new archtecture
+
+  // if no collections exist
+  if (fldpt.size() == 0) {
+    // make a new collection
+    fldpt.push_back(Points<float>(_xy, inert, lagrangian));      // vortons
+  } else {
+    // THIS MUST USE A VISITOR
+    // HACK - add all particles to first collection
+    std::visit([&](auto& elem) { elem.add_new(_xy); }, fldpt.back());
+  }
 }
 
 // add geometry
