@@ -196,6 +196,7 @@ int main(int argc, char const *argv[]) {
   bool show_terminal_window = false;
   bool show_test_window = false;
   ImVec4 clear_color = ImColor(15, 15, 15);
+  ImVec4 other_color = ImColor(204, 204, 204);
   ImVec4 pos_circ_color = ImColor(207, 47, 47);
   ImVec4 neg_circ_color = ImColor(63, 63, 255);
   //static bool show_origin = true;
@@ -566,9 +567,9 @@ int main(int argc, char const *argv[]) {
 
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Rendering parameters")) {
-      //ImGui::ColorEdit3("tracer color", (float*)&pos_circ_color);
       ImGui::ColorEdit3("positive circulation", (float*)&pos_circ_color);
       ImGui::ColorEdit3("negative circulation", (float*)&neg_circ_color);
+      ImGui::ColorEdit3("feature color", (float*)&other_color);
       ImGui::ColorEdit3("background color", (float*)&clear_color);
       //ImGui::Checkbox("show origin", &show_origin);
 
