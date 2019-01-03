@@ -134,7 +134,7 @@ public:
     ElementBase<S>::zero_vels();
   }
 
-  void finalize_vels(const std::array<double,Dimensions>& _fs) {
+  void finalize_vels(const std::array<float,Dimensions>& _fs) {
     // must explicitly call the method in the base class, too
     ElementBase<S>::finalize_vels(_fs);
   }

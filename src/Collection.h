@@ -8,7 +8,7 @@
 #pragma once
 
 #include "Points.h"
-#include "Panels.h"
+//#include "Panels.h"
 
 #include <variant>
 

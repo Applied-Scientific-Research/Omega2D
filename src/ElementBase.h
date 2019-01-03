@@ -32,8 +32,8 @@ public:
   size_t getn() const { return n; }
   const std::array<Vector<S>,Dimensions>& get_pos() const { return x; }
   std::array<Vector<S>,Dimensions>&       get_pos()       { return x; }
-  const std::array<Vector<S>,Dimensions>& get_str() const { return *s; }
-  std::array<Vector<S>,Dimensions>&       get_str()       { return *s; }
+  const Vector<S>&                        get_str() const { return *s; }
+  Vector<S>&                              get_str()       { return *s; }
   std::array<Vector<S>,Dimensions>&       get_vel()       { return u; }
 
   void add_new(std::vector<float>& _in) {
@@ -116,7 +116,7 @@ public:
       }
     }
   }
-  void finalize_vels(const std::array<double,Dimensions>& _fs) {
+  void finalize_vels(const std::array<float,Dimensions>& _fs) {
     for (size_t d=0; d<Dimensions; ++d) {
       for (size_t i=0; i<getn(); ++i) {
         u[d][i] = _fs[d] + u[d][i] * 0.5/M_PI;
