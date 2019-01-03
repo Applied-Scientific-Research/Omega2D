@@ -73,6 +73,9 @@ Pictured below is a simulation of viscous flow over a circle at Reynolds number 
 ## To do
 Tasks to consider or implement:
 
+* Move some initialization back into ElementBase - like positions and such, keep radius in Points, then ElementBase can draw points?
+* Make a second copy of all particles in Points and compute their motion, also - compare to Particles
+* Make alternative path for drawing points - do not pass strength or radius, just color and position
 * Replace core architecture (using std::variant and Collection)
 * Get new arch to create a rake of inert particles, compute their motion, and draw them
 * Move the GUI and pre-run parts of the various Body classes into their own class/file and out of main.cpp and Body.h
