@@ -55,9 +55,10 @@ public:
 
     // strength
     if (s) {
-      s.resize(n+nnew);
+      // must dereference s to get the actual vector
+      (*s).resize(n+nnew);
       for (size_t i=0; i<nnew; ++i) {
-        s[n+i] = _in[4*i+2];
+        (*s)[n+i] = _in[4*i+2];
       }
     }
 
