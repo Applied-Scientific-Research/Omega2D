@@ -244,13 +244,14 @@ public:
               float*              _poscolor,
               float*              _negcolor) {
 
-    std::cout << "inside Points.initGL" << std::endl;
+    //std::cout << "inside Points.initGL" << std::endl;
+    std::cout << "inside Points.initGL with E=" << this->E << " and M=" << this->M << std::endl;
 
     // Use a Vertex Array Object
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
-    // Create seven Vector Buffer Objects that will store the vertices on video memory
+    // Create four Vector Buffer Objects that will store the vertex arrays in gpu memory
     glGenBuffers(4, vbo);
 
     // Allocate space, but don't upload the data from CPU to GPU yet
@@ -258,6 +259,12 @@ public:
       glBindBuffer(GL_ARRAY_BUFFER, vbo[i]);
       glBufferData(GL_ARRAY_BUFFER, 0, this->x[i].data(), GL_STATIC_DRAW);
     }
+
+    // here is where we split on element type: active/reactive vs. inert
+    if (this->E == inert) {
+
+    } else { // this->E is active or reactive
+
     glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
     glBufferData(GL_ARRAY_BUFFER, 0, r.data(), GL_STATIC_DRAW);
     if (this->s) {
@@ -323,6 +330,10 @@ public:
     // and indicate the fragment color output
     glBindFragDataLocation(draw_blob_program, 0, "frag_color");
 
+    } // end this->E is active or reactive
+
+    // and here is where we re-join them
+
     // Initialize the quad attributes
     std::vector<float> quadverts = {-1,-1, 1,-1, 1,1, -1,1};
     GLuint qvbo;
@@ -350,6 +361,12 @@ public:
         glBindBuffer(GL_ARRAY_BUFFER, vbo[i]);
         glBufferData(GL_ARRAY_BUFFER, vlen, this->x[i].data(), GL_DYNAMIC_DRAW);
       }
+
+    // here is where we split on element type: active/reactive vs. inert
+    if (this->E == inert) {
+
+    } else { // this->E is active or reactive
+
       // the strengths
       if (this->s) {
         glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
@@ -358,6 +375,7 @@ public:
       // the radii
       glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
       glBufferData(GL_ARRAY_BUFFER, vlen, r.data(), GL_DYNAMIC_DRAW);
+      }
     }
   }
 
@@ -382,8 +400,15 @@ public:
       glEnable(GL_BLEND);
       glBlendFunc(GL_ONE, GL_ONE);
 
-      // draw as colored clouds
-      if (true) {
+      // here is where we split on element type: active/reactive vs. inert
+      if (this->E == inert) {
+
+        // draw as small dots
+        //glUseProgram(draw_point_program);
+
+      } else { // this->E is active or reactive
+
+        // draw as colored clouds
         glUseProgram(draw_blob_program);
 
         glEnableVertexAttribArray(quad_attribute);
@@ -424,7 +449,7 @@ private:
 #ifdef USE_GL
   // OpenGL stuff
   GLuint vao, vbo[4];
-  GLuint draw_blob_program;
+  GLuint draw_blob_program, draw_point_program;
   GLint projmat_attribute, quad_attribute;
   GLint pos_color_attribute, neg_color_attribute, str_scale_attribute;
 #endif
