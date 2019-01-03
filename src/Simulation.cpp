@@ -61,6 +61,7 @@ void Simulation::set_diffuse(const bool _do_diffuse) {
 //  diff.set_diffuse(true);
 //}
 
+#ifdef USE_GL
 void Simulation::initGL(std::vector<float>& _projmat,
                         float*              _poscolor,
                         float*              _negcolor) {
@@ -79,6 +80,7 @@ void Simulation::drawGL(std::vector<float>& _projmat,
     vort.drawGL(_projmat, _poscolor, _negcolor);
   }
 }
+#endif
 
 //
 // main must indicate that panels should be made
@@ -104,7 +106,10 @@ void Simulation::reset() {
   // now reset everything else
   time = 0.0;
   vort.reset();
+  vort2.clear();
   bdry.reset();
+  bdry2.clear();
+  fldpt.clear();
   sim_is_initialized = false;
   step_has_started = false;
   step_is_finished = false;
@@ -161,8 +166,10 @@ bool Simulation::test_for_new_results() {
     // if we did, and it's ready to give us the results
     stepfuture.get();
 
+#ifdef USE_GL
     // tell flow objects to update their values to the GPU
     updateGL();
+#endif
 
     // set flag indicating that at least one step has been solved
     step_is_finished = true;
@@ -190,7 +197,7 @@ void Simulation::step() {
   std::cout << "taking step at t=" << time << " with n=" << vort.get_n() << std::endl;
 
   // we wind up using this a lot
-  std::array<float,2> thisfs = reinterpret_cast<std::array<float,2>&>(fs);
+  std::array<float,2> thisfs = {fs[0], fs[1]};
 
   // are panels even made? do this first
   bdry.make_panels(get_ips());
@@ -218,7 +225,7 @@ void Simulation::step() {
   time += (double)dt;
 }
 
-// add some vortex particles
+// add some vortex particles to both old and new arch
 void Simulation::add_particles(std::vector<float> _xysr) {
 
   if (_xysr.size() == 0) return;
@@ -250,7 +257,7 @@ void Simulation::add_particles(std::vector<float> _xysr) {
   }
 }
 
-// add some tracer particles
+// add some tracer particles to new arch
 void Simulation::add_tracers(std::vector<float> _xy) {
 
   if (_xy.size() == 0) return;
