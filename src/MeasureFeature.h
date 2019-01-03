@@ -30,7 +30,7 @@ public:
 protected:
   float m_x;
   float m_y;
-  bool m_is_lagrangian;
+  bool  m_is_lagrangian;
 };
 
 std::ostream& operator<<(std::ostream& os, MeasureFeature const& ff);
@@ -45,12 +45,13 @@ std::ostream& operator<<(std::ostream& os, MeasureFeature const& ff);
 // periodic rake tracer emitter
 // grid of fixed field points
 // solid block (square, circle) of tracers
+// single streamline (save all positions of a single point, draw as a line)
 //
 
 
 
 //
-// Concrete class for a single particle
+// Concrete class for a single measurement point
 //
 class SinglePoint : public MeasureFeature {
 public:
@@ -69,7 +70,7 @@ protected:
 
 
 //
-// Concrete class for a particle emitter (one per frame)
+// Concrete class for an immobile particle emitter (one per frame)
 //
 class TracerEmitter : public SinglePoint {
 public:
