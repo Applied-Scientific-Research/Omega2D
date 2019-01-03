@@ -203,7 +203,7 @@ void Simulation::async_step() {
 // here's the vortex method: convection and diffusion with operator splitting
 //
 void Simulation::step() {
-  std::cout << "taking step at t=" << time << " with n=" << vort.get_n() << std::endl;
+  std::cout << std::endl << "Taking step at t=" << time << " with n=" << vort.get_n() << std::endl;
 
   // we wind up using this a lot
   std::array<double,2> thisfs = {fs[0], fs[1]};
