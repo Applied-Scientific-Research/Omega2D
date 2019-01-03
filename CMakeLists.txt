@@ -116,6 +116,7 @@ SET(SOURCES "src/Simulation.cpp"
             "src/FlowFeature.cpp"
             "src/CollectionHelper.cpp"
             "src/BoundaryFeature.cpp"
+            "src/MeasureFeature.cpp"
             "src/main.cpp")
 file(GLOB IMGUISOURCES "src/imgui/*.cpp" )
 

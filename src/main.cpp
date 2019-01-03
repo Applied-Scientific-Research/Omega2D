@@ -7,6 +7,7 @@
 
 #include "FlowFeature.h"
 #include "BoundaryFeature.h"
+#include "MeasureFeature.h"
 #include "Simulation.h"
 
 #ifdef _WIN32
@@ -143,6 +144,7 @@ int main(int argc, char const *argv[]) {
   Simulation sim;
   std::vector< std::unique_ptr<FlowFeature> > ffeatures;
   std::vector< std::unique_ptr<BoundaryFeature> > bfeatures;
+  std::vector< std::unique_ptr<MeasureFeature> > mfeatures;
   static bool sim_is_running = false;
   static bool begin_single_step = false;
 
@@ -229,6 +231,11 @@ int main(int argc, char const *argv[]) {
           sim.add_boundary( bf->get_type(), bf->get_params() );
         }
 
+        // initialize measurement features
+        for (auto const& mf: mfeatures) {
+          sim.add_tracers( mf->init_particles(sim.get_ips()) );
+        }
+
         // initialize panels
         sim.init_bcs();
         sim.set_initialized();
@@ -243,6 +250,9 @@ int main(int argc, char const *argv[]) {
         // generate new particles from emitters
         for (auto const& ff : ffeatures) {
           sim.add_particles( ff->step_particles(sim.get_ips()) );
+        }
+        for (auto const& mf: mfeatures) {
+          sim.add_tracers( mf->step_particles(sim.get_ips()) );
         }
 
         // begin a new dynamic step: convection and diffusion
