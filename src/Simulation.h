@@ -87,7 +87,7 @@ private:
   //   inside is the vector of bodies and inlets and liftinglines/kuttapoints
   //   and the Panels list of all unknowns discretized representations
   Boundaries<float,uint16_t> bdry;
-  //std::vector<Collection> bdry;	// reactive-active elements like BEM surfaces
+  std::vector<Collection> bdry2;	// reactive-active elements like BEM surfaces
 
   // Object with all of the non-reactive, non-active (inert) points
   std::vector<Collection> fldpt;	// tracers and field points

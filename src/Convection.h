@@ -7,6 +7,10 @@
 
 #pragma once
 
+#include "Omega2D.h"
+#include "Collection.h"
+#include "CollectionHelper.h"
+#include "NewInfluence.h"
 #include "Boundaries.h"
 #include "Influence.h"
 #include "Vorticity.h"
@@ -14,6 +18,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <vector>
+#include <variant>
 
 
 //
@@ -29,6 +34,11 @@ public:
                   const std::array<float,2>&,
                   Vorticity<S,I>&,
                   Boundaries<S,I>&);
+  void advect_1st(const double,
+                  const std::array<float,2>&,
+                  std::vector<Collection>&,
+                  std::vector<Collection>&,
+                  std::vector<Collection>&);
   void advect_2nd(const double,
                   const std::array<float,2>&,
                   Vorticity<S,I>&,
@@ -85,6 +95,63 @@ void Convection<S,A,I>::advect_1st(const double _dt,
   //std::cout << "After 1st order convection, particles are:" << std::endl;
   //if (n>0) std::cout << "  part 0 with str " << x[2] << " is at " << x[0] << " " << x[1] << std::endl;
 }
+
+
+template <class S, class A, class I>
+void Convection<S,A,I>::advect_1st(const double _dt,
+                                   const std::array<float,Dimensions>& _fs,
+                                   std::vector<Collection>& _vort,
+                                   std::vector<Collection>& _bdry,
+                                   std::vector<Collection>& _fldpt) {
+
+  std::cout << "  inside advect_1st with dt=" << _dt << std::endl;
+
+  // part A - unknowns
+
+  //solve_bem(_fs, _vort, _bdry);
+
+  // part B - knowns
+
+  //find_vels(_fs, _vort, _bdry, _fldpt);
+
+  // need this for dispatching velocity influence calls, template param is accumulator type
+  // should the solution_t be an argument to the constructor?
+  InfluenceVisitor<A> visitor;
+
+  // find the influence on every vorticity element
+  for (auto &targ : _vort) {
+    std::cout << "  Solving for velocities on" << to_string(targ) << std::endl << std::flush;
+    // zero velocities
+    std::visit([=](auto& elem) { elem.zero_vels(); }, targ);
+    // accumulate from vorticity
+    for (auto &src : _vort) {
+      // how do I specify the solver?
+      std::visit(visitor, src, targ);
+    }
+    // accumulate from boundaries
+    for (auto &src : _bdry) {
+      std::visit(visitor, src, targ);
+    }
+    // add freestream and divide by 2pi
+    std::visit([=](auto& elem) { elem.finalize_vels(_fs); }, targ);
+  }
+
+  // part C - convection here
+
+  std::cout << std::endl << "Convection step" << std::endl;
+
+  // move every movable element
+  for (auto &coll : _vort) {
+    std::visit([=](auto& elem) { elem.move(_dt); }, coll);
+  }
+  for (auto &coll : _bdry) {
+    std::visit([=](auto& elem) { elem.move(_dt); }, coll);
+  }
+  for (auto &coll : _fldpt) {
+    std::visit([=](auto& elem) { elem.move(_dt); }, coll);
+  }
+}
+
 
 //
 // second-order RK2 forward integration

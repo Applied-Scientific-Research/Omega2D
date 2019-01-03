@@ -21,6 +21,7 @@ Simulation::Simulation()
     vort(),
     vort2(),
     bdry(),
+    bdry2(),
     fldpt(),
     diff(),
     conv(),
@@ -201,8 +202,11 @@ void Simulation::step() {
   //diff.step(0.5*dt, get_vdelta(), get_ips(), thisfs, vort, bdry);
 
   // advect with no diffusion (must update BEM strengths)
-  //conv.advect_1st(dt, thisfs, vort, bdry);
-  conv.advect_2nd(dt, thisfs, vort, bdry);
+  conv.advect_1st(dt, thisfs, vort, bdry);
+  //conv.advect_2nd(dt, thisfs, vort, bdry);
+
+  // advect using new architecture
+  conv.advect_1st(dt, thisfs, vort2, bdry2, fldpt);
 
   // operator splitting requires another half-step diffuse (must compute new coefficients)
   //diff.step(0.5*dt, get_vdelta(), get_ips(), thisfs, vort, bdry);
@@ -228,6 +232,9 @@ void Simulation::add_particles(std::vector<float> _xysr) {
     _xysr[i] = thisvd;
   }
 
+  // make a copy of the vector so that the new arch can process it, too
+  std::vector<float> incopy = _xysr;
+
   // also add to vorticity
   vort.add_new(_xysr);
 
@@ -235,11 +242,11 @@ void Simulation::add_particles(std::vector<float> _xysr) {
   // if no collections exist
   if (vort2.size() == 0) {
     // make a new collection
-    vort2.push_back(Points<float>(_xysr, active, lagrangian));      // vortons
+    vort2.push_back(Points<float>(incopy, active, lagrangian));      // vortons
   } else {
     // THIS MUST USE A VISITOR
     // HACK - add all particles to first collection
-    std::visit([&](auto& elem) { elem.add_new(_xysr); }, vort2.back());
+    std::visit([&](auto& elem) { elem.add_new(incopy); }, vort2.back());
   }
 }
 
