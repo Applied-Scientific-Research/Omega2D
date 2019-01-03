@@ -65,7 +65,7 @@ protected:
 private:
   // drawing data
   GLuint vao, vbo;
-  GLuint blob_program, point_program;
+  GLuint blob_program;
   GLint projmat_attribute, projmat_attribute2, quad_attribute;
   GLint pos_color_attribute, neg_color_attribute, str_scale_attribute;
   float max_strength;
@@ -218,26 +218,6 @@ void Particles<S, I>::initGL(std::vector<float>& _projmat,
   glBufferData(GL_ARRAY_BUFFER, 0, x.data(), GL_STATIC_DRAW);
 
   //
-  // create the point drawing program
-  //
-  point_program = create_particlept_program();
-
-  // tell it to use the same vbo/buffer as the blob shader
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  GLint position_attribute2 = glGetAttribLocation(point_program, "position");
-  glVertexAttribPointer(position_attribute2, 4, get_gl_type<S>, GL_FALSE, 0, 0);
-  glEnableVertexAttribArray(position_attribute2);
-  glVertexAttribDivisor(position_attribute2, 0);
-
-  projmat_attribute2 = glGetUniformLocation(point_program, "Projection");
-  glUniformMatrix4fv(projmat_attribute2, 1, GL_FALSE, _projmat.data());
-
-  glBindFragDataLocation(point_program, 0, "frag_color");
-
-  // Enable gl_PointSize in the vertex shader
-  glEnable(GL_PROGRAM_POINT_SIZE);
-
-  //
   // load and create the blob-drawing shader program
   //
   blob_program = create_particle_program();
@@ -344,25 +324,6 @@ void Particles<S,I>::drawGL(std::vector<float>& _projmat,
 
       // the one draw call here
       glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, get_n());
-    }
-
-    // draw as white points
-    if (false) {
-      // this seems to only draw one point!
-      glUseProgram(point_program);
-
-      // do I need to turn this off?
-      glDisableVertexAttribArray(quad_attribute);
-
-      // upload the current projection matrix
-      glUniformMatrix4fv(projmat_attribute2, 1, GL_FALSE, _projmat.data());
-
-      glEnable(GL_PROGRAM_POINT_SIZE);
-      glPointSize(2.0);
-      //glColor4f(1.0, 1.0, 1.0, 0.5);
-
-      // the one draw call here
-      glDrawArrays(GL_POINTS, 0, get_n());
     }
 
     // return state
