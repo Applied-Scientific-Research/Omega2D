@@ -197,7 +197,7 @@ void Simulation::step() {
   std::cout << "taking step at t=" << time << " with n=" << vort.get_n() << std::endl;
 
   // we wind up using this a lot
-  std::array<float,2> thisfs = {fs[0], fs[1]};
+  std::array<double,2> thisfs = {fs[0], fs[1]};
 
   // are panels even made? do this first
   bdry.make_panels(get_ips());

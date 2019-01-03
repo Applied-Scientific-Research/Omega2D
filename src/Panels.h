@@ -55,7 +55,7 @@ public:
   void add_panels_from_closed_body(const std::vector<S>);
   void reset();
   void reset_vels();
-  void scale_and_add_freestream(const std::array<S,2>&);
+  void scale_and_add_freestream(const std::array<double,2>&);
   void solve_bem();
   void set_rhs(const std::vector<S>&);
   void find_strengths();
@@ -273,7 +273,7 @@ void Panels<S,I>::reset_vels() {
 // finish up velocity evaluation
 //
 template <class S, class I>
-void Panels<S,I>::scale_and_add_freestream(const std::array<S,2>& _fs) {
+void Panels<S,I>::scale_and_add_freestream(const std::array<double,2>& _fs) {
   assert(get_n() == vel.size()/2);
 
   for (size_t i=0; i<vel.size(); i+=2) {

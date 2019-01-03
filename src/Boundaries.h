@@ -37,7 +37,7 @@ public:
   const size_t get_npanels() const { return panels.get_n();}
   void reset();
   void reset_vels();
-  void scale_and_add_freestream(std::array<S,2> const &);
+  void scale_and_add_freestream(std::array<double,2> const &);
   void find_strengths();
 
   // graphics pass-through calls
@@ -108,7 +108,7 @@ void Boundaries<S,I>::reset_vels() {
 // after velocity-finding, scale by 1/2pi and add the freestream
 //
 template <class S, class I>
-void Boundaries<S,I>::scale_and_add_freestream(const std::array<S,2>& _fs) {
+void Boundaries<S,I>::scale_and_add_freestream(const std::array<double,2>& _fs) {
   panels.scale_and_add_freestream(_fs);
 }
 

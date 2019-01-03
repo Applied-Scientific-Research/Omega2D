@@ -31,16 +31,16 @@ class Convection {
 public:
   Convection() {}
   void advect_1st(const double,
-                  const std::array<float,2>&,
+                  const std::array<double,2>&,
                   Vorticity<S,I>&,
                   Boundaries<S,I>&);
   void advect_1st(const double,
-                  const std::array<float,2>&,
+                  const std::array<double,2>&,
                   std::vector<Collection>&,
                   std::vector<Collection>&,
                   std::vector<Collection>&);
   void advect_2nd(const double,
-                  const std::array<float,2>&,
+                  const std::array<double,2>&,
                   Vorticity<S,I>&,
                   Boundaries<S,I>&);
 
@@ -55,7 +55,7 @@ private:
 //
 template <class S, class A, class I>
 void Convection<S,A,I>::advect_1st(const double _dt,
-                                   const std::array<float,2>& _fs,
+                                   const std::array<double,2>& _fs,
                                    Vorticity<S,I>& _vort,
                                    Boundaries<S,I>& _bdry) {
   //std::cout << "  inside advect_1st with dt=" << _dt << std::endl;
@@ -99,7 +99,7 @@ void Convection<S,A,I>::advect_1st(const double _dt,
 
 template <class S, class A, class I>
 void Convection<S,A,I>::advect_1st(const double _dt,
-                                   const std::array<float,Dimensions>& _fs,
+                                   const std::array<double,Dimensions>& _fs,
                                    std::vector<Collection>& _vort,
                                    std::vector<Collection>& _bdry,
                                    std::vector<Collection>& _fldpt) {
@@ -158,7 +158,7 @@ void Convection<S,A,I>::advect_1st(const double _dt,
 //
 template <class S, class A, class I>
 void Convection<S,A,I>::advect_2nd(const double _dt,
-                                   const std::array<float,2>& _fs,
+                                   const std::array<double,2>& _fs,
                                    Vorticity<S,I>& _vort,
                                    Boundaries<S,I>& _bdry) {
   //std::cout << "  inside advect_2nd with dt=" << dt << std::endl;

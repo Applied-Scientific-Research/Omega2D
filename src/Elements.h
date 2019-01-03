@@ -35,7 +35,7 @@ public:
   virtual void add_new(std::vector<S>&) = 0;
   virtual void reset_vels() = 0;
   virtual void update_max_str() = 0;
-  virtual void scale_and_add_freestream(const std::array<S,2>&) = 0;
+  virtual void scale_and_add_freestream(const std::array<double,2>&) = 0;
   virtual void step_in_place(const S) = 0;
   virtual void step_in_place(const S, std::vector<S> const&) = 0;
   virtual void increment_in_place() = 0;

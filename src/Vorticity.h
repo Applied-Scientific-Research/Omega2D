@@ -35,7 +35,7 @@ public:
   //void add_new(std::vector<S>&, std::vector<std::pair<I,I> >&);
   void reset_vels();
   void update_max_str();
-  void scale_and_add_freestream(std::array<S,2> const&);
+  void scale_and_add_freestream(std::array<double,2> const&);
   void step_in_place(const S);
   void step_in_place(const S, Vorticity<S,I> const&);
 
@@ -163,7 +163,7 @@ void Vorticity<S,I>::update_max_str() {
 // after velocity-finding, scale by 1/2pi and add the freestream
 //
 template <class S, class I>
-void Vorticity<S,I>::scale_and_add_freestream(const std::array<S,2>& _fs) {
+void Vorticity<S,I>::scale_and_add_freestream(const std::array<double,2>& _fs) {
   for (auto const& v : elems) {
     v->scale_and_add_freestream(_fs);
   }

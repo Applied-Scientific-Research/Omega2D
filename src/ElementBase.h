@@ -116,7 +116,7 @@ public:
       }
     }
   }
-  void finalize_vels(const std::array<float,Dimensions>& _fs) {
+  void finalize_vels(const std::array<double,Dimensions>& _fs) {
     for (size_t d=0; d<Dimensions; ++d) {
       for (size_t i=0; i<getn(); ++i) {
         u[d][i] = _fs[d] + u[d][i] * 0.5/M_PI;
@@ -189,7 +189,7 @@ protected:
 
   // state vector
   std::array<Vector<S>,Dimensions> x;                   // position
-  std::optional<Vector<S>> s;    			// strength
+  std::optional<Vector<S>> s;                           // strength
 
   // time derivative of state vector
   std::array<Vector<S>,Dimensions> u;                   // velocity

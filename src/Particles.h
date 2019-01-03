@@ -40,7 +40,7 @@ public:
   void add_new(std::vector<S>&) override;
   void reset_vels() override;
   void update_max_str() override;
-  void scale_and_add_freestream(const std::array<S,2>&) override;
+  void scale_and_add_freestream(const std::array<double,2>&) override;
   void step_in_place(const S) override;
   void step_in_place(const S, std::vector<S> const &) override;
   void increment_in_place() override;
@@ -144,7 +144,7 @@ void Particles<S,I>::update_max_str() {
 // zero out the velocities
 //
 template <class S, class I>
-void Particles<S,I>::scale_and_add_freestream(const std::array<S,2>& _fs) {
+void Particles<S,I>::scale_and_add_freestream(const std::array<double,2>& _fs) {
   assert(x.size() == u.size());
 
   for (size_t i=0; i<x.size(); i+=4) {

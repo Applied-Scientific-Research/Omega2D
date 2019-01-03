@@ -46,7 +46,7 @@ public:
   void step(const double,
             const S,
             const S,
-            const std::array<float,2>&,
+            const std::array<double,2>&,
             Vorticity<S,I>&,
             Boundaries<S,I>&);
 
@@ -76,12 +76,12 @@ private:
 // take a diffusion step
 //
 template <class S, class A, class I>
-void Diffusion<S,A,I>::step(const double               _dt,
-                            const S                    _re,
-                            const S                    _vdelta,
-                            const std::array<float,2>& _fs,
-                            Vorticity<S,I>&            _vort,
-                            Boundaries<S,I>&           _bdry) {
+void Diffusion<S,A,I>::step(const double                _dt,
+                            const S                     _re,
+                            const S                     _vdelta,
+                            const std::array<double,2>& _fs,
+                            Vorticity<S,I>&             _vort,
+                            Boundaries<S,I>&            _bdry) {
 
   if (is_inviscid) return;
 
