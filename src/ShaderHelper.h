@@ -19,7 +19,7 @@
 // Create a render program from two shaders (vertex and fragment)
 GLuint create_draw_blob_program();
 GLuint create_particle_program();
-GLuint create_particlept_program();
+GLuint create_draw_point_program();
 GLuint create_panel_program();
 
 // Create a compute program from one shader

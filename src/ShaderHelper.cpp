@@ -19,11 +19,11 @@
 
 // clang-format off
 
-const std::string partpt_vert_shader_source =
-#include "shaders/particlept.vert"
+const std::string point_vert_shader_source =
+#include "shaders/point.vert"
 ;
-const std::string partpt_frag_shader_source =
-#include "shaders/particlept.frag"
+const std::string point_frag_shader_source =
+#include "shaders/point.frag"
 ;
 
 const std::string part_vert_shader_source =
@@ -121,10 +121,10 @@ GLuint create_particle_program() {
 }
 
 // Create a program from one shader to render particles as points
-GLuint create_particlept_program() {
+GLuint create_draw_point_program() {
   // Load and compile the vertex and fragment shaders
-  GLuint vertexShader = load_and_compile_shader(partpt_vert_shader_source, GL_VERTEX_SHADER);
-  GLuint fragmentShader = load_and_compile_shader(partpt_frag_shader_source, GL_FRAGMENT_SHADER);
+  GLuint vertexShader = load_and_compile_shader(point_vert_shader_source, GL_VERTEX_SHADER);
+  GLuint fragmentShader = load_and_compile_shader(point_frag_shader_source, GL_FRAGMENT_SHADER);
 
   // Attach the above shader to a program
   GLuint shaderProgram = glCreateProgram();
