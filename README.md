@@ -9,7 +9,7 @@ Omega2D is a platform for testing methods and techniques for implementing a comb
 This open-source code is aimed at users interested in understanding vortex methods as a tool for fluid simulation, or simply eager to try a fast fluid simulator without the gross approximations present in most other real-time tools.
 
 ## Build and run
-This code uses some C++14 features, so should compile on GCC 5, Clang 3.3, MSVC 19.10, and Intel 16.0 compilers.
+This code uses some C++17 features, so should compile on GCC 7, Clang 4, and MSVC 19.10 compilers.
 
 #### Prerequisites
 Users will also need CMake and GLFW version 3 on their machines to build this, other requirements are included in this distribution. Get these on Fedora with
