@@ -136,6 +136,23 @@ void Convection<S,A,I>::advect_1st(const double _dt,
     std::visit([=](auto& elem) { elem.finalize_vels(_fs); }, targ);
   }
 
+  // find the influence on every field point/tracer element
+  for (auto &targ : _fldpt) {
+    std::cout << "  Solving for velocities on" << to_string(targ) << std::endl;
+    // zero velocities
+    std::visit([=](auto& elem) { elem.zero_vels(); }, targ);
+    // accumulate from vorticity
+    for (auto &src : _vort) {
+      std::visit(visitor, src, targ);
+    }
+    // accumulate from boundaries
+    for (auto &src : _bdry) {
+      std::visit(visitor, src, targ);
+    }
+    // add freestream and divide by 2pi
+    std::visit([=](auto& elem) { elem.finalize_vels(_fs); }, targ);
+  }
+
   // part C - convection here
 
   std::cout << std::endl << "Convection step" << std::endl;

@@ -371,8 +371,8 @@ int main(int argc, char const *argv[]) {
         bfeatures.erase(bfeatures.begin()+del_this_bdry);
       }
 
-      // button and modal window for adding new ones
-      if (ImGui::Button("Add new flow structure")) ImGui::OpenPopup("New flow structure");
+      // button and modal window for adding new flow structures
+      if (ImGui::Button("Add flow structure")) ImGui::OpenPopup("New flow structure");
       ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiSetCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New flow structure"))
       {
@@ -464,7 +464,7 @@ int main(int argc, char const *argv[]) {
 
       // button and modal window for adding new boundary objects
       ImGui::SameLine();
-      if (ImGui::Button("Add new boundary structure")) ImGui::OpenPopup("New boundary structure");
+      if (ImGui::Button("Add boundary structure")) ImGui::OpenPopup("New boundary structure");
       ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiSetCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New boundary structure"))
       {
@@ -516,10 +516,57 @@ int main(int argc, char const *argv[]) {
         ImGui::EndPopup();
       }
 
+
+      // button and modal window for adding new measurement objects
+      ImGui::SameLine();
+      if (ImGui::Button("Add measurement structure")) ImGui::OpenPopup("New measurement structure");
+      ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiSetCond_FirstUseEver);
+      if (ImGui::BeginPopupModal("New measurement structure"))
+      {
+        static int item = 0;
+        const char* items[] = { "single point/tracer", "streakline" };
+        ImGui::Combo("type", &item, items, 2);
+
+        static float xc[2] = {0.0f, 0.0f};
+        static bool is_lagrangian = true;
+
+        // always ask for center
+        ImGui::InputFloat2("center", xc);
+
+        // show different inputs based on what is selected
+        switch(item) {
+          case 0:
+            // a single measurement point
+            ImGui::Checkbox("Point follows flow", &is_lagrangian);
+            ImGui::TextWrapped("This feature will add 1 point");
+            if (ImGui::Button("Add single point")) {
+              mfeatures.emplace_back(std::make_unique<SinglePoint>(xc[0], xc[1], is_lagrangian));
+              std::cout << "Added " << (*mfeatures.back()) << std::endl;
+              ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            break;
+          case 1:
+            // a tracer emitter
+            ImGui::TextWrapped("This feature will add 1 tracer emitter");
+            if (ImGui::Button("Add streakline")) {
+              mfeatures.emplace_back(std::make_unique<TracerEmitter>(xc[0], xc[1]));
+              std::cout << "Added " << (*mfeatures.back()) << std::endl;
+              ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            break;
+        }
+
+        if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
+        ImGui::EndPopup();
+      }
+
     } // end flow structures
 
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Rendering parameters")) {
+      //ImGui::ColorEdit3("tracer color", (float*)&pos_circ_color);
       ImGui::ColorEdit3("positive circulation", (float*)&pos_circ_color);
       ImGui::ColorEdit3("negative circulation", (float*)&neg_circ_color);
       ImGui::ColorEdit3("background color", (float*)&clear_color);
