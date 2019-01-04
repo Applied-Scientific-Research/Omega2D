@@ -2,7 +2,7 @@ R"(
 #version 150
 
 uniform mat4 Projection;
-uniform vec4 this_color;
+uniform vec4 def_color;
 uniform float rad;
 in vec4 quad_attr;
 in float px;
@@ -12,7 +12,7 @@ out vec2 txcoord;
 
 void main() {
   // color pass-through
-  base_color = this_color;
+  base_color = def_color;
 
   // pass through texture coordinates
   txcoord = quad_attr.xy;
