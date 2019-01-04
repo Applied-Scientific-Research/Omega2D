@@ -39,7 +39,7 @@ template <class S, class A>
 static inline void kernel_0v_0p (const S sx, const S sy, const S sr, const S ss,
                                  const S tx, const S ty,
                                  A* __restrict__ tu, A* __restrict__ tv) {
-  // 15 flops
+  // 13 flops
   const S dx = tx - sx;
   const S dy = ty - sy;
   S r2 = dx*dx + dy*dy + sr*sr;

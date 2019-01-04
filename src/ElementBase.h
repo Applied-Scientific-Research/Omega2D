@@ -30,6 +30,7 @@ public:
   }
 
   size_t getn() const { return n; }
+  bool is_inert() const { return E==inert; }
   const std::array<Vector<S>,Dimensions>& get_pos() const { return x; }
   std::array<Vector<S>,Dimensions>&       get_pos()       { return x; }
   const Vector<S>&                        get_str() const { return *s; }
@@ -40,8 +41,9 @@ public:
 
     // check inputs
     if (_in.size() == 0) return;
-    assert(_in.size() % 4 == 0);
-    const size_t nnew = _in.size()/4;
+    const size_t nper = (this->E == inert) ? 2 : 4;
+    assert(_in.size() % nper == 0);
+    const size_t nnew = _in.size()/nper;
 
     // this initialization is specific to Points - so should we do it there?
     for (size_t d=0; d<Dimensions; ++d) {
@@ -49,7 +51,7 @@ public:
       x[d].resize(n+nnew);
       // copy new values to end of vector
       for (size_t i=0; i<nnew; ++i) {
-        x[d][n+i] = _in[4*i+d];
+        x[d][n+i] = _in[nper*i+d];
       }
     }
 
@@ -58,7 +60,7 @@ public:
       // must dereference s to get the actual vector
       (*s).resize(n+nnew);
       for (size_t i=0; i<nnew; ++i) {
-        (*s)[n+i] = _in[4*i+2];
+        (*s)[n+i] = _in[nper*i+2];
       }
     }
 

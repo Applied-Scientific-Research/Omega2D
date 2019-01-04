@@ -27,15 +27,12 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
 
   // is this where we dispatch the OpenGL compute shader?
 
-  // what if there is no strength? (field points or tracers) Call different kernel.
-
   // get references to use locally
   const std::array<Vector<S>,Dimensions>&	sx = src.get_pos();
   const Vector<S>&				sr = src.get_rad();
   const Vector<S>&				ss = src.get_str();
 
   const std::array<Vector<S>,Dimensions>&	tx = targ.get_pos();
-  const Vector<S>&				tr = targ.get_rad();
   std::array<Vector<S>,Dimensions>&		tu = targ.get_vel();
 
 #ifdef USE_VC
@@ -49,43 +46,81 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
   float flops = (float)targ.getn();
 
   // here is where we can dispatch on solver type, grads-or-not, core function, etc.?
+  if (targ.is_inert()) {
+    // targets are field points
 
-  // velocity-only kernel
-  #pragma omp parallel for
-  for (size_t i=0; i<targ.getn(); ++i) {
+    #pragma omp parallel for
+    for (size_t i=0; i<targ.getn(); ++i) {
 #ifdef USE_VC
-    const Vc::Vector<S> txv = tx[0][i];
-    const Vc::Vector<S> tyv = tx[1][i];
-    const Vc::Vector<S> trv = tr[i];
-    // care must be taken if S != A, because these vectors must have the same length
-    Vc::Vector<A> accumu = 0.0;
-    Vc::Vector<A> accumv = 0.0;
-    for (size_t j=0; j<sxv.vectorsCount(); ++j) {
-      kernel_0v_0v<Vc::Vector<S>,Vc::Vector<A>>(
-                        sxv[j], syv[j], srv[j], ssv[j],
-                        txv, tyv, trv,
-                        &accumu, &accumv);
-    }
-    tu[0][i] += accumu.sum();
-    tu[1][i] += accumv.sum();
+      const Vc::Vector<S> txv = tx[0][i];
+      const Vc::Vector<S> tyv = tx[1][i];
+      // care must be taken if S != A, because these vectors must have the same length
+      Vc::Vector<A> accumu = 0.0;
+      Vc::Vector<A> accumv = 0.0;
+      for (size_t j=0; j<sxv.vectorsCount(); ++j) {
+        kernel_0v_0p<Vc::Vector<S>,Vc::Vector<A>>(
+                          sxv[j], syv[j], srv[j], ssv[j],
+                          txv, tyv,
+                          &accumu, &accumv);
+      }
+      tu[0][i] += accumu.sum();
+      tu[1][i] += accumv.sum();
 #else  // no Vc
-    A accumu = 0.0;
-    A accumv = 0.0;
-    for (size_t j=0; j<src.getn(); ++j) {
-      kernel_0v_0v<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
-                        tx[0][i], tx[1][i], tr[i],
-                        &accumu, &accumv);
-    }
-    tu[0][i] += accumu;
-    tu[1][i] += accumv;
+      A accumu = 0.0;
+      A accumv = 0.0;
+      for (size_t j=0; j<src.getn(); ++j) {
+        kernel_0v_0p<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
+                          tx[0][i], tx[1][i],
+                          &accumu, &accumv);
+      }
+      tu[0][i] += accumu;
+      tu[1][i] += accumv;
 #endif // no Vc
+    }
+    flops *= 2.0 + 13.0*(float)src.getn();
+
+  } else {
+    // targets are particles
+    const Vector<S>&				tr = targ.get_rad();
+
+    #pragma omp parallel for
+    for (size_t i=0; i<targ.getn(); ++i) {
+#ifdef USE_VC
+      const Vc::Vector<S> txv = tx[0][i];
+      const Vc::Vector<S> tyv = tx[1][i];
+      const Vc::Vector<S> trv = tr[i];
+      // care must be taken if S != A, because these vectors must have the same length
+      Vc::Vector<A> accumu = 0.0;
+      Vc::Vector<A> accumv = 0.0;
+      for (size_t j=0; j<sxv.vectorsCount(); ++j) {
+        kernel_0v_0v<Vc::Vector<S>,Vc::Vector<A>>(
+                          sxv[j], syv[j], srv[j], ssv[j],
+                          txv, tyv, trv,
+                          &accumu, &accumv);
+      }
+      tu[0][i] += accumu.sum();
+      tu[1][i] += accumv.sum();
+#else  // no Vc
+      A accumu = 0.0;
+      A accumv = 0.0;
+      for (size_t j=0; j<src.getn(); ++j) {
+        kernel_0v_0v<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
+                          tx[0][i], tx[1][i], tr[i],
+                          &accumu, &accumv);
+      }
+      tu[0][i] += accumu;
+      tu[1][i] += accumv;
+#endif // no Vc
+    }
+    flops *= 2.0 + 15.0*(float)src.getn();
+
   }
-  flops *= 2.0 + 15.0*(float)src.getn();
+
+  printf("    first pt at %g %g now has vel %g %g\n", tx[0][0], tx[1][0], tu[0][0], tu[1][0]);
 
   auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
   const float gflops = 1.e-9 * flops / (float)elapsed_seconds.count();
-  //std::cout << "    points_affect_points: " << (float)elapsed_seconds.count() << " at " << (1.e-9*flops/elapsed_seconds.count()) << " GFlop/s" << std::endl;
   printf("    points_affect_points: [%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);
 }
 
