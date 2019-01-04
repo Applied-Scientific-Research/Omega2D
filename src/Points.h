@@ -262,7 +262,8 @@ public:
   // this gets done once - load the shaders, set up the vao
   void initGL(std::vector<float>& _projmat,
               float*              _poscolor,
-              float*              _negcolor) {
+              float*              _negcolor,
+              float*              _defcolor) {
 
     //std::cout << "inside Points.initGL" << std::endl;
     std::cout << "inside Points.initGL with E=" << this->E << " and M=" << this->M << std::endl;
@@ -302,7 +303,7 @@ public:
       def_color_attribute = glGetUniformLocation(draw_point_program, "def_color");
 
       // send the current values
-      glUniform4fv(def_color_attribute, 1, defcolor);
+      glUniform4fv(def_color_attribute, 1, _defcolor);
 
       // locate where the point radius goes
       unif_rad_attribute = glGetUniformLocation(draw_point_program, "rad");
@@ -422,13 +423,14 @@ public:
   // OpenGL3 stuff to display points, called once per frame
   void drawGL(std::vector<float>& _projmat,
               float*              _poscolor,
-              float*              _negcolor) {
+              float*              _negcolor,
+              float*              _defcolor) {
 
     //std::cout << "inside Points.drawGL" << std::endl;
 
     // has this been init'd yet?
     if (glIsVertexArray(vao) == GL_FALSE) {
-      initGL(_projmat, _poscolor, _negcolor);
+      initGL(_projmat, _poscolor, _negcolor, _defcolor);
       updateGL();
     }
 
@@ -450,7 +452,7 @@ public:
 
         // upload the current uniforms
         glUniformMatrix4fv(projmat_attribute_pt, 1, GL_FALSE, _projmat.data());
-        glUniform4fv(def_color_attribute, 1, (const GLfloat *)defcolor);
+        glUniform4fv(def_color_attribute, 1, (const GLfloat *)_defcolor);
         glUniform1f (unif_rad_attribute, (const GLfloat)0.01f);
 
         // the one draw call here
@@ -501,7 +503,6 @@ private:
   GLint projmat_attribute_bl, projmat_attribute_pt, quad_attribute_bl, quad_attribute_pt;
   GLint def_color_attribute, pos_color_attribute, neg_color_attribute, str_scale_attribute;
   GLint unif_rad_attribute;
-  const GLfloat defcolor[4] = {0.8, 0.8, 0.8, 1.0};
 #endif
   float max_strength;
 };

@@ -64,16 +64,18 @@ void Simulation::set_diffuse(const bool _do_diffuse) {
 #ifdef USE_GL
 void Simulation::initGL(std::vector<float>& _projmat,
                         float*              _poscolor,
-                        float*              _negcolor) {
+                        float*              _negcolor,
+                        float*              _defcolor) {
   bdry.initGL(_projmat, _poscolor, _negcolor);
   //vort.initGL(_projmat, _poscolor, _negcolor);
   for (auto &coll : vort2) {
-    std::visit([=, &_projmat](auto& elem) { elem.initGL(_projmat, _poscolor, _negcolor); }, coll);
+    std::visit([=, &_projmat](auto& elem) { elem.initGL(_projmat, _poscolor, _negcolor, _defcolor); }, coll);
   }
   for (auto &coll : fldpt) {
-    std::visit([=, &_projmat](auto& elem) { elem.initGL(_projmat, _poscolor, _negcolor); }, coll);
+    std::visit([=, &_projmat](auto& elem) { elem.initGL(_projmat, _poscolor, _negcolor, _defcolor); }, coll);
   }
 }
+
 void Simulation::updateGL() {
   bdry.updateGL();
   //vort.updateGL();
@@ -84,17 +86,19 @@ void Simulation::updateGL() {
     std::visit([=](auto& elem) { elem.updateGL(); }, coll);
   }
 }
+
 void Simulation::drawGL(std::vector<float>& _projmat,
                         float*              _poscolor,
-                        float*              _negcolor) {
+                        float*              _negcolor,
+                        float*              _defcolor) {
   if (step_is_finished) {
     bdry.drawGL(_projmat, _poscolor, _negcolor);
     //vort.drawGL(_projmat, _poscolor, _negcolor);
     for (auto &coll : vort2) {
-      std::visit([=, &_projmat](auto& elem) { elem.drawGL(_projmat, _poscolor, _negcolor); }, coll);
+      std::visit([=, &_projmat](auto& elem) { elem.drawGL(_projmat, _poscolor, _negcolor, _defcolor); }, coll);
     }
     for (auto &coll : fldpt) {
-      std::visit([=, &_projmat](auto& elem) { elem.drawGL(_projmat, _poscolor, _negcolor); }, coll);
+      std::visit([=, &_projmat](auto& elem) { elem.drawGL(_projmat, _poscolor, _negcolor, _defcolor); }, coll);
     }
   }
 }

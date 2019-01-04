@@ -195,10 +195,10 @@ int main(int argc, char const *argv[]) {
   bool show_stats_window = false;
   bool show_terminal_window = false;
   bool show_test_window = false;
-  ImVec4 clear_color = ImColor(15, 15, 15);
-  ImVec4 default_color = ImColor(204, 204, 204);
   ImVec4 pos_circ_color = ImColor(207, 47, 47);
   ImVec4 neg_circ_color = ImColor(63, 63, 255);
+  ImVec4 default_color = ImColor(204, 204, 204);
+  ImVec4 clear_color = ImColor(15, 15, 15);
   //static bool show_origin = true;
   static bool is_viscous = false;
 
@@ -664,7 +664,7 @@ int main(int argc, char const *argv[]) {
 
     // draw the simulation: panels and particles
     compute_projection_matrix(window, vcx, vcy, &vsize, gl_projection);
-    sim.drawGL(gl_projection, &pos_circ_color.x, &neg_circ_color.x);
+    sim.drawGL(gl_projection, &pos_circ_color.x, &neg_circ_color.x, &default_color.x);
 
     // draw the GUI
     ImGui::Render();
