@@ -239,6 +239,18 @@ public:
   // OpenGL functions
   //
 
+  // helper function to clean up initGL
+  void prepare_opengl_buffer(GLuint _prog, GLuint _idx, const GLchar* _name) {
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[_idx]);
+    const GLint position_attribute = glGetAttribLocation(_prog, _name);
+    // Specify how the data for position can be accessed
+    glVertexAttribPointer(position_attribute, 1, get_gl_type<S>, GL_FALSE, 0, 0);
+    // Enable the attribute
+    glEnableVertexAttribArray(position_attribute);
+    // and tell it to advance two primitives per point (2 tris per quad)
+    glVertexAttribDivisor(position_attribute, 1);
+  }
+
   // this gets done once - load the shaders, set up the vao
   void initGL(std::vector<float>& _projmat,
               float*              _poscolor,
@@ -278,41 +290,13 @@ public:
     // Get the location of the attributes that enters in the vertex shader
     projmat_attribute = glGetUniformLocation(draw_blob_program, "Projection");
 
-    // need something like
-    //prepare_opengl_buffer(draw_blob_program, 0, this->x[0], "px");
-    //prepare_opengl_buffer(draw_blob_program, 1, this->x[1], "py");
-    //etc
-    // and for the compute shaders!
-
     // Now do the four arrays
-    GLint position_attribute;
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-    position_attribute = glGetAttribLocation(draw_blob_program, "px");
-    // Specify how the data for position can be accessed
-    glVertexAttribPointer(position_attribute, 1, get_gl_type<S>, GL_FALSE, 0, 0);
-    // Enable the attribute
-    glEnableVertexAttribArray(position_attribute);
-    // and tell it to advance two primitives per point (2 tris per quad)
-    glVertexAttribDivisor(position_attribute, 1);
+    prepare_opengl_buffer(draw_blob_program, 0, "px");
+    prepare_opengl_buffer(draw_blob_program, 1, "py");
+    prepare_opengl_buffer(draw_blob_program, 2, "r");
+    prepare_opengl_buffer(draw_blob_program, 3, "sx");
 
-    // do it for the rest
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-    position_attribute = glGetAttribLocation(draw_blob_program, "py");
-    glVertexAttribPointer(position_attribute, 1, get_gl_type<S>, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(position_attribute);
-    glVertexAttribDivisor(position_attribute, 1);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
-    position_attribute = glGetAttribLocation(draw_blob_program, "r");
-    glVertexAttribPointer(position_attribute, 1, get_gl_type<S>, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(position_attribute);
-    glVertexAttribDivisor(position_attribute, 1);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
-    position_attribute = glGetAttribLocation(draw_blob_program, "sx");
-    glVertexAttribPointer(position_attribute, 1, get_gl_type<S>, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(position_attribute);
-    glVertexAttribDivisor(position_attribute, 1);
+    // and for the compute shaders!
 
     // upload the projection matrix
     glUniformMatrix4fv(projmat_attribute, 1, GL_FALSE, _projmat.data());
@@ -364,6 +348,8 @@ public:
 
     // here is where we split on element type: active/reactive vs. inert
     if (this->E == inert) {
+
+      // just don't upload strengths or radii
 
     } else { // this->E is active or reactive
 
@@ -438,10 +424,7 @@ public:
   }
 
 protected:
-  // movement
-  //std::optional<Body&> b;
-
-  // state vector
+  // additional state vector
   Vector<S> r;					// thickness/radius
   // in 3D, this is where elong and ug would be
 
