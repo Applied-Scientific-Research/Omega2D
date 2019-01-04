@@ -116,8 +116,6 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
 
   }
 
-  printf("    first pt at %g %g now has vel %g %g\n", tx[0][0], tx[1][0], tu[0][0], tu[1][0]);
-
   auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
   const float gflops = 1.e-9 * flops / (float)elapsed_seconds.count();
