@@ -372,6 +372,22 @@ int main(int argc, char const *argv[]) {
         bfeatures.erase(bfeatures.begin()+del_this_bdry);
       }
 
+      // list existing measurement features here
+      int del_this_measure = -1;
+      for (int i=0; i<(int)mfeatures.size(); ++i) {
+        // add a "remove" button here somehow
+        ImGui::PushID(++buttonIDs);
+        if (ImGui::SmallButton("remove")) del_this_measure = i;
+        ImGui::PopID();
+
+        ImGui::SameLine();
+        ImGui::Text("%s", mfeatures[i]->to_string().c_str());
+      }
+      if (del_this_measure > -1) {
+        std::cout << "Asked to delete measurement feature " << del_this_measure << std::endl;
+        mfeatures.erase(mfeatures.begin()+del_this_measure);
+      }
+
       // button and modal window for adding new flow structures
       if (ImGui::Button("Add flow structure")) ImGui::OpenPopup("New flow structure");
       ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiSetCond_FirstUseEver);
