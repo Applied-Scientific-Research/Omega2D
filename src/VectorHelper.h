@@ -35,6 +35,12 @@ inline const Vc::Memory<Vc::Vector<S>> stdvec_to_vcvec (const Vector<S>& in, con
     out.vector(out.vectorsCount()-1) = Vc::Vector<S>(defaultval);
     // now we copy the input vector
     for (size_t i=0; i<in.size(); ++i) out[i] = in[i];
+    if (false) {
+      // print out all of this vector - including the padding
+      //for (size_t i=0; i<out.vectorsCount(); ++i) {
+        //std::cout << "out " << j << " has vec " << sxv.vector(j) << std::endl;
+      //}
+    }
     return out;
 }
 
