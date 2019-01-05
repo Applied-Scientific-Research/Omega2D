@@ -417,6 +417,9 @@ public:
       }
 
       glBindVertexArray(0);
+
+      // must tell draw call how many elements are there
+      num_uploaded = this->x[0].size();
     }
   }
 
@@ -434,7 +437,7 @@ public:
       updateGL();
     }
 
-    if (this->n > 0) {
+    if (num_uploaded > 0) {
       glBindVertexArray(vao);
 
       // get blending ready
@@ -456,7 +459,7 @@ public:
         glUniform1f (unif_rad_attribute, (const GLfloat)0.01f);
 
         // the one draw call here
-        glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, this->n);
+        glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, num_uploaded);
 
       } else { // this->E is active or reactive
 
@@ -474,7 +477,7 @@ public:
         glUniform1f (str_scale_attribute, (const GLfloat)(0.4f/max_strength));
 
         // the one draw call here
-        glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, this->n);
+        glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, num_uploaded);
       }
 
       // return state
@@ -500,6 +503,7 @@ private:
   // OpenGL stuff
   GLuint vao, vbo[4];
   GLuint draw_blob_program, draw_point_program;
+  GLsizei num_uploaded;
   GLint projmat_attribute_bl, projmat_attribute_pt, quad_attribute_bl, quad_attribute_pt;
   GLint def_color_attribute, pos_color_attribute, neg_color_attribute, str_scale_attribute;
   GLint unif_rad_attribute;
