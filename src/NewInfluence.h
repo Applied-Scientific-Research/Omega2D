@@ -22,7 +22,6 @@
 
 template <class S, class A>
 void points_affect_points (Points<S> const& src, Points<S>& targ) {
-  std::cout << "    0_0 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   auto start = std::chrono::system_clock::now();
 
   // is this where we dispatch the OpenGL compute shader?
@@ -47,6 +46,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
 
   // here is where we can dispatch on solver type, grads-or-not, core function, etc.?
   if (targ.is_inert()) {
+    std::cout << "    0v_0p compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
     // targets are field points
 
     #pragma omp parallel for
@@ -59,7 +59,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
       Vc::Vector<A> accumv = 0.0;
       for (size_t j=0; j<sxv.vectorsCount(); ++j) {
         kernel_0v_0p<Vc::Vector<S>,Vc::Vector<A>>(
-                          sxv[j], syv[j], srv[j], ssv[j],
+                          sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
                           txv, tyv,
                           &accumu, &accumv);
       }
@@ -80,6 +80,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
     flops *= 2.0 + 13.0*(float)src.getn();
 
   } else {
+    std::cout << "    0v_0v compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
     // targets are particles
     const Vector<S>&				tr = targ.get_rad();
 
@@ -94,9 +95,16 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
       Vc::Vector<A> accumv = 0.0;
       for (size_t j=0; j<sxv.vectorsCount(); ++j) {
         kernel_0v_0v<Vc::Vector<S>,Vc::Vector<A>>(
-                          sxv[j], syv[j], srv[j], ssv[j],
+                          sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
                           txv, tyv, trv,
                           &accumu, &accumv);
+        /*
+        if (false) {
+          // this is how to print
+          Vc::Vector<S> temp = sxv.vector(j,0);
+          std::cout << "src " << j << " has sxv " << temp << std::endl;
+        }
+        */
       }
       tu[0][i] += accumu.sum();
       tu[1][i] += accumv.sum();
