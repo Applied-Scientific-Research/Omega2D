@@ -119,9 +119,10 @@ public:
     }
   }
   void finalize_vels(const std::array<double,Dimensions>& _fs) {
+    const double factor = 0.5/M_PI;
     for (size_t d=0; d<Dimensions; ++d) {
       for (size_t i=0; i<getn(); ++i) {
-        u[d][i] = _fs[d] + u[d][i] * 0.5/M_PI;
+        u[d][i] = _fs[d] + u[d][i] * factor;
       }
     }
   }
