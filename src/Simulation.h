@@ -47,6 +47,7 @@ public:
   // get runtime status
   size_t get_npanels();
   size_t get_nparts();
+  size_t get_nfldpts();
 
   // inviscid case needs this
   void set_re_for_ips(float);

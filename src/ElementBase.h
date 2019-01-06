@@ -29,7 +29,7 @@ public:
       E(_e), M(_m), n(_n) {
   }
 
-  size_t getn() const { return n; }
+  size_t get_n() const { return n; }
   bool is_inert() const { return E==inert; }
   const std::array<Vector<S>,Dimensions>& get_pos() const { return x; }
   std::array<Vector<S>,Dimensions>&       get_pos()       { return x; }
@@ -113,7 +113,7 @@ public:
 
   void zero_vels() {
     for (size_t d=0; d<Dimensions; ++d) {
-      for (size_t i=0; i<getn(); ++i) {
+      for (size_t i=0; i<get_n(); ++i) {
         u[d][i] = 0.0;
       }
     }
@@ -121,7 +121,7 @@ public:
   void finalize_vels(const std::array<double,Dimensions>& _fs) {
     const double factor = 0.5/M_PI;
     for (size_t d=0; d<Dimensions; ++d) {
-      for (size_t i=0; i<getn(); ++i) {
+      for (size_t i=0; i<get_n(); ++i) {
         u[d][i] = _fs[d] + u[d][i] * factor;
       }
     }

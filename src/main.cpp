@@ -573,6 +573,19 @@ int main(int argc, char const *argv[]) {
             }
             ImGui::SameLine();
             break;
+/*
+          case 2:
+            // a tracer circle
+            ImGui::SliderFloat("radius", &rad, sim.get_ips(), 1.0f, "%.4f");
+            ImGui::TextWrapped("This feature will add about %d field points", (int)(0.785398175*pow(2*rad/sim.get_ips(), 2)));
+            if (ImGui::Button("Add circle of tracers")) {
+              mfeatures.emplace_back(std::make_unique<TracerBlob>(xc[0], xc[1]));
+              std::cout << "Added " << (*mfeatures.back()) << std::endl;
+              ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            break;
+*/
         }
 
         if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
@@ -636,9 +649,11 @@ int main(int argc, char const *argv[]) {
       //if (ImGui::Button("ImGui Samples")) show_test_window ^= 1;
       //if (ImGui::Button("Another Window")) show_another_window ^= 1;
 
-      ImGui::Text("Draw frame rate: %.2f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+      ImGui::Text("Draw frame rate: %.2f ms/frame (%.1f FPS)",
+                  1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
-      ImGui::Text("Number of panels: %ld  Number of particles: %ld", sim.get_npanels(), sim.get_nparts());
+      ImGui::Text("Number of panels: %ld  particles: %ld  field points: %ld",
+                  sim.get_npanels(), sim.get_nparts(), sim.get_nfldpts());
 
     }
 

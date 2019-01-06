@@ -44,7 +44,22 @@ float Simulation::get_time() { return (float)time; }
 
 // status
 size_t Simulation::get_npanels() { return bdry.get_npanels(); }
-size_t Simulation::get_nparts() { return vort.get_n(); }
+
+size_t Simulation::get_nparts() {
+  size_t n = 0;
+  for (auto &coll: vort2) {
+    std::visit([&n](auto& elem) { n += elem.get_n(); }, coll);
+  }
+  return n;
+}
+
+size_t Simulation::get_nfldpts() {
+  size_t n = 0;
+  for (auto &coll : fldpt) {
+    std::visit([&n](auto& elem) { n += elem.get_n(); }, coll);
+  }
+  return n;
+}
 
 // like a setter
 void Simulation::set_re_for_ips(const float _ips) {

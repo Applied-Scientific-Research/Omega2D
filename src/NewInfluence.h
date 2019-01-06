@@ -42,7 +42,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
   const Vc::Memory<Vc::Vector<S>> ssv = stdvec_to_vcvec<S>(ss,    0.0);
 #endif
 
-  float flops = (float)targ.getn();
+  float flops = (float)targ.get_n();
 
   // here is where we can dispatch on solver type, grads-or-not, core function, etc.?
   if (targ.is_inert()) {
@@ -50,7 +50,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
     // targets are field points
 
     #pragma omp parallel for
-    for (size_t i=0; i<targ.getn(); ++i) {
+    for (size_t i=0; i<targ.get_n(); ++i) {
 #ifdef USE_VC
       const Vc::Vector<S> txv = tx[0][i];
       const Vc::Vector<S> tyv = tx[1][i];
@@ -68,7 +68,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
 #else  // no Vc
       A accumu = 0.0;
       A accumv = 0.0;
-      for (size_t j=0; j<src.getn(); ++j) {
+      for (size_t j=0; j<src.get_n(); ++j) {
         kernel_0v_0p<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
                           tx[0][i], tx[1][i],
                           &accumu, &accumv);
@@ -77,7 +77,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
       tu[1][i] += accumv;
 #endif // no Vc
     }
-    flops *= 2.0 + 13.0*(float)src.getn();
+    flops *= 2.0 + 13.0*(float)src.get_n();
 
   } else {
     std::cout << "    0v_0v compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
@@ -85,7 +85,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
     const Vector<S>&				tr = targ.get_rad();
 
     #pragma omp parallel for
-    for (size_t i=0; i<targ.getn(); ++i) {
+    for (size_t i=0; i<targ.get_n(); ++i) {
 #ifdef USE_VC
       const Vc::Vector<S> txv = tx[0][i];
       const Vc::Vector<S> tyv = tx[1][i];
@@ -111,7 +111,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
 #else  // no Vc
       A accumu = 0.0;
       A accumv = 0.0;
-      for (size_t j=0; j<src.getn(); ++j) {
+      for (size_t j=0; j<src.get_n(); ++j) {
         kernel_0v_0v<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
                           tx[0][i], tx[1][i], tr[i],
                           &accumu, &accumv);
@@ -120,7 +120,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
       tu[1][i] += accumv;
 #endif // no Vc
     }
-    flops *= 2.0 + 15.0*(float)src.getn();
+    flops *= 2.0 + 15.0*(float)src.get_n();
 
   }
 
@@ -145,12 +145,12 @@ void panels_affect_points (Panels<S> const& src, Points<S>& targ) {
   std::array<Vector<S>,Dimensions>&       tu = targ.get_vel();
 
   #pragma omp parallel for
-  for (size_t i=0; i<targ.getn(); ++i) {
+  for (size_t i=0; i<targ.get_n(); ++i) {
     //std::array<A,3> accum = {0.0};
     A accumu = 0.0;
     A accumv = 0.0;
     A accumw = 0.0;
-    for (size_t j=0; j<src.getn(); ++j) {
+    for (size_t j=0; j<src.get_n(); ++j) {
       const size_t jp0 = si[2*j];
       const size_t jp1 = si[2*j+1];
       //kernel_1_0v<S,A>(&sx[2*si[2*j]], &sx[2*si[2*j+1]], ss[j],
@@ -184,14 +184,14 @@ void points_affect_panels (Points<S> const& src, Panels<S>& targ) {
   std::array<Vector<S>,Dimensions>&       tu = targ.get_vel();
 
   #pragma omp parallel for
-  for (size_t i=0; i<targ.getn(); ++i) {
+  for (size_t i=0; i<targ.get_n(); ++i) {
     //std::array<A,3> accum = {0.0};
     A accumu = 0.0;
     A accumv = 0.0;
     A accumw = 0.0;
     const size_t ip0 = ti[2*i];
     const size_t ip1 = ti[2*i+1];
-    for (size_t j=0; j<src.getn(); ++j) {
+    for (size_t j=0; j<src.get_n(); ++j) {
       // note that this is the same kernel as panels_affect_points!
       //kernel_1_0v<S,A>(&tx[2*ti[2*i]], &tx[2*ti[2*i+1]], ss[j],
       //                 &sx[2*j], accum.data());
