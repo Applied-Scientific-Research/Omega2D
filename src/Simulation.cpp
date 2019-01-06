@@ -258,8 +258,8 @@ void Simulation::step() {
   // operator splitting requires another half-step diffuse (must compute new coefficients)
   //diff.step(0.5*dt, get_vdelta(), get_ips(), thisfs, vort, bdry);
 
-  // update strength for coloring purposes (eventually should be taken care of automatically)
-  vort.update_max_str();
+  // update strengths for coloring purposes (eventually should be taken care of automatically)
+  //vort.update_max_str();
 
   // update dt and return
   time += (double)dt;
