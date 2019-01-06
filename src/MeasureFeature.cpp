@@ -124,3 +124,49 @@ TracerBlob::to_string() const {
 }
 
 
+//
+// Create a line of tracer points
+//
+std::vector<float>
+TracerLine::init_particles(float _ips) const {
+
+  // create a new vector to pass on
+  std::vector<float> x;
+
+  // how many points do we need?
+  float llen = std::sqrt( std::pow(m_xf-m_x, 2) + std::pow(m_yf-m_y, 2) );
+  int ilen = 1 + llen / _ips;
+
+  // loop over integer indices
+  for (int i=0; i<ilen; ++i) {
+
+    // how far along the line?
+    float frac = (float)i / (float)(ilen-1);
+
+    // create a particle here
+    x.emplace_back((1.0-frac)*m_x + frac*m_xf);
+    x.emplace_back((1.0-frac)*m_y + frac*m_yf);
+  }
+
+  return x;
+}
+
+std::vector<float>
+TracerLine::step_particles(float _ips) const {
+  // does not emit
+  return std::vector<float>();
+}
+
+void
+TracerLine::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+TracerLine::to_string() const {
+  std::stringstream ss;
+  ss << "tracer line from " << m_x << " " << m_y << " to " << m_xf << " " << m_yf;
+  return ss.str();
+}
+
+

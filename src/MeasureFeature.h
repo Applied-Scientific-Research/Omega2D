@@ -88,6 +88,7 @@ protected:
   //float m_frequency;
 };
 
+
 //
 // Concrete class for a circle of tracer points
 //
@@ -106,3 +107,25 @@ public:
 protected:
   float m_rad;
 };
+
+
+//
+// Concrete class for a tracer line
+//
+class TracerLine : public SinglePoint {
+public:
+  TracerLine(float _x, float _y, float _xf, float _yf)
+    : SinglePoint(_x, _y, true),
+      m_xf(_xf),
+      m_yf(_yf)
+    {}
+
+  void debug(std::ostream& os) const override;
+  std::string to_string() const override;
+  std::vector<float> init_particles(float) const override;
+  std::vector<float> step_particles(float) const override;
+
+protected:
+  float m_xf, m_yf;
+};
+

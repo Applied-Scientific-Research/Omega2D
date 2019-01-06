@@ -542,20 +542,19 @@ int main(int argc, char const *argv[]) {
       if (ImGui::BeginPopupModal("New measurement structure"))
       {
         static int item = 0;
-        const char* items[] = { "single point/tracer", "streakline", "circle of tracers" };
-        ImGui::Combo("type", &item, items, 3);
+        const char* items[] = { "single point/tracer", "streakline", "circle of tracers", "line of tracers" };
+        ImGui::Combo("type", &item, items, 4);
 
         static float xc[2] = {0.0f, 0.0f};
+        static float xf[2] = {0.0f, 1.0f};
         static bool is_lagrangian = true;
         static float rad = 5.0 * sim.get_ips();
-
-        // always ask for center
-        ImGui::InputFloat2("center", xc);
 
         // show different inputs based on what is selected
         switch(item) {
           case 0:
             // a single measurement point
+            ImGui::InputFloat2("position", xc);
             ImGui::Checkbox("Point follows flow", &is_lagrangian);
             ImGui::TextWrapped("This feature will add 1 point");
             if (ImGui::Button("Add single point")) {
@@ -567,6 +566,7 @@ int main(int argc, char const *argv[]) {
             break;
           case 1:
             // a tracer emitter
+            ImGui::InputFloat2("position", xc);
             ImGui::TextWrapped("This feature will add 1 tracer emitter");
             if (ImGui::Button("Add streakline")) {
               mfeatures.emplace_back(std::make_unique<TracerEmitter>(xc[0], xc[1]));
@@ -577,11 +577,25 @@ int main(int argc, char const *argv[]) {
             break;
           case 2:
             // a tracer circle
+            ImGui::InputFloat2("center", xc);
             ImGui::SliderFloat("radius", &rad, sim.get_ips(), 1.0f, "%.4f");
             ImGui::TextWrapped("This feature will add about %d field points",
                                (int)(0.785398175*pow(2*rad/(tracer_size*sim.get_ips()), 2)));
             if (ImGui::Button("Add circle of tracers")) {
               mfeatures.emplace_back(std::make_unique<TracerBlob>(xc[0], xc[1], rad));
+              std::cout << "Added " << (*mfeatures.back()) << std::endl;
+              ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            break;
+          case 3:
+            // a tracer line
+            ImGui::InputFloat2("start", xc);
+            ImGui::InputFloat2("finish", xf);
+            ImGui::TextWrapped("This feature will add about %d field points",
+                               1+(int)(std::sqrt(std::pow(xf[0]-xc[0],2)+std::pow(xf[1]-xc[1],2))/(tracer_size*sim.get_ips())));
+            if (ImGui::Button("Add line of tracers")) {
+              mfeatures.emplace_back(std::make_unique<TracerLine>(xc[0], xc[1], xf[0], xf[1]));
               std::cout << "Added " << (*mfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
