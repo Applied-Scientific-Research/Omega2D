@@ -231,11 +231,12 @@ void Simulation::step() {
   //diff.step(0.5*dt, get_vdelta(), get_ips(), thisfs, vort, bdry);
 
   // advect with no diffusion (must update BEM strengths)
-  conv.advect_1st(dt, thisfs, vort, bdry);
+  //conv.advect_1st(dt, thisfs, vort, bdry);
   //conv.advect_2nd(dt, thisfs, vort, bdry);
 
   // advect using new architecture
-  conv.advect_1st(dt, thisfs, vort2, bdry2, fldpt);
+  //conv.advect_1st(dt, thisfs, vort2, bdry2, fldpt);
+  conv.advect_2nd(dt, thisfs, vort2, bdry2, fldpt);
 
   // operator splitting requires another half-step diffuse (must compute new coefficients)
   //diff.step(0.5*dt, get_vdelta(), get_ips(), thisfs, vort, bdry);

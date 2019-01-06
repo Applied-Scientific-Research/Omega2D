@@ -163,8 +163,6 @@ public:
         S this_s = (*this->s)[i];
 
         // compute stretch term
-        // note that multiplying by the transpose may maintain linear impulse better, but
-        //   severely underestimates stretch!
         std::array<S,2> wdu = {0.0};
 
         // add Cottet SFS
@@ -211,8 +209,6 @@ public:
         S this_s = (*this->s)[i];
 
         // compute stretch term
-        // note that multiplying by the transpose may maintain linear impulse better, but
-        //   severely underestimates stretch!
         std::array<S,2> wdu1 = {0.0};
         std::array<S,2> wdu2 = {0.0};
         std::array<S,2> wdu  = {0.0};
@@ -223,7 +219,7 @@ public:
         // add Cottet SFS
 
         // update strengths
-        (*this->s)[0][i] = this_s[0] + _dt * wdu[0];
+        (*this->s)[i] = this_s + _dt * wdu[0];
 
         // check for max strength
         S thisstr = std::abs((*this->s)[i]);
