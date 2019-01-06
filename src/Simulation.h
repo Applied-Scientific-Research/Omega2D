@@ -72,7 +72,7 @@ public:
   // graphics pass-through calls
   void initGL(std::vector<float>&, float*, float*, float*);
   void updateGL();
-  void drawGL(std::vector<float>&, float*, float*, float*);
+  void drawGL(std::vector<float>&, float*, float*, float*, float);
 
 private:
   // primary simulation params

@@ -74,3 +74,53 @@ TracerEmitter::to_string() const {
   return ss.str();
 }
 
+
+//
+// Create a circle of tracer points
+//
+std::vector<float>
+TracerBlob::init_particles(float _ips) const {
+
+  // create a new vector to pass on
+  std::vector<float> x;
+
+  // what size 2D integer array will we loop over
+  int irad = 1 + m_rad / _ips;
+  //std::cout << "blob needs " << (-irad) << " to " << irad << " spaces" << std::endl;
+
+  // loop over integer indices
+  for (int i=-irad; i<=irad; ++i) {
+  for (int j=-irad; j<=irad; ++j) {
+
+    // how far from the center are we?
+    float dr = sqrt((float)(i*i+j*j)) * _ips;
+    if (dr < m_rad) {
+      // create a particle here
+      x.emplace_back(m_x + _ips*(float)i);
+      x.emplace_back(m_y + _ips*(float)j);
+    }
+  }
+  }
+
+  return x;
+}
+
+std::vector<float>
+TracerBlob::step_particles(float _ips) const {
+  // does not emit
+  return std::vector<float>();
+}
+
+void
+TracerBlob::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+TracerBlob::to_string() const {
+  std::stringstream ss;
+  ss << "tracer blob at " << m_x << " " << m_y << " with radius " << m_rad;
+  return ss.str();
+}
+
+

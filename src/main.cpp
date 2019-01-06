@@ -199,6 +199,7 @@ int main(int argc, char const *argv[]) {
   ImVec4 neg_circ_color = ImColor(63, 63, 255);
   ImVec4 default_color = ImColor(204, 204, 204);
   ImVec4 clear_color = ImColor(15, 15, 15);
+  float tracer_size = 0.15;
   //static bool show_origin = true;
   static bool is_viscous = false;
 
@@ -234,7 +235,7 @@ int main(int argc, char const *argv[]) {
 
         // initialize measurement features
         for (auto const& mf: mfeatures) {
-          sim.add_tracers( mf->init_particles(sim.get_ips()) );
+          sim.add_tracers( mf->init_particles(tracer_size*sim.get_ips()) );
         }
 
         // initialize panels
@@ -253,7 +254,7 @@ int main(int argc, char const *argv[]) {
           sim.add_particles( ff->step_particles(sim.get_ips()) );
         }
         for (auto const& mf: mfeatures) {
-          sim.add_tracers( mf->step_particles(sim.get_ips()) );
+          sim.add_tracers( mf->step_particles(tracer_size*sim.get_ips()) );
         }
 
         // begin a new dynamic step: convection and diffusion
@@ -541,11 +542,12 @@ int main(int argc, char const *argv[]) {
       if (ImGui::BeginPopupModal("New measurement structure"))
       {
         static int item = 0;
-        const char* items[] = { "single point/tracer", "streakline" };
-        ImGui::Combo("type", &item, items, 2);
+        const char* items[] = { "single point/tracer", "streakline", "circle of tracers" };
+        ImGui::Combo("type", &item, items, 3);
 
         static float xc[2] = {0.0f, 0.0f};
         static bool is_lagrangian = true;
+        static float rad = 5.0 * sim.get_ips();
 
         // always ask for center
         ImGui::InputFloat2("center", xc);
@@ -573,19 +575,18 @@ int main(int argc, char const *argv[]) {
             }
             ImGui::SameLine();
             break;
-/*
           case 2:
             // a tracer circle
             ImGui::SliderFloat("radius", &rad, sim.get_ips(), 1.0f, "%.4f");
-            ImGui::TextWrapped("This feature will add about %d field points", (int)(0.785398175*pow(2*rad/sim.get_ips(), 2)));
+            ImGui::TextWrapped("This feature will add about %d field points",
+                               (int)(0.785398175*pow(2*rad/(tracer_size*sim.get_ips()), 2)));
             if (ImGui::Button("Add circle of tracers")) {
-              mfeatures.emplace_back(std::make_unique<TracerBlob>(xc[0], xc[1]));
+              mfeatures.emplace_back(std::make_unique<TracerBlob>(xc[0], xc[1], rad));
               std::cout << "Added " << (*mfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
             break;
-*/
         }
 
         if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
@@ -695,7 +696,7 @@ int main(int argc, char const *argv[]) {
 
     // draw the simulation: panels and particles
     compute_projection_matrix(window, vcx, vcy, &vsize, gl_projection);
-    sim.drawGL(gl_projection, &pos_circ_color.x, &neg_circ_color.x, &default_color.x);
+    sim.drawGL(gl_projection, &pos_circ_color.x, &neg_circ_color.x, &default_color.x, tracer_size);
 
     // draw the GUI
     ImGui::Render();

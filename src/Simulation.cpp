@@ -105,15 +105,17 @@ void Simulation::updateGL() {
 void Simulation::drawGL(std::vector<float>& _projmat,
                         float*              _poscolor,
                         float*              _negcolor,
-                        float*              _defcolor) {
+                        float*              _defcolor,
+                        float               _tracersize) {
   if (step_is_finished) {
     bdry.drawGL(_projmat, _poscolor, _negcolor);
     //vort.drawGL(_projmat, _poscolor, _negcolor);
+    const float tracersz = get_ips() * _tracersize;
     for (auto &coll : vort2) {
-      std::visit([=, &_projmat](auto& elem) { elem.drawGL(_projmat, _poscolor, _negcolor, _defcolor); }, coll);
+      std::visit([=, &_projmat](auto& elem) { elem.drawGL(_projmat, _poscolor, _negcolor, _defcolor, tracersz); }, coll);
     }
     for (auto &coll : fldpt) {
-      std::visit([=, &_projmat](auto& elem) { elem.drawGL(_projmat, _poscolor, _negcolor, _defcolor); }, coll);
+      std::visit([=, &_projmat](auto& elem) { elem.drawGL(_projmat, _poscolor, _negcolor, _defcolor, tracersz); }, coll);
     }
   }
 }

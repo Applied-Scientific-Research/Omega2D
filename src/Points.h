@@ -423,7 +423,8 @@ public:
   void drawGL(std::vector<float>& _projmat,
               float*              _poscolor,
               float*              _negcolor,
-              float*              _defcolor) {
+              float*              _defcolor,
+              float               _tracersize) {
 
     //std::cout << "inside Points.drawGL" << std::endl;
 
@@ -452,7 +453,7 @@ public:
         // upload the current uniforms
         glUniformMatrix4fv(projmat_attribute_pt, 1, GL_FALSE, _projmat.data());
         glUniform4fv(def_color_attribute, 1, (const GLfloat *)_defcolor);
-        glUniform1f (unif_rad_attribute, (const GLfloat)0.01f);
+        glUniform1f (unif_rad_attribute, (const GLfloat)(2.5f*_tracersize));
 
         // the one draw call here
         glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, num_uploaded);

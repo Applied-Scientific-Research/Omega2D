@@ -88,3 +88,21 @@ protected:
   //float m_frequency;
 };
 
+//
+// Concrete class for a circle of tracer points
+//
+class TracerBlob : public SinglePoint {
+public:
+  TracerBlob(float _x, float _y, float _rad)
+    : SinglePoint(_x, _y, true),
+      m_rad(_rad)
+    {}
+
+  void debug(std::ostream& os) const override;
+  std::string to_string() const override;
+  std::vector<float> init_particles(float) const override;
+  std::vector<float> step_particles(float) const override;
+
+protected:
+  float m_rad;
+};
