@@ -7,10 +7,12 @@
 
 #pragma once
 
+#include "VectorHelper.h"
 #include "nanoflann.hpp"
 
 #include <Eigen/Dense>
 
+#include <array>
 #include <algorithm>
 #include <cassert>
 #include <chrono>
@@ -27,36 +29,29 @@
 // templated on storage class ST (typically float or double)
 //
 template <class ST>
-size_t merge_close_particles(std::vector<ST>& xin,
-                             std::vector<ST>& uin,
-                             const ST         particle_overlap,
-                             const ST         threshold,
-                             const bool       adapt_radii) {
+size_t merge_close_particles(std::array<Vector<ST>,2>& pos,
+                             Vector<ST>&               str,
+                             Vector<ST>&               rad,
+                             const ST                  particle_overlap,
+                             const ST                  threshold,
+                             const bool                adapt_radii) {
+
+  // make sure all vector sizes are identical
+  assert(pos[0].size()==pos[1].size());
+  assert(pos[0].size()==str.size());
+  assert(str.size()==rad.size());
+  const size_t n = str.size();
+
+  std::cout << "  Merging close particles with n " << n << std::endl;
 
   // start timer
   auto start = std::chrono::system_clock::now();
 
-  // make sure all vector sizes are identical
-  assert(xin.size()==uin.size());
-  const size_t n = xin.size() / 4;
-
-  std::cout << "  Merging close particles with n " << n << std::endl;
-
-  // generate the local set of vectors
-  std::vector<ST> x, y, r, s;
-  x.resize(n);
-  y.resize(n);
-  r.resize(n);
-  s.resize(n);
-
-  // decompose the input vectors into compatible vectors
-  for (size_t i=0; i<n; ++i) {
-    size_t idx = 4*i;
-    x[i] = xin[idx];
-    y[i] = xin[idx+1];
-    s[i] = xin[idx+2];
-    r[i] = xin[idx+3];
-  }
+  // reference or generate the local set of vectors
+  Vector<ST>& x = pos[0];
+  Vector<ST>& y = pos[1];
+  Vector<ST>& r = rad;
+  Vector<ST>& s = str;
 
   // convert particle positions into something nanoflann can understand
   Eigen::Matrix<ST, Eigen::Dynamic, 2> xp;
@@ -142,32 +137,20 @@ size_t merge_close_particles(std::vector<ST>& xin,
     for (size_t i=0; i<n; ++i) {
       if (not erase_me[i]) {
         if (i != copyto) {
-          //x[copyto] = x[i];
-          //y[copyto] = y[i];
-          //r[copyto] = r[i];
-          //s[copyto] = s[i];
-          size_t ito = 4*copyto;
-          xin[ito+0] = x[i];
-          xin[ito+1] = y[i];
-          xin[ito+2] = s[i];
-          xin[ito+3] = r[i];
-          size_t ifr = 4*i;
-          uin[ito+0] = uin[ifr+0];
-          uin[ito+1] = uin[ifr+1];
-          uin[ito+2] = uin[ifr+2];
-          uin[ito+3] = uin[ifr+3];
+          x[copyto] = x[i];
+          y[copyto] = y[i];
+          r[copyto] = r[i];
+          s[copyto] = s[i];
         }
         copyto++;
       }
     }
     // reset n and resize the arrays
     const size_t new_n = copyto;
-    xin.resize(4*new_n);
-    uin.resize(4*new_n);
-    x.clear();
-    y.clear();
-    r.clear();
-    s.clear();
+    x.resize(new_n);
+    y.resize(new_n);
+    r.resize(new_n);
+    s.resize(new_n);
 
     std::cout << "    merge removed " << num_removed << " particles" << std::endl;
   }

@@ -73,6 +73,7 @@ Pictured below is a simulation of viscous flow over a circle at Reynolds number 
 ## To do
 Tasks to consider or implement:
 
+* Allow Points to be able to draw not only blobs but dots at the middles, too, using same arrays but different draw programs (turn either on or off?)
 * Allow inert Points collections to never allocate space for radius
 * Get the Panels into the new arch - includes creation, BEM, vel-finding, drawing
 * Replace core architecture (using std::variant and Collection)
@@ -112,6 +113,7 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~Upgrade Merge to the new arch, then particle-only diffusion will be complete~~
 * ~~Get new arch to perform VRM~~
 * ~~Get new arch to create a line or a blob of inert particles, compute their motion, and draw them~~
 * ~~Set tracer points to be a constant fraction of the minimum particle size~~
