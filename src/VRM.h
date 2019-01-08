@@ -216,10 +216,8 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
 
   std::cout << "  Running VRM with n " << n << std::endl;
 
-  // start timers
-  std::chrono::system_clock::time_point start, end;
-  std::chrono::duration<double> elapsed_seconds;
-  start = std::chrono::system_clock::now();
+  // start timer
+  auto start = std::chrono::system_clock::now();
 
   // reference or generate the local set of vectors
   Vector<ST>& x = pos[0];
@@ -419,8 +417,9 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
     r[i] = newr[i];
   }
 
-  end = std::chrono::system_clock::now();
-  elapsed_seconds = end-start;
+  // finish timer and report
+  auto end = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end-start;
   printf("    vrm.diffuse_all:\t[%.6f] cpu seconds\n", (float)elapsed_seconds.count());
 }
 
