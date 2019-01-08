@@ -243,15 +243,19 @@ void Diffusion<S,A,I>::step(const double                _dt,
   //vrm.set_adaptive_radii(adaptive_radii);
 
   for (auto &coll : _vort) {
-    //std::cout << "    computing diffusion among " << elem->get_n() << " particles" << std::endl;
 
-    // if no strength or no radius, skip
+    // if no strength, skip
+    if (std::visit([=](auto& elem) { return elem.is_inert(); }, coll)) continue;
 
     // neither of these are passed as const, because both may be extended with new particles
     // this call also applies the changes, though we may want to save any changes into another
     //   vector of derivatives to be applied later
     std::visit([=](auto& elem) {
-      vrm.diffuse_all(elem.get_pos(), elem.get_str(), elem.get_rad(), core_func, particle_overlap);
+      vrm.diffuse_all(elem.get_pos(),
+                      elem.get_str(),
+                      elem.get_rad(),
+                      core_func,
+                      particle_overlap);
     } , coll);
 
     // resize the rest of the arrays
@@ -287,8 +291,9 @@ void Diffusion<S,A,I>::step(const double                _dt,
     std::visit([=](auto& elem) {
       //std::cout << "    merging among " << elem.get_n() << " particles" << std::endl;
       // last two arguments are: relative distance, allow variable core radii
-      (void)merge_close_particles<S>(elem.get_x(),
-                                     elem.get_u(),
+      (void)merge_close_particles<S>(elem.get_pos(),
+                                     elem.get_str(),
+                                     elem.get_rad(),
                                      particle_overlap,
                                      0.3,
                                      adaptive_radii);
@@ -318,7 +323,5 @@ void Diffusion<S,A,I>::step(const double                _dt,
   for (auto &coll : _vort) {
     std::visit([=](auto& elem) { elem.update_max_str(); }, coll);
   }
-
-  //if (n>0) std::cout << "  part 0 with str " << x[2] << " is at " << x[0] << " " << x[1] << std::endl;
 }
 
