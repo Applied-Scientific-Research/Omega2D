@@ -79,6 +79,7 @@ public:
   }
 
   // up-size all arrays to the new size, filling with sane values
+  // this only happens right after diffusion
   void resize(const size_t _nnew) {
     const size_t currn = n;
     //std::cout << "  inside ElementBase::resize with " << currn << " " << _nnew << std::endl;
@@ -95,10 +96,10 @@ public:
 
     // strength
     if (s) {
-      const size_t thisn = s.size();
-      s.resize(_nnew);
+      const size_t thisn = (*s).size();
+      (*s).resize(_nnew);
       for (size_t i=thisn; i<_nnew; ++i) {
-        s[i] = 0.0;
+        (*s)[i] = 0.0;
       }
     }
 
