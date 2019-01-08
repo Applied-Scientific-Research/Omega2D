@@ -242,7 +242,7 @@ void Simulation::step() {
   bdry.make_panels(get_ips());
 
   // for simplicity's sake, just run one full diffusion step here
-  diff.step(dt, re, get_vdelta(), thisfs, vort, bdry);
+  //diff.step(dt, re, get_vdelta(), thisfs, vort, bdry);
   diff.step(dt, re, get_vdelta(), thisfs, vort2, bdry2);
 
   // operator splitting requires one half-step diffuse (use coefficients from previous step, if available)

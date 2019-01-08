@@ -132,7 +132,7 @@ void Diffusion<S,A,I>::step(const double                _dt,
     //std::cout << "    computing diffusion among " << elem->get_n() << " particles" << std::endl;
 
     // neither of these are passed as const, because both may be extended with new particles
-    vrm.diffuse_all(elem->get_x(), elem->get_u(), core_func, particle_overlap);
+    //vrm.diffuse_all(elem->get_x(), elem->get_u(), core_func, particle_overlap);
 
     // apply the strength change to the particles
     elem->increment_in_place();
@@ -206,7 +206,7 @@ void Diffusion<S,A,I>::step(const double                _dt,
 
   if (is_inviscid) return;
 
-  std::cout << "  inside Diffusion::step with dt=" << _dt << std::endl;
+  std::cout << "  Inside Diffusion::step with dt=" << _dt << std::endl;
 
   // always re-run the BEM calculation before shedding
 /*
@@ -236,30 +236,27 @@ void Diffusion<S,A,I>::step(const double                _dt,
   // diffuse strength among existing particles
   //
 
-  // zero out the time derivative vector - only do this once, here
-  //for (auto &coll : _vort) {
-  //  std::visit([=](auto& elem) { elem.zero_vels(); }, coll);
-  //}
-
   // ensure that we have a current h_nu
   vrm.set_hnu(std::sqrt(_dt/_re));
 
   // ensure that it knows to allow or disallow adaptive radii
   //vrm.set_adaptive_radii(adaptive_radii);
 
-  //for (auto& elem : _vort.get_collections()) {
   for (auto &coll : _vort) {
     //std::cout << "    computing diffusion among " << elem->get_n() << " particles" << std::endl;
 
+    // if no strength or no radius, skip
+
     // neither of these are passed as const, because both may be extended with new particles
-    //vrm.diffuse_all(elem->get_x(), elem->get_u(), core_func, particle_overlap);
+    // this call also applies the changes, though we may want to save any changes into another
+    //   vector of derivatives to be applied later
+    std::visit([=](auto& elem) {
+      vrm.diffuse_all(elem.get_pos(), elem.get_str(), elem.get_rad(), core_func, particle_overlap);
+    } , coll);
 
-    // apply the strength change to the particles
-    //elem->increment_in_place();
-    //std::visit([=](auto& elem) { elem.zero_vels(); }, coll);
+    // resize the rest of the arrays
+    std::visit([=](auto& elem) { elem.resize(elem.get_str().size()); }, coll);
 
-    // and update the strength
-    //elem->update_max_str();
   }
 
   // reflect interior particles to exterior because VRM does not account for panels
@@ -286,16 +283,17 @@ void Diffusion<S,A,I>::step(const double                _dt,
   // merge any close particles to clean up potentially-dense areas
   //
 /*
-  for (auto& elem : _vort.get_collections()) {
-    //std::cout << "    merging among " << elem->get_n() << " particles" << std::endl;
-
-    // last two arguments are: relative distance, allow variable core radii
-    (void)merge_close_particles<S>(elem->get_x(),
-                                   elem->get_u(),
-                                   particle_overlap,
-                                   0.3,
-                                   adaptive_radii);
-    }
+  for (auto &coll : _vort) {
+    std::visit([=](auto& elem) {
+      //std::cout << "    merging among " << elem.get_n() << " particles" << std::endl;
+      // last two arguments are: relative distance, allow variable core radii
+      (void)merge_close_particles<S>(elem.get_x(),
+                                     elem.get_u(),
+                                     particle_overlap,
+                                     0.3,
+                                     adaptive_radii);
+    } , coll);
+  }
 */
 
   //
@@ -315,6 +313,11 @@ void Diffusion<S,A,I>::step(const double                _dt,
     //}
   }
 */
+
+  // now is a fine time to reset the max active/particle strength
+  for (auto &coll : _vort) {
+    std::visit([=](auto& elem) { elem.update_max_str(); }, coll);
+  }
 
   //if (n>0) std::cout << "  part 0 with str " << x[2] << " is at " << x[0] << " " << x[1] << std::endl;
 }

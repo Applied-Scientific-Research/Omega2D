@@ -156,7 +156,7 @@ public:
 
     // no specialization needed
     if (this->M == lagrangian and this->E != inert) {
-      std::cout << "  Stretching" << to_string() << " using 1st order" << std::endl;
+      //std::cout << "  Stretching" << to_string() << " using 1st order" << std::endl;
       S thismax = 0.0;
 
       for (size_t i=0; i<this->n; ++i) {
@@ -200,7 +200,7 @@ public:
 
     // and specialize
     if (this->M == lagrangian and this->E != inert) {
-      std::cout << "  Stretching" << to_string() << " using 2nd order" << std::endl;
+      //std::cout << "  Stretching" << to_string() << " using 2nd order" << std::endl;
       S thismax = 0.0;
 
       for (size_t i=0; i<this->n; ++i) {
@@ -234,6 +234,25 @@ public:
 
     } else {
       //std::cout << "  Not stretching" << to_string() << std::endl;
+      max_strength = 1.0;
+    }
+  }
+
+  // find the new peak strength magnitude
+  void update_max_str() {
+    if (this->s) {
+      // we have strengths, go through and check them
+      S thismax = 0.0;
+      for (size_t i=0; i<this->n; ++i) {
+        S thisstr = std::abs((*this->s)[i]);
+        if (thisstr > thismax) thismax = thisstr;
+      }
+      if (max_strength < 0.0) {
+        max_strength = thismax;
+      } else {
+        max_strength = 0.1*thismax + 0.9*max_strength;
+      }
+    } else {
       max_strength = 1.0;
     }
   }

@@ -73,7 +73,7 @@ Pictured below is a simulation of viscous flow over a circle at Reynolds number 
 ## To do
 Tasks to consider or implement:
 
-* Get new arch to perform VRM
+* Allow inert Points collections to never allocate space for radius
 * Get the Panels into the new arch - includes creation, BEM, vel-finding, drawing
 * Replace core architecture (using std::variant and Collection)
 * Move some initialization back into ElementBase - like positions and such, keep radius in Points, then ElementBase can draw points?
@@ -89,9 +89,9 @@ Tasks to consider or implement:
 * Add an animated GIF to the page to show how to set up a run?
 * Have "status" line indicate when we're waiting for a step to finish after we've hit pause
 * Instead of manipulating the projection matrix, have the mouse change the view matrix (assume model matrix is unity), see [here](https://solarianprogrammer.com/2013/05/22/opengl-101-matrices-projection-view-model/) for a nice write-up on the three OpenGL matrices
-* Support multiple Lagrangian element collections under an Elements structure
+* Support multiple Lagrangian element collections under an Elements structure - new arch will allow this
 * Support faster VRM by caching values from first half to use in second half
-* Make more of the sliders dynamic (like dt and color) - be able to add new particles while a sim is running
+* Make more of the sliders dynamic (like dt ~~and color~~) - be able to add new particles while a sim is running
 * Right-click on the draw screen to add features - hard? can imgui handle it?
 * Draw something when you add a feature (so we know it's doing something)
 * Create an OpenGL compute shader routine for the particle-particle influence
@@ -103,9 +103,7 @@ Tasks to consider or implement:
 * Draw a freestream arrow in the LR corner
 * Let the user grab the fs arrow to dynamically change the freestream
 * Add field points in a grid over the visible domain, find vels, display as streaks
-* Draw panels as polygons extending along the normal with a sharp edge on the body side and a
-  gradient to zero on the flow side - then they can visually merge with the particles to make
-  a visibly smooth and more-correct vorticity field
+* Draw panels as polygons extending along the normal with a sharp edge on the body side and a gradient to zero on the flow side - then they can visually merge with the particles to make a visibly smooth and more-correct vorticity field
 * Add Read Setup, Read State, Write Setup, Write State buttons, which call a JSON library, like [nlohmann/json](https://github.com/nlohmann/json), to perform those actions
 * Reconsider templatizing on the scalar type. If you don't intend for floats or doubles in the same code, perhaps create a header with `using Scalar = float;` so you can flip back and forth easier. NBL
 * Consider different method for including shader code NBL
@@ -114,6 +112,7 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~Get new arch to perform VRM~~
 * ~~Get new arch to create a line or a blob of inert particles, compute their motion, and draw them~~
 * ~~Set tracer points to be a constant fraction of the minimum particle size~~
 * ~~Echo correct number of particles and points in the GUI~~

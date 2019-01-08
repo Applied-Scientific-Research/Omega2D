@@ -8,6 +8,7 @@
 #pragma once
 
 #include "Core.h"
+#include "VectorHelper.h"
 #include "nanoflann.hpp"
 #include "nnls.h"
 
@@ -39,18 +40,21 @@ public:
   ST get_hnu();
 
   // all-to-all diffuse; can change array sizes
-  void diffuse_all(std::vector<ST>&, std::vector<ST>&,
-                   const CoreType, const ST);
+  void diffuse_all(std::array<Vector<ST>,2>&,
+                   Vector<ST>&,
+                   Vector<ST>&,
+                   const CoreType,
+                   const ST);
 
 protected:
   // search for new target location
-  std::pair<ST,ST> fill_neighborhood_search(const int32_t, const std::vector<ST>&, const std::vector<ST>&,
+  std::pair<ST,ST> fill_neighborhood_search(const int32_t, const Vector<ST>&, const Vector<ST>&,
                                             const std::vector<int32_t>&, const ST);
 
   // set up and call the solver
   bool attempt_solution(const int32_t, std::vector<int32_t>&,
-                        std::vector<ST>&, std::vector<ST>&,
-                        std::vector<ST>&, std::vector<ST>&,
+                        Vector<ST>&, Vector<ST>&,
+                        Vector<ST>&, Vector<ST>&,
                         const CoreType,
                         Eigen::Matrix<CT, Eigen::Dynamic, 1>&);
 
@@ -160,7 +164,7 @@ ST VRM<ST,CT,MAXMOM>::get_hnu() {
 //
 template <class ST, class CT, uint8_t MAXMOM>
 std::pair<ST,ST> VRM<ST,CT,MAXMOM>::fill_neighborhood_search(const int32_t idx,
-                                                             const std::vector<ST>& x, const std::vector<ST>& y,
+                                                             const Vector<ST>& x, const Vector<ST>& y,
                                                              const std::vector<int32_t>& inear, const ST nom_sep) {
 
   // create array of potential sites
@@ -195,20 +199,20 @@ std::pair<ST,ST> VRM<ST,CT,MAXMOM>::fill_neighborhood_search(const int32_t idx,
 
 
 //
-// Find the change in strength and radius that would occur over one dt
-//
-// was: x, y, r, newr, s, ds
-// now: x (x,y,s,r), u (dxdt, dydt, dsdt, drdt)
+// Find the change in strength and radius that would occur over one dt and apply it
 //
 template <class ST, class CT, uint8_t MAXMOM>
-void VRM<ST,CT,MAXMOM>::diffuse_all(std::vector<ST>& xin,
-                                    std::vector<ST>& uin,
+void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
+                                    Vector<ST>& str,
+                                    Vector<ST>& rad,
                                     const CoreType core_func,
                                     const ST particle_overlap) {
 
   // make sure all vector sizes are identical
-  assert(xin.size()==uin.size());
-  size_t n = xin.size() / 4;
+  assert(pos[0].size()==pos[1].size());
+  assert(pos[0].size()==str.size());
+  assert(str.size()==rad.size());
+  size_t n = str.size();
 
   std::cout << "  Running VRM with n " << n << std::endl;
 
@@ -217,23 +221,14 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::vector<ST>& xin,
   std::chrono::duration<double> elapsed_seconds;
   start = std::chrono::system_clock::now();
 
-  // generate the local set of vectors
-  std::vector<ST> x, y, r, newr, s, ds;
-  x.resize(n);
-  y.resize(n);
-  r.resize(n);
+  // reference or generate the local set of vectors
+  Vector<ST>& x = pos[0];
+  Vector<ST>& y = pos[1];
+  Vector<ST>& r = rad;
+  Vector<ST>& s = str;
+  Vector<ST> newr, ds;
   newr.resize(n);
-  s.resize(n);
   ds.resize(n);
-
-  // decompose the input vectors into compatible vectors
-  for (size_t i=0; i<n; ++i) {
-    size_t idx = 4*i;
-    x[i] = xin[idx];
-    y[i] = xin[idx+1];
-    s[i] = xin[idx+2];
-    r[i] = xin[idx+3];
-  }
 
   // zero out delta vector
   std::fill(ds.begin(), ds.end(), 0.0);
@@ -418,17 +413,10 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::vector<ST>& xin,
   //std::cout << "  number of close pairs " << (ntooclose/2) << std::endl;
   std::cout << "    after VRM, n is " << n << std::endl;
 
-  // recompose the input vectors into compatible vectors
-  xin.resize(4*n);
-  uin.resize(4*n);
+  // apply the changes to the master vectors
   for (size_t i=0; i<n; ++i) {
-    size_t idx = 4*i;
-    xin[idx]   = x[i];
-    xin[idx+1] = y[i];
-    xin[idx+2] = s[i];
-    xin[idx+3] = r[i];
-    uin[idx+2] = ds[i];
-    uin[idx+3] = newr[i];
+    s[i] += ds[i];
+    r[i] = newr[i];
   }
 
   end = std::chrono::system_clock::now();
@@ -441,8 +429,8 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::vector<ST>& xin,
 //
 template <class ST, class CT, uint8_t MAXMOM>
 bool VRM<ST,CT,MAXMOM>::attempt_solution(const int32_t idiff, std::vector<int32_t>& inear,
-                                         std::vector<ST>& x, std::vector<ST>& y,
-                                         std::vector<ST>& r, std::vector<ST>& newr,
+                                         Vector<ST>& x, Vector<ST>& y,
+                                         Vector<ST>& r, Vector<ST>& newr,
                                          const CoreType core_func,
                                          Eigen::Matrix<CT, Eigen::Dynamic, 1>& fracout) {
 
