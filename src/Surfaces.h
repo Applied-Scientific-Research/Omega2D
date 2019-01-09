@@ -1,12 +1,13 @@
 /*
- * Points.h - Specialized class for 2D points
+ * Surfaces.h - Specialized class for surfaces in 2D
  *
- * (c)2018-9 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
+ * (c)2019 Applied Scientific Research, Inc.
+ *         Written by Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
 
+#include "Omega2D.h"
 #include "VectorHelper.h"
 #include "ElementBase.h"
 
@@ -16,86 +17,93 @@
 #include "glad.h"
 #endif
 
+#include <cstdint>
 #include <iostream>
 #include <vector>
 #include <array>
-#include <memory>
-#include <optional>
-#include <random>
+//#include <memory>
+//#include <optional>
+//#include <random>
 #include <cassert>
 #define _USE_MATH_DEFINES
-#include <cmath>
-#include <algorithm>
+//#include <cmath>
+//#include <algorithm>
+
+// this means we can have no more than 65536 element segments in the system - seems reasonable for 2D
+using Int = uint16_t;
 
 
-// 0-D elements
+// 1-D elements
 template <class S>
-class Points: public ElementBase<S> {
+class Surfaces: public ElementBase<S> {
 public:
-  // flexible constructor - use input 4*n vector (x, y, s, r)
-  //                         or input 2*n vector (x, y)
-  Points(const std::vector<S>& _in, const elem_t _e, const move_t _m)
+  // constructor - accepts vector of vectors of (x,y,s) pairs
+  //               makes one closed body for each outer vector
+  //               each inner vector must have even number of floats
+  //               and first pair must equal last pair to close the shape
+  //               last parameter (s) is either fixed strength or boundary
+  //               condition for next segment
+  Surfaces(const std::vector<Vector<S>>& _in, const elem_t _e, const move_t _m)
     : ElementBase<S>(0, _e, _m),
       max_strength(-1.0) {
 
-    size_t nper = 4;
-    if (_e == inert) {
-      nper = 2;
-      std::cout << "  new collection with " << (_in.size()/nper) << " tracers..." << std::endl;
-    } else {
-      nper = 4;
-      std::cout << "  new collection with " << (_in.size()/nper) << " vortons..." << std::endl;
+    std::cout << "  new collection with " << _in.size() << ((_in.size() == 1) ? " surface..." : " surfaces...") << std::endl;
+
+    // keep a running tally of the number of nodes in this collection
+    Int nnodes = 0;
+    Int nsurfs = 0;
+
+    for (auto &surf : _in) {
+
+      // assert that this surface has the correct number of data points
+      assert(surf.size() % 3 == 0);
+      const size_t nthis = surf.size() / 3;
+
+      std::cout << "  surface " << nsurfs << " has " << nthis << " nodes" << std::endl;
+
+      // is the last one the same as the first one?
+      const bool is_closed = (surf[0] == surf[3*nthis-3] and surf[1] == surf[3*nthis-2]);
+
+      for (size_t i=0; i<nthis; ++i) {
+
+        // this initialization specific to Surfaces
+        for (size_t d=0; d<Dimensions; ++d) {
+          this->x[d].resize(this->n);
+          for (size_t i=0; i<this->n; ++i) {
+            this->x[d][i] = surf[3*i+d];
+          }
+        }
+
+        if (_e != inert) {
+          // optional strength in base class
+          // need to assign it a vector first!
+          Vector<S> new_s;
+          new_s.resize(this->n);
+          this->s = std::move(new_s);
+        }
+      }
+
+      nsurfs++;
     }
 
     // need to reset the base class n
-    this->n = _in.size()/nper;
+    this->n = nnodes;
 
-    // make sure we have a complete input vector
-    assert(_in.size() % nper == 0);
-
-    // this initialization specific to Points
-    for (size_t d=0; d<Dimensions; ++d) {
-      this->x[d].resize(this->n);
-      for (size_t i=0; i<this->n; ++i) {
-        this->x[d][i] = _in[nper*i+d];
-      }
-    }
-
-
-    if (_e == inert) {
-      // field points need no radius, but we must set one anyway so that vel evals work
-      r.resize(this->n);
-      for (size_t i=0; i<this->n; ++i) {
-        r[i] = 0.0;
-      }
-
-    } else {
-      // active vortons need a radius
-      r.resize(this->n);
-      for (size_t i=0; i<this->n; ++i) {
-        r[i] = _in[4*i+3];
-      }
-
-      // optional strength in base class
-      // need to assign it a vector first!
-      Vector<S> new_s;
-      new_s.resize(this->n);
-      for (size_t i=0; i<this->n; ++i) {
-        new_s[i] = _in[4*i+2];
-      }
-      this->s = std::move(new_s);
-    }
-
-    // velocity in base class
+    // velocity is in the base class - just resize it here
     for (size_t d=0; d<Dimensions; ++d) {
       this->u[d].resize(this->n);
     }
   }
 
+  const std::array<std::vector<Int>,2>& get_idx() const { return idx; }
+
+/*
   const Vector<S>& get_rad() const { return r; }
   Vector<S>&       get_rad()       { return r; }
 
-  void add_new(std::vector<float>& _in) {
+  // add more nodes and panels to this collection
+  void add_new(std::vector<Vector<S>>& _in) {
+
     // remember old size and incoming size
     const size_t nold = this->n;
 
@@ -122,7 +130,7 @@ public:
   // up-size all arrays to the new size, filling with sane values
   void resize(const size_t _nnew) {
     const size_t currn = this->n;
-    //std::cout << "  inside Points::resize with " << currn << " " << _nnew << std::endl;
+    //std::cout << "  inside Surfaces::resize with " << currn << " " << _nnew << std::endl;
 
     // must explicitly call the method in the base class - this sets n
     ElementBase<S>::resize(_nnew);
@@ -186,57 +194,7 @@ public:
       max_strength = 1.0;
     }
   }
-
-  //
-  // 2nd order RK advection and stretch
-  //
-  void move(const double _dt,
-            const double _wt1, Points<S> const & _u1,
-            const double _wt2, Points<S> const & _u2) {
-    // must explicitly call the method in the base class
-    ElementBase<S>::move(_dt, _wt1, _u1, _wt2, _u2);
-
-    // must confirm that incoming time derivates include velocity
-
-    // and specialize
-    if (this->M == lagrangian and this->E != inert) {
-      //std::cout << "  Stretching" << to_string() << " using 2nd order" << std::endl;
-      S thismax = 0.0;
-
-      for (size_t i=0; i<this->n; ++i) {
-
-        // set up some convenient temporaries
-        S this_s = (*this->s)[i];
-
-        // compute stretch term
-        std::array<S,2> wdu1 = {0.0};
-        std::array<S,2> wdu2 = {0.0};
-        std::array<S,2> wdu  = {0.0};
-
-        wdu[0] = _wt1*wdu1[0] + _wt2*wdu2[0];
-        wdu[1] = _wt1*wdu1[1] + _wt2*wdu2[1];
-
-        // add Cottet SFS
-
-        // update strengths
-        (*this->s)[i] = this_s + _dt * wdu[0];
-
-        // check for max strength
-        S thisstr = std::abs((*this->s)[i]);
-        if (thisstr > thismax) thismax = thisstr;
-      }
-
-      if (max_strength < 0.0) {
-        max_strength = thismax;
-      } else {
-        max_strength = 0.1*thismax + 0.9*max_strength;
-      }
-
-    } else {
-      //std::cout << "  Not stretching" << to_string() << std::endl;
-      max_strength = 1.0;
-    }
-  }
+*/
 
   // find the new peak strength magnitude
   void update_max_str() {
@@ -249,6 +207,7 @@ public:
       max_strength = 0.1*thismax + 0.9*max_strength;
     }
   }
+
 
 #ifdef USE_GL
   //
@@ -273,9 +232,10 @@ public:
               float*              _negcolor,
               float*              _defcolor) {
 
-    //std::cout << "inside Points.initGL" << std::endl;
-    std::cout << "inside Points.initGL with E=" << this->E << " and M=" << this->M << std::endl;
+    //std::cout << "inside Surfaces.initGL" << std::endl;
+    std::cout << "inside Surfaces.initGL with E=" << this->E << " and M=" << this->M << std::endl;
 
+/*
     // Use a Vertex Array Object
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -387,15 +347,17 @@ public:
     } // end this->E is active or reactive
 
     glBindVertexArray(0);
+*/
   }
 
   // this gets done every time we change the size of the positions array
   void updateGL() {
-    //std::cout << "inside Points.updateGL" << std::endl;
+    //std::cout << "inside Surfaces.updateGL" << std::endl;
 
     // has this been init'd yet?
     if (glIsVertexArray(vao) == GL_FALSE) return;
 
+/*
     const size_t vlen = this->x[0].size()*sizeof(S);
     if (vlen > 0) {
       glBindVertexArray(vao);
@@ -429,6 +391,7 @@ public:
       // must tell draw call how many elements are there
       num_uploaded = this->x[0].size();
     }
+*/
   }
 
   // OpenGL3 stuff to display points, called once per frame
@@ -438,7 +401,7 @@ public:
               float*              _defcolor,
               float               _tracersize) {
 
-    //std::cout << "inside Points.drawGL" << std::endl;
+    //std::cout << "inside Surfaces.drawGL" << std::endl;
 
     // has this been init'd yet?
     if (glIsVertexArray(vao) == GL_FALSE) {
@@ -446,6 +409,7 @@ public:
       updateGL();
     }
 
+/*
     if (num_uploaded > 0) {
       glBindVertexArray(vao);
 
@@ -494,28 +458,30 @@ public:
       glDisable(GL_BLEND);
       glBindVertexArray(0);
     }
+*/
   }
 #endif
 
   std::string to_string() const {
-    std::string retstr = ElementBase<S>::to_string() + " Points";
+    std::string retstr = ElementBase<S>::to_string() + " Panels";
     return retstr;
   }
 
 protected:
-  // additional state vector
-  Vector<S> r;					// thickness/radius
-  // in 3D, this is where elong and ug would be
+  // ElementBase.h has x, s, u
+  std::array<std::vector<Int>,2> idx;		// indexes into the x array
+  Vector<S>                      bc;		// boundary condition for the elements
+
+  //std::vector<std::pair<Int,Int>> body_idx;	// n, offset of rows in the BEM?
 
 private:
 #ifdef USE_GL
   // OpenGL stuff
-  GLuint vao, vbo[4];
-  GLuint draw_blob_program, draw_point_program;
+  GLuint vao, vbo[3], vbos, eab;
+  GLuint draw_surf_program;
   GLsizei num_uploaded;
-  GLint projmat_attribute_bl, projmat_attribute_pt, quad_attribute_bl, quad_attribute_pt;
+  GLint projmat_attribute;
   GLint def_color_attribute, pos_color_attribute, neg_color_attribute, str_scale_attribute;
-  GLint unif_rad_attribute;
 #endif
   float max_strength;
 };

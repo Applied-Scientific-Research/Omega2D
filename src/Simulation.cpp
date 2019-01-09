@@ -1,7 +1,7 @@
 /*
  * Simulation.cpp - a class to control a 2d vortex particle sim
  *
- * (c)2017-8 Applied Scientific Research, Inc.
+ * (c)2017-9 Applied Scientific Research, Inc.
  *           Written by Mark J Stock <markjstock@gmail.com>
  */
 
@@ -81,9 +81,12 @@ void Simulation::initGL(std::vector<float>& _projmat,
                         float*              _poscolor,
                         float*              _negcolor,
                         float*              _defcolor) {
-  bdry.initGL(_projmat, _poscolor, _negcolor);
+  //bdry.initGL(_projmat, _poscolor, _negcolor);
   //vort.initGL(_projmat, _poscolor, _negcolor);
   for (auto &coll : vort2) {
+    std::visit([=, &_projmat](auto& elem) { elem.initGL(_projmat, _poscolor, _negcolor, _defcolor); }, coll);
+  }
+  for (auto &coll : bdry2) {
     std::visit([=, &_projmat](auto& elem) { elem.initGL(_projmat, _poscolor, _negcolor, _defcolor); }, coll);
   }
   for (auto &coll : fldpt) {
@@ -95,6 +98,9 @@ void Simulation::updateGL() {
   bdry.updateGL();
   //vort.updateGL();
   for (auto &coll : vort2) {
+    std::visit([=](auto& elem) { elem.updateGL(); }, coll);
+  }
+  for (auto &coll : bdry2) {
     std::visit([=](auto& elem) { elem.updateGL(); }, coll);
   }
   for (auto &coll : fldpt) {
@@ -114,6 +120,9 @@ void Simulation::drawGL(std::vector<float>& _projmat,
     for (auto &coll : vort2) {
       std::visit([=, &_projmat](auto& elem) { elem.drawGL(_projmat, _poscolor, _negcolor, _defcolor, tracersz); }, coll);
     }
+    for (auto &coll : bdry2) {
+      std::visit([=, &_projmat](auto& elem) { elem.drawGL(_projmat, _poscolor, _negcolor, _defcolor, tracersz); }, coll);
+    }
     for (auto &coll : fldpt) {
       std::visit([=, &_projmat](auto& elem) { elem.drawGL(_projmat, _poscolor, _negcolor, _defcolor, tracersz); }, coll);
     }
@@ -128,6 +137,7 @@ void Simulation::drawGL(std::vector<float>& _projmat,
 void Simulation::init_bcs() {
   // are panels even made? do this first
   bdry.make_panels(get_ips());
+  //bdry2.make_panels(get_ips());
 }
 
 bool Simulation::is_initialized() { return sim_is_initialized; }
@@ -240,6 +250,7 @@ void Simulation::step() {
 
   // are panels even made? do this first
   bdry.make_panels(get_ips());
+  //bdry2.make_panels(get_ips());
 
   // for simplicity's sake, just run one full diffusion step here
   //diff.step(dt, re, get_vdelta(), thisfs, vort, bdry);
@@ -324,6 +335,7 @@ void Simulation::add_boundary(bdryType _type, std::vector<float> _params) {
   if (_type == circle) {
     assert(_params.size() == 3);
     bdry.add(Circle<float>(_params[0], _params[1], _params[2]));
+    //bdry2.add(Circle<float>(_params[0], _params[1], _params[2]));
   }
 }
 

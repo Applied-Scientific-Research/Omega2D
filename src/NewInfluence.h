@@ -1,7 +1,7 @@
 /*
  * Influence.h - Non-class influence calculations
  *
- * (c)2017-8 Applied Scientific Research, Inc.
+ * (c)2017-9 Applied Scientific Research, Inc.
  *           Written by Mark J Stock <markjstock@gmail.com>
  */
 
@@ -9,7 +9,7 @@
 
 #include "NewKernels.h"
 #include "Points.h"
-//#include "Panels.h"
+#include "Surfaces.h"
 
 #include <iostream>
 #include <vector>
@@ -130,11 +130,11 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
   printf("    points_affect_points: [%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);
 }
 
-/*
 template <class S, class A>
-void panels_affect_points (Panels<S> const& src, Points<S>& targ) {
+void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
   std::cout << "    1_0 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
 
+/*
   // get references to use locally
   const std::array<Vector<S>,Dimensions>& sx = src.get_pos();
   //const Vector<S>&                      sr = src.get_rad();
@@ -169,13 +169,15 @@ void panels_affect_points (Panels<S> const& src, Points<S>& targ) {
     tu[1][i] += accumv;
     tu[2][i] += accumw;
   }
+*/
 }
 
 
 template <class S, class A>
-void points_affect_panels (Points<S> const& src, Panels<S>& targ) {
+void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
   std::cout << "    0_1 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
 
+/*
   // get references to use locally
   const std::array<Vector<S>,Dimensions>& sx = src.get_pos();
   const std::array<Vector<S>,Dimensions>& ss = src.get_str();
@@ -210,23 +212,23 @@ void points_affect_panels (Points<S> const& src, Panels<S>& targ) {
     tu[1][i] -= accumv;
     tu[2][i] -= accumw;
   }
+*/
 }
 
 template <class S, class A>
-void panels_affect_panels (Panels<S> const& src, Panels<S>& targ) {
+void panels_affect_panels (Surfaces<S> const& src, Surfaces<S>& targ) {
   std::cout << "    1_1 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   // not sure how to do this - find field points of one and apply a function above?
 }
-*/
 
 
 // helper struct for dispatching through a variant
 template <class A>
 struct InfluenceVisitor {
   // source collection, target collection
-  void operator()(Points<float> const& src, Points<float>& targ) { points_affect_points<float,A>(src, targ); } 
-  //void operator()(Panels<float> const& src, Points<float>& targ) { panels_affect_points<float,A>(src, targ); } 
-  //void operator()(Points<float> const& src, Panels<float>& targ) { points_affect_panels<float,A>(src, targ); } 
-  //void operator()(Panels<float> const& src, Panels<float>& targ) { panels_affect_panels<float,A>(src, targ); } 
+  void operator()(Points<float> const& src,   Points<float>& targ)   { points_affect_points<float,A>(src, targ); } 
+  void operator()(Surfaces<float> const& src, Points<float>& targ)   { panels_affect_points<float,A>(src, targ); } 
+  void operator()(Points<float> const& src,   Surfaces<float>& targ) { points_affect_panels<float,A>(src, targ); } 
+  void operator()(Surfaces<float> const& src, Surfaces<float>& targ) { panels_affect_panels<float,A>(src, targ); } 
 };
 

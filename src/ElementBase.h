@@ -1,8 +1,8 @@
 /*
  * ElementBase.h - abstract class for arrays of any computational elements
  *
- * (c)2018 Applied Scientific Research, Inc.
- *         Written by Mark J Stock <markjstock@gmail.com>
+ * (c)2018-9 Applied Scientific Research, Inc.
+ *           Written by Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -157,6 +157,21 @@ public:
       }
 
       // update strengths (in derived class)
+    }
+  }
+
+  // find the new peak strength magnitude
+  S get_max_str() {
+    if (s) {
+      // we have strengths, go through and check them
+      S thismax = 0.0;
+      for (size_t i=0; i<(*s).size(); ++i) {
+        S thisstr = std::abs((*s)[i]);
+        if (thisstr > thismax) thismax = thisstr;
+      }
+      return thismax;
+    } else {
+      return 1.0;
     }
   }
 
