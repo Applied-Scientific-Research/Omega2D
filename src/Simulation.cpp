@@ -43,7 +43,18 @@ float Simulation::get_vdelta() { return diff.get_particle_overlap() * get_ips();
 float Simulation::get_time() { return (float)time; }
 
 // status
-size_t Simulation::get_npanels() { return bdry.get_npanels(); }
+size_t Simulation::get_npanels() { //return bdry.get_npanels(); }
+  size_t n = 0;
+  for (auto &coll: bdry2) {
+    //std::visit([&n](auto& elem) { n += elem.get_npanels(); }, coll);
+    // only proceed if the last collection is Surfaces
+    if (std::holds_alternative<Surfaces<float>>(coll)) {
+      Surfaces<float>& surf = std::get<Surfaces<float>>(coll);
+      n += surf.get_npanels();
+    }
+  }
+  return n;
+}
 
 size_t Simulation::get_nparts() {
   size_t n = 0;
