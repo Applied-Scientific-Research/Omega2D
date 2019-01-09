@@ -712,6 +712,9 @@ int main(int argc, char const *argv[]) {
     compute_projection_matrix(window, vcx, vcy, &vsize, gl_projection);
     sim.drawGL(gl_projection, &pos_circ_color.x, &neg_circ_color.x, &default_color.x, tracer_size);
 
+    // if simulation has not been initted, draw the features instead!
+    //for (auto const& bf : bfeatures) { bf.drawGL(); }
+
     // draw the GUI
     ImGui::Render();
 
