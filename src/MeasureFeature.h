@@ -1,8 +1,8 @@
 /*
  * MeasureFeature.h - GUI-side descriptions of flow measurement features
  *
- * (c)2018 Applied Scientific Research, Inc.
- *         Written by Mark J Stock <markjstock@gmail.com>
+ * (c)2018-9 Applied Scientific Research, Inc.
+ *           Written by Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
