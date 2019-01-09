@@ -305,7 +305,13 @@ void Simulation::add_particles(std::vector<float> _xysr) {
   } else {
     // THIS MUST USE A VISITOR
     // HACK - add all particles to first collection
-    std::visit([&](auto& elem) { elem.add_new(incopy); }, vort2.back());
+    //std::visit([&](auto& elem) { elem.add_new(incopy); }, vort2.back());
+    auto& coll = vort2.back();
+    // only proceed if the last collection is Points
+    if (std::holds_alternative<Points<float>>(coll)) {
+      Points<float>& pts = std::get<Points<float>>(coll);
+      pts.add_new(incopy);
+    }
   }
 }
 
@@ -323,10 +329,18 @@ void Simulation::add_tracers(std::vector<float> _xy) {
   if (fldpt.size() == 0) {
     // make a new collection
     fldpt.push_back(Points<float>(_xy, inert, lagrangian));      // vortons
+
   } else {
     // THIS MUST USE A VISITOR
     // HACK - add all particles to first collection
-    std::visit([&](auto& elem) { elem.add_new(_xy); }, fldpt.back());
+    //std::visit([&](auto& elem) { elem.add_new(_xy); }, fldpt.back());
+    auto& coll = fldpt.back();
+    // eventually we will want to check every collection for matching element and move types
+    // only proceed if the collection is Points
+    if (std::holds_alternative<Points<float>>(coll)) {
+      Points<float>& pts = std::get<Points<float>>(coll);
+      pts.add_new(_xy);
+    }
   }
 }
 
@@ -335,7 +349,27 @@ void Simulation::add_boundary(bdryType _type, std::vector<float> _params) {
   if (_type == circle) {
     assert(_params.size() == 3);
     bdry.add(Circle<float>(_params[0], _params[1], _params[2]));
-    //bdry2.add(Circle<float>(_params[0], _params[1], _params[2]));
   }
 }
 
+/*
+void Simulation::add_boundary(bdryType _type, std::vector<float> _params) {
+  if (_type == circle) {
+    //bdry2.add(Circle<float>(_params[0], _params[1], _params[2]));
+  }
+
+  // if no collections exist
+  if (fldpt.size() == 0) {
+    // make a new collection
+    //bdry2.push_back(Surfaces<float>(_xy, inert, lagrangian));      // vortons
+  } else {
+
+    auto& coll = bdry2.back();
+    // only proceed if the last collection is Surfaces
+    if (std::holds_alternative<Surfaces<float>>(coll)) {
+      Surfaces<float>& surf = std::get<Surfaces<float>>(coll);
+      surf.add_new(incopy);
+    }
+  }
+}
+*/

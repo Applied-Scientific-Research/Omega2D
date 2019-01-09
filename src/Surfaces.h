@@ -17,7 +17,6 @@
 #include "glad.h"
 #endif
 
-#include <cstdint>
 #include <iostream>
 #include <vector>
 #include <array>
@@ -28,9 +27,6 @@
 #define _USE_MATH_DEFINES
 //#include <cmath>
 //#include <algorithm>
-
-// this means we can have no more than 65536 element segments in the system - seems reasonable for 2D
-using Int = uint16_t;
 
 
 // 1-D elements
@@ -43,90 +39,140 @@ public:
   //               and first pair must equal last pair to close the shape
   //               last parameter (s) is either fixed strength or boundary
   //               condition for next segment
-  Surfaces(const std::vector<Vector<S>>& _in, const elem_t _e, const move_t _m)
+  Surfaces(const std::vector<S>&   _x,
+           const std::vector<Int>& _idx,
+           const std::vector<S>&   _val,
+           const elem_t _e, const move_t _m)
     : ElementBase<S>(0, _e, _m),
       max_strength(-1.0) {
 
-    std::cout << "  new collection with " << _in.size() << ((_in.size() == 1) ? " surface..." : " surfaces...") << std::endl;
+    // make sure input arrays are correctly-sized
+    assert(_x.size() % 2 == 0);
+    assert(_idx.size() % 2 == 0);
+    assert(_idx.size()/2 == _val.size());
+    const size_t nnodes = _x.size() / 2;
+    const size_t nsurfs = _idx.size() / 2;
 
-    // keep a running tally of the number of nodes in this collection
-    Int nnodes = 0;
-    Int nsurfs = 0;
+    std::cout << "  new collection with " << nsurfs << " surface panels..." << std::endl;
 
-    for (auto &surf : _in) {
-
-      // assert that this surface has the correct number of data points
-      assert(surf.size() % 3 == 0);
-      const size_t nthis = surf.size() / 3;
-
-      std::cout << "  surface " << nsurfs << " has " << nthis << " nodes" << std::endl;
-
-      // is the last one the same as the first one?
-      const bool is_closed = (surf[0] == surf[3*nthis-3] and surf[1] == surf[3*nthis-2]);
-
-      for (size_t i=0; i<nthis; ++i) {
-
-        // this initialization specific to Surfaces
-        for (size_t d=0; d<Dimensions; ++d) {
-          this->x[d].resize(this->n);
-          for (size_t i=0; i<this->n; ++i) {
-            this->x[d][i] = surf[3*i+d];
-          }
-        }
-
-        if (_e != inert) {
-          // optional strength in base class
-          // need to assign it a vector first!
-          Vector<S> new_s;
-          new_s.resize(this->n);
-          this->s = std::move(new_s);
-        }
+    // pull out the node locations
+    for (size_t d=0; d<Dimensions; ++d) {
+      this->x[d].resize(nnodes);
+      for (size_t i=0; i<nnodes; ++i) {
+        this->x[d][i] = _x[2*i+d];
       }
+    }
 
-      nsurfs++;
+    // copy over the node indices (with a possible type change)
+    bool idx_are_all_good = true;
+    idx.resize(_idx.size());
+    for (size_t i=0; i<2*nsurfs; ++i) {
+      // make sure it exists in the nodes array
+      if (_idx[i] >= nnodes) idx_are_all_good = false;
+      idx[i] = _idx[i];
+    }
+    assert(idx_are_all_good);
+
+    // now, depending on the element type, put the value somewhere
+    if (this->E == active) {
+      // value is a fixed strength for the segment
+      Vector<S> new_s = _val;
+      //new_s.resize(nsurfs);
+      this->s = std::move(new_s);
+
+    } else if (this->E == reactive) {
+      // value is a boundary condition
+      bc = _val;
+      //bc.resize(nsurfs);
+      //for (size_t i=0; i<nsurfs; ++i) {
+      //  bc[i] = _val[i];
+      //}
+
+    } else if (this->E == inert) {
+      // value is ignored (probably zero)
+    }
+
+    // velocity is in the base class - just resize it here
+    for (size_t d=0; d<Dimensions; ++d) {
+      this->u[d].resize(nnodes);
     }
 
     // need to reset the base class n
     this->n = nnodes;
+  }
+
+  size_t get_npanels() const { return idx.size()/2; }
+
+  // callers should never have to change this array
+  const std::vector<Int>& get_idx() const { return idx; }
+  const std::vector<S>&   get_bcs() const { return bc; }
+
+
+  // add more nodes and panels to this collection
+  void add_new(const std::vector<S>&   _x,
+               const std::vector<Int>& _idx,
+               const std::vector<S>&   _val) {
+
+    // remember old sizes of nodes and element arrays
+    const size_t nnold = this->n;
+    const size_t neold = get_npanels();
+
+    // make sure input arrays are correctly-sized
+    assert(_x.size() % 2 == 0);
+    assert(_idx.size() % 2 == 0);
+    assert(_idx.size()/2 == _val.size());
+    const size_t nnodes = _x.size() / 2;
+    const size_t nsurfs = _idx.size() / 2;
+
+    std::cout << "  adding " << nsurfs << " new surface panels to collection..." << std::endl;
+
+    // DON'T call the method in the base class, because we do things differently here
+    //ElementBase<S>::add_new(_in);
+
+    // pull out the node locations
+    for (size_t d=0; d<Dimensions; ++d) {
+      this->x[d].resize(nnold+nnodes);
+      for (size_t i=0; i<nnodes; ++i) {
+        this->x[d][nnold+i] = _x[2*i+d];
+      }
+    }
+
+    // copy over the node indices, taking care to offset into the new array
+    bool idx_are_all_good = true;
+    idx.resize(2*neold + _idx.size());
+    for (size_t i=0; i<2*nsurfs; ++i) {
+      // make sure it exists in the nodes array
+      if (_idx[i] >= nnold+nnodes) idx_are_all_good = false;
+      idx[2*neold+i] = nnold + _idx[i];
+    }
+    assert(idx_are_all_good);
+
+    // now, depending on the element type, put the value somewhere
+    if (this->E == active) {
+      // value is a fixed strength for the element
+      //*(this->s).resize(neold+nsurfs);
+      //(*this->s)[i]
+      this->s->reserve(neold+nsurfs); 
+
+    } else if (this->E == reactive) {
+      // value is a boundary condition
+      bc.reserve(neold+nsurfs); 
+      bc.insert(bc.end(), _val.begin(), _val.end());
+
+    } else if (this->E == inert) {
+      // value is ignored (probably zero)
+    }
 
     // velocity is in the base class - just resize it here
     for (size_t d=0; d<Dimensions; ++d) {
-      this->u[d].resize(this->n);
+      this->u[d].resize(nnold+nnodes);
     }
-  }
 
-  const std::array<std::vector<Int>,2>& get_idx() const { return idx; }
+    // need to reset the base class n
+    this->n += nnodes;
+  }
 
 /*
-  const Vector<S>& get_rad() const { return r; }
-  Vector<S>&       get_rad()       { return r; }
-
-  // add more nodes and panels to this collection
-  void add_new(std::vector<Vector<S>>& _in) {
-
-    // remember old size and incoming size
-    const size_t nold = this->n;
-
-    const size_t nper = (this->E == inert) ? 2 : 4;
-    const size_t nnew = _in.size()/nper;
-    std::cout << "  adding " << nnew << " particles to collection..." << std::endl;
-
-    // must explicitly call the method in the base class first
-    ElementBase<S>::add_new(_in);
-
-    // then do local stuff
-    r.resize(nold+nnew);
-    if (this->E == inert) {
-      for (size_t i=0; i<nnew; ++i) {
-        r[nold+i] = 0.0;
-      }
-    } else {
-      for (size_t i=0; i<nnew; ++i) {
-        r[nold+i] = _in[4*i+3];
-      }
-    }
-  }
-
   // up-size all arrays to the new size, filling with sane values
   void resize(const size_t _nnew) {
     const size_t currn = this->n;
@@ -469,8 +515,8 @@ public:
 
 protected:
   // ElementBase.h has x, s, u
-  std::array<std::vector<Int>,2> idx;		// indexes into the x array
-  Vector<S>                      bc;		// boundary condition for the elements
+  std::vector<Int>	idx;	// indexes into the x array
+  Vector<S>		bc;	// boundary condition for the elements
 
   //std::vector<std::pair<Int,Int>> body_idx;	// n, offset of rows in the BEM?
 
