@@ -76,13 +76,15 @@ public:
     // now, depending on the element type, put the value somewhere
     if (this->E == active) {
       // value is a fixed strength for the segment
-      Vector<S> new_s = _val;
+      Vector<S> new_s(_val.size());
+      std::copy(_val.begin(), _val.end(), new_s.begin());
       //new_s.resize(nsurfs);
       this->s = std::move(new_s);
 
     } else if (this->E == reactive) {
       // value is a boundary condition
-      bc = _val;
+      bc.resize(_val.size());
+      std::copy(_val.begin(), _val.end(), bc.begin());
       //bc.resize(nsurfs);
       //for (size_t i=0; i<nsurfs; ++i) {
       //  bc[i] = _val[i];

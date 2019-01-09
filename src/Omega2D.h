@@ -8,6 +8,7 @@
 #pragma once
 
 #include <cstdlib>
+#include <vector>
 
 const size_t Dimensions = 2;
 
@@ -37,5 +38,23 @@ enum move_t {
   lagrangian = 1, // moves with local velocity
   bodybound  = 2, // moves with attached body
   fixed      = 3  // does not move
+};
+ 
+//
+// Helper class for passing arbitrary elements around
+//
+template<class S>
+struct ElementPacket {
+  ElementPacket<S>() = default;
+  ~ElementPacket<S>() = default;
+
+  ElementPacket<S>(ElementPacket<S> const&) = default; //allow copy
+  ElementPacket<S>(ElementPacket<S>&&) = default; //allow move
+  ElementPacket<S>& operator=(ElementPacket<S> const&) = default; //allow copy
+  ElementPacket<S>& operator=(ElementPacket<S>&&) = default; //allow move
+
+  std::vector<S> x;
+  std::vector<Int> idx;
+  std::vector<S> val;
 };
 

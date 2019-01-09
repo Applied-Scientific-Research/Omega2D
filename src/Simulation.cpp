@@ -363,24 +363,27 @@ void Simulation::add_boundary(bdryType _type, std::vector<float> _params) {
   }
 }
 
-/*
-void Simulation::add_boundary(bdryType _type, std::vector<float> _params) {
-  if (_type == circle) {
-    //bdry2.add(Circle<float>(_params[0], _params[1], _params[2]));
-  }
+void Simulation::add_boundary(ElementPacket<float> _geom) {
 
   // if no collections exist
-  if (fldpt.size() == 0) {
-    // make a new collection
-    //bdry2.push_back(Surfaces<float>(_xy, inert, lagrangian));      // vortons
+  if (bdry2.size() == 0) {
+    // make a new collection - assume BEM panels
+    bdry2.push_back(Surfaces<float>(_geom.x,
+                                    _geom.idx,
+                                    _geom.val,
+                                    reactive, fixed));
+
   } else {
 
     auto& coll = bdry2.back();
     // only proceed if the last collection is Surfaces
+    // eventually check each collection for a element and movement type match (i.e. reactive and fixed)
     if (std::holds_alternative<Surfaces<float>>(coll)) {
       Surfaces<float>& surf = std::get<Surfaces<float>>(coll);
-      surf.add_new(incopy);
+      surf.add_new(_geom.x,
+                   _geom.idx,
+                   _geom.val);
     }
   }
 }
-*/
+

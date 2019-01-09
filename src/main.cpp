@@ -7,6 +7,7 @@
 
 #include "FlowFeature.h"
 #include "BoundaryFeature.h"
+#include "BoundaryFeature2.h"
 #include "MeasureFeature.h"
 #include "Simulation.h"
 
@@ -144,6 +145,7 @@ int main(int argc, char const *argv[]) {
   Simulation sim;
   std::vector< std::unique_ptr<FlowFeature> > ffeatures;
   std::vector< std::unique_ptr<BoundaryFeature> > bfeatures;
+  std::vector< std::unique_ptr<BoundaryFeature2> > bfeatures2;
   std::vector< std::unique_ptr<MeasureFeature> > mfeatures;
   static bool sim_is_running = false;
   static bool begin_single_step = false;
@@ -231,6 +233,9 @@ int main(int argc, char const *argv[]) {
         // initialize solid objects
         for (auto const& bf : bfeatures) {
           sim.add_boundary( bf->get_type(), bf->get_params() );
+        }
+        for (auto const& bf : bfeatures2) {
+          sim.add_boundary( bf->init_elements(sim.get_ips()) );
         }
 
         // initialize measurement features
@@ -505,8 +510,9 @@ int main(int argc, char const *argv[]) {
             ImGui::TextWrapped("This feature will add a solid circular body centered at the given coordinates");
             if (ImGui::Button("Add circular body")) {
               bfeatures.emplace_back(std::make_unique<SolidCircle>(xc[0], xc[1], circdiam));
-              //bfeatures.emplace_back(std::unique_ptr<SolidCircle>(new SolidCircle(xc[0], xc[1], circdiam)));
+              bfeatures2.emplace_back(std::make_unique<SolidCircle2>(xc[0], xc[1], circdiam));
               std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              std::cout << "Added " << (*bfeatures2.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();

@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "Omega2D.h"
 #include "Body.h"
 #include "Collection.h"
 #include "Boundaries.h"
@@ -56,6 +57,7 @@ public:
   void add_particles(std::vector<float>);
   void add_tracers(std::vector<float>);
   void add_boundary(bdryType, std::vector<float>);
+  void add_boundary(ElementPacket<float>);
 
   // act on stuff
   //void set_amr(const bool);

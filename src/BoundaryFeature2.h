@@ -7,18 +7,11 @@
 
 #pragma once
 
+#include "Omega2D.h"
+
 #include <iostream>
 #include <vector>
 
-//
-// Helper class for passing segment elements around
-//
-template<class S>
-struct ElementPacket {
-  std::vector<S> x;
-  std::vector<int> idx;
-  std::vector<S> val;
-};
 
 //
 // Abstract class for any boundary feature present initially
@@ -67,9 +60,9 @@ protected:
 //
 // Concrete class for a circle (fluid is outside circle)
 //
-class SolidCircle : public BoundaryFeature2 {
+class SolidCircle2 : public BoundaryFeature2 {
 public:
-  SolidCircle(float _x, float _y, float _diam)
+  SolidCircle2(float _x, float _y, float _diam)
     : BoundaryFeature2(_x, _y),
       m_diam(_diam)
     {}
