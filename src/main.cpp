@@ -497,6 +497,7 @@ int main(int argc, char const *argv[]) {
         ImGui::Combo("type", &item, items, 2);
 
         static float xc[2] = {0.0f, 0.0f};
+        static float rotdeg = 0.0f;
 
         // always ask for center
         ImGui::InputFloat2("center", xc);
@@ -521,8 +522,11 @@ int main(int argc, char const *argv[]) {
             // create a square/rectangle boundary
             static float sqside = 1.0;
             ImGui::SliderFloat("side length", &sqside, 0.1f, 10.0f, "%.4f");
+            ImGui::SliderFloat("rotation", &rotdeg, 0.0f, 89.0f, "%.0f");
             ImGui::TextWrapped("This feature will add a solid square body centered at the given coordinates");
             if (ImGui::Button("Add square body")) {
+              bfeatures2.emplace_back(std::make_unique<SolidSquare>(xc[0], xc[1], sqside, rotdeg));
+              std::cout << "Added " << (*bfeatures2.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();

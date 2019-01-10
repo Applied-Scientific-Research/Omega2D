@@ -95,6 +95,7 @@ protected:
   float m_dmin;
   float m_theta;
 };
+*/
 
 
 //
@@ -116,5 +117,4 @@ protected:
   float m_side;
   float m_theta;
 };
-*/
 

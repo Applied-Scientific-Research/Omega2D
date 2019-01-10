@@ -61,3 +61,76 @@ SolidCircle2::to_string() const {
   return ss.str();
 }
 
+
+//
+// Create a square (fluid is outside)
+//
+ElementPacket<float>
+SolidSquare::init_elements(const float _ips) const {
+
+  // how many panels?
+  const size_t num_panels = 4 * std::min(2500, std::max(1, (int)(m_side / _ips)));
+
+  std::cout << "Creating square with " << num_panels << " panels" << std::endl;
+
+  // created once
+  std::vector<float>   x(num_panels*2);
+  std::vector<Int>   idx(num_panels*2);
+  std::vector<float> val(num_panels);
+
+  const float st = std::sin(M_PI * m_theta / 180.0);
+  const float ct = std::cos(M_PI * m_theta / 180.0);
+
+  // outside is to the left walking from one point to the next
+  // so go CW around the body
+  size_t icnt = 0;
+  for (size_t i=0; i<num_panels/4; i++) {
+    const float px = m_x + m_side * -0.5;
+    const float py = m_y + m_side * (-0.5 + (float)i / (float)(num_panels/4));
+    x[icnt++] = px*ct - py*st;
+    x[icnt++] = px*st + py*ct;
+  }
+  for (size_t i=0; i<num_panels/4; i++) {
+    const float px = m_x + m_side * (-0.5 + (float)i / (float)(num_panels/4));
+    const float py = m_y + m_side * 0.5;
+    x[icnt++] = px*ct - py*st;
+    x[icnt++] = px*st + py*ct;
+  }
+  for (size_t i=0; i<num_panels/4; i++) {
+    const float px = m_x + m_side * 0.5;
+    const float py = m_y + m_side * (0.5 - (float)i / (float)(num_panels/4));
+    x[icnt++] = px*ct - py*st;
+    x[icnt++] = px*st + py*ct;
+  }
+  for (size_t i=0; i<num_panels/4; i++) {
+    const float px = m_x + m_side * (0.5 - (float)i / (float)(num_panels/4));
+    const float py = m_y + m_side * -0.5;
+    x[icnt++] = px*ct - py*st;
+    x[icnt++] = px*st + py*ct;
+  }
+
+  // outside is to the left walking from one point to the next
+  for (size_t i=0; i<num_panels; i++) {
+    idx[2*i]   = i;
+    idx[2*i+1] = i+1;
+    val[i]     = 0.0;
+  }
+
+  // correct the final index
+  idx[2*num_panels-1] = 0;
+
+  return ElementPacket<float>({x, idx, val});
+}
+
+void
+SolidSquare::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+SolidSquare::to_string() const {
+  std::stringstream ss;
+  ss << "solid square at " << m_x << " " << m_y << " with side " << m_side << " rotated " << m_theta << " deg";
+  return ss.str();
+}
+
