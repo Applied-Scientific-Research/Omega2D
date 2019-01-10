@@ -80,7 +80,7 @@ private:
   // primary simulation params
   float re;
   float dt;
-  float fs[2];
+  float fs[Dimensions];
 
   // Object to contain all Lagrangian elements
   Vorticity<float,uint16_t> vort;
