@@ -125,7 +125,7 @@ void Simulation::drawGL(std::vector<float>& _projmat,
                         float*              _defcolor,
                         float               _tracersize) {
   if (step_is_finished) {
-    bdry.drawGL(_projmat, _poscolor, _negcolor);
+    //bdry.drawGL(_projmat, _poscolor, _negcolor);
     //vort.drawGL(_projmat, _poscolor, _negcolor);
     const float tracersz = get_ips() * _tracersize;
     for (auto &coll : vort2) {
@@ -372,7 +372,6 @@ void Simulation::add_boundary(ElementPacket<float> _geom) {
                                     _geom.idx,
                                     _geom.val,
                                     reactive, fixed));
-
   } else {
 
     auto& coll = bdry2.back();

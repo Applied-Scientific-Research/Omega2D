@@ -89,6 +89,9 @@ public:
       //for (size_t i=0; i<nsurfs; ++i) {
       //  bc[i] = _val[i];
       //}
+      // we still need strengths
+      Vector<S> new_s(_val.size());
+      this->s = std::move(new_s);
 
     } else if (this->E == inert) {
       // value is ignored (probably zero)
@@ -97,6 +100,18 @@ public:
     // velocity is in the base class - just resize it here
     for (size_t d=0; d<Dimensions; ++d) {
       this->u[d].resize(nnodes);
+    }
+
+    // debug print
+    if (false) {
+      std::cout << "Nodes" << std::endl;
+      for (size_t i=0; i<nnodes; ++i) {
+        std::cout << "  " << i << " " << this->x[0][i] << " " << this->x[1][i] << std::endl;
+      }
+      std::cout << "Segments" << std::endl;
+      for (size_t i=0; i<nsurfs; ++i) {
+        std::cout << "  " << i << " " << idx[2*i] << " " << idx[2*i+1] << std::endl;
+      }
     }
 
     // need to reset the base class n
@@ -160,6 +175,8 @@ public:
       // value is a boundary condition
       bc.reserve(neold+nsurfs); 
       bc.insert(bc.end(), _val.begin(), _val.end());
+      // and we still need strengths
+      this->s->reserve(neold+nsurfs); 
 
     } else if (this->E == inert) {
       // value is ignored (probably zero)
@@ -168,6 +185,18 @@ public:
     // velocity is in the base class - just resize it here
     for (size_t d=0; d<Dimensions; ++d) {
       this->u[d].resize(nnold+nnodes);
+    }
+
+    // debug print
+    if (false) {
+      std::cout << "Nodes" << std::endl;
+      for (size_t i=0; i<nnold+nnodes; ++i) {
+        std::cout << "  " << i << " " << this->x[0][i] << " " << this->x[1][i] << std::endl;
+      }
+      std::cout << "Segments" << std::endl;
+      for (size_t i=0; i<neold+nsurfs; ++i) {
+        std::cout << "  " << i << " " << idx[2*i] << " " << idx[2*i+1] << std::endl;
+      }
     }
 
     // need to reset the base class n
@@ -270,8 +299,6 @@ public:
     glVertexAttribPointer(position_attribute, 1, get_gl_type<S>, GL_FALSE, 0, 0);
     // Enable the attribute
     glEnableVertexAttribArray(position_attribute);
-    // and tell it to advance two primitives per point (2 tris per quad)
-    glVertexAttribDivisor(position_attribute, 1);
   }
 
   // this gets done once - load the shaders, set up the vao
@@ -283,7 +310,6 @@ public:
     //std::cout << "inside Surfaces.initGL" << std::endl;
     std::cout << "inside Surfaces.initGL with E=" << this->E << " and M=" << this->M << std::endl;
 
-/*
     // Use a Vertex Array Object
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -297,115 +323,56 @@ public:
       glBufferData(GL_ARRAY_BUFFER, 0, this->x[i].data(), GL_STATIC_DRAW);
     }
 
-    // here is where we split on element type: active/reactive vs. inert
-    if (this->E == inert) {
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[2]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 0, idx.data(), GL_STATIC_DRAW);
 
-      // Load and create the blob-drawing shader program
-      draw_point_program = create_draw_point_program();
+    if (this->s) {
+      glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
+      glBufferData(GL_ARRAY_BUFFER, 0, (*this->s).data(), GL_STATIC_DRAW);
+    }
 
-      // Now do the four arrays
-      prepare_opengl_buffer(draw_point_program, 0, "px");
-      prepare_opengl_buffer(draw_point_program, 1, "py");
+    // Load and create the blob-drawing shader program
+    draw_surface_line_prog = create_draw_surface_line_prog();
 
-      // and for the compute shaders!
+    // Now do the four arrays
+    prepare_opengl_buffer(draw_surface_line_prog, 0, "px");
+    prepare_opengl_buffer(draw_surface_line_prog, 1, "py");
+    prepare_opengl_buffer(draw_surface_line_prog, 2, "rawstr");
 
-      // Get the location of the attributes that enters in the vertex shader
-      projmat_attribute_pt = glGetUniformLocation(draw_point_program, "Projection");
+    // and for the compute shaders! (later)
 
-      // upload the projection matrix
-      glUniformMatrix4fv(projmat_attribute_pt, 1, GL_FALSE, _projmat.data());
+    // Get the location of the attributes that enters in the vertex shader
+    projmat_attribute = glGetUniformLocation(draw_surface_line_prog, "Projection");
 
-      // locate where the colors and color scales go
-      def_color_attribute = glGetUniformLocation(draw_point_program, "def_color");
+    // upload the projection matrix
+    glUniformMatrix4fv(projmat_attribute, 1, GL_FALSE, _projmat.data());
 
-      // send the current values
-      glUniform4fv(def_color_attribute, 1, _defcolor);
+    // locate where the colors and color scales go
+    pos_color_attribute = glGetUniformLocation(draw_surface_line_prog, "pos_color");
+    neg_color_attribute = glGetUniformLocation(draw_surface_line_prog, "neg_color");
+    def_color_attribute = glGetUniformLocation(draw_surface_line_prog, "def_color");
+    str_scale_attribute = glGetUniformLocation(draw_surface_line_prog, "str_scale");
 
-      // locate where the point radius goes
-      unif_rad_attribute = glGetUniformLocation(draw_point_program, "rad");
+    // send the current values
+    glUniform4fv(pos_color_attribute, 1, (const GLfloat *)_poscolor);
+    glUniform4fv(neg_color_attribute, 1, (const GLfloat *)_negcolor);
+    glUniform4fv(def_color_attribute, 1, (const GLfloat *)_defcolor);
+    glUniform1f (str_scale_attribute, (const GLfloat)1.0);
+    //std::cout << "init pos color as " << _poscolor[0] << " " << _poscolor[1] << " " << _poscolor[2] << " " << _poscolor[3] << std::endl;
 
-      // send the current values
-      glUniform1f(unif_rad_attribute, (const GLfloat)0.01);
-
-      // and indicate the fragment color output
-      glBindFragDataLocation(draw_point_program, 0, "frag_color");
-
-      // Initialize the quad attributes
-      std::vector<float> quadverts = {-1,-1, 1,-1, 1,1, -1,1};
-      GLuint qvbo;
-      glGenBuffers(1, &qvbo);
-      glBindBuffer(GL_ARRAY_BUFFER, qvbo);
-      glBufferData(GL_ARRAY_BUFFER, quadverts.size()*sizeof(float), quadverts.data(), GL_STATIC_DRAW);
-
-      quad_attribute_pt = glGetAttribLocation(draw_point_program, "quad_attr");
-      glVertexAttribPointer(quad_attribute_pt, 2, GL_FLOAT, GL_FALSE, 0, 0);
-      glEnableVertexAttribArray(quad_attribute_pt);
-
-    } else { // this->E is active or reactive
-
-      glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
-      glBufferData(GL_ARRAY_BUFFER, 0, r.data(), GL_STATIC_DRAW);
-      if (this->s) {
-        glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
-        glBufferData(GL_ARRAY_BUFFER, 0, (*this->s).data(), GL_STATIC_DRAW);
-      }
-
-      // Load and create the blob-drawing shader program
-      draw_blob_program = create_draw_blob_program();
-
-      // Now do the four arrays
-      prepare_opengl_buffer(draw_blob_program, 0, "px");
-      prepare_opengl_buffer(draw_blob_program, 1, "py");
-      prepare_opengl_buffer(draw_blob_program, 2, "r");
-      prepare_opengl_buffer(draw_blob_program, 3, "sx");
-
-      // and for the compute shaders!
-
-      // Get the location of the attributes that enters in the vertex shader
-      projmat_attribute_bl = glGetUniformLocation(draw_blob_program, "Projection");
-
-      // upload the projection matrix
-      glUniformMatrix4fv(projmat_attribute_bl, 1, GL_FALSE, _projmat.data());
-
-      // locate where the colors and color scales go
-      pos_color_attribute = glGetUniformLocation(draw_blob_program, "pos_color");
-      neg_color_attribute = glGetUniformLocation(draw_blob_program, "neg_color");
-      str_scale_attribute = glGetUniformLocation(draw_blob_program, "str_scale");
-
-      // send the current values
-      glUniform4fv(pos_color_attribute, 1, (const GLfloat *)_poscolor);
-      glUniform4fv(neg_color_attribute, 1, (const GLfloat *)_negcolor);
-      glUniform1f (str_scale_attribute, (const GLfloat)1.0);
-      //std::cout << "init pos color as " << _poscolor[0] << " " << _poscolor[1] << " " << _poscolor[2] << " " << _poscolor[3] << std::endl;
-
-      // and indicate the fragment color output
-      glBindFragDataLocation(draw_blob_program, 0, "frag_color");
-
-      // Initialize the quad attributes
-      std::vector<float> quadverts = {-1,-1, 1,-1, 1,1, -1,1};
-      GLuint qvbo;
-      glGenBuffers(1, &qvbo);
-      glBindBuffer(GL_ARRAY_BUFFER, qvbo);
-      glBufferData(GL_ARRAY_BUFFER, quadverts.size()*sizeof(float), quadverts.data(), GL_STATIC_DRAW);
-
-      quad_attribute_bl = glGetAttribLocation(draw_blob_program, "quad_attr");
-      glVertexAttribPointer(quad_attribute_bl, 2, GL_FLOAT, GL_FALSE, 0, 0);
-      glEnableVertexAttribArray(quad_attribute_bl);
-
-    } // end this->E is active or reactive
+    // and indicate the fragment color output
+    glBindFragDataLocation(draw_surface_line_prog, 0, "frag_color");
 
     glBindVertexArray(0);
-*/
   }
 
-  // this gets done every time we change the size of the positions array
+  // this gets done every time we change the size of the index array
   void updateGL() {
     //std::cout << "inside Surfaces.updateGL" << std::endl;
 
     // has this been init'd yet?
     if (glIsVertexArray(vao) == GL_FALSE) return;
 
-/*
     const size_t vlen = this->x[0].size()*sizeof(S);
     if (vlen > 0) {
       glBindVertexArray(vao);
@@ -417,29 +384,25 @@ public:
         glBufferData(GL_ARRAY_BUFFER, vlen, this->x[i].data(), GL_DYNAMIC_DRAW);
       }
 
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[2]);
+      glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Int)*idx.size(), idx.data(), GL_DYNAMIC_DRAW);
+
       // here is where we split on element type: active/reactive vs. inert
       if (this->E == inert) {
-
-        // just don't upload strengths or radii
-
+        // just don't upload strengths
       } else { // this->E is active or reactive
-
         // the strengths
         if (this->s) {
           glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
           glBufferData(GL_ARRAY_BUFFER, vlen, (*this->s).data(), GL_DYNAMIC_DRAW);
         }
-        // the radii
-        glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
-        glBufferData(GL_ARRAY_BUFFER, vlen, r.data(), GL_DYNAMIC_DRAW);
       }
 
       glBindVertexArray(0);
 
       // must tell draw call how many elements are there
-      num_uploaded = this->x[0].size();
+      num_uploaded = idx.size();
     }
-*/
   }
 
   // OpenGL3 stuff to display points, called once per frame
@@ -457,7 +420,6 @@ public:
       updateGL();
     }
 
-/*
     if (num_uploaded > 0) {
       glBindVertexArray(vao);
 
@@ -466,47 +428,32 @@ public:
       glEnable(GL_BLEND);
       glBlendFunc(GL_ONE, GL_ONE);
 
+      glLineWidth(2.0);
+
       // here is where we split on element type: active/reactive vs. inert
-      if (this->E == inert) {
+      //if (this->E == inert) {
+      //} else { // this->E is active or reactive
 
-        // draw as small dots
-        glUseProgram(draw_point_program);
+      // draw as lines
+      glUseProgram(draw_surface_line_prog);
 
-        glEnableVertexAttribArray(quad_attribute_pt);
+      // upload the current projection matrix
+      glUniformMatrix4fv(projmat_attribute, 1, GL_FALSE, _projmat.data());
 
-        // upload the current uniforms
-        glUniformMatrix4fv(projmat_attribute_pt, 1, GL_FALSE, _projmat.data());
-        glUniform4fv(def_color_attribute, 1, (const GLfloat *)_defcolor);
-        glUniform1f (unif_rad_attribute, (const GLfloat)(2.5f*_tracersize));
+      // upload the current color values
+      glUniform4fv(pos_color_attribute, 1, (const GLfloat *)_poscolor);
+      glUniform4fv(neg_color_attribute, 1, (const GLfloat *)_negcolor);
+      glUniform4fv(def_color_attribute, 1, (const GLfloat *)_defcolor);
+      glUniform1f (str_scale_attribute, (const GLfloat)max_strength);
 
-        // the one draw call here
-        glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, num_uploaded);
-
-      } else { // this->E is active or reactive
-
-        // draw as colored clouds
-        glUseProgram(draw_blob_program);
-
-        glEnableVertexAttribArray(quad_attribute_bl);
-
-        // upload the current projection matrix
-        glUniformMatrix4fv(projmat_attribute_bl, 1, GL_FALSE, _projmat.data());
-
-        // upload the current color values
-        glUniform4fv(pos_color_attribute, 1, (const GLfloat *)_poscolor);
-        glUniform4fv(neg_color_attribute, 1, (const GLfloat *)_negcolor);
-        glUniform1f (str_scale_attribute, (const GLfloat)(0.4f/max_strength));
-
-        // the one draw call here
-        glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, num_uploaded);
-      }
+      // the one draw call here
+      glDrawElements(GL_LINES, num_uploaded, get_gl_type<Int>, 0);
 
       // return state
       glEnable(GL_DEPTH_TEST);
       glDisable(GL_BLEND);
       glBindVertexArray(0);
     }
-*/
   }
 #endif
 
@@ -525,8 +472,8 @@ protected:
 private:
 #ifdef USE_GL
   // OpenGL stuff
-  GLuint vao, vbo[3], vbos, eab;
-  GLuint draw_surf_program;
+  GLuint vao, vbo[4];
+  GLuint draw_surface_line_prog;
   GLsizei num_uploaded;
   GLint projmat_attribute;
   GLint def_color_attribute, pos_color_attribute, neg_color_attribute, str_scale_attribute;

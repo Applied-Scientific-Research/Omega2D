@@ -21,5 +21,6 @@ GLuint create_draw_blob_program();
 GLuint create_particle_program();
 GLuint create_draw_point_program();
 GLuint create_panel_program();
+GLuint create_draw_surface_line_prog();
 
 // Create a compute program from one shader
