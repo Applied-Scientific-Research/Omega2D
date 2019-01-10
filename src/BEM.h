@@ -1,7 +1,7 @@
 /*
  * BEM.h - Library code for a 2D vortex boundary element solver
  *
- * (c)2017-8 Applied Scientific Research, Inc.
+ * (c)2017-9 Applied Scientific Research, Inc.
  *           Written by Mark J Stock <markjstock@gmail.com>
  */
 
@@ -84,8 +84,6 @@ void BEM<S,I>::assemble_influence_matrix( const std::vector<S>& x, const std::ve
 
   // allocate space
   A.resize(thisn, thisn);
-  //A.setRandom(num_rows,num_rows);
-  //A.setIdentity(num_rows,num_rows);
 
   // calculate influences
   #pragma omp parallel for
@@ -156,10 +154,6 @@ void BEM<S,I>::solve() {
 
   bool verbose = false;
 
-  // initialize timers
-  std::chrono::system_clock::time_point start, end;
-  std::chrono::duration<double> elapsed_seconds;
-
   // ensure that the solution vector is the right size
   strengths.resizeLike(b);
 
@@ -167,72 +161,41 @@ void BEM<S,I>::solve() {
   //std::cout << "b is " << b.size() << std::endl;
   //std::cout << "x is " << strengths.size() << std::endl;
 
-  // construction of A matrix takes:
-  // bem2d -circle -d=0.01  in 13m cycles
-  // bem2d -circle -d=0.001 in 1.1b cycles
-
-  // trying various dense solvers
-  start = std::chrono::system_clock::now();
-
-  // n=100 in 2.7 mil cycles
-  // n=1000 in 1060 mil cycles
-  // bem2d -circle -d=0.01  in 21m cycles with 4.83514e-07 L2
-  //strengths = A.fullPivLu().solve(b);
-
-  // bem2d -circle -d=0.01  in 14m cycles with 5.79192e-07 L2
-  //strengths = A.colPivHouseholderQr().solve(b);
-
-  // bem2d -circle -d=0.01  in 3.6m cycles with 4.97579e-07 L2 - WOW!
-  // bem2d -circle -d=0.001  in 1.1b cycles with 1.44188e-06 L2 - WOW! (N=3141)
-  //strengths = A.partialPivLu().solve(b);
-
-  // try an iterative solver!
-  // bem2d -circle -d=0.01  in 0.4m cycles with 4.07142e-07
-  // bem2d -circle -d=0.001  in 33m cycles with 1.20702e-06 L2 - WOW! (N=3141)
-  // note that square takes 6 iterations (circle takes 1) and 490m cycles
-  //Eigen::BiCGSTAB<Eigen::Matrix<S, Eigen::Dynamic, Eigen::Dynamic> > solver;
-
+  // the Eigen solver object - persistent from call to call
   static Eigen::GMRES<Eigen::Matrix<S, Eigen::Dynamic, Eigen::Dynamic> > solver(A);
 
   if (not solver_initialized) {
 
     // if A changes, we need to re-run this
-    start = std::chrono::system_clock::now();
+    auto istart = std::chrono::system_clock::now();
     solver.compute(A);
-    end = std::chrono::system_clock::now();
+    auto iend = std::chrono::system_clock::now();
 
-    elapsed_seconds = end-start;
-    printf("    solver.compute:\t[%.6f] cpu seconds\n", (float)elapsed_seconds.count());
+    std::chrono::duration<double> ielapsed_seconds = iend-istart;
+    printf("    solver.init:\t[%.6f] cpu seconds\n", (float)ielapsed_seconds.count());
 
     solver_initialized = true;
   }
 
   // note that BiCGSTAB accepts a preconditioner as a template arg
   // note that solveWithGuess() can seed the solution with last step's solution!
-  start = std::chrono::system_clock::now();
+
+  // here is the matrix solution
+  auto start = std::chrono::system_clock::now();
   strengths = solver.solve(b);
-  end = std::chrono::system_clock::now();
-  elapsed_seconds = end-start;
+  auto end = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end-start;
   printf("    solver.solve:\t[%.6f] cpu seconds\n", (float)elapsed_seconds.count());
 
   if (verbose) printf("    num iterations:     %d\n", (uint32_t)solver.iterations());
   if (verbose) printf("    estimated error: %g\n", solver.error());
 
+  // find L2 norm of error
   start = std::chrono::system_clock::now();
   double relative_error = (A*strengths - b).norm() / b.norm(); // norm() is L2 norm
   if (verbose) printf("    L2 norm of error is %g\n", relative_error);
   end = std::chrono::system_clock::now();
   elapsed_seconds = end-start;
   if (verbose) printf("    solver.error:\t[%.6f] cpu seconds\n", (float)elapsed_seconds.count());
-
-/*
-  // make sure all vector sizes are identical
-  assert(x.size()==y.size());
-  assert(x.size()==r.size());
-  assert(x.size()==newr.size());
-  assert(x.size()==s.size());
-  assert(x.size()==ds.size());
-  int32_t n = x.size();
-*/
 }
 
