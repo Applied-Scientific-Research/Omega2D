@@ -34,6 +34,7 @@ public:
   BEM() : A_is_current(false), solver_initialized(false) {};
 
   bool is_A_current() { return A_is_current; }
+  void just_made_A() { A_is_current = true; }
   void panels_changed() { A_is_current = false; solver_initialized = false; }
   void assemble_influence_matrix(const std::vector<S>&, const std::vector<I>&);
   void set_block(const size_t, const size_t, const size_t, const size_t, const Vector<S>&);

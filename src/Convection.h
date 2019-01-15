@@ -140,10 +140,11 @@ void Convection<S,A,I>::solve_bem(const std::array<double,Dimensions>& _fs,
         _bem.set_block(tstart, tnum, sstart, snum, coeffs);
       }
     }
+    _bem.just_made_A();
 
     auto end = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed_seconds = end-start;
-    printf("    make A matrix:\t[%.6f] cpu seconds\n", (float)elapsed_seconds.count());
+    printf("    make A matrix:\t[%.4f] cpu seconds\n", (float)elapsed_seconds.count());
   }
 
   std::cout << std::endl << "Solving BEM for strengths" << std::endl << std::endl;
