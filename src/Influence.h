@@ -240,7 +240,7 @@ float add_influence_ppan_Vc (Elements<S,I> const & _src, Panels<S,I>& _targ) {
     const I id2 = ti[2*i+1];
 
     // scale by the panel size
-    const AccumVec plen = 1.0 / std::sqrt(std::pow(tx[2*id2]-tx[2*id1],2) + std::pow(tx[2*id2+1]-tx[2*id1+1],2));
+    const A plen = 1.0 / std::sqrt(std::pow(tx[2*id2]-tx[2*id1],2) + std::pow(tx[2*id2+1]-tx[2*id1+1],2));
 
     // spread the target out over a vector
     const StoreVec vtx1 = tx[2*id1];
@@ -260,17 +260,18 @@ float add_influence_ppan_Vc (Elements<S,I> const & _src, Panels<S,I>& _targ) {
                                                        vss.vector(j), vsx.vector(j), vsy.vector(j),
                                                        &resultu, &resultv);
       // and add to accumulator
-      accumu += plen*resultu;
-      accumv += plen*resultv;
+      accumu += resultu;
+      accumv += resultv;
     }
 
     // subtract from running sum because of way that kernel is written
-    tu[2*i+0] -= accumu.sum();
-    tu[2*i+1] -= accumv.sum();
+    tu[2*i+0] -= plen*accumu.sum();
+    tu[2*i+1] -= plen*accumv.sum();
     //if (std::isnan(tu[2*i+0]) or std::isnan(tu[2*i+1])) exit(0);
+    //std::cout << "  vel on " << i << " is " << tu[2*i] << " " << tu[2*i+1] << std::endl;
   }
 
-  return (float)_targ.get_n() * (9.0 + 42.0 * (float)_src.get_n());
+  return (float)_targ.get_n() * (11.0 + 40.0 * (float)_src.get_n());
 }
 #endif
 
@@ -311,17 +312,18 @@ float add_influence_ppan (Elements<S,I> const & _src, Panels<S,I>& _targ) {
                                                sx[4*j+2], sx[4*j+0], sx[4*j+1]);
       // and add to accumulator
       for (size_t j=0; j<2; ++j) {
-        accum[j] += plen*result[j];
+        accum[j] += result[j];
       }
     }
 
     // subtract from running sum because of way that kernel is written
     for (size_t j=0; j<2; ++j) {
-      tu[2*i+j] -= accum[j];
+      tu[2*i+j] -= plen*accum[j];
     }
+    //std::cout << "  vel on " << i << " is " << tu[2*i] << " " << tu[2*i+1] << std::endl;
   }
 
-  return (float)_targ.get_n() * (9.0 + 42.0 * (float)_src.get_n());
+  return (float)_targ.get_n() * (11.0 + 40.0 * (float)_src.get_n());
 }
 
 #ifdef USE_VC
