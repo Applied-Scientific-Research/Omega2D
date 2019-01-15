@@ -424,8 +424,6 @@ int main(int argc, char const *argv[]) {
             if (ImGui::Button("Add single particle")) {
               // this is C++14
               ffeatures.emplace_back(std::make_unique<SingleParticle>(xc[0], xc[1], str));
-              // this is C++11
-              //ffeatures.emplace_back(std::unique_ptr<SingleParticle>(new SingleParticle(xc[0], xc[1], str)));
               std::cout << "Added " << (*ffeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
@@ -442,7 +440,6 @@ int main(int argc, char const *argv[]) {
             ImGui::TextWrapped("This feature will add about %d particles", (int)(0.785398175*pow((2*rad+soft)/sim.get_ips(), 2)));
             if (ImGui::Button("Add vortex blob")) {
               ffeatures.emplace_back(std::make_unique<VortexBlob>(xc[0], xc[1], str, rad, soft));
-              //ffeatures.emplace_back(std::unique_ptr<VortexBlob>(new VortexBlob(xc[0], xc[1], str, rad, soft)));
               std::cout << "Added " << (*ffeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
@@ -457,7 +454,6 @@ int main(int argc, char const *argv[]) {
             ImGui::TextWrapped("This feature will add %d particles", npart);
             if (ImGui::Button("Add random vorticies")) {
               ffeatures.emplace_back(std::make_unique<BlockOfRandom>(xc[0], xc[1], xs[0], xs[1], strlo, strhi, npart));
-              //ffeatures.emplace_back(std::unique_ptr<BlockOfRandom>(new BlockOfRandom(xc[0], xc[1], xs[0], xs[1], strlo, strhi, npart)));
               std::cout << "Added " << (*ffeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
@@ -472,7 +468,6 @@ int main(int argc, char const *argv[]) {
             if (ImGui::Button("Add particle emitter")) {
               // this is C++11
               ffeatures.emplace_back(std::make_unique<ParticleEmitter>(xc[0], xc[1], estr));
-              //ffeatures.emplace_back(std::unique_ptr<ParticleEmitter>(new ParticleEmitter(xc[0], xc[1], estr)));
               std::cout << "Added " << (*ffeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
@@ -525,6 +520,7 @@ int main(int argc, char const *argv[]) {
             ImGui::SliderFloat("rotation", &rotdeg, 0.0f, 89.0f, "%.0f");
             ImGui::TextWrapped("This feature will add a solid square body centered at the given coordinates");
             if (ImGui::Button("Add square body")) {
+              // old arch does not support this, new one does:
               bfeatures2.emplace_back(std::make_unique<SolidSquare>(xc[0], xc[1], sqside, rotdeg));
               std::cout << "Added " << (*bfeatures2.back()) << std::endl;
               ImGui::CloseCurrentPopup();
