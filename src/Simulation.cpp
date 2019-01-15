@@ -261,19 +261,18 @@ void Simulation::step() {
   std::array<double,2> thisfs = {fs[0], fs[1]};
 
   // are panels even made? do this first
-  bdry.make_panels(get_ips());
-  //bdry2.make_panels(get_ips());
+  //bdry.make_panels(get_ips());
 
   // for simplicity's sake, just run one full diffusion step here
   //diff.step(dt, re, get_vdelta(), thisfs, vort, bdry);
-  //diff.step(dt, re, get_vdelta(), thisfs, vort2, bdry2, bem);
+  diff.step(dt, re, get_vdelta(), thisfs, vort2, bdry2, bem);
 
   // operator splitting requires one half-step diffuse (use coefficients from previous step, if available)
   //diff.step(0.5*dt, get_vdelta(), get_ips(), thisfs, vort, bdry);
 
   // advect with no diffusion (must update BEM strengths)
-  std::cout << std::endl << "STARTING OLD ARCH" << std::endl;
-  conv.advect_1st(dt, thisfs, vort, bdry);
+  //std::cout << std::endl << "STARTING OLD ARCH" << std::endl;
+  //conv.advect_1st(dt, thisfs, vort, bdry);
   //conv.advect_2nd(dt, thisfs, vort, bdry);
 
   // advect using new architecture
