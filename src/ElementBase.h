@@ -38,6 +38,11 @@ public:
   const std::array<Vector<S>,Dimensions>& get_vel() const { return u; }
   std::array<Vector<S>,Dimensions>&       get_vel()       { return u; }
 
+  void set_str(const size_t ioffset, const size_t icnt, Vector<S> _in) {
+    //s = std::move(_in);
+    s = _in;
+  }
+
   void add_new(std::vector<float>& _in) {
 
     // check inputs

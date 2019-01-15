@@ -43,6 +43,7 @@ public:
 
   std::vector<S> getRhs();
   std::vector<S> getStrengths();
+  Vector<S> get_str(const size_t, const size_t);
 
 protected:
 
@@ -73,6 +74,18 @@ std::vector<S> BEM<S,I>::getStrengths() {
   retval.assign(strengths.data(), strengths.data()+strengths.size());
   return retval;
 }
+
+template <class S, class I>
+Vector<S> BEM<S,I>::get_str(const size_t cstart, const size_t ncols) {
+  assert(cstart >= 0);
+  assert(ncols >= 0);
+  assert(cstart+ncols <= (size_t)strengths.size());
+
+  Vector<S> retval(ncols);
+  retval.assign(strengths.data()+cstart, strengths.data()+cstart+ncols);
+  return retval;
+}
+
 
 //
 // Assemble the influence matrix
@@ -222,18 +235,19 @@ void BEM<S,I>::solve() {
   // note that BiCGSTAB accepts a preconditioner as a template arg
   // note that solveWithGuess() can seed the solution with last step's solution!
 
-  if (false) {
-    std::cout << "Matrix equation is" << std::endl;
-    std::cout << A.block(0,0,6,6) << std::endl;
-    std::cout << b.head(6) << std::endl;
-  }
-
   // here is the matrix solution
   auto start = std::chrono::system_clock::now();
   strengths = solver.solve(b);
   auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
   printf("    solver.solve:\t[%.6f] cpu seconds\n", (float)elapsed_seconds.count());
+
+  if (false) {
+    std::cout << "Matrix equation is" << std::endl;
+    std::cout << A.block(0,0,6,6) << std::endl;
+    std::cout << b.head(6) << std::endl;
+    std::cout << strengths.head(6) << std::endl;
+  }
 
   if (verbose) printf("    num iterations:     %d\n", (uint32_t)solver.iterations());
   if (verbose) printf("    estimated error: %g\n", solver.error());

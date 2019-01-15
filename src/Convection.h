@@ -74,9 +74,9 @@ private:
 //
 template <class S, class A, class I>
 void Convection<S,A,I>::solve_bem(const std::array<double,Dimensions>& _fs,
-                                  std::vector<Collection>& _vort,
-                                  std::vector<Collection>& _bdry,
-                                  BEM<S,I>&                _bem) {
+                                  std::vector<Collection>&             _vort,
+                                  std::vector<Collection>&             _bdry,
+                                  BEM<S,I>&                            _bem) {
 
   // no unknowns? no problem.
   if (_bdry.size() == 0) return;
@@ -112,7 +112,7 @@ void Convection<S,A,I>::solve_bem(const std::array<double,Dimensions>& _fs,
 
   // check to see if we even have to make the A matrix
 
-  if (true) {
+  if (not _bem.is_A_current()) {
     std::cout << std::endl << "Solving for BEM matrix" << std::endl << std::endl;
     auto start = std::chrono::system_clock::now();
 
@@ -149,7 +149,17 @@ void Convection<S,A,I>::solve_bem(const std::array<double,Dimensions>& _fs,
   std::cout << std::endl << "Solving BEM for strengths" << std::endl << std::endl;
   _bem.solve();
 
-  // now what?
+  // copy strengths down to Points/Surfaces
+  for (auto &targ : _bdry) {
+    // find portion of RHS vector
+    const size_t tstart = std::visit([=](auto& elem) { return elem.get_first_row(); }, targ);
+    const size_t tnum = std::visit([=](auto& elem) { return elem.get_num_rows(); }, targ);
+
+    // get that chunk
+    Vector<S> new_s = _bem.get_str(tstart, tnum);
+    // and send it to the elements
+    std::visit([=](auto& elem) { elem.set_str(tstart, tnum, new_s);  }, targ);
+  }
 }
 
 
@@ -158,9 +168,9 @@ void Convection<S,A,I>::solve_bem(const std::array<double,Dimensions>& _fs,
 //
 template <class S, class A, class I>
 void Convection<S,A,I>::find_vels(const std::array<double,Dimensions>& _fs,
-                              std::vector<Collection>& _vort,
-                              std::vector<Collection>& _bdry,
-                              std::vector<Collection>& _fldpt) {
+                                  std::vector<Collection>&             _vort,
+                                  std::vector<Collection>&             _bdry,
+                                  std::vector<Collection>&             _fldpt) {
 
   //if (_vort.size()+_fldpt.size() > 0) std::cout << std::endl << "Solving for velocities" << std::endl;
   //if (_vort.size()+_fldpt.size() > 0) std::cout << std::endl;
@@ -257,10 +267,10 @@ void Convection<S,A,I>::advect_1st(const double _dt,
 template <class S, class A, class I>
 void Convection<S,A,I>::advect_1st(const double _dt,
                                    const std::array<double,Dimensions>& _fs,
-                                   std::vector<Collection>& _vort,
-                                   std::vector<Collection>& _bdry,
-                                   std::vector<Collection>& _fldpt,
-                                   BEM<S,I>&                _bem) {
+                                   std::vector<Collection>&             _vort,
+                                   std::vector<Collection>&             _bdry,
+                                   std::vector<Collection>&             _fldpt,
+                                   BEM<S,I>&                            _bem) {
 
   std::cout << "  Inside advect_1st with dt=" << _dt << std::endl;
 
@@ -361,18 +371,18 @@ void Convection<S,A,I>::advect_2nd(const double _dt,
 //
 template <class S, class A, class I>
 void Convection<S,A,I>::advect_2nd(const double _dt,
-                               const std::array<double,Dimensions>& _fs,
-                               std::vector<Collection>& _vort,
-                               std::vector<Collection>& _bdry,
-                               std::vector<Collection>& _fldpt,
-                               BEM<S,I>&                _bem) {
+                                   const std::array<double,Dimensions>& _fs,
+                                   std::vector<Collection>&             _vort,
+                                   std::vector<Collection>&             _bdry,
+                                   std::vector<Collection>&             _fldpt,
+                                   BEM<S,I>&                            _bem) {
 
   std::cout << "  Inside advect_2nd with dt=" << _dt << std::endl;
 
   // take the first Euler step ---------
 
   // perform the first BEM
-  //solve_bem(_fs, _vort, _bdry);
+  solve_bem(_fs, _vort, _bdry, _bem);
 
   // find the derivatives
   find_vels(_fs, _vort, _bdry, _fldpt);
@@ -394,8 +404,8 @@ void Convection<S,A,I>::advect_2nd(const double _dt,
   // begin the 2nd step ---------
 
   // perform the second BEM
-  //solve_bem(_fs, interim_vort, interim_bdry);
-  //solve_bem(_fs, interim_vort, _bdry);
+  //solve_bem(_fs, interim_vort, interim_bdry, _bem);
+  solve_bem(_fs, interim_vort, _bdry, _bem);
 
   // find the derivatives
   //find_vels(_fs, interim_vort, interim_bdry, interim_fldpt);
@@ -436,5 +446,6 @@ void Convection<S,A,I>::advect_2nd(const double _dt,
   }
 
   // do the same for Panels
+  // what's there to convect?
 }
 
