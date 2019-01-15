@@ -42,6 +42,7 @@ public:
   Surfaces(const std::vector<S>&   _x,
            const std::vector<Int>& _idx,
            const std::vector<S>&   _val,
+           const Int _firstrow,
            const elem_t _e, const move_t _m)
     : ElementBase<S>(0, _e, _m),
       max_strength(-1.0) {
@@ -102,6 +103,9 @@ public:
       this->u[d].resize(nnodes);
     }
 
+    // set range in the BEM
+    istart = _firstrow;
+
     // debug print
     if (false) {
       std::cout << "Nodes" << std::endl;
@@ -122,8 +126,12 @@ public:
 
   // callers should never have to change this array
   const std::vector<Int>& get_idx() const { return idx; }
-  const std::vector<S>&   get_bcs() const { return bc; }
+  const Vector<S>&        get_bcs() const { return bc; }
 
+  // find out the next row index in the BEM after this collection
+  const Int get_first_row() const { return istart; }
+  const Int get_num_rows()  const { return bc.size(); }
+  const Int get_next_row()  const { return istart+bc.size(); }
 
   // add more nodes and panels to this collection
   void add_new(const std::vector<S>&   _x,
@@ -468,6 +476,7 @@ protected:
   Vector<S>		bc;	// boundary condition for the elements
 
   //std::vector<std::pair<Int,Int>> body_idx;	// n, offset of rows in the BEM?
+  Int istart;	// index of first entry in RHS vector and A matrix
 
 private:
 #ifdef USE_GL

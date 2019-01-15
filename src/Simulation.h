@@ -12,6 +12,7 @@
 #include "Collection.h"
 #include "Boundaries.h"
 #include "BoundaryFeature.h"
+#include "BEM.h"
 #include "Convection.h"
 #include "Diffusion.h"
 #include "Vorticity.h"
@@ -94,6 +95,10 @@ private:
 
   // Object with all of the non-reactive, non-active (inert) points
   std::vector<Collection> fldpt;	// tracers and field points
+
+  // The need to solve for the unknown strengths of reactive elements inside both the
+  //   diffusion and convection steps necessitates a BEM object here
+  BEM<float,Int> bem;
 
   // Diffusion will resolve exchange of strength among particles and between panels and particles
   // Note that NNLS needs doubles for its compute type or else it will fail

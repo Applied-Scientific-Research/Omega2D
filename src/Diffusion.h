@@ -14,6 +14,7 @@
 #include "Particles.h"
 #include "Reflect.h"
 #include "VRM.h"
+#include "BEM.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -54,7 +55,8 @@ public:
             const S,
             const std::array<double,2>&,
             std::vector<Collection>& _vort,
-            std::vector<Collection>& _bdry);
+            std::vector<Collection>& _bdry,
+            BEM<S,I>& _bem);
 
 private:
   // the VRM algorithm, template params are storage, compute, max moments
@@ -202,7 +204,8 @@ void Diffusion<S,A,I>::step(const double                _dt,
                             const S                     _vdelta,
                             const std::array<double,2>& _fs,
                             std::vector<Collection>&    _vort,
-                            std::vector<Collection>&    _bdry) {
+                            std::vector<Collection>&    _bdry,
+                            BEM<S,I>&                   _bem) {
 
   if (is_inviscid) return;
 

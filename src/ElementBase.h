@@ -35,6 +35,7 @@ public:
   std::array<Vector<S>,Dimensions>&       get_pos()       { return x; }
   const Vector<S>&                        get_str() const { return *s; }
   Vector<S>&                              get_str()       { return *s; }
+  const std::array<Vector<S>,Dimensions>& get_vel() const { return u; }
   std::array<Vector<S>,Dimensions>&       get_vel()       { return u; }
 
   void add_new(std::vector<float>& _in) {

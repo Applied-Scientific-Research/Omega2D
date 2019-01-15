@@ -8,6 +8,7 @@
 #pragma once
 
 #include "Kernels.h"
+#include "VectorHelper.h"
 
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>		// for BiCGSTAB and GMRES
@@ -35,7 +36,9 @@ public:
   bool is_A_current() { return A_is_current; }
   void panels_changed() { A_is_current = false; solver_initialized = false; }
   void assemble_influence_matrix(const std::vector<S>&, const std::vector<I>&);
+  void set_block(const size_t, const size_t, const size_t, const size_t, const Vector<S>&);
   void set_rhs(std::vector<S>&);
+  void set_rhs(const size_t, const size_t, std::vector<S>&);
   void solve();
 
   std::vector<S> getRhs();
@@ -55,7 +58,7 @@ private:
 };
 
 //
-// convert Eigen matrix to c++ vector
+// Convert Eigen matrix to c++ vector
 //
 template <class S, class I>
 std::vector<S> BEM<S,I>::getRhs() {
@@ -72,7 +75,7 @@ std::vector<S> BEM<S,I>::getStrengths() {
 }
 
 //
-// assemble the influence matrix
+// Assemble the influence matrix
 //
 // galerkin or colocation approach?
 //
@@ -137,7 +140,32 @@ void BEM<S,I>::assemble_influence_matrix( const std::vector<S>& x, const std::ve
 }
 
 //
-// set the rhs vector from a set of input velocities
+// Set a block in the A matrix from the given vector of coefficients
+//
+template <class S, class I>
+void BEM<S,I>::set_block(const size_t rstart, const size_t nrows,
+                         const size_t cstart, const size_t ncols,
+                         const Vector<S>& _in) {
+
+  std::cout << "    putting data into A matrix at " << rstart << ":" << (rstart+nrows) << " "
+                                                    << cstart << ":" << (cstart+ncols) << std::endl;
+
+  // allocate space
+  const size_t new_rows = std::max((size_t)(A.rows()), (size_t)(rstart+nrows));
+  const size_t new_cols = std::max((size_t)(A.cols()), (size_t)(cstart+ncols));
+  std::cout << "    resizing A to " << new_rows << " rows and " << new_cols << " cols" << std::endl;
+  A.resize(new_rows, new_cols);
+
+  size_t iptr = 0;
+  for (size_t j=0; j<nrows; ++j) {
+    for (size_t i=0; i<ncols; ++i) {
+      A(j+rstart,i+cstart) = _in[iptr++];
+    }
+  }
+}
+
+//
+// Set the rhs vector from a set of input velocities
 // trying to make the input "const" is asking for trouble!
 //
 template <class S, class I>
@@ -145,6 +173,20 @@ void BEM<S,I>::set_rhs(std::vector<S>& _b) {
   b.resize(_b.size());
   b = Eigen::Map<Eigen::Matrix<S, Eigen::Dynamic, 1>>(_b.data(), _b.size());
 }
+
+template <class S, class I>
+void BEM<S,I>::set_rhs(const size_t cstart, const size_t ncols, std::vector<S>& _b) {
+  // eventually use cstart and ncols to put the _b vector in a specific place
+  std::cout << "    putting data into rhs vector from " << cstart << " to " << (cstart+ncols) << std::endl;
+  assert(_b.size() == ncols);
+  const size_t new_n = std::max((size_t)(b.size()), (size_t)(cstart+ncols));
+  b.resize(new_n);
+  // but for now, assume _b is the whole thing
+  //b = Eigen::Map<Eigen::Matrix<S, Eigen::Dynamic, 1>>(_b.data(), _b.size());
+  // put the pieces where they belong
+  for (size_t i=0; i<ncols; ++i) b[cstart+i] = _b[i];
+}
+
 
 //
 // Find the change in strength that would occur over one dt
@@ -179,6 +221,12 @@ void BEM<S,I>::solve() {
 
   // note that BiCGSTAB accepts a preconditioner as a template arg
   // note that solveWithGuess() can seed the solution with last step's solution!
+
+  if (false) {
+    std::cout << "Matrix equation is" << std::endl;
+    std::cout << A.block(0,0,6,6) << std::endl;
+    std::cout << b.head(6) << std::endl;
+  }
 
   // here is the matrix solution
   auto start = std::chrono::system_clock::now();

@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "Omega2D.h"
 #include "VectorHelper.h"
 #include "ElementBase.h"
 
@@ -94,6 +95,12 @@ public:
 
   const Vector<S>& get_rad() const { return r; }
   Vector<S>&       get_rad()       { return r; }
+
+  // find out the next row index in the BEM after this collection
+  // once we start supporting BEM unknowns on points, we'll have to change these
+  const Int get_first_row() const { return 0; }
+  const Int get_num_rows()  const { return 0; }
+  const Int get_next_row()  const { return 0; }
 
   void add_new(std::vector<float>& _in) {
     // remember old size and incoming size
