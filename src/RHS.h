@@ -9,18 +9,13 @@
 
 #include "Omega2D.h"
 #include "VectorHelper.h"
-//#include "NewKernels.h"
 #include "Points.h"
 #include "Surfaces.h"
 
 //#include <algorithm>	// for std::transform
 #include <iostream>
 #include <vector>
-//#include <memory>
-//#include <optional>
-//#include <chrono>
-//#define _USE_MATH_DEFINES
-//#include <cmath>	// for M_PI
+#include <cassert>
 
 
 template <class S>
@@ -48,7 +43,7 @@ std::vector<S> vels_to_rhs_panels (Surfaces<S> const& targ) {
   std::cout << "    convert vels to RHS vector for " << targ.to_string() << std::endl;
 
   // this assumes one unknown per panel - not generally true!!!
-  size_t ntarg  = targ.get_npanels();
+  const size_t ntarg  = targ.get_npanels();
   std::vector<S> rhs;
   rhs.resize(ntarg);
 
@@ -57,6 +52,10 @@ std::vector<S> vels_to_rhs_panels (Surfaces<S> const& targ) {
   const std::vector<Int>&                 ti = targ.get_idx();
   const std::array<Vector<S>,Dimensions>& tu = targ.get_vel();
   const Vector<S>&                        tb = targ.get_bcs();
+
+  assert(2*tx[0].size() == ti.size());
+  assert(tx[0].size() == tu[0].size());
+  assert(tx[0].size() == tb.size());
 
   // convert velocity and boundary condition to RHS values
   for (size_t i=0; i<ntarg; i++) {
@@ -74,9 +73,11 @@ std::vector<S> vels_to_rhs_panels (Surfaces<S> const& targ) {
     const S panell = std::sqrt(panelx*panelx + panely*panely);
     //std::cout << "  elem " << i << " panel is " << panelx << " " << panely << std::endl;
 
-    // new way - must include tb eventually
+    // new way
     // dot product of tangent with local velocity, applying normalization
     rhs[i] = -(tu[0][i]*panelx + tu[1][i]*panely) / panell;
+    // include the influence of the boundary condition (normally zero)
+    rhs[i] -= tb[i];
     //std::cout << "  elem " << i << " vel is " << tu[0][i] << " " << tu[1][i] << std::endl;
     //std::cout << "  elem " << i << " rhs is " << rhs[i] << std::endl;
   }
