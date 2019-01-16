@@ -62,7 +62,7 @@ public:
 private:
   // the VRM algorithm, template params are storage, compute, max moments
   // note that NNLS needs doubles for its compute type or else it will fail
-  VRM<S,A,2> vrm;
+  VRM<S,double,2> vrm;
 
   // other necessary variables
   CoreType core_func;
@@ -227,10 +227,24 @@ void Diffusion<S,A,I>::step(const double                _dt,
       Surfaces<S>& surf = std::get<Surfaces<S>>(coll);
 
       // generate particles just above the surface
-      ElementPacket<S> new_pts = surf.represent_as_particles(0.0001*(S)_dt, _vdelta);
+      std::vector<S> new_pts = surf.represent_as_particles(0.0001*(S)_dt, _vdelta);
 
       // add those particles to the main particle list
       //_vort.add_new(new_pts);
+
+      // if no collections exist
+      if (_vort.size() == 0) {
+        // make a new collection
+        _vort.push_back(Points<S>(new_pts, active, lagrangian));      // vortons
+      } else {
+        // HACK - add all particles to first collection
+        auto& coll = _vort.back();
+        // only proceed if the last collection is Points
+        if (std::holds_alternative<Points<S>>(coll)) {
+          Points<S>& pts = std::get<Points<S>>(coll);
+          pts.add_new(new_pts);
+        }
+      }
     }
 
     // Kutta points and lifting lines can generate points here
@@ -252,9 +266,9 @@ void Diffusion<S,A,I>::step(const double                _dt,
     if (std::visit([=](auto& elem) { return elem.is_inert(); }, coll)) continue;
 
     // run this step if the collection is Points
-    if (std::holds_alternative<Points<float>>(coll)) {
+    if (std::holds_alternative<Points<S>>(coll)) {
 
-      Points<float>& pts = std::get<Points<float>>(coll);
+      Points<S>& pts = std::get<Points<S>>(coll);
       std::cout << "    computing diffusion among " << pts.get_n() << " particles" << std::endl;
 
       // vectors are not passed as const, because they may be extended with new particles
@@ -298,9 +312,9 @@ void Diffusion<S,A,I>::step(const double                _dt,
     //std::visit([=](auto& elem) {
 
     // run this step if the collection is Points
-    if (std::holds_alternative<Points<float>>(coll)) {
+    if (std::holds_alternative<Points<S>>(coll)) {
 
-      Points<float>& pts = std::get<Points<float>>(coll);
+      Points<S>& pts = std::get<Points<S>>(coll);
 
       //std::cout << "    merging among " << pts.get_n() << " particles" << std::endl;
       // last two arguments are: relative distance, allow variable core radii
