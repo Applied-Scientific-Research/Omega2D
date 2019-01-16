@@ -177,14 +177,14 @@ public:
       // value is a fixed strength for the element
       //*(this->s).resize(neold+nsurfs);
       //(*this->s)[i]
-      this->s->reserve(neold+nsurfs); 
+      this->s->resize(neold+nsurfs); 
 
     } else if (this->E == reactive) {
       // value is a boundary condition
       bc.reserve(neold+nsurfs); 
       bc.insert(bc.end(), _val.begin(), _val.end());
       // and we still need strengths
-      this->s->reserve(neold+nsurfs); 
+      this->s->resize(neold+nsurfs); 
 
     } else if (this->E == inert) {
       // value is ignored (probably zero)
