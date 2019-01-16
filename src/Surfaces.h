@@ -281,6 +281,44 @@ public:
   }
 */
 
+  // return a particle version of the panels (useful during Diffusion)
+  ElementPacket<S> represent_as_particles(const S _offset, const S _vdelta) {
+
+    // how many panels?
+    const size_t num_pts = get_npanels();
+
+    // created once
+    std::vector<S>   px(num_pts*2);
+    std::vector<Int> pidx;
+    std::vector<S>   pval(num_pts*2);
+
+    // outside is to the left walking from one point to the next
+    // so go CW around the circle starting at theta=0 (+x axis)
+    S oopanlen, along[2];
+
+    for (size_t i=0; i<num_pts; i++) {
+      Int id0 = idx[2*i];
+      Int id1 = idx[2*i+1];
+      // start at center of panel
+      px[2*i+0] = 0.5 * (this->x[0][id1] + this->x[0][id0]);
+      px[2*i+1] = 0.5 * (this->x[1][id1] + this->x[1][id0]);
+      // push out a fixed distance
+      along[0] = this->x[0][id1] - this->x[0][id0];
+      along[1] = this->x[1][id1] - this->x[1][id0];
+      // one over the panel length is useful
+      oopanlen = 1.0 / std::sqrt(along[0]*along[0] + along[1]*along[1]);
+      // this assumes properly resolved, vdelta and dt
+      px[2*i+0] += _offset * -along[1] * oopanlen;
+      px[2*i+1] += _offset *  along[0] * oopanlen;
+      // complete the element with a strength and radius
+      pval[2*i+0] = (*this->s)[i] / oopanlen;
+      pval[2*i+1] = _vdelta;
+      //std::cout << "  new part is " << np[4*i+0] << " " << np[4*i+1] << " " << np[4*i+2] << " " << np[4*i+3] << std::endl;
+    }
+
+    return ElementPacket<float>({px, pidx, pval});
+  }
+
   // find the new peak strength magnitude
   void update_max_str() {
     S thismax = ElementBase<S>::get_max_str();

@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "Omega2D.h"
 #include "Body.h"
 #include "Core.h"
 #include "Merge.h"
@@ -212,28 +213,28 @@ void Diffusion<S,A,I>::step(const double                _dt,
   std::cout << "  Inside Diffusion::step with dt=" << _dt << std::endl;
 
   // always re-run the BEM calculation before shedding
-/*
-  if (_bdry.exists()) {
+  solve_bem<S,A,I>(_fs, _vort, _bdry, _bem);
 
-    // set up and performs the BEM
-    _bdry.reset_vels();
-#ifdef USE_VC
-    // velocity evaluations in Vc must use same storage and accumulator types
-    add_influence<S,S,I>(_vort, _bdry);
-#else
-    // vel sums using x86 do not
-    add_influence<S,A,I>(_vort, _bdry);
-#endif
-    _bdry.scale_and_add_freestream(_fs);
-    _bdry.find_strengths();
+  //
+  // generate particles at boundary surfaces
+  //
 
-    // generate particles just above the surface
-    std::vector<S> newparts = _bdry.get_panels().diffuse_onto(0.0001*(S)_dt, _re, _vdelta);
+  for (auto &coll : _bdry) {
 
-    // add those particles to the main particle list
-    _vort.add_new(newparts);
+    // run this step if the collection is Surfaces
+    if (std::holds_alternative<Surfaces<S>>(coll)) {
+
+      Surfaces<S>& surf = std::get<Surfaces<S>>(coll);
+
+      // generate particles just above the surface
+      ElementPacket<S> new_pts = surf.represent_as_particles(0.0001*(S)_dt, _vdelta);
+
+      // add those particles to the main particle list
+      //_vort.add_new(new_pts);
+    }
+
+    // Kutta points and lifting lines can generate points here
   }
-*/
 
   //
   // diffuse strength among existing particles
@@ -271,25 +272,20 @@ void Diffusion<S,A,I>::step(const double                _dt,
     }
   }
 
-  // reflect interior particles to exterior because VRM does not account for panels
+  //
+  // reflect interior particles to exterior because VRM only works in free space
+  //
 /*
   if (_bdry.exists()) {
     (void) reflect<S,I>(_bdry, _vort);
   }
+  ReflectVisitor<S> rvisitor;
+  for (auto &targ : _vort) {
+    for (auto &src : _bdry) {
+      std::visit(rvisitor, src, targ);
+    }
+  }
 */
-
-  //
-  // diffuse strength from boundaries/bodies
-  //
-
-  // use those BEM strengths to shed now
-  //if (_bdry.exists()) {
-    // initialize the new particles vector
-  //  std::vector<S> newparts = _bdry.get_panels().diffuse_onto((S)_dt, _re, _vdelta);
-
-    // finally, add those particles to the main particle list
-  //  _vort.add_new(newparts);
-  //}
 
   //
   // merge any close particles to clean up potentially-dense areas
