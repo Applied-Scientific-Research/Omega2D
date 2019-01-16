@@ -38,7 +38,7 @@ void solve_bem(const std::array<double,Dimensions>& _fs,
   InfluenceVisitor<A> ivisitor;
   RHSVisitor rvisitor;
 
-  std::cout << std::endl << "Solving for BEM RHS" << std::endl << std::endl;
+  std::cout << "  Solving for BEM RHS" << std::endl;
 
   // loop over boundary collections
   for (auto &targ : _bdry) {
@@ -66,7 +66,7 @@ void solve_bem(const std::array<double,Dimensions>& _fs,
   // check to see if we even have to make the A matrix
 
   if (not _bem.is_A_current()) {
-    std::cout << std::endl << "Solving for BEM matrix" << std::endl << std::endl;
+    std::cout << "  Solving for BEM matrix" << std::endl;
     auto start = std::chrono::system_clock::now();
 
     // this is the dispatcher for Points/Surfaces on Points/Surfaces
@@ -100,7 +100,7 @@ void solve_bem(const std::array<double,Dimensions>& _fs,
     printf("    make A matrix:\t[%.4f] cpu seconds\n", (float)elapsed_seconds.count());
   }
 
-  std::cout << std::endl << "Solving BEM for strengths" << std::endl << std::endl;
+  std::cout << "  Solving BEM for strengths" << std::endl;
   _bem.solve();
 
   // copy strengths down to Points/Surfaces
