@@ -22,6 +22,14 @@
 #include <future>
 #include <chrono>
 
+#ifdef USE_VC
+#define STORE float
+#define ACCUM float
+#else
+#define STORE float
+#define ACCUM double
+#endif
+
 template <class T>
 bool is_future_ready(std::future<T> const& f) {
     if (!f.valid()) return false;
@@ -84,13 +92,13 @@ private:
   float fs[Dimensions];
 
   // Object to contain all Lagrangian elements
-  Vorticity<float,uint16_t> vort;
+  Vorticity<STORE,Int> vort;
   std::vector<Collection> vort2;	// active elements
 
   // Object to contain all Reactive elements
   //   inside is the vector of bodies and inlets and liftinglines/kuttapoints
   //   and the Panels list of all unknowns discretized representations
-  Boundaries<float,uint16_t> bdry;
+  Boundaries<STORE,Int> bdry;
   std::vector<Collection> bdry2;	// reactive-active elements like BEM surfaces
 
   // Object with all of the non-reactive, non-active (inert) points
@@ -98,23 +106,19 @@ private:
 
   // The need to solve for the unknown strengths of reactive elements inside both the
   //   diffusion and convection steps necessitates a BEM object here
-  BEM<float,Int> bem;
+  BEM<STORE,Int> bem;
 
   // Diffusion will resolve exchange of strength among particles and between panels and particles
   // Note that NNLS needs doubles for its compute type or else it will fail
   //   but velocity evaluations using Vc need S=A=float
-  Diffusion<float,double,uint16_t> diff;
+  Diffusion<STORE,ACCUM,Int> diff;
 
   // Convection class takes bodies, panels, and vector of Particles objects
   //   and performs 1st, 2nd, etc. RK forward integration
   //   inside here are non-drawing Particles objects used as temporaries in the multi-step methods
   //   also copies of the panels, which will be recreated for each step, and solutions to unknowns
   // Note that with Vc, the storage and accumulator classes have to be the same
-#ifdef USE_VC
-  Convection<float,float,uint16_t> conv;
-#else
-  Convection<float,double,uint16_t> conv;
-#endif
+  Convection<STORE,ACCUM,Int> conv;
 
   // state
   double time;
