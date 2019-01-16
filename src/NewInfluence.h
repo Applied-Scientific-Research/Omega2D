@@ -194,7 +194,7 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
 
   float flops = (float)targ.get_n();
 
-  //#pragma omp parallel for
+  #pragma omp parallel for
   for (size_t i=0; i<targ.get_n(); ++i) {
 
     const size_t ip0 = ti[2*i];
