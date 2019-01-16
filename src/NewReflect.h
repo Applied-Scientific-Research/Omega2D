@@ -96,6 +96,7 @@ template <class S>
 void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
   //std::cout << "  inside reflect(Surfaces, Points)" << std::endl;
   std::cout << "  Reflecting" << _targ.to_string() << " from near" << _src.to_string() << std::endl;
+  auto start = std::chrono::system_clock::now();
 
   // get handles for the vectors
   std::array<Vector<S>,Dimensions> const& sx = _src.get_pos();
@@ -218,6 +219,12 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
   }
 
   std::cout << "    reflected " << num_reflected << " particles" << std::endl;
+
+  auto end = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end-start;
+  printf("    reflect_panp2:\t[%.4f] seconds\n", (float)elapsed_seconds.count());
+  //const float gflops = 1.e-9 * flops / (float)elapsed_seconds.count();
+  //printf("    panels_affect_points: [%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);
 }
 
 
@@ -228,6 +235,7 @@ template <class S>
 void clear_inner_panp2 (Surfaces<S> const & _src, Points<S>& _targ, const S _cutoff) {
   //std::cout << "  inside clear_inner_layer(Surfaces, Points)" << std::endl;
   std::cout << "  Clearing" << _targ.to_string() << " from near" << _src.to_string() << std::endl;
+  auto start = std::chrono::system_clock::now();
 
   // get handles for the vectors
   std::array<Vector<S>,Dimensions> const& sx = _src.get_pos();
@@ -368,6 +376,10 @@ void clear_inner_panp2 (Surfaces<S> const & _src, Points<S>& _targ, const S _cut
   // we did not resize the x array, so we don't need to touch the u array
 
   std::cout << "    cropped " << num_cropped << " particles" << std::endl;
+
+  auto end = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end-start;
+  printf("    clear_inner_panp2:\t[%.4f] seconds\n", (float)elapsed_seconds.count());
 }
 
 
