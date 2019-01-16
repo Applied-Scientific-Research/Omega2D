@@ -171,6 +171,7 @@ void Simulation::reset() {
   bdry.reset();
   bdry2.clear();
   fldpt.clear();
+  bem.reset();
   sim_is_initialized = false;
   step_has_started = false;
   step_is_finished = false;
@@ -265,7 +266,7 @@ void Simulation::step() {
 
   // for simplicity's sake, just run one full diffusion step here
   //diff.step(dt, re, get_vdelta(), thisfs, vort, bdry);
-  diff.step(dt, re, get_vdelta(), thisfs, vort2, bdry2, bem);
+  //diff.step(dt, re, get_vdelta(), thisfs, vort2, bdry2, bem);
 
   // operator splitting requires one half-step diffuse (use coefficients from previous step, if available)
   //diff.step(0.5*dt, get_vdelta(), get_ips(), thisfs, vort, bdry);
@@ -276,7 +277,7 @@ void Simulation::step() {
   //conv.advect_2nd(dt, thisfs, vort, bdry);
 
   // advect using new architecture
-  std::cout << std::endl << "STARTING NEW ARCH" << std::endl;
+  //std::cout << std::endl << "STARTING NEW ARCH" << std::endl;
   conv.advect_1st(dt, thisfs, vort2, bdry2, fldpt, bem);
   //conv.advect_2nd(dt, thisfs, vort2, bdry2, fldpt, bem);
 

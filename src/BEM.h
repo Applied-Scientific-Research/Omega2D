@@ -36,6 +36,7 @@ public:
   bool is_A_current() { return A_is_current; }
   void just_made_A() { A_is_current = true; }
   void panels_changed() { A_is_current = false; solver_initialized = false; }
+  void reset();
   void assemble_influence_matrix(const std::vector<S>&, const std::vector<I>&);
   void set_block(const size_t, const size_t, const size_t, const size_t, const Vector<S>&);
   void set_rhs(std::vector<S>&);
@@ -58,6 +59,16 @@ private:
   bool A_is_current;
   bool solver_initialized;
 };
+
+// remove any memory and reset flags
+template <class S, class I>
+void BEM<S,I>::reset() {
+  A_is_current = false;
+  solver_initialized = false;
+  A.resize(1,1);
+  b.resize(1);
+  strengths.resize(1);
+}
 
 //
 // Convert Eigen matrix to c++ vector
@@ -173,7 +184,8 @@ void BEM<S,I>::set_block(const size_t rstart, const size_t nrows,
   size_t iptr = 0;
   for (size_t j=0; j<nrows; ++j) {
     for (size_t i=0; i<ncols; ++i) {
-      A(j+rstart,i+cstart) = _in[iptr++];
+      // I mixed up my rows and columns. I mean, seriously. Those are just names.
+      A(i+cstart,j+rstart) = _in[iptr++];
     }
   }
 }
@@ -245,9 +257,9 @@ void BEM<S,I>::solve() {
 
   if (false) {
     std::cout << "Matrix equation is" << std::endl;
-    std::cout << A.block(0,0,6,6) << std::endl;
-    std::cout << b.head(6) << std::endl;
-    std::cout << strengths.head(6) << std::endl;
+    std::cout << A.block(0,0,50,8) << std::endl;
+    std::cout << b.head(50) << std::endl;
+    std::cout << strengths.head(50) << std::endl;
   }
 
   if (verbose) printf("    num iterations:     %d\n", (uint32_t)solver.iterations());
