@@ -13,7 +13,7 @@
 #include "Merge.h"
 #include "Panels.h"
 #include "Particles.h"
-#include "Reflect.h"
+#include "NewReflect.h"
 #include "VRM.h"
 #include "BEM.h"
 
@@ -146,7 +146,7 @@ void Diffusion<S,A,I>::step(const double                _dt,
 
   // reflect interior particles to exterior because VRM does not account for panels
   if (_bdry.exists()) {
-    (void) reflect<S,I>(_bdry, _vort);
+    //(void) reflect<S,I>(_bdry, _vort);
   }
 
   //
@@ -183,7 +183,7 @@ void Diffusion<S,A,I>::step(const double                _dt,
     // may need to do this multiple times to clear out concave zones!
 
     // new way
-    (void) clear_inner_layer<S,I>(_bdry, _vort, _vdelta/particle_overlap);
+    //(void) clear_inner_layer<S,I>(_bdry, _vort, _vdelta/particle_overlap);
 
     // old way
     //for (auto & elem: _vort.get_collections()) {
@@ -223,18 +223,14 @@ void Diffusion<S,A,I>::step(const double                _dt,
 
     // run this step if the collection is Surfaces
     if (std::holds_alternative<Surfaces<S>>(coll)) {
-
       Surfaces<S>& surf = std::get<Surfaces<S>>(coll);
 
       // generate particles just above the surface
       std::vector<S> new_pts = surf.represent_as_particles(0.0001*(S)_dt, _vdelta);
 
       // add those particles to the main particle list
-      //_vort.add_new(new_pts);
-
-      // if no collections exist
       if (_vort.size() == 0) {
-        // make a new collection
+        // no collections yet? make a new collection
         _vort.push_back(Points<S>(new_pts, active, lagrangian));      // vortons
       } else {
         // HACK - add all particles to first collection
@@ -281,7 +277,6 @@ void Diffusion<S,A,I>::step(const double                _dt,
                       particle_overlap);
 
       // resize the rest of the arrays
-      //std::visit([=](auto& elem) { elem.resize(elem.get_str().size()); }, coll);
       pts.resize(pts.get_str().size());
     }
   }
@@ -289,27 +284,29 @@ void Diffusion<S,A,I>::step(const double                _dt,
   //
   // reflect interior particles to exterior because VRM only works in free space
   //
-/*
-  if (_bdry.exists()) {
-    (void) reflect<S,I>(_bdry, _vort);
-  }
-  ReflectVisitor<S> rvisitor;
+
+  //ReflectVisitor<S> rvisitor;
+  // this should only function when _vort is Points and _bdry is Surfaces
   for (auto &targ : _vort) {
-    for (auto &src : _bdry) {
-      std::visit(rvisitor, src, targ);
+    if (std::holds_alternative<Points<S>>(targ)) {
+      Points<S>& pts = std::get<Points<S>>(targ);
+      for (auto &src : _bdry) {
+        if (std::holds_alternative<Surfaces<S>>(src)) {
+          Surfaces<S>& surf = std::get<Surfaces<S>>(src);
+          (void) reflect_panp2<S>(surf, pts);
+        }
+      }
     }
   }
-*/
 
   //
   // merge any close particles to clean up potentially-dense areas
   //
+
   for (auto &coll : _vort) {
 
     // if inert, no need to merge (keep all tracer particles)
     if (std::visit([=](auto& elem) { return elem.is_inert(); }, coll)) continue;
-
-    //std::visit([=](auto& elem) {
 
     // run this step if the collection is Points
     if (std::holds_alternative<Points<S>>(coll)) {
@@ -318,19 +315,16 @@ void Diffusion<S,A,I>::step(const double                _dt,
 
       //std::cout << "    merging among " << pts.get_n() << " particles" << std::endl;
       // last two arguments are: relative distance, allow variable core radii
-      (void)merge_close_particles<S>(pts.get_pos(),
-                                     pts.get_str(),
-                                     pts.get_rad(),
-                                     particle_overlap,
-                                     0.3,
-                                     adaptive_radii);
+      (void) merge_close_particles<S>(pts.get_pos(),
+                                      pts.get_str(),
+                                      pts.get_rad(),
+                                      particle_overlap,
+                                      0.3,
+                                      adaptive_radii);
+
       // resize the rest of the arrays
       pts.resize(pts.get_str().size());
     }
-    //} , coll);
-
-    // resize the rest of the arrays
-    //std::visit([=](auto& elem) { elem.resize(elem.get_str().size()); }, coll);
   }
 
   //
