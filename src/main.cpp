@@ -249,7 +249,7 @@ int main(int argc, char const *argv[]) {
       }
 
       // check flow for blow-up or errors
-      sim_err_msg = sim.check_simulation(ffeatures.size(), bfeatures.size());
+      sim_err_msg = sim.check_simulation(ffeatures.size(), bfeatures2.size());
 
       if (sim_err_msg.empty()) {
         // the last simulation step was fine, OK to continue
@@ -364,18 +364,18 @@ int main(int argc, char const *argv[]) {
 
       // list existing boundary features here
       int del_this_bdry = -1;
-      for (int i=0; i<(int)bfeatures.size(); ++i) {
+      for (int i=0; i<(int)bfeatures2.size(); ++i) {
         // add a "remove" button here somehow
         ImGui::PushID(++buttonIDs);
         if (ImGui::SmallButton("remove")) del_this_bdry = i;
         ImGui::PopID();
 
         ImGui::SameLine();
-        ImGui::Text("%s", bfeatures[i]->to_string().c_str());
+        ImGui::Text("%s", bfeatures2[i]->to_string().c_str());
       }
       if (del_this_bdry > -1) {
         std::cout << "Asked to delete boundary feature " << del_this_bdry << std::endl;
-        bfeatures.erase(bfeatures.begin()+del_this_bdry);
+        bfeatures2.erase(bfeatures2.begin()+del_this_bdry);
       }
 
       // list existing measurement features here
