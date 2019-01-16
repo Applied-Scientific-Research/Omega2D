@@ -311,7 +311,7 @@ public:
       // complete the element with a strength and radius
       px[4*i+2] = (*this->s)[i] / oopanlen;
       px[4*i+3] = _vdelta;
-      std::cout << "  new part is " << px[4*i+0] << " " << px[4*i+1] << " " << px[4*i+2] << " " << px[4*i+3] << std::endl;
+      //std::cout << "  new part is " << px[4*i+0] << " " << px[4*i+1] << " " << px[4*i+2] << " " << px[4*i+3] << std::endl;
     }
 
     return px;
