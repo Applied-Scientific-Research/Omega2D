@@ -210,7 +210,7 @@ void Diffusion<S,A,I>::step(const double                _dt,
 
   if (is_inviscid) return;
 
-  std::cout << "  Inside Diffusion::step with dt=" << _dt << std::endl;
+  std::cout << "Inside Diffusion::step with dt=" << _dt << std::endl;
 
   // always re-run the BEM calculation before shedding
   solve_bem<S,A,I>(_fs, _vort, _bdry, _bem);

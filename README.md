@@ -74,7 +74,6 @@ Pictured below is a simulation of viscous flow over a circle at Reynolds number 
 Tasks to consider or implement:
 
 * Get Vc into the influence calculations for the new arch
-* For new BEM: ~~get particles to create correct RHS~~, ~~then panels to create correct A matrix~~, then ~~Points to generate correct particles~~, finally for Surfaces to remove Points beneath them
 * Allow Points to be able to draw not only blobs but dots at the middles, too, using same arrays but different draw programs (turn either on or off?)
 * Allow inert Points collections to never allocate space for radius
 * Replace core architecture (using std::variant and Collection)
@@ -114,6 +113,7 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~For new BEM: get particles to create correct RHS, then panels to create correct A matrix, then Points to generate correct particles, finally for Surfaces to remove Points beneath them~~
 * ~~Get the Panels into the new arch - includes creation, BEM, vel-finding, drawing~~
 * ~~Upgrade Merge to the new arch, then particle-only diffusion will be complete~~
 * ~~Get new arch to perform VRM~~

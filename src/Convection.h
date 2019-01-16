@@ -175,7 +175,7 @@ void Convection<S,A,I>::advect_1st(const double _dt,
                                    std::vector<Collection>&             _fldpt,
                                    BEM<S,I>&                            _bem) {
 
-  std::cout << "  Inside advect_1st with dt=" << _dt << std::endl;
+  std::cout << "Inside advect_1st with dt=" << _dt << std::endl;
 
   // part A - unknowns
 
@@ -280,7 +280,7 @@ void Convection<S,A,I>::advect_2nd(const double _dt,
                                    std::vector<Collection>&             _fldpt,
                                    BEM<S,I>&                            _bem) {
 
-  std::cout << "  Inside advect_2nd with dt=" << _dt << std::endl;
+  std::cout << "Inside advect_2nd with dt=" << _dt << std::endl;
 
   // take the first Euler step ---------
 
