@@ -94,7 +94,8 @@ ClosestReturn<S> panel_point_distance(const S sx0, const S sy0,
 //
 template <class S>
 void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
-  std::cout << "  inside reflect(Surfaces, Points)" << std::endl;
+  //std::cout << "  inside reflect(Surfaces, Points)" << std::endl;
+  std::cout << "  Reflecting" << _targ.to_string() << " from near" << _src.to_string() << std::endl;
 
   // get handles for the vectors
   std::array<Vector<S>,Dimensions> const& sx = _src.get_pos();
@@ -168,10 +169,10 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
         //   node effectively gets checked twice
         const S dist = std::sqrt(hits[0].distsq);
         // if the distance is large enough, we don't need to care
-        //if (dist < 2.0 * tx[4*i+3]) {
+        if (dist < 0.1) {
           std::cout << "WARNING: point at " << tx[0][i] << " " << tx[1][i] << std::endl;
           std::cout << "  only hits one node on panel " << hits[0].jpanel << " with dist " << dist << std::endl;
-        //}
+        }
         // we cannot define a distance!
       }
     } else if (hits.size() == 2) {
@@ -225,7 +226,8 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
 //
 template <class S>
 void clear_inner_panp2 (Surfaces<S> const & _src, Points<S>& _targ, const S _cutoff) {
-  std::cout << "  inside clear_inner_layer(Surfaces, Points)" << std::endl;
+  //std::cout << "  inside clear_inner_layer(Surfaces, Points)" << std::endl;
+  std::cout << "  Clearing" << _targ.to_string() << " from near" << _src.to_string() << std::endl;
 
   // get handles for the vectors
   std::array<Vector<S>,Dimensions> const& sx = _src.get_pos();
@@ -333,16 +335,16 @@ void clear_inner_panp2 (Surfaces<S> const & _src, Points<S>& _targ, const S _cut
     oopanlen = 1.0 / std::sqrt(norm[0]*norm[0] + norm[1]*norm[1]);
     norm[0] *= oopanlen;
     norm[1] *= oopanlen;
-    dotp = (tx[0][i]-sx[0][2*inear])*norm[0] + (tx[1][i]-sx[1][2*inear])*norm[1];
+    dotp = (tx[0][i]-sx[0][inear])*norm[0] + (tx[1][i]-sx[1][inear])*norm[1];
     if (dotp > 0.0) {
       // particle is above panel
     } else {
       // particle is beneath panel
     }
-    //std::cout << "  part " << i/4 << " is " << dotp << " away from node " << inear << std::endl;
+    //std::cout << "    part is " << dotp << " away from node " << inear << std::endl;
 
     // HACK, weaken and push it out
-    // evantually precompute table lookups for new position and remaining strength
+    // eventually precompute table lookups for new position and remaining strength
     dotp -= _cutoff;
     if (dotp < tr[i]) {
       // smoothly vary the strength scaling factor from 0..1 over range dotp/vdelta = -1..1
@@ -354,7 +356,7 @@ void clear_inner_panp2 (Surfaces<S> const & _src, Points<S>& _targ, const S _cut
       //std::cout << "  PUSHING " << std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]);
       tx[0][i] += shiftd * norm[0];
       tx[1][i] += shiftd * norm[1];
-      //std::cout << " to " << std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]) << std::endl;
+      //std::cout << "    to " << std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]) << " and weaken by " << sfac << std::endl;
       // do not change radius yet
       //std::cout << "    TO " << tx[0][i] << " " << tx[1][i] << " and weaken by " << sfac << std::endl;
 

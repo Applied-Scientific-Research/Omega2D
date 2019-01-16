@@ -290,9 +290,12 @@ void Diffusion<S,A,I>::step(const double                _dt,
   for (auto &targ : _vort) {
     if (std::holds_alternative<Points<S>>(targ)) {
       Points<S>& pts = std::get<Points<S>>(targ);
+
       for (auto &src : _bdry) {
         if (std::holds_alternative<Surfaces<S>>(src)) {
           Surfaces<S>& surf = std::get<Surfaces<S>>(src);
+
+          // call the specific panels-affect-points routine
           (void) reflect_panp2<S>(surf, pts);
         }
       }
@@ -330,20 +333,23 @@ void Diffusion<S,A,I>::step(const double                _dt,
   //
   // clean up by removing the innermost layer - the one that will be represented by boundary strengths
   //
-/*
-  if (_bdry.exists()) {
-    // may need to do this multiple times to clear out concave zones!
 
-    // new way
-    (void) clear_inner_layer<S,I>(_bdry, _vort, _vdelta/particle_overlap);
+  // may need to do this multiple times to clear out concave zones!
+  // this should only function when _vort is Points and _bdry is Surfaces
+  for (auto &targ : _vort) {
+    if (std::holds_alternative<Points<S>>(targ)) {
+      Points<S>& pts = std::get<Points<S>>(targ);
 
-    // old way
-    //for (auto & elem: _vort.get_collections()) {
-      //std::vector<S> partmod = _bdry.get_panels().remove_inner_layer(_nomsep, elem->get_x());
-      //_p.modify_particles(partmod);
-    //}
+      for (auto &src : _bdry) {
+        if (std::holds_alternative<Surfaces<S>>(src)) {
+          Surfaces<S>& surf = std::get<Surfaces<S>>(src);
+
+          // call the specific panels-affect-points routine
+          (void) clear_inner_panp2<S>(surf, pts, _vdelta/particle_overlap);
+        }
+      }
+    }
   }
-*/
 
   // now is a fine time to reset the max active/particle strength
   for (auto &coll : _vort) {
