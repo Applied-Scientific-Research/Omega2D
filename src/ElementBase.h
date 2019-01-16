@@ -39,8 +39,22 @@ public:
   std::array<Vector<S>,Dimensions>&       get_vel()       { return u; }
 
   void set_str(const size_t ioffset, const size_t icnt, Vector<S> _in) {
+    assert(s);
+    *s = _in;
+/*
+    if (s) {
+      std::cout << "  in set_str, s exists" << std::endl;
+      std::cout << "    icnt = " << icnt << std::endl;
+      std::cout << "    _in.size() = " << _in.size() << std::endl;
+      std::cout << "    (*s).size() = " << (*s).size() << std::endl;
+      *s = _in;
+    } else {
+      std::cout << "  in set_str, s does not exist" << std::endl;
+      std::cout << "    icnt = " << icnt << std::endl;
+      std::cout << "    _in.size() = " << _in.size() << std::endl;
+    }
     //s = std::move(_in);
-    s = _in;
+*/
   }
 
   void add_new(std::vector<float>& _in) {
