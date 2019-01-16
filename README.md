@@ -73,10 +73,10 @@ Pictured below is a simulation of viscous flow over a circle at Reynolds number 
 ## To do
 Tasks to consider or implement:
 
-* For new BEM: ~~get particles to create correct RHS~~, ~~then panels to create correct A matrix~~, then Points to generate correct particles, finally for Surfaces to remove Points beneath them
+* Get Vc into the influence calculations for the new arch
+* For new BEM: ~~get particles to create correct RHS~~, ~~then panels to create correct A matrix~~, then ~~Points to generate correct particles~~, finally for Surfaces to remove Points beneath them
 * Allow Points to be able to draw not only blobs but dots at the middles, too, using same arrays but different draw programs (turn either on or off?)
 * Allow inert Points collections to never allocate space for radius
-* Get the Panels into the new arch - includes ~~creation~~, BEM, vel-finding, ~~drawing~~
 * Replace core architecture (using std::variant and Collection)
 * Move some initialization back into ElementBase - like positions and such, keep radius in Points, then ElementBase can draw points?
 * Move the GUI and pre-run parts of the various Body classes into their own class/file and out of main.cpp and Body.h
@@ -114,6 +114,7 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~Get the Panels into the new arch - includes creation, BEM, vel-finding, drawing~~
 * ~~Upgrade Merge to the new arch, then particle-only diffusion will be complete~~
 * ~~Get new arch to perform VRM~~
 * ~~Get new arch to create a line or a blob of inert particles, compute their motion, and draw them~~

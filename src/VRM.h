@@ -316,6 +316,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
       // is the closest of these "too close"? Start at 0.5 if you want to catch the most egregious.
       //if (std::sqrt(ret_matches[1].second) < 0.5*nom_sep) ntooclose++;
 
+      //std::cout << "radiusSearch(): radius " << search_rad << " found " << inear.size();
       //std::cout << std::endl;
       //for (int32_t j=0; j<ret_matches.size(); ++j) std::cout << "   " << ret_matches[j].first << "\t" << ret_matches[j].second << std::endl;
     } else {
