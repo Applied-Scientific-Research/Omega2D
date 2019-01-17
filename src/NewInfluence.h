@@ -159,9 +159,12 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
       const size_t jp1 = si[2*j+1];
 
       // note that this is the same kernel as points_affect_panels
-      result = vortex_panel_affects_point<S,A>(sx[0][jp0], sx[1][jp0], 
-                                               sx[0][jp1], sx[1][jp1],
-                                               ss[j],      tx[0][i],   tx[1][i]);
+      kernel_1_0v<S,A>(sx[0][jp0], sx[1][jp0], 
+                       sx[0][jp1], sx[1][jp1],
+                       ss[j],
+                       tx[0][i],   tx[1][i],
+                       &result[0], &result[1]);
+
       accum[0] += result[0];
       accum[1] += result[1];
     }
@@ -171,7 +174,7 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
     tu[1][i] += accum[1];
     //std::cout << "  new vel on " << i << " is " << accum[0] << " " << accum[1] << std::endl;
   }
-  flops *= 2.0 + 38.0*(float)src.get_n();
+  flops *= 2.0 + 37.0*(float)src.get_n();
 
   auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
@@ -207,9 +210,12 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
 
     for (size_t j=0; j<src.get_n(); ++j) {
       // note that this is the same kernel as panels_affect_points!
-      result = vortex_panel_affects_point<S,A>(tx[0][ip0], tx[1][ip0], 
-                                               tx[0][ip1], tx[1][ip1],
-                                               ss[j],      sx[0][j],   sx[1][j]);
+      kernel_1_0v<S,A>(tx[0][ip0], tx[1][ip0],
+                       tx[0][ip1], tx[1][ip1],
+                       ss[j],
+                       sx[0][j],   sx[1][j],
+                       &result[0], &result[1]);
+
       accum[0] += result[0];
       accum[1] += result[1];
     }
@@ -219,7 +225,7 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
     tu[1][i] -= plen*accum[1];
     //std::cout << "  vel on " << i << " is " << tu[0][i] << " " << tu[1][i] << std::endl;
   }
-  flops *= 4.0 + 38.0*(float)src.get_n();
+  flops *= 4.0 + 37.0*(float)src.get_n();
 
   auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
