@@ -85,28 +85,28 @@ SolidSquare::init_elements(const float _ips) const {
   // so go CW around the body
   size_t icnt = 0;
   for (size_t i=0; i<num_panels/4; i++) {
-    const float px = m_x + m_side * -0.5;
-    const float py = m_y + m_side * (-0.5 + (float)i / (float)(num_panels/4));
-    x[icnt++] = px*ct - py*st;
-    x[icnt++] = px*st + py*ct;
+    const float px = m_side * -0.5;
+    const float py = m_side * (-0.5 + (float)i / (float)(num_panels/4));
+    x[icnt++] = m_x + px*ct - py*st;
+    x[icnt++] = m_y + px*st + py*ct;
   }
   for (size_t i=0; i<num_panels/4; i++) {
-    const float px = m_x + m_side * (-0.5 + (float)i / (float)(num_panels/4));
-    const float py = m_y + m_side * 0.5;
-    x[icnt++] = px*ct - py*st;
-    x[icnt++] = px*st + py*ct;
+    const float px = m_side * (-0.5 + (float)i / (float)(num_panels/4));
+    const float py = m_side * 0.5;
+    x[icnt++] = m_x + px*ct - py*st;
+    x[icnt++] = m_y + px*st + py*ct;
   }
   for (size_t i=0; i<num_panels/4; i++) {
-    const float px = m_x + m_side * 0.5;
-    const float py = m_y + m_side * (0.5 - (float)i / (float)(num_panels/4));
-    x[icnt++] = px*ct - py*st;
-    x[icnt++] = px*st + py*ct;
+    const float px = m_side * 0.5;
+    const float py = m_side * (0.5 - (float)i / (float)(num_panels/4));
+    x[icnt++] = m_x + px*ct - py*st;
+    x[icnt++] = m_y + px*st + py*ct;
   }
   for (size_t i=0; i<num_panels/4; i++) {
-    const float px = m_x + m_side * (0.5 - (float)i / (float)(num_panels/4));
-    const float py = m_y + m_side * -0.5;
-    x[icnt++] = px*ct - py*st;
-    x[icnt++] = px*st + py*ct;
+    const float px = m_side * (0.5 - (float)i / (float)(num_panels/4));
+    const float py = m_side * -0.5;
+    x[icnt++] = m_x + px*ct - py*st;
+    x[icnt++] = m_y + px*st + py*ct;
   }
 
   // outside is to the left walking from one point to the next
