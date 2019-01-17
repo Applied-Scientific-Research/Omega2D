@@ -8,10 +8,15 @@
 #pragma once
 
 #include "Omega2D.h"
+#include "VectorHelper.h"
 #include "NewKernels.h"
 #include "Kernels.h"
 #include "Points.h"
 #include "Surfaces.h"
+
+#ifdef USE_VC
+#include <Vc/Vc>
+#endif
 
 #include <iostream>
 #include <vector>
@@ -25,6 +30,10 @@
 // NOTE: we are not using A here!
 //
 
+
+//
+// Vc and x86 versions of Points/Particles affecting Points/Particles
+//
 template <class S, class A>
 void points_affect_points (Points<S> const& src, Points<S>& targ) {
   auto start = std::chrono::system_clock::now();
@@ -135,6 +144,10 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
   printf("    points_affect_points: [%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);
 }
 
+
+//
+// Vc and x86 versions of Panels/Surfaces affecting Points/Particles
+//
 template <class S, class A>
 void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
   std::cout << "    1_0 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
@@ -149,12 +162,76 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
 
   float flops = (float)targ.get_n();
 
+#ifdef USE_VC
+  // define vector types for Vc (still only S==A supported here)
+  typedef Vc::Vector<S> StoreVec;
+  typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
+
+  // sources are panels, assemble de-interleaved vectors
+  Vc::Memory<StoreVec> vsx0(src.get_npanels());
+  Vc::Memory<StoreVec> vsy0(src.get_npanels());
+  Vc::Memory<StoreVec> vsx1(src.get_npanels());
+  Vc::Memory<StoreVec> vsy1(src.get_npanels());
+  Vc::Memory<StoreVec>  vss(src.get_npanels());
+  for (size_t j=0; j<src.get_npanels(); ++j) {
+    const size_t id0 = si[2*j];
+    const size_t id1 = si[2*j+1];
+    vsx0[j]     = sx[0][id0];
+    vsy0[j]     = sx[1][id0];
+    vsx1[j]     = sx[0][id1];
+    vsy1[j]     = sx[1][id1];
+    vss[j]      = ss[j];
+    //std::cout << "  src panel " << j << " has " << vsx1[j] << " " << vsy1[j] << " and str " << vss[j] << std::endl;
+  }
+  for (size_t j=src.get_npanels(); j<vss.vectorsCount()*StoreVec::size(); ++j) {
+    vsx0[j] = 0.0;
+    vsy0[j] = 0.0;
+    vsx1[j] = 1.0;
+    vsy1[j] = 0.0;
+    vss[j]  = 0.0;
+    //std::cout << "  src panel " << j << " has " << vsx1[j] << " " << vsy1[j] << " and str " << vss[j] << std::endl;
+  }
+
   #pragma omp parallel for
   for (size_t i=0; i<targ.get_n(); ++i) {
-    std::array<A,2> accum = {0.0, 0.0};
-    std::array<A,2> result;
 
-    for (size_t j=0; j<src.get_n(); ++j) {
+    // spread the target points out over a vector
+    const StoreVec vtx = tx[0][i];
+    const StoreVec vty = tx[1][i];
+
+    // generate accumulator
+    AccumVec accumu(0.0);
+    AccumVec accumv(0.0);
+    AccumVec resultu(0.0);
+    AccumVec resultv(0.0);
+
+    for (size_t j=0; j<vss.vectorsCount(); ++j) {
+      // note that this is the same kernel as panels_affect_points!
+      kernel_1_0v<StoreVec,AccumVec>(vsx0.vector(j), vsy0.vector(j),
+                                     vsx1.vector(j), vsy1.vector(j),
+                                     vss.vector(j),
+                                     vtx, vty,
+                                     &resultu, &resultv);
+      accumu += resultu;
+      accumv += resultv;
+    }
+
+    // use this as normal
+    tu[0][i] += accumu.sum();
+    tu[1][i] += accumv.sum();
+    //std::cout << "    new 1_0 vel on " << i << " is " << accumu.sum() << " " << accumv.sum() << std::endl;
+  }
+#else
+
+  #pragma omp parallel for
+  for (size_t i=0; i<targ.get_n(); ++i) {
+
+    A accumu  = 0.0;
+    A accumv  = 0.0;
+    A resultu = 0.0;
+    A resultv = 0.0;
+
+    for (size_t j=0; j<src.get_npanels(); ++j) {
       const size_t jp0 = si[2*j];
       const size_t jp1 = si[2*j+1];
 
@@ -163,18 +240,20 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
                        sx[0][jp1], sx[1][jp1],
                        ss[j],
                        tx[0][i],   tx[1][i],
-                       &result[0], &result[1]);
+                       &resultu, &resultv);
 
-      accum[0] += result[0];
-      accum[1] += result[1];
+      accumu += resultu;
+      accumv += resultv;
     }
 
     // use this as normal
-    tu[0][i] += accum[0];
-    tu[1][i] += accum[1];
-    //std::cout << "  new vel on " << i << " is " << accum[0] << " " << accum[1] << std::endl;
+    tu[0][i] += accumu;
+    tu[1][i] += accumv;
+    //std::cout << "    new 1_0 vel on " << i << " is " << accumu << " " << accumv << std::endl;
   }
-  flops *= 2.0 + 37.0*(float)src.get_n();
+#endif
+
+  flops *= 2.0 + 37.0*(float)src.get_npanels();
 
   auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
@@ -183,6 +262,9 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
 }
 
 
+//
+// Vc and x86 versions of Points/Particles affecting Panels/Surfaces
+//
 template <class S, class A>
 void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
   std::cout << "    0_1 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
@@ -195,18 +277,61 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
   const std::vector<Int>&                 ti = targ.get_idx();
   std::array<Vector<S>,Dimensions>&       tu = targ.get_vel();
 
-  float flops = (float)targ.get_n();
+#ifdef USE_VC
+  // define vector types for Vc (still only S==A supported here)
+  typedef Vc::Vector<S> StoreVec;
+  typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
+
+  const Vc::Memory<StoreVec> sxv = stdvec_to_vcvec<S>(sx[0], 0.0);
+  const Vc::Memory<StoreVec> syv = stdvec_to_vcvec<S>(sx[1], 0.0);
+  const Vc::Memory<StoreVec> ssv = stdvec_to_vcvec<S>(ss,    0.0);
+#endif
+
+  float flops = (float)targ.get_npanels();
 
   #pragma omp parallel for
-  for (size_t i=0; i<targ.get_n(); ++i) {
+  for (size_t i=0; i<targ.get_npanels(); ++i) {
 
     const size_t ip0 = ti[2*i];
     const size_t ip1 = ti[2*i+1];
+
     // scale by the panel size
     const A plen = 1.0 / std::sqrt(std::pow(tx[0][ip1]-tx[0][ip0],2) + std::pow(tx[1][ip1]-tx[1][ip0],2));
 
-    std::array<A,2> accum = {0.0, 0.0};
-    std::array<A,2> result;
+#ifdef USE_VC
+    // spread the target out over a vector
+    const StoreVec vtx0 = tx[0][ip0];
+    const StoreVec vty0 = tx[1][ip0];
+    const StoreVec vtx1 = tx[0][ip1];
+    const StoreVec vty1 = tx[1][ip1];
+
+    // generate accumulator
+    AccumVec accumu(0.0);
+    AccumVec accumv(0.0);
+    AccumVec resultu(0.0);
+    AccumVec resultv(0.0);
+
+    for (size_t j=0; j<ssv.vectorsCount(); ++j) {
+      // note that this is the same kernel as panels_affect_points!
+      kernel_1_0v<StoreVec,AccumVec>(vtx0, vty0,
+                                     vtx1, vty1,
+                                     ssv.vector(j),
+                                     sxv.vector(j), syv.vector(j),
+                                     &resultu, &resultv);
+      accumu += resultu;
+      accumv += resultv;
+    }
+
+    // but we use it backwards, so the resulting velocities are negative
+    tu[0][i] -= plen*accumu.sum();
+    tu[1][i] -= plen*accumv.sum();
+    //std::cout << "    new 0_1 vel on " << i << " is " << (-plen*accumu.sum()) << " " << (-plen*accumv.sum()) << std::endl;
+
+#else
+    A accumu  = 0.0;
+    A accumv  = 0.0;
+    A resultu = 0.0;
+    A resultv = 0.0;
 
     for (size_t j=0; j<src.get_n(); ++j) {
       // note that this is the same kernel as panels_affect_points!
@@ -214,18 +339,19 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
                        tx[0][ip1], tx[1][ip1],
                        ss[j],
                        sx[0][j],   sx[1][j],
-                       &result[0], &result[1]);
-
-      accum[0] += result[0];
-      accum[1] += result[1];
+                       &resultu, &resultv);
+      accumu += resultu;
+      accumv += resultv;
     }
 
     // but we use it backwards, so the resulting velocities are negative
-    tu[0][i] -= plen*accum[0];
-    tu[1][i] -= plen*accum[1];
+    tu[0][i] -= plen*accumu;
+    tu[1][i] -= plen*accumv;
     //std::cout << "  vel on " << i << " is " << tu[0][i] << " " << tu[1][i] << std::endl;
+    //std::cout << "    new 0_1 vel on " << i << " is " << (-plen*accumu) << " " << (-plen*accumv) << std::endl;
+#endif
   }
-  flops *= 4.0 + 37.0*(float)src.get_n();
+  flops *= 11.0 + 37.0*(float)src.get_n();
 
   auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
@@ -255,7 +381,9 @@ void panels_affect_panels (Surfaces<S> const& src, Surfaces<S>& targ) {
 }
 
 
+//
 // helper struct for dispatching through a variant
+//
 template <class A>
 struct InfluenceVisitor {
   // source collection, target collection

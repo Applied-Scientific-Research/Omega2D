@@ -1,7 +1,7 @@
 /*
  * Kernels.h - Non-class inner kernels for influence calculations
  *
- * (c)2017-8 Applied Scientific Research, Inc.
+ * (c)2017-9 Applied Scientific Research, Inc.
  *           Written by Mark J Stock <markjstock@gmail.com>
  */
 
@@ -11,8 +11,12 @@
 #define __restrict__ __restrict
 #endif
 
-//#define _USE_MATH_DEFINES
-//#include <cmath>
+#ifdef USE_VC
+#include <Vc/Vc>
+#endif
+
+#define _USE_MATH_DEFINES
+#include <cmath>
 
 
 // velocity influence functions
@@ -75,16 +79,19 @@ static inline void kernel_1_0v (const S sx0, const S sy0,
   const S rij2  = dx0*dx0 + dy0*dy0;
   const S rij12 = dx1*dx1 + dy1*dy1;
 #ifdef USE_VC
+  const S vstar = S(0.5) * Vc::log(rij2/rij12);
 #else
-#endif
   const S vstar = 0.5 * std::log(rij2/rij12);
+#endif
   S ustar = std::atan2(dx1, dy1) - std::atan2(dx0, dy0);
   //std::cout << "ustar started off as " << ustar << std::endl;
 #ifdef USE_VC
+  Vc::where(ustar < S(-M_PI)) | ustar += S(2.*M_PI);
+  Vc::where(ustar > S(M_PI)) | ustar -= S(2.*M_PI);
 #else
-#endif
   if (ustar < -M_PI) ustar += 2.*M_PI;
   if (ustar > M_PI) ustar -= 2.*M_PI;
+#endif
   //std::cout << "ustar is " << ustar << " and vstar is " << vstar << std::endl;
 
   const S px    = sx1-sx0;
@@ -95,9 +102,10 @@ static inline void kernel_1_0v (const S sx0, const S sy0,
   const S velx  = ustar*px - vstar*py;
   const S vely  = ustar*py + vstar*px;
   //std::cout << "velx is " << velx << " and vely is " << vely << std::endl;
-  const S mult  = str / std::sqrt(px*px + py*py);
 #ifdef USE_VC
+  const S mult  = str * Vc::rsqrt(px*px + py*py);
 #else
+  const S mult  = str / std::sqrt(px*px + py*py);
 #endif
   //std::cout << "finalx is " << (mult*velx) << " and finaly is " << (mult*vely) << std::endl;
 
