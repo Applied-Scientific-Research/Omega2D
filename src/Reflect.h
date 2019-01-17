@@ -1,15 +1,16 @@
 /*
  * Reflect.h - Non-class particle-panel reflecting operation
  *
- * (c)2017-8 Applied Scientific Research, Inc.
+ * (c)2017-9 Applied Scientific Research, Inc.
  *           Written by Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
 
-#include "Boundaries.h"
-#include "Particles.h"
-#include "Vorticity.h"
+#include "Omega2D.h"
+//#include "Collection.h"
+#include "Points.h"
+#include "Surfaces.h"
 
 #include <cstdlib>
 #include <limits>
@@ -91,28 +92,30 @@ ClosestReturn<S> panel_point_distance(const S sx0, const S sy0,
 //
 // naive caller for the O(N^2) panel-particle reflection kernel
 //
-template <class S, class I>
-void reflect_panp (Panels<S,I> const& _src, Elements<S,I>& _targ) {
+template <class S>
+void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
+  //std::cout << "  inside reflect(Surfaces, Points)" << std::endl;
+  std::cout << "  Reflecting" << _targ.to_string() << " from near" << _src.to_string() << std::endl;
+  auto start = std::chrono::system_clock::now();
 
   // get handles for the vectors
-  std::vector<S> const& sx = _src.get_x();
-  std::vector<I> const& si = _src.get_idx();
-  std::vector<S>&       tx = _targ.get_x();		// contains 0=x, 1=y, 2=str, 3=rad
+  std::array<Vector<S>,Dimensions> const& sx = _src.get_pos();
+  std::vector<Int> const&                 si = _src.get_idx();
+  std::array<Vector<S>,Dimensions>&       tx = _targ.get_pos();
 
   size_t num_reflected = 0;
 
   // accumulate results into targvel
   #pragma omp parallel for
   for (size_t i=0; i<_targ.get_n(); ++i) {
-    //S result = std::numeric_limits<S>::max();
     S mindist = std::numeric_limits<S>::max();
     std::vector<ClosestReturn<S>> hits;
 
     // iterate and search for closest panel
-    for (size_t j=0; j<_src.get_n(); ++j) {
-      ClosestReturn<S> result = panel_point_distance<S>(sx[2*si[2*j]],   sx[2*si[2*j]+1],
-                                                        sx[2*si[2*j+1]], sx[2*si[2*j+1]+1],
-                                                        tx[4*i+0], tx[4*i+1]);
+    for (size_t j=0; j<_src.get_npanels(); ++j) {
+      ClosestReturn<S> result = panel_point_distance<S>(sx[0][si[2*j]],   sx[1][si[2*j]],
+                                                        sx[0][si[2*j+1]], sx[1][si[2*j+1]],
+                                                        tx[0][i],         tx[1][i]);
 
       if (result.distsq < mindist - std::numeric_limits<S>::epsilon()) {
         // we blew the old one away
@@ -131,7 +134,7 @@ void reflect_panp (Panels<S,I> const& _src, Elements<S,I>& _targ) {
     }
 
     // dump out the hits
-    //std::cout << "point is " << tx[4*i+0] << " " << tx[4*i+1] << std::endl;
+    //std::cout << "point is " << tx[0][i] << " " << tx[1][i] << std::endl;
     //for (auto & ahit: hits) {
     //  if (ahit.disttype == node) {
     //    std::cout << "  node " << ahit.jpanel << " is " << std::sqrt(ahit.distsq) << std::endl;
@@ -140,7 +143,7 @@ void reflect_panp (Panels<S,I> const& _src, Elements<S,I>& _targ) {
     //  }
     //}
 
-    //std::cout << "  REFLECTING pt at " << tx[4*i+0] << " " << tx[4*i+1] << std::endl;
+    //std::cout << "  REFLECTING pt at " << tx[0][i] << " " << tx[1][i] << std::endl;
 
     // now look at the vector of return values and decide if we're under or above the panel!
     if (hits.size() == 1) {
@@ -148,18 +151,18 @@ void reflect_panp (Panels<S,I> const& _src, Elements<S,I>& _targ) {
       if (hits[0].disttype == panel) {
         // compare vector to normal vector
         const size_t j = hits[0].jpanel;
-        const S bx = sx[2*si[2*j+1]] - sx[2*si[2*j]];
-        const S by = sx[2*si[2*j+1]+1] - sx[2*si[2*j]+1];
+        const S bx = sx[0][si[2*j+1]] - sx[0][si[2*j]];
+        const S by = sx[1][si[2*j+1]] - sx[1][si[2*j]];
         const S blen  = 1.0 / std::sqrt(bx*bx + by*by);
         const S normx = -by * blen;
         const S normy =  bx * blen;
-        const S dist  = normx*(tx[4*i+0]-hits[0].cpx) + normy*(tx[4*i+1]-hits[0].cpy);
+        const S dist  = normx*(tx[0][i]-hits[0].cpx) + normy*(tx[1][i]-hits[0].cpy);
         //std::cout << "  dist is actually " << dist << std::endl;
         if (dist < 0.0) {
           // this point is under the panel - reflect it
-          tx[4*i+0] -= 2.0*dist*normx;
-          tx[4*i+1] -= 2.0*dist*normy;
-          //std::cout << "    TYPE 1 TO " << tx[4*i+0] << " " << tx[4*i+1] << std::endl;
+          tx[0][i] -= 2.0*dist*normx;
+          tx[1][i] -= 2.0*dist*normy;
+          //std::cout << "    TYPE 1 TO " << tx[0][i] << " " << tx[1][i] << std::endl;
           num_reflected++;
         }
       } else {
@@ -167,8 +170,8 @@ void reflect_panp (Panels<S,I> const& _src, Elements<S,I>& _targ) {
         //   node effectively gets checked twice
         const S dist = std::sqrt(hits[0].distsq);
         // if the distance is large enough, we don't need to care
-        if (dist < 2.0 * tx[4*i+3]) {
-          std::cout << "WARNING: point at " << tx[4*i+0] << " " << tx[4*i+1] << std::endl;
+        if (dist < 0.1) {
+          std::cout << "WARNING: point at " << tx[0][i] << " " << tx[1][i] << std::endl;
           std::cout << "  only hits one node on panel " << hits[0].jpanel << " with dist " << dist << std::endl;
         }
         // we cannot define a distance!
@@ -183,8 +186,8 @@ void reflect_panp (Panels<S,I> const& _src, Elements<S,I>& _targ) {
       for (size_t k=0; k<hits.size(); ++k) {
         //std::cout << "    cp at " << hits[k].cpx << " " << hits[k].cpy << std::endl;
         const size_t j = hits[k].jpanel;
-        const S bx = sx[2*si[2*j+1]] - sx[2*si[2*j]];
-        const S by = sx[2*si[2*j+1]+1] - sx[2*si[2*j]+1];
+        const S bx = sx[0][si[2*j+1]] - sx[0][si[2*j]];
+        const S by = sx[1][si[2*j+1]] - sx[1][si[2*j]];
         const S blen = 1.0 / std::sqrt(bx*bx + by*by);
         normx += -by * blen;
         normy +=  bx * blen;
@@ -197,60 +200,49 @@ void reflect_panp (Panels<S,I> const& _src, Elements<S,I>& _targ) {
       cpx /= (S)hits.size();
       cpy /= (S)hits.size();
       // compare this mean norm to the vector from the contact point to the particle
-      const S dotp = normx*(tx[4*i+0]-cpx) + normy*(tx[4*i+1]-cpy);
+      const S dotp = normx*(tx[0][i]-cpx) + normy*(tx[1][i]-cpy);
       if (dotp < 0.0) {
         // this point is under the panel - reflect it off entry 0
         // this is reasonable for most cases, except very sharp angles between adjacent panels
         const S dist = std::sqrt(hits[0].distsq);
-        //std::cout << "  REFLECTING " << std::sqrt(tx[4*i+0]*tx[4*i+0]+tx[4*i+1]*tx[4*i+1]);
-        tx[4*i+0] = hits[0].cpx + dist*normx;
-        tx[4*i+1] = hits[0].cpy + dist*normy;
-        //std::cout << " to " << std::sqrt(tx[4*i+0]*tx[4*i+0]+tx[4*i+1]*tx[4*i+1]) << std::endl;
-        //std::cout << "    TYPE 2 TO " << tx[4*i+0] << " " << tx[4*i+1] << std::endl;
+        //std::cout << "  REFLECTING " << std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]);
+        tx[0][i] = hits[0].cpx + dist*normx;
+        tx[1][i] = hits[0].cpy + dist*normy;
+        //std::cout << " to " << std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]) << std::endl;
+        //std::cout << "    TYPE 2 TO " << tx[0][i] << " " << tx[1][i] << std::endl;
         num_reflected++;
       }
     } else {
       // this should never happen!
-      std::cout << "WARNING: point at " << tx[4*i+0] << " " << tx[4*i+1] << " hits " << hits.size() << " nodes/panels!" << std::endl;
+      std::cout << "WARNING: point at " << tx[0][i] << " " << tx[1][i] << " hits " << hits.size() << " nodes/panels!" << std::endl;
     }
   }
 
   std::cout << "    reflected " << num_reflected << " particles" << std::endl;
-}
 
-//
-// High-level driver for all-affects-all
-//
-// boundaries are the source (const) and particles are the targets (modified)
-//
-template <class S, class I>
-void reflect (Boundaries<S,I> const& _src, Vorticity<S,I>& _targ) {
-  std::cout << "  inside reflect(Boundaries, Vorticity)" << std::endl;
-
-  // just one set of panels for all boundaries now
-  Panels<S,I> const& src_elem = _src.get_panels();
-
-  // iterate over all sets of target vorticities (currently only one Particles object)
-  for (auto& targ_elem : _targ.get_collections()) {
-    std::cout << "    computing reflection of " << targ_elem->get_n() << " particles off " << src_elem.get_n() << " panels" << std::endl;
-
-    // here's the problem: the routine here doesn't know what type each of these is!
-    // HACK - let's assume it's always Particles and Panels
-    reflect_panp<S,I>(src_elem, *targ_elem);
-  }
+  auto end = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end-start;
+  printf("    reflect_panp2:\t[%.4f] seconds\n", (float)elapsed_seconds.count());
+  //const float gflops = 1.e-9 * flops / (float)elapsed_seconds.count();
+  //printf("    panels_affect_points: [%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);
 }
 
 
 //
 // naive caller for the O(N^2) panel-particle reflection kernel
 //
-template <class S, class I>
-void clear_inner_panp (Panels<S,I> const & _src, Elements<S,I>& _targ, const S _cutoff) {
+template <class S>
+void clear_inner_panp2 (Surfaces<S> const & _src, Points<S>& _targ, const S _cutoff) {
+  //std::cout << "  inside clear_inner_layer(Surfaces, Points)" << std::endl;
+  std::cout << "  Clearing" << _targ.to_string() << " from near" << _src.to_string() << std::endl;
+  auto start = std::chrono::system_clock::now();
 
   // get handles for the vectors
-  std::vector<S> const&   x = _src.get_x();
-  std::vector<I> const& idx = _src.get_idx();
-  std::vector<S>&      pmod = _targ.get_x();	// contains 0=x, 1=y, 2=str, 3=rad
+  std::array<Vector<S>,Dimensions> const& sx = _src.get_pos();
+  std::vector<Int> const&                 si = _src.get_idx();
+  std::array<Vector<S>,Dimensions>&       tx = _targ.get_pos();
+  Vector<S>&                              ts = _targ.get_str();
+  Vector<S>&                              tr = _targ.get_rad();
 
   size_t num_cropped = 0;
 
@@ -264,16 +256,16 @@ void clear_inner_panp (Panels<S,I> const & _src, Elements<S,I>& _targ, const S _
 
     S near_dist_sqrd = std::numeric_limits<S>::max();
     // inear is the NODE id that the particle is closest to
-    I inear = std::numeric_limits<I>::max();
+    Int inear = std::numeric_limits<Int>::max();
     norm[0] = 0.0; norm[1] = 0.0;
 
     // iterate and search for closest panel/node
     for (size_t j=0; j<_src.get_n(); ++j) {
 
-      x0 = x[2*idx[2*j]];
-      y0 = x[2*idx[2*j]+1];
-      x1 = x[2*idx[2*j+1]];
-      y1 = x[2*idx[2*j+1]+1];
+      x0 = sx[0][si[2*j]];
+      y0 = sx[1][si[2*j]];
+      x1 = sx[0][si[2*j+1]];
+      y1 = sx[1][si[2*j+1]];
       // is the point closest to the panel line?
 
       // find vector along panel segment
@@ -285,16 +277,16 @@ void clear_inner_panp (Panels<S,I> const & _src, Elements<S,I>& _targ, const S _
       thisnorm[0] = -along[1] * oopanlen;
       thisnorm[1] =  along[0] * oopanlen;
       // find projection
-      dotp = (pmod[4*i]-x0)*along[0] + (pmod[4*i+1]-y0)*along[1];
+      dotp = (tx[0][i]-x0)*along[0] + (tx[1][i]-y0)*along[1];
       dotp *= oopanlen*oopanlen;
 
       if (dotp < 0.0) {
         // particle is closer to first node
-        dist_sqrd = std::pow(pmod[4*i]-x0, 2) + pow(pmod[4*i+1]-y0, 2);
+        dist_sqrd = std::pow(tx[0][i]-x0, 2) + pow(tx[1][i]-y0, 2);
         if (dist_sqrd < near_dist_sqrd - std::numeric_limits<S>::epsilon()) {
           // point is clearly the closest
           near_dist_sqrd = dist_sqrd;
-          inear = idx[2*j];
+          inear = si[2*j];
           // replace the running normal
           norm[0] = thisnorm[0];
           norm[1] = thisnorm[1];
@@ -307,11 +299,11 @@ void clear_inner_panp (Panels<S,I> const & _src, Elements<S,I>& _targ, const S _
 
       } else if (dotp > 1.0) {
         // particle is closer to second node
-        dist_sqrd = std::pow(pmod[4*i]-x1, 2) + std::pow(pmod[4*i+1]-y1, 2);
+        dist_sqrd = std::pow(tx[0][i]-x1, 2) + std::pow(tx[1][i]-y1, 2);
         if (dist_sqrd < near_dist_sqrd - std::numeric_limits<S>::epsilon()) {
           // point is clearly the closest
           near_dist_sqrd = dist_sqrd;
-          inear = idx[2*j+1];
+          inear = si[2*j+1];
           // replace the running normal
           norm[0] = thisnorm[0];
           norm[1] = thisnorm[1];
@@ -329,13 +321,13 @@ void clear_inner_panp (Panels<S,I> const & _src, Elements<S,I>& _targ, const S _
         along[0] = x0 + dotp*along[0];
         along[1] = y0 + dotp*along[1];
         // then compute distance
-        dist_sqrd = std::pow(pmod[4*i]-along[0], 2) + std::pow(pmod[4*i+1]-along[1], 2);
+        dist_sqrd = std::pow(tx[0][i]-along[0], 2) + std::pow(tx[1][i]-along[1], 2);
         // and compare to saved
         if (dist_sqrd < near_dist_sqrd + std::numeric_limits<S>::epsilon()) {
           // even if its a tie, this one wins
           near_dist_sqrd = dist_sqrd;
           // and it doesn't matter which node we pick, the normal calculation is always the same
-          inear = idx[2*j];
+          inear = si[2*j];
           // replace the normal with this normal
           norm[0] = thisnorm[0];
           norm[1] = thisnorm[1];
@@ -344,38 +336,37 @@ void clear_inner_panp (Panels<S,I> const & _src, Elements<S,I>& _targ, const S _
 
     } // end of loop over panels
 
-    //std::cout << "  CLEARING pt at " << pmod[4*i+0] << " " << pmod[4*i+1] << std::endl;
+    //std::cout << "  CLEARING pt at " << tx[0][i] << " " << tx[1][i] << std::endl;
 
     // compare the particle to the normal to see which side of the object it is on
     // then, find out which side the point is on (dot with normal)
     oopanlen = 1.0 / std::sqrt(norm[0]*norm[0] + norm[1]*norm[1]);
     norm[0] *= oopanlen;
     norm[1] *= oopanlen;
-    dotp = (pmod[4*i]-x[2*inear])*norm[0] + (pmod[4*i+1]-x[2*inear+1])*norm[1];
+    dotp = (tx[0][i]-sx[0][inear])*norm[0] + (tx[1][i]-sx[1][inear])*norm[1];
     if (dotp > 0.0) {
       // particle is above panel
     } else {
       // particle is beneath panel
     }
-    //std::cout << "  part " << i/4 << " is " << dotp << " away from node " << inear << std::endl;
+    //std::cout << "    part is " << dotp << " away from node " << inear << std::endl;
 
     // HACK, weaken and push it out
-    // evantually precompute table lookups for new position and remaining strength
+    // eventually precompute table lookups for new position and remaining strength
     dotp -= _cutoff;
-    if (dotp < pmod[4*i+3]) {
+    if (dotp < tr[i]) {
       // smoothly vary the strength scaling factor from 0..1 over range dotp/vdelta = -1..1
-      const S sfac = 0.5 * (1.0 + sin(0.5*M_PI*std::max((S)-1.0, dotp/pmod[4*i+3])));
-      pmod[4*i+2] *= sfac;
+      const S sfac = 0.5 * (1.0 + sin(0.5*M_PI*std::max((S)-1.0, dotp/tr[i])));
+      ts[i] *= sfac;
 
       // move particle up to above the cutoff
-      const S shiftd = pmod[4*i+3] * 0.5 * (1.0 - dotp/pmod[4*i+3]);
-      //std::cout << "  PUSHING " << std::sqrt(pmod[4*i+0]*pmod[4*i+0]+pmod[4*i+1]*pmod[4*i+1]);
-      pmod[4*i+0] += shiftd * norm[0];
-      pmod[4*i+1] += shiftd * norm[1];
-      //std::cout << " to " << std::sqrt(pmod[4*i+0]*pmod[4*i+0]+pmod[4*i+1]*pmod[4*i+1]) << std::endl;
+      const S shiftd = tr[i] * 0.5 * (1.0 - dotp/tr[i]);
+      //std::cout << "  PUSHING " << std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]);
+      tx[0][i] += shiftd * norm[0];
+      tx[1][i] += shiftd * norm[1];
+      //std::cout << "    to " << std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]) << " and weaken by " << sfac << std::endl;
       // do not change radius yet
-      //pmod[i+2] = 0.0;
-      //std::cout << "    TO " << pmod[4*i+0] << " " << pmod[4*i+1] << " and weaken by " << sfac << std::endl;
+      //std::cout << "    TO " << tx[0][i] << " " << tx[1][i] << " and weaken by " << sfac << std::endl;
 
       num_cropped++;
     }
@@ -385,28 +376,18 @@ void clear_inner_panp (Panels<S,I> const & _src, Elements<S,I>& _targ, const S _
   // we did not resize the x array, so we don't need to touch the u array
 
   std::cout << "    cropped " << num_cropped << " particles" << std::endl;
+
+  auto end = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end-start;
+  printf("    clear_inner_panp2:\t[%.4f] seconds\n", (float)elapsed_seconds.count());
 }
 
 
-//
-// Crop all near-body particles and replace them with their remainders
-//
-template <class S, class I>
-void clear_inner_layer (Boundaries<S,I> const& _src,
-                        Vorticity<S,I>&        _targ,
-                        const S                _cutoff) {
-  std::cout << "  inside clear_inner_layer(Boundaries, Vorticity)" << std::endl;
-
-  // just one set of panels for all boundaries now
-  Panels<S,I> const& src_elem = _src.get_panels();
-
-  // iterate over all sets of target vorticities (currently only one Particles object)
-  for (auto& targ_elem : _targ.get_collections()) {
-    std::cout << "    clearing innermost parts of " << targ_elem->get_n() << " particles from " << src_elem.get_n() << " panels" << std::endl;
-
-    // here's the problem: the routine here doesn't know what type each of these is!
-    // HACK - let's assume it's always Particles and Panels
-    clear_inner_panp<S,I>(src_elem, *targ_elem, _cutoff);
-  }
-}
-
+// helper struct for dispatching through a variant - don't need it
+//struct ReflectVisitor {
+  // source collection, target collection
+//  void operator()(Points<float> const& src,   Points<float>& targ)   { points_affect_points<float>(src, targ); }
+//  void operator()(Surfaces<float> const& src, Points<float>& targ)   { panels_affect_points<float>(src, targ); }
+//  void operator()(Points<float> const& src,   Surfaces<float>& targ) { reflect_panp2<float>(src, targ); }
+//  void operator()(Surfaces<float> const& src, Surfaces<float>& targ) { panels_affect_panels<float>(src, targ); }
+//};
