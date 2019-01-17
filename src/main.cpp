@@ -238,8 +238,6 @@ int main(int argc, char const *argv[]) {
           sim.add_tracers( mf->init_particles(tracer_size*sim.get_ips()) );
         }
 
-        // initialize panels
-        sim.init_bcs();
         sim.set_initialized();
       }
 

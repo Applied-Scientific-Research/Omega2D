@@ -10,12 +10,9 @@
 #include "Omega2D.h"
 #include "Body.h"
 #include "Collection.h"
-#include "Boundaries.h"
-//#include "BoundaryFeature.h"
 #include "BEM.h"
 #include "Convection.h"
 #include "Diffusion.h"
-#include "Vorticity.h"
 
 #include <string>
 #include <vector>
@@ -73,7 +70,6 @@ public:
   void reset();
   void async_step();
   void step();
-  void init_bcs();
   bool is_initialized();
   void set_initialized();
   std::string check_simulation(const size_t, const size_t);
@@ -91,14 +87,12 @@ private:
   float fs[Dimensions];
 
   // Object to contain all Lagrangian elements
-  Vorticity<STORE,Int> vort;
-  std::vector<Collection> vort2;	// active elements
+  std::vector<Collection> vort;		// active elements
 
   // Object to contain all Reactive elements
   //   inside is the vector of bodies and inlets and liftinglines/kuttapoints
   //   and the Panels list of all unknowns discretized representations
-  Boundaries<STORE,Int> bdry;
-  std::vector<Collection> bdry2;	// reactive-active elements like BEM surfaces
+  std::vector<Collection> bdry;		// reactive-active elements like BEM surfaces
 
   // Object with all of the non-reactive, non-active (inert) points
   std::vector<Collection> fldpt;	// tracers and field points
