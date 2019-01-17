@@ -359,13 +359,6 @@ void Simulation::add_tracers(std::vector<float> _xy) {
 }
 
 // add geometry
-void Simulation::add_boundary(bdryType _type, std::vector<float> _params) {
-  if (_type == circle) {
-    assert(_params.size() == 3);
-    bdry.add(Circle<float>(_params[0], _params[1], _params[2]));
-  }
-}
-
 void Simulation::add_boundary(ElementPacket<float> _geom) {
 
   // if no collections exist

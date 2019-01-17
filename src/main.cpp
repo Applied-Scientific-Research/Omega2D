@@ -7,7 +7,6 @@
 
 #include "FlowFeature.h"
 #include "BoundaryFeature.h"
-#include "BoundaryFeature2.h"
 #include "MeasureFeature.h"
 #include "Simulation.h"
 
@@ -145,7 +144,6 @@ int main(int argc, char const *argv[]) {
   Simulation sim;
   std::vector< std::unique_ptr<FlowFeature> > ffeatures;
   std::vector< std::unique_ptr<BoundaryFeature> > bfeatures;
-  std::vector< std::unique_ptr<BoundaryFeature2> > bfeatures2;
   std::vector< std::unique_ptr<MeasureFeature> > mfeatures;
   static bool sim_is_running = false;
   static bool begin_single_step = false;
@@ -232,9 +230,6 @@ int main(int argc, char const *argv[]) {
 
         // initialize solid objects
         for (auto const& bf : bfeatures) {
-          sim.add_boundary( bf->get_type(), bf->get_params() );
-        }
-        for (auto const& bf : bfeatures2) {
           sim.add_boundary( bf->init_elements(sim.get_ips()) );
         }
 
@@ -249,7 +244,7 @@ int main(int argc, char const *argv[]) {
       }
 
       // check flow for blow-up or errors
-      sim_err_msg = sim.check_simulation(ffeatures.size(), bfeatures2.size());
+      sim_err_msg = sim.check_simulation(ffeatures.size(), bfeatures.size());
 
       if (sim_err_msg.empty()) {
         // the last simulation step was fine, OK to continue
@@ -364,18 +359,18 @@ int main(int argc, char const *argv[]) {
 
       // list existing boundary features here
       int del_this_bdry = -1;
-      for (int i=0; i<(int)bfeatures2.size(); ++i) {
+      for (int i=0; i<(int)bfeatures.size(); ++i) {
         // add a "remove" button here somehow
         ImGui::PushID(++buttonIDs);
         if (ImGui::SmallButton("remove")) del_this_bdry = i;
         ImGui::PopID();
 
         ImGui::SameLine();
-        ImGui::Text("%s", bfeatures2[i]->to_string().c_str());
+        ImGui::Text("%s", bfeatures[i]->to_string().c_str());
       }
       if (del_this_bdry > -1) {
         std::cout << "Asked to delete boundary feature " << del_this_bdry << std::endl;
-        bfeatures2.erase(bfeatures2.begin()+del_this_bdry);
+        bfeatures.erase(bfeatures.begin()+del_this_bdry);
       }
 
       // list existing measurement features here
@@ -506,9 +501,7 @@ int main(int argc, char const *argv[]) {
             ImGui::TextWrapped("This feature will add a solid circular body centered at the given coordinates");
             if (ImGui::Button("Add circular body")) {
               bfeatures.emplace_back(std::make_unique<SolidCircle>(xc[0], xc[1], circdiam));
-              bfeatures2.emplace_back(std::make_unique<SolidCircle2>(xc[0], xc[1], circdiam));
               std::cout << "Added " << (*bfeatures.back()) << std::endl;
-              std::cout << "Added " << (*bfeatures2.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
@@ -521,8 +514,8 @@ int main(int argc, char const *argv[]) {
             ImGui::TextWrapped("This feature will add a solid square body centered at the given coordinates");
             if (ImGui::Button("Add square body")) {
               // old arch does not support this, new one does:
-              bfeatures2.emplace_back(std::make_unique<SolidSquare>(xc[0], xc[1], sqside, rotdeg));
-              std::cout << "Added " << (*bfeatures2.back()) << std::endl;
+              bfeatures.emplace_back(std::make_unique<SolidSquare>(xc[0], xc[1], sqside, rotdeg));
+              std::cout << "Added " << (*bfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();

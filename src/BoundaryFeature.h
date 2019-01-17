@@ -7,13 +7,11 @@
 
 #pragma once
 
+#include "Omega2D.h"
+
 #include <iostream>
 #include <vector>
 
-enum bdryType {
-  circle,
-  square
-};
 
 //
 // Abstract class for any boundary feature present initially
@@ -21,44 +19,102 @@ enum bdryType {
 class BoundaryFeature {
 public:
   explicit
-  BoundaryFeature(float _x, float _y, bdryType _t)
+  BoundaryFeature(float _x, float _y)
     : m_x(_x),
-      m_y(_y),
-      m_type(_t)
+      m_y(_y)
     {}
   virtual ~BoundaryFeature() {}
 
   virtual void debug(std::ostream& os) const = 0;
   virtual std::string to_string() const = 0;
-  virtual bdryType get_type() const = 0;
-  virtual std::vector<float> get_params() const = 0;
+  virtual ElementPacket<float> init_elements(const float) const = 0;
+  //virtual std::vector<float> step_elements(const float) const = 0;
 
 protected:
   float m_x;
   float m_y;
-  bdryType m_type;
 };
 
 std::ostream& operator<<(std::ostream& os, BoundaryFeature const& ff);
 
+/*
+//
+// Concrete class for a Kutta point (trailing edge point)
+//
+class KuttaCondition : public BoundaryFeature {
+public:
+  KuttaCondition(float _x, float _y, float _theta)
+    : BoundaryFeature(_x, _y),
+      m_theta(_theta)
+    {}
+
+  void debug(std::ostream& os) const override;
+  std::string to_string() const override;
+  ElementPacket<float> init_elements(const float) const override;
+
+protected:
+  float m_theta;
+};
+*/
 
 //
-// Concrete class for a solid circle
+// Concrete class for a circle (fluid is outside circle)
 //
 class SolidCircle : public BoundaryFeature {
 public:
   SolidCircle(float _x, float _y, float _diam)
-    : BoundaryFeature(_x, _y, circle),
+    : BoundaryFeature(_x, _y),
       m_diam(_diam)
     {}
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
-  bdryType get_type() const override;
-  std::vector<float> get_params() const override;
+  ElementPacket<float> init_elements(const float) const override;
 
 protected:
   float m_diam;
 };
 
+/*
+//
+// Concrete class for an oval (fluid is outside)
+//
+class SolidOval : public SolidCircle {
+public:
+  SolidOval(float _x, float _y, float _diam, float _dmin, float _theta)
+    : SolidCircle(_x, _y, _diam),
+      m_dmin(_dmin),
+      m_theta(_theta)
+    {}
+
+  void debug(std::ostream& os) const override;
+  std::string to_string() const override;
+  ElementPacket<float> init_elements(const float) const override;
+
+protected:
+  float m_dmin;
+  float m_theta;
+};
+*/
+
+
+//
+// Concrete class for a square (fluid is outside)
+//
+class SolidSquare : public BoundaryFeature {
+public:
+  SolidSquare(float _x, float _y, float _side, float _theta)
+    : BoundaryFeature(_x, _y),
+      m_side(_side),
+      m_theta(_theta)
+    {}
+
+  void debug(std::ostream& os) const override;
+  std::string to_string() const override;
+  ElementPacket<float> init_elements(const float) const override;
+
+protected:
+  float m_side;
+  float m_theta;
+};
 

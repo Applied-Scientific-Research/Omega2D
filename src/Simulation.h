@@ -11,7 +11,7 @@
 #include "Body.h"
 #include "Collection.h"
 #include "Boundaries.h"
-#include "BoundaryFeature.h"
+//#include "BoundaryFeature.h"
 #include "BEM.h"
 #include "Convection.h"
 #include "Diffusion.h"
@@ -65,7 +65,6 @@ public:
   // receive and add a set of particles
   void add_particles(std::vector<float>);
   void add_tracers(std::vector<float>);
-  void add_boundary(bdryType, std::vector<float>);
   void add_boundary(ElementPacket<float>);
 
   // act on stuff
