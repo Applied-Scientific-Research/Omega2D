@@ -136,8 +136,11 @@ void write_json(Simulation& sim,
   j["bodies"] = jbounds;
 
   // assemble a vector of measurement features
-  //std::vector<json> jmeas;
-  //j["measurements"] = jmeas;
+  std::vector<json> jmeas;
+  for (auto const& mf: mfeatures) {
+    jmeas.push_back(mf->to_json());
+  }
+  j["measurements"] = jmeas;
 
   // write prettified JSON to the given file
   std::ofstream json_out(filename);

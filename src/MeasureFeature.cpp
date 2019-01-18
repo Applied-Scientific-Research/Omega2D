@@ -18,6 +18,7 @@ std::ostream& operator<<(std::ostream& os, MeasureFeature const& ff) {
   return os;
 }
 
+
 //
 // Create a single measurement point
 //
@@ -43,6 +44,14 @@ SinglePoint::to_string() const {
   std::stringstream ss;
   ss << "single field point at " << m_x << " " << m_y;
   return ss.str();
+}
+
+nlohmann::json
+SinglePoint::to_json() const {
+  nlohmann::json j;
+  j["type"] = "tracer";
+  j["center"] = {m_x, m_y};
+  return j;
 }
 
 
@@ -72,6 +81,14 @@ TracerEmitter::to_string() const {
   std::stringstream ss;
   ss << "tracer emitter at " << m_x << " " << m_y << " spawning tracers every step";
   return ss.str();
+}
+
+nlohmann::json
+TracerEmitter::to_json() const {
+  nlohmann::json j;
+  j["type"] = "tracer emitter";
+  j["center"] = {m_x, m_y};
+  return j;
 }
 
 
@@ -123,6 +140,15 @@ TracerBlob::to_string() const {
   return ss.str();
 }
 
+nlohmann::json
+TracerBlob::to_json() const {
+  nlohmann::json j;
+  j["type"] = "tracer blob";
+  j["center"] = {m_x, m_y};
+  j["rad"] = m_rad;
+  return j;
+}
+
 
 //
 // Create a line of tracer points
@@ -169,4 +195,12 @@ TracerLine::to_string() const {
   return ss.str();
 }
 
+nlohmann::json
+TracerLine::to_json() const {
+  nlohmann::json j;
+  j["type"] = "tracer line";
+  j["center"] = {m_x, m_y};
+  j["end"] = {m_xf, m_yf};
+  return j;
+}
 

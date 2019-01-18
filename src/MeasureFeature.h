@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "json/json.hpp"
+
 #include <iostream>
 #include <vector>
 
@@ -24,6 +26,7 @@ public:
 
   virtual void debug(std::ostream& os) const = 0;
   virtual std::string to_string() const = 0;
+  virtual nlohmann::json to_json() const = 0;
   virtual std::vector<float> init_particles(float) const = 0;
   virtual std::vector<float> step_particles(float) const = 0;
 
@@ -61,6 +64,7 @@ public:
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 
@@ -80,6 +84,7 @@ public:
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 
@@ -101,6 +106,7 @@ public:
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 
@@ -122,6 +128,7 @@ public:
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 
