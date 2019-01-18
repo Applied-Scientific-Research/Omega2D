@@ -8,7 +8,6 @@
 #pragma once
 
 #include "Omega2D.h"
-#include "Body.h"
 #include "Core.h"
 #include "Merge.h"
 #include "Reflect.h"

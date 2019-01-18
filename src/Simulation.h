@@ -8,7 +8,6 @@
 #pragma once
 
 #include "Omega2D.h"
-#include "Body.h"
 #include "Collection.h"
 #include "BEM.h"
 #include "Convection.h"
