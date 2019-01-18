@@ -799,7 +799,7 @@ int main(int argc, char const *argv[]) {
         // second take - open a file browser like https://github.com/gileoo/Imgui-IGS-Snippets
 
         // write and echo
-        write_json(sim, ffeatures, outfile);
+        write_json(sim, ffeatures, bfeatures, mfeatures, outfile);
         std::cout << std::endl << "Wrote simulation to " << outfile << std::endl;
       }
       //ImGui::SameLine();

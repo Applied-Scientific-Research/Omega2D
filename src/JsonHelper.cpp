@@ -96,7 +96,9 @@ void write_json_test() {
 // create a json object representing the simulation and write it to the given file
 //
 void write_json(Simulation& sim,
-                std::vector<std::unique_ptr<FlowFeature>>& flowfeat,
+                std::vector<std::unique_ptr<FlowFeature>>& ffeatures,
+                std::vector<std::unique_ptr<BoundaryFeature>>& bfeatures,
+                std::vector<std::unique_ptr<MeasureFeature>>& mfeatures,
                 const std::string filename) {
 
   json j;
@@ -117,9 +119,8 @@ void write_json(Simulation& sim,
 
   // assemble a vector of flow features
   std::vector<json> jflows;
-  for (auto const& ff: flowfeat) {
-    json thisf = ff->to_json();
-    jflows.push_back(thisf);
+  for (auto const& ff: ffeatures) {
+    jflows.push_back(ff->to_json());
   }
   j["flowstructures"] = jflows;
 
@@ -128,8 +129,11 @@ void write_json(Simulation& sim,
   //j["testing"] = jflows;
 
   // assemble a vector of boundary features
-  //std::vector<json> jbounds;
-  //j["bodies"] = jbounds;
+  std::vector<json> jbounds;
+  for (auto const& bf: bfeatures) {
+    jbounds.push_back(bf->to_json());
+  }
+  j["bodies"] = jbounds;
 
   // assemble a vector of measurement features
   //std::vector<json> jmeas;

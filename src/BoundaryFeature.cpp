@@ -62,6 +62,27 @@ SolidCircle::to_string() const {
   return ss.str();
 }
 
+nlohmann::json
+SolidCircle::to_json() const {
+  nlohmann::json j;
+  j["name"] = "a circular cylinder";
+
+  // meshes has to be an array
+  nlohmann::json meshes = nlohmann::json::array();
+
+  // make an object for the mesh
+  nlohmann::json mesh = nlohmann::json::object();
+  mesh["geometry"] = "circle";
+  mesh["translation"] = {m_x, m_y};
+  mesh["scale"] = m_diam;
+
+  // finalize the meshes array
+  meshes.push_back(mesh);
+  j["meshes"] = meshes;
+
+  return j;
+}
+
 
 //
 // Create an oval (fluid is outside circle)
@@ -111,6 +132,28 @@ SolidOval::to_string() const {
   std::stringstream ss;
   ss << "solid oval at " << m_x << " " << m_y << " with diameters " << m_diam << " " << m_dmin << " rotated " << m_theta << " deg";
   return ss.str();
+}
+
+nlohmann::json
+SolidOval::to_json() const {
+  nlohmann::json j;
+  j["name"] = "a solid oval";
+
+  // meshes has to be an array
+  nlohmann::json meshes = nlohmann::json::array();
+
+  // make an object for the mesh
+  nlohmann::json mesh = nlohmann::json::object();
+  mesh["geometry"] = "oval";
+  mesh["translation"] = {m_x, m_y};
+  mesh["scale"] = {m_diam, m_dmin};;
+  mesh["rotation"] = m_theta;
+
+  // finalize the meshes array
+  meshes.push_back(mesh);
+  j["meshes"] = meshes;
+
+  return j;
 }
 
 
@@ -184,5 +227,27 @@ SolidSquare::to_string() const {
   std::stringstream ss;
   ss << "solid square at " << m_x << " " << m_y << " with side " << m_side << " rotated " << m_theta << " deg";
   return ss.str();
+}
+
+nlohmann::json
+SolidSquare::to_json() const {
+  nlohmann::json j;
+  j["name"] = "a rotated square";
+
+  // meshes has to be an array
+  nlohmann::json meshes = nlohmann::json::array();
+
+  // make an object for the mesh
+  nlohmann::json mesh = nlohmann::json::object();
+  mesh["geometry"] = "square";
+  mesh["translation"] = {m_x, m_y};
+  mesh["scale"] = m_side;
+  mesh["rotation"] = m_theta;
+
+  // finalize the meshes array
+  meshes.push_back(mesh);
+  j["meshes"] = meshes;
+
+  return j;
 }
 
