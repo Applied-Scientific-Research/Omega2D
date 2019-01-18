@@ -481,11 +481,12 @@ int main(int argc, char const *argv[]) {
       {
         static int item = 0;
         //const char* items[] = { "solid circle", "solid square", "solid object from file", "draw outline in UI" };
-        const char* items[] = { "solid circle", "solid square" };
-        ImGui::Combo("type", &item, items, 2);
+        const char* items[] = { "solid circle", "solid square", "solid oval" };
+        ImGui::Combo("type", &item, items, 3);
 
         static float xc[2] = {0.0f, 0.0f};
         static float rotdeg = 0.0f;
+        static float circdiam = 1.0;
 
         // always ask for center
         ImGui::InputFloat2("center", xc);
@@ -494,7 +495,6 @@ int main(int argc, char const *argv[]) {
         switch(item) {
           case 0:
             // create a circular boundary
-            static float circdiam = 1.0;
             ImGui::SliderFloat("diameter", &circdiam, 0.01f, 10.0f, "%.4f", 2.0);
             ImGui::TextWrapped("This feature will add a solid circular body centered at the given coordinates");
             if (ImGui::Button("Add circular body")) {
@@ -513,6 +513,20 @@ int main(int argc, char const *argv[]) {
             if (ImGui::Button("Add square body")) {
               // old arch does not support this, new one does:
               bfeatures.emplace_back(std::make_unique<SolidSquare>(xc[0], xc[1], sqside, rotdeg));
+              std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            break;
+          case 2:
+            // create an oval boundary
+            static float minordiam = 0.5;
+            ImGui::SliderFloat("major diameter", &circdiam, 0.01f, 10.0f, "%.4f", 2.0);
+            ImGui::SliderFloat("minor diameter", &minordiam, 0.01f, 10.0f, "%.4f", 2.0);
+            ImGui::SliderFloat("rotation", &rotdeg, 0.0f, 179.0f, "%.0f");
+            ImGui::TextWrapped("This feature will add a solid oval body centered at the given coordinates");
+            if (ImGui::Button("Add oval body")) {
+              bfeatures.emplace_back(std::make_unique<SolidOval>(xc[0], xc[1], circdiam, minordiam, rotdeg));
               std::cout << "Added " << (*bfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }

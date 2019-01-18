@@ -75,7 +75,7 @@ protected:
   float m_diam;
 };
 
-/*
+
 //
 // Concrete class for an oval (fluid is outside)
 //
@@ -95,7 +95,6 @@ protected:
   float m_dmin;
   float m_theta;
 };
-*/
 
 
 //

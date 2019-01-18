@@ -17,6 +17,7 @@ std::ostream& operator<<(std::ostream& os, BoundaryFeature const& ff) {
   return os;
 }
 
+
 //
 // Create a circle (fluid is outside circle)
 //
@@ -58,6 +59,57 @@ std::string
 SolidCircle::to_string() const {
   std::stringstream ss;
   ss << "solid circle at " << m_x << " " << m_y << " with diameter " << m_diam;
+  return ss.str();
+}
+
+
+//
+// Create an oval (fluid is outside circle)
+//
+ElementPacket<float>
+SolidOval::init_elements(const float _ips) const {
+
+  // how many panels?
+  const size_t num_panels = std::min(10000, std::max(5, (int)(m_diam * M_PI / _ips)));
+
+  std::cout << "Creating oval with " << num_panels << " panels" << std::endl;
+
+  const float st = std::sin(M_PI * m_theta / 180.0);
+  const float ct = std::cos(M_PI * m_theta / 180.0);
+
+  // created once
+  std::vector<float>   x(num_panels*2);
+  std::vector<Int>   idx(num_panels*2);
+  std::vector<float> val(num_panels);
+
+  // outside is to the left walking from one point to the next
+  // so go CW around the circle starting at theta=0 (+x axis)
+  for (size_t i=0; i<num_panels; i++) {
+    const float theta = 2.0 * M_PI * (float)i / (float)num_panels;
+    const float dx =  0.5*m_diam * std::cos(theta);
+    const float dy = -0.5*m_dmin * std::sin(theta);
+    x[2*i]     = m_x + dx*ct - dy*st;
+    x[2*i+1]   = m_y + dx*st + dy*ct;
+    idx[2*i]   = i;
+    idx[2*i+1] = i+1;
+    val[i]     = 0.0;
+  }
+
+  // correct the final index
+  idx[2*num_panels-1] = 0;
+
+  return ElementPacket<float>({x, idx, val});
+}
+
+void
+SolidOval::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+SolidOval::to_string() const {
+  std::stringstream ss;
+  ss << "solid oval at " << m_x << " " << m_y << " with diameters " << m_diam << " " << m_dmin << " rotated " << m_theta << " deg";
   return ss.str();
 }
 
