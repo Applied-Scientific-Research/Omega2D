@@ -91,3 +91,34 @@ void write_json_test() {
   std::ofstream json_out("pretty.json");
   json_out << std::setw(2) << j << std::endl;
 }
+
+//
+// create a json object representing the simulation and write it to the given file
+//
+void write_json(Simulation& sim, const std::string filename) {
+
+  json j;
+
+  j["description"] = "Simulation created by Omega2D";
+
+  j["version"] = { {"Omega2D", 1}, {"jsonInput", 1} };
+
+  float re = *(sim.addr_re());
+  float* fs = sim.addr_fs();
+  j["flowparams"] = { {"Re", re},
+                      {"Uinf", {fs[0], fs[1]} } };
+
+  float dt = *(sim.addr_dt());
+  std::string viscous = sim.get_diffuse() ? "vrm" : "none";
+  j["simparams"] = { {"nominalDt", dt},
+                     {"viscous", viscous } };
+
+  j["bodies"] = "none yet";
+  j["flowstructures"] = "none yet";
+  j["measurements"] = "none yet";
+
+  // write prettified JSON to another file
+  std::ofstream json_out(filename);
+  json_out << std::setw(2) << j << std::endl;
+}
+

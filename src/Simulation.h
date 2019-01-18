@@ -66,6 +66,7 @@ public:
   // act on stuff
   //void set_amr(const bool);
   void set_diffuse(const bool);
+  const bool get_diffuse();
   void reset();
   void async_step();
   void step();

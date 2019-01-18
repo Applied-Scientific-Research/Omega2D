@@ -400,6 +400,7 @@ int main(int argc, char const *argv[]) {
     }
 
     // or load a simulation from a JSON file
+    //ImGui::SameLine();
     //if (ImGui::Button("Or load a json file", ImVec2(160,0))) {
     //  std::cout << std::endl << "Loading simulation from file" << std::endl;
       // remove all particles and reset timer
@@ -787,6 +788,21 @@ int main(int argc, char const *argv[]) {
 
       ImGui::Text("Number of panels: %ld  particles: %ld  field points: %ld",
                   sim.get_npanels(), sim.get_nparts(), sim.get_nfldpts());
+
+      // save the simulation to a JSON file
+/*
+      ImGui::Spacing();
+      if (ImGui::Button("Save simulation to file", ImVec2(180,0))) {
+        // first take - just make up a file name and write it
+        std::string outfile = "output.json";
+        write_json(sim, outfile);
+
+        // second take - open a file browser like https://github.com/gileoo/Imgui-IGS-Snippets
+
+        std::cout << std::endl << "Wrote simulation to " << outfile << std::endl;
+      }
+      //ImGui::SameLine();
+*/
 
     }
 
