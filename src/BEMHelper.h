@@ -10,7 +10,7 @@
 #include "Omega2D.h"
 #include "Collection.h"
 #include "CollectionHelper.h"
-#include "NewInfluence.h"
+#include "Influence.h"
 #include "Coeffcients.h"
 #include "RHS.h"
 #include "BEM.h"

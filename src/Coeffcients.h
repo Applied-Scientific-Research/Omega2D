@@ -9,9 +9,13 @@
 
 #include "Omega2D.h"
 #include "VectorHelper.h"
-#include "NewKernels.h"
+#include "Kernels.h"
 #include "Points.h"
 #include "Surfaces.h"
+
+#ifdef USE_VC
+#include <Vc/Vc>
+#endif
 
 #include <algorithm>	// for std::transform
 #include <iostream>
@@ -143,6 +147,11 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
   const std::array<Vector<S>,Dimensions>& tx = targ.get_pos();
   const std::vector<Int>&                 ti = targ.get_idx();
 
+#ifdef USE_VC
+  // define vector types for Vc (still only S==A supported here)
+  typedef Vc::Vector<S> StoreVec;
+#endif
+
   // allocate space for the output array
   Vector<S> coeffs;
   coeffs.resize(nsrc*ntarg);
@@ -153,6 +162,52 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
     size_t iptr = ntarg * j;
     const Int sfirst  = si[2*j];
     const Int ssecond = si[2*j+1];
+
+#ifdef USE_VC
+    const StoreVec sx0 = sx[0][sfirst];
+    const StoreVec sy0 = sx[1][sfirst];
+    const StoreVec sx1 = sx[0][ssecond];
+    const StoreVec sy1 = sx[1][ssecond];
+
+    const size_t ntargvec = 1 + (ntarg-1) / StoreVec::size();
+
+    for (size_t i=0; i<ntargvec; i++) {
+
+      // fill a 4- or 8-wide vector with the target coordinates
+      StoreVec tx0, ty0, tx1, ty1;
+      for (size_t ii=0; ii<StoreVec::size() && i*StoreVec::size()+ii<ntarg; ++ii) {
+        const size_t idx = i*StoreVec::size() + ii;
+        const Int tfirst  = ti[2*idx];
+        const Int tsecond = ti[2*idx+1];
+        tx0[ii] = tx[0][tfirst];
+        ty0[ii] = tx[1][tfirst];
+        tx1[ii] = tx[0][tsecond];
+        ty1[ii] = tx[1][tsecond];
+      }
+
+      // collocation point for panel i
+      const StoreVec xi = StoreVec(0.5) * (tx1 + tx0);
+      const StoreVec yi = StoreVec(0.5) * (ty1 + ty0);
+
+      // influence of vortex panel j with unit circulation on center of panel i
+      StoreVec resultu, resultv;
+      kernel_1_0v<StoreVec,StoreVec>(sx0, sy0, sx1, sy1, StoreVec(1.0),
+                                     xi, yi, &resultu, &resultv);
+
+      // target panel vector
+      const StoreVec panelx = tx1 - tx0;
+      const StoreVec panely = ty1 - ty0;
+      const StoreVec panell = Vc::sqrt(panelx*panelx + panely*panely);
+
+      // dot product with tangent vector, applying normalization here
+      const StoreVec newcoeffs = (resultu*panelx + resultv*panely) / panell;
+
+      // spread the results from a vector register back to the primary array
+      for (size_t ii=0; ii<StoreVec::size() && i*StoreVec::size()+ii<ntarg; ++ii) {
+        coeffs[iptr++] = newcoeffs[ii];
+      }
+    }
+#else
     const S sx0 = sx[0][sfirst];
     const S sy0 = sx[1][sfirst];
     const S sx1 = sx[0][ssecond];
@@ -172,25 +227,18 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
       const S yi = 0.5 * (ty1 + ty0);
 
       // influence of vortex panel j with unit circulation on center of panel i
-      auto vel = vortex_panel_affects_point<S,S>(sx0, sy0, sx1, sy1,
-                                                 1.0, xi, yi);
+      S resultu, resultv;
+      kernel_1_0v<S,S>(sx0, sy0, sx1, sy1, 1.0, xi, yi, &resultu, &resultv);
 
       // target panel vector
       const S panelx = tx1 - tx0;
       const S panely = ty1 - ty0;
       const S panell = std::sqrt(panelx*panelx + panely*panely);
 
-      // new way
       // dot product with tangent vector, applying normalization here
-      coeffs[iptr++] = (vel[0]*panelx + vel[1]*panely) / panell;
-
-      // old way
-      // (un-normalized) surface normal pointing into fluid
-      //S normx = -panely;
-      //S normy = panelx;
-      // dot product with normal vector, applying normalization here
-      //A(i,j) = (vel[0]*normx + vel[1]*normy) / panell;
+      coeffs[iptr++] = (resultu*panelx + resultv*panely) / panell;
     }
+#endif
 
     // special case: self-influence
     coeffs[j*ntarg+j] = M_PI;

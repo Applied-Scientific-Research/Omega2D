@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include "Kernels.h"
 #include "VectorHelper.h"
 
 #include <Eigen/Dense>
@@ -37,7 +36,6 @@ public:
   void just_made_A() { A_is_current = true; }
   void panels_changed() { A_is_current = false; solver_initialized = false; }
   void reset();
-  void assemble_influence_matrix(const std::vector<S>&, const std::vector<I>&);
   void set_block(const size_t, const size_t, const size_t, const size_t, const Vector<S>&);
   void set_rhs(std::vector<S>&);
   void set_rhs(const size_t, const size_t, std::vector<S>&);
@@ -96,72 +94,6 @@ Vector<S> BEM<S,I>::get_str(const size_t cstart, const size_t ncols) {
   Vector<S> retval(ncols);
   retval.assign(strengths.data()+cstart, strengths.data()+cstart+ncols);
   return retval;
-}
-
-
-//
-// Assemble the influence matrix
-//
-// galerkin or colocation approach?
-//
-template <class S, class I>
-void BEM<S,I>::assemble_influence_matrix( const std::vector<S>& x, const std::vector<I>& idx) {
-
-  // check for existence and size of A
-  const I thisn = idx.size() / 2;
-
-  // allocate space
-  A.resize(thisn, thisn);
-
-  // calculate influences
-  #pragma omp parallel for
-  for (size_t j=0; j<thisn; j++) {
-
-    for (size_t i=0; i<thisn; i++) {
-      const I first  = idx[2*i];
-      const I second = idx[2*i+1];
-      const S x0 = x[2*first];
-      const S y0 = x[2*first+1];
-      const S x1 = x[2*second];
-      const S y1 = x[2*second+1];
-
-      // collocation point for panel i
-      const S xi = 0.5 * (x1 + x0);
-      const S yi = 0.5 * (y1 + y0);
-
-      // influence of vortex panel j with unit circulation on center of panel i
-      auto vel = vortex_panel_affects_point<S,S>(x[2*idx[2*j]],   x[2*idx[2*j]+1],
-                                                 x[2*idx[2*j+1]], x[2*idx[2*j+1]+1],
-                                                 1.0, xi, yi);
-
-      // target panel vector
-      const S panelx = x1 - x0;
-      const S panely = y1 - y0;
-      const S panell = std::sqrt(panelx*panelx + panely*panely);
-
-      // dot product with tangent vector, applying normalization here
-      A(i,j) = (vel[0]*panelx + vel[1]*panely) / panell;
-
-      // (un-normalized) surface normal pointing into fluid
-      //S normx = -panely;
-      //S normy = panelx;
-
-      // dot product with normal vector, applying normalization here
-      //A(i,j) = (vel[0]*normx + vel[1]*normy) / panell;
-    }
-
-    // special case: self-influence
-    A(j,j) = M_PI;
-    //A(j,j) = 0.0;
-  }
-
-  //std::cout << "Here is the matrix A^T:\n" << A.topLeftCorner(6,6) << std::endl;
-  //std::cout << "Here is the right hand side b:\n" << b.transpose() << std::endl;
-
-  // scale all influences by constant
-  A *= 1.0 / (2.0 * M_PI);
-
-  A_is_current = true;
 }
 
 //

@@ -10,12 +10,10 @@
 #include "Omega2D.h"
 #include "Collection.h"
 #include "CollectionHelper.h"
-#include "NewInfluence.h"
-#include "Coeffcients.h"
+#include "Influence.h"
 #include "RHS.h"
 #include "BEM.h"
 #include "BEMHelper.h"
-#include "Influence.h"
 
 #include <cstdlib>
 #include <iostream>
