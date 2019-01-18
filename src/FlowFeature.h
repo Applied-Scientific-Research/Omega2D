@@ -1,7 +1,7 @@
 /*
  * FlowFeature.h - GUI-side descriptions of flow features
  *
- * (c)2017-8 Applied Scientific Research, Inc.
+ * (c)2017-9 Applied Scientific Research, Inc.
  *           Written by Mark J Stock <markjstock@gmail.com>
  */
 
