@@ -18,60 +18,6 @@ std::ostream& operator<<(std::ostream& os, FlowFeature const& ff) {
   return os;
 }
 
-// various debug print methods for the subclasses
-void
-SingleParticle::debug(std::ostream& os) const {
-  os << to_string();
-}
-
-std::string
-SingleParticle::to_string() const {
-  std::stringstream ss;
-  ss << "single particle at " << m_x << " " << m_y << " with strength " << m_str;
-  return ss.str();
-}
-
-
-void
-VortexBlob::debug(std::ostream& os) const {
-  os << to_string();
-}
-
-std::string
-VortexBlob::to_string() const {
-  std::stringstream ss;
-  ss << "vortex blob at " << m_x << " " << m_y << ", radius " << m_rad << ", softness " << m_softness << ", and strength " << m_str;
-  return ss.str();
-}
-
-
-void
-BlockOfRandom::debug(std::ostream& os) const {
-  os << to_string();
-}
-
-std::string
-BlockOfRandom::to_string() const {
-  std::stringstream ss;
-  ss << "block of " << m_num << " particles in [" << (m_x-0.5*m_xsize) << " " << (m_x+0.5*m_xsize) << "] ["
-                                                  << (m_y-0.5*m_ysize) << " " << (m_y+0.5*m_ysize) <<
-                             "] with strengths [" << m_minstr << " " << m_maxstr << "]";
-  return ss.str();
-}
-
-
-void
-ParticleEmitter::debug(std::ostream& os) const {
-  os << to_string();
-}
-
-std::string
-ParticleEmitter::to_string() const {
-  std::stringstream ss;
-  ss << "particle emitter at " << m_x << " " << m_y << " spawning particles with strength " << m_str;
-  return ss.str();
-}
-
 
 //
 // important feature: convert flow feature definition into actual float4 particles
@@ -90,6 +36,27 @@ SingleParticle::init_particles(float _ips) const {
 std::vector<float>
 SingleParticle::step_particles(float _ips) const {
   return std::vector<float>();
+}
+
+void
+SingleParticle::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+SingleParticle::to_string() const {
+  std::stringstream ss;
+  ss << "single particle at " << m_x << " " << m_y << " with strength " << m_str;
+  return ss.str();
+}
+
+nlohmann::json
+SingleParticle::to_json() const {
+  nlohmann::json j;
+  j["type"] = "single particle";
+  j["center"] = {m_x, m_y};
+  j["strength"] = m_str;
+  return j;
 }
 
 
@@ -154,6 +121,29 @@ VortexBlob::step_particles(float _ips) const {
   return std::vector<float>();
 }
 
+void
+VortexBlob::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+VortexBlob::to_string() const {
+  std::stringstream ss;
+  ss << "vortex blob at " << m_x << " " << m_y << ", radius " << m_rad << ", softness " << m_softness << ", and strength " << m_str;
+  return ss.str();
+}
+
+nlohmann::json
+VortexBlob::to_json() const {
+  nlohmann::json j;
+  j["type"] = "vortex blob";
+  j["center"] = {m_x, m_y};
+  j["radius"] = m_rad;
+  j["softness"] = m_softness;
+  j["strength"] = m_str;
+  return j;
+}
+
 
 //
 // make the block of randomly-placed and random-strength particles
@@ -183,6 +173,30 @@ BlockOfRandom::step_particles(float _ips) const {
   return std::vector<float>();
 }
 
+void
+BlockOfRandom::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+BlockOfRandom::to_string() const {
+  std::stringstream ss;
+  ss << "block of " << m_num << " particles in [" << (m_x-0.5*m_xsize) << " " << (m_x+0.5*m_xsize) << "] ["
+                                                  << (m_y-0.5*m_ysize) << " " << (m_y+0.5*m_ysize) <<
+                             "] with strengths [" << m_minstr << " " << m_maxstr << "]";
+  return ss.str();
+}
+
+nlohmann::json
+BlockOfRandom::to_json() const {
+  nlohmann::json j;
+  j["type"] = "block of random";
+  j["center"] = {m_x, m_y};
+  j["size"] = {m_xsize, m_ysize};
+  j["strength range"] = {m_minstr, m_maxstr};
+  return j;
+}
+
 
 //
 // drop a single particle from the emitter
@@ -196,6 +210,28 @@ std::vector<float>
 ParticleEmitter::step_particles(float _ips) const {
   return std::vector<float>({m_x, m_y, m_str, 0.0});
 }
+
+void
+ParticleEmitter::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+ParticleEmitter::to_string() const {
+  std::stringstream ss;
+  ss << "particle emitter at " << m_x << " " << m_y << " spawning particles with strength " << m_str;
+  return ss.str();
+}
+
+nlohmann::json
+ParticleEmitter::to_json() const {
+  nlohmann::json j;
+  j["type"] = "particle emitter";
+  j["center"] = {m_x, m_y};
+  j["strength"] = m_str;
+  return j;
+}
+
 
 //
 // various GUI draw methods for the subclasses

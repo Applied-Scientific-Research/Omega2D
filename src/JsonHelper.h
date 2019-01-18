@@ -6,9 +6,10 @@
  */
 
 #include "Simulation.h"
+#include "FlowFeature.h"
 
 #include <string>
 
 void read_json_test();
 void write_json_test();
-void write_json(Simulation&, std::string);
+void write_json(Simulation&, std::vector<std::unique_ptr<FlowFeature>>&, std::string);

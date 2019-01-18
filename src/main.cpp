@@ -1,7 +1,7 @@
 /*
  * main.cpp - Driver code for Omega2D + ImGui + Vc vortex particle method and boundary element method solver
  *
- * (c)2017-8 Applied Scientific Research, Inc.
+ * (c)2017-9 Applied Scientific Research, Inc.
  *           Written by Mark J Stock <markjstock@gmail.com>
  */
 
@@ -790,19 +790,19 @@ int main(int argc, char const *argv[]) {
                   sim.get_npanels(), sim.get_nparts(), sim.get_nfldpts());
 
       // save the simulation to a JSON file
-/*
       ImGui::Spacing();
       if (ImGui::Button("Save simulation to file", ImVec2(180,0))) {
+
         // first take - just make up a file name and write it
         std::string outfile = "output.json";
-        write_json(sim, outfile);
 
         // second take - open a file browser like https://github.com/gileoo/Imgui-IGS-Snippets
 
+        // write and echo
+        write_json(sim, ffeatures, outfile);
         std::cout << std::endl << "Wrote simulation to " << outfile << std::endl;
       }
       //ImGui::SameLine();
-*/
 
     }
 

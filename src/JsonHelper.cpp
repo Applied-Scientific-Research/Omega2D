@@ -10,7 +10,7 @@
 #include "json/json.hpp"
 
 //#include <string>
-//#include <vector>
+#include <vector>
 #include <iostream>	// for cout,endl
 #include <iomanip>	// for setw
 #include <fstream>	// for ofstream
@@ -95,7 +95,9 @@ void write_json_test() {
 //
 // create a json object representing the simulation and write it to the given file
 //
-void write_json(Simulation& sim, const std::string filename) {
+void write_json(Simulation& sim,
+                std::vector<std::unique_ptr<FlowFeature>>& flowfeat,
+                const std::string filename) {
 
   json j;
 
@@ -113,11 +115,27 @@ void write_json(Simulation& sim, const std::string filename) {
   j["simparams"] = { {"nominalDt", dt},
                      {"viscous", viscous } };
 
-  j["bodies"] = "none yet";
-  j["flowstructures"] = "none yet";
-  j["measurements"] = "none yet";
+  // assemble a vector of flow features
+  std::vector<json> jflows;
+  for (auto const& ff: flowfeat) {
+    json thisf = ff->to_json();
+    jflows.push_back(thisf);
+  }
+  j["flowstructures"] = jflows;
 
-  // write prettified JSON to another file
+  //jflows.push_back({{"name", "myname"}, {"value", 3.0}});
+  //jflows.push_back({{"name", "othername"}, {"value", 13.0}});
+  //j["testing"] = jflows;
+
+  // assemble a vector of boundary features
+  //std::vector<json> jbounds;
+  //j["bodies"] = jbounds;
+
+  // assemble a vector of measurement features
+  //std::vector<json> jmeas;
+  //j["measurements"] = jmeas;
+
+  // write prettified JSON to the given file
   std::ofstream json_out(filename);
   json_out << std::setw(2) << j << std::endl;
 }
