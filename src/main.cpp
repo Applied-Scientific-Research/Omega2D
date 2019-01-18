@@ -9,6 +9,7 @@
 #include "BoundaryFeature.h"
 #include "MeasureFeature.h"
 #include "Simulation.h"
+#include "JsonHelper.h"
 
 #ifdef _WIN32
   // for glad
@@ -202,6 +203,10 @@ int main(int argc, char const *argv[]) {
   float tracer_size = 0.15;
   //static bool show_origin = true;
   static bool is_viscous = false;
+
+  // check for json file name on the command line
+  //read_json_test();
+  //write_json_test();
 
   // Main loop
   while (!glfwWindowShouldClose(window))
