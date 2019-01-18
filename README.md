@@ -73,15 +73,14 @@ Pictured below is a simulation of viscous flow over a circle at Reynolds number 
 ## To do
 Tasks to consider or implement:
 
-* Get Vc into the influence calculations for the new arch
+* Add json reading and writing to allow batch modes - just like 3D code
 * Allow Points to be able to draw not only blobs but dots at the middles, too, using same arrays but different draw programs (turn either on or off?)
 * Allow inert Points collections to never allocate space for radius
-* Replace core architecture (using std::variant and Collection)
 * Move some initialization back into ElementBase - like positions and such, keep radius in Points, then ElementBase can draw points?
 * Move the GUI and pre-run parts of the various Body classes into their own class/file and out of main.cpp and Body.h
 * When running, grey out the dt and Re fields - those are the only things you can't change
 * Add a "ms/frame" and "FPS" for the simulation component also
-* Add a batch mode also - once you get json reading and png writing working - do we really need this?
+* Add a batch mode also - once you get json reading and png writing working - do we really need this? yes.
 * If we're adding png output, might as well add a "Record" button!
 * Add "got it" button to first section (the welcome section) to make it go away (forever?)
 * Add a "Run to time..." button to allow users to run a sim up to an exact time
@@ -113,6 +112,8 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~Replace core architecture (using std::variant and Collection)~~
+* ~~Get Vc into the influence calculations for the new arch~~
 * ~~For new BEM: get particles to create correct RHS, then panels to create correct A matrix, then Points to generate correct particles, finally for Surfaces to remove Points beneath them~~
 * ~~Get the Panels into the new arch - includes creation, BEM, vel-finding, drawing~~
 * ~~Upgrade Merge to the new arch, then particle-only diffusion will be complete~~
