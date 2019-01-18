@@ -1,382 +1,202 @@
 /*
  * Influence.h - Non-class influence calculations
  *
- * (c)2017-8 Applied Scientific Research, Inc.
+ * (c)2017-9 Applied Scientific Research, Inc.
  *           Written by Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
 
-#include "Boundaries.h"
+#include "Omega2D.h"
+#include "VectorHelper.h"
 #include "Kernels.h"
-#include "Particles.h"
-#include "Vorticity.h"
+#include "Points.h"
+#include "Surfaces.h"
 
 #ifdef USE_VC
 #include <Vc/Vc>
 #endif
 
-#include <array>
-#include <cassert>
-#include <chrono>
-#include <cstdlib>
+#include <iostream>
 #include <vector>
+#include <memory>
+#include <optional>
+#include <chrono>
+#define _USE_MATH_DEFINES
 #include <cmath>
 
 //
-// Particle stuff
+// NOTE: we are not using A here!
 //
 
+
 //
-// naive caller for the O(N^2) particle-particle kernel
+// Vc and x86 versions of Points/Particles affecting Points/Particles
 //
-template <class S, class A, uint8_t SRCSTRIDE, uint8_t TARGSTRIDE>
-float add_influence(const std::vector<S>& srcpos,
-                    const std::vector<S>& targpos,
-                    std::vector<S>&       targvel) {
+template <class S, class A>
+void points_affect_points (Points<S> const& src, Points<S>& targ) {
+  auto start = std::chrono::system_clock::now();
 
-  //std::cout << "      inside add_influence(vec, vec, vec)" << std::endl;
+  // is this where we dispatch the OpenGL compute shader?
 
-  // make sure we have enough room for the results
-  assert(targpos.size() == targvel.size());
-  assert(SRCSTRIDE > 2);
-  assert(TARGSTRIDE > 1);
+  // get references to use locally
+  const std::array<Vector<S>,Dimensions>& sx = src.get_pos();
+  const Vector<S>&                        sr = src.get_rad();
+  const Vector<S>&                        ss = src.get_str();
 
-  // accumulate results into targvel
-  #pragma omp parallel for
-  for (size_t i=0; i<targpos.size(); i+=TARGSTRIDE) {
-
-    // generate accumulator
-    std::array<A,TARGSTRIDE> accum = {{0.0}};
-
-    // iterate and accumulate
-    if (SRCSTRIDE == 4 and TARGSTRIDE == 4) {
-      for (size_t j=0; j<srcpos.size(); j+=SRCSTRIDE) {
-        nbody_kernel_44<S,A>(&srcpos[j], &targpos[i], accum.data());
-      }
-    } else if (SRCSTRIDE == 4 and TARGSTRIDE == 2) {
-      for (size_t j=0; j<srcpos.size(); j+=SRCSTRIDE) {
-        nbody_kernel_42<S,A>(&srcpos[j], &targpos[i], accum.data());
-      }
-    }
-
-    // add to running sum
-    for (size_t j=0; j<TARGSTRIDE; ++j) {
-      targvel[i+j] += accum[j];
-    }
-    //std::cout << "  targ pt " << i/TARGSTRIDE << " has new vel " << targvel[i] << " " << targvel[i+1] << std::endl;
-  }
-
-  float flops = (float)(targpos.size()/TARGSTRIDE) * (float)(srcpos.size()/SRCSTRIDE);
-  if (TARGSTRIDE == 4) { flops *= 15.0; }
-  if (TARGSTRIDE == 2) { flops *= 13.0; }
-
-  return flops;
-}
+  const std::array<Vector<S>,Dimensions>& tx = targ.get_pos();
+  std::array<Vector<S>,Dimensions>&       tu = targ.get_vel();
 
 #ifdef USE_VC
-
-// convert a std::vector into native Vc array
-template <class S>
-inline const Vc::Memory<Vc::Vector<S>> deinterleave (const std::vector<S>& in,
-                                                     const size_t idx, const size_t nper,
-                                                     const float defaultval) {
-  Vc::Memory<Vc::Vector<S>> out(in.size()/nper);
-  for (size_t i=0; i<in.size()/nper; ++i) out[i] = in[nper*i+idx];
-  for (size_t i=in.size()/nper; i<out.vectorsCount()*Vc::Vector<S>::size(); ++i) out[i] = defaultval;
-  return out;
-}
-
-//
-// naive caller for the O(N^2) particle-particle kernel - using Vc
-//
-template <class S, class A, uint8_t SRCSTRIDE, uint8_t TARGSTRIDE>
-float add_influence_Vc(const std::vector<S>& srcpos,
-                       const std::vector<S>& targpos,
-                       std::vector<S>&       targvel) {
-
-  //std::cout << "      inside add_influence_Vc(vec, vec, vec)" << std::endl;
-
-  // make sure we have enough room for the results
-  assert(targpos.size() == targvel.size());
-  assert(SRCSTRIDE > 2);
-  assert(TARGSTRIDE > 1);
-
-  typedef Vc::Vector<S> StoreVec;
-  // make a type that has just as many entries as Vector<S>
-  typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
-  //std::cout << "      inside add_influence_Vc, source simd have " << Vc::Vector<S>::size() << " entries" << std::endl;
-  //std::cout << "        and " << sizeof(Vc::Vector<S>) << " bytes per simd vector" << std::endl;
-  //std::cout << "      inside add_influence_Vc, accumu simd have " << AccumVec::size() << " entries" << std::endl;
-  //std::cout << "        and " << sizeof(AccumVec) << " bytes per simd vector" << std::endl;
-
-  // create the simd-ized versions of the source points
-  //std::vector<StoreVec> sx, sy, ss, sr;
-  const Vc::Memory<StoreVec> sx = deinterleave(srcpos, 0, 4, 0.0);
-  const Vc::Memory<StoreVec> sy = deinterleave(srcpos, 1, 4, 0.0);
-  const Vc::Memory<StoreVec> ss = deinterleave(srcpos, 2, 4, 0.0);
-  const Vc::Memory<StoreVec> sr = deinterleave(srcpos, 3, 4, 1.0);
-
-  // accumulate results into targvel
-  #pragma omp parallel for
-  for (size_t i=0; i<targpos.size(); i+=TARGSTRIDE) {
-
-    // spread the target out over a vector
-    const StoreVec vtx = targpos[i+0];
-    const StoreVec vty = targpos[i+1];
-
-    // generate accumulator (only for vels)
-    AccumVec accumu(0.0);
-    AccumVec accumv(0.0);
-
-    // iterate and accumulate
-    if (SRCSTRIDE == 4 and TARGSTRIDE == 4) {
-      const StoreVec vtr = targpos[i+3];
-      for (size_t j=0; j<sx.vectorsCount(); ++j) {
-        nbody_kernel_Vc_44<StoreVec,AccumVec>(sx.vector(j), sy.vector(j), ss.vector(j), sr.vector(j),
-                                              vtx, vty, vtr, &accumu, &accumv);
-      }
-    } else if (SRCSTRIDE == 4 and TARGSTRIDE == 2) {
-      for (size_t j=0; j<sx.vectorsCount(); ++j) {
-        nbody_kernel_Vc_42<StoreVec,AccumVec>(sx.vector(j), sy.vector(j), ss.vector(j), sr.vector(j),
-                                              vtx, vty, &accumu, &accumv);
-      }
-    }
-
-    // add to running sum
-    targvel[i+0] += accumu.sum();
-    targvel[i+1] += accumv.sum();
-    //std::cout << "  targ pt " << i/TARGSTRIDE << " has new vel " << targvel[i] << " " << targvel[i+1] << std::endl;
-  }
-
-  float flops = (float)(targpos.size()/TARGSTRIDE) * (float)(srcpos.size()/SRCSTRIDE);
-  if (TARGSTRIDE == 4) { flops *= 15.0; }
-  if (TARGSTRIDE == 2) { flops *= 13.0; }
-
-  return flops;
-}
+  // create float_v versions of the source vectors
+  const Vc::Memory<Vc::Vector<S>> sxv = stdvec_to_vcvec<S>(sx[0], 0.0);
+  const Vc::Memory<Vc::Vector<S>> syv = stdvec_to_vcvec<S>(sx[1], 0.0);
+  const Vc::Memory<Vc::Vector<S>> srv = stdvec_to_vcvec<S>(sr,    1.0);
+  const Vc::Memory<Vc::Vector<S>> ssv = stdvec_to_vcvec<S>(ss,    0.0);
 #endif
 
-//
-// Particles affect Particles
-// HACK - assumes Elements objects are actually Particles! see architecture for a resolution for this
-//
-template <class S, class A, class I>
-float add_influence_pp (Elements<S,I>& _src, Elements<S,I>& _targ) {
-//void add_influence_pp (Particles<S,I>& _src, Particles<S,I>& _targ) {
-  //std::cout << "    inside add_influence(Particles, Particles)" << std::endl;
+  float flops = (float)targ.get_n();
+
+  // here is where we can dispatch on solver type, grads-or-not, core function, etc.?
+  if (targ.is_inert()) {
+    std::cout << "    0v_0p compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
+    // targets are field points
+
+    #pragma omp parallel for
+    for (size_t i=0; i<targ.get_n(); ++i) {
 #ifdef USE_VC
-  return add_influence_Vc<S,A,4,4>(_src.get_x(), _targ.get_x(), _targ.get_u());
-#else
-  return add_influence<S,A,4,4>(_src.get_x(), _targ.get_x(), _targ.get_u());
-#endif
-}
-
-//
-// High-level driver for all-affects-all
-//
-template <class S, class A, class I>
-void add_influence (Vorticity<S,I>& _src, Vorticity<S,I>& _targ) {
-  std::cout << "  inside add_influence(Vorticity, Vorticity)" << std::endl;
-
-  // start timers
-  std::chrono::system_clock::time_point start, end;
-  std::chrono::duration<double> elapsed_seconds;
-
-  for (auto & targ_elem: _targ.get_collections()) {
-    for (auto & src_elem: _src.get_collections()) {
-      start = std::chrono::system_clock::now();
-
-      std::cout << "    computing influence of " << src_elem->get_n() << " particles on " << targ_elem->get_n() << " particles" << std::endl;
-      // here's the problem: the routine here doesn't know what type each of these is!
-      // HACK - let's assume it's always Particles
-      const float flops = add_influence_pp<S,A,I>(*src_elem, *targ_elem);
-
-      end = std::chrono::system_clock::now();
-      elapsed_seconds = end-start;
-      const float gflops = (flops / 1.e+9) / (float)elapsed_seconds.count();
-      printf("    add_influence_pp:\t[%.6f] cpu seconds at [%.3f] GFlop/s\n", (float)elapsed_seconds.count(), gflops);
-    }
-  }
-}
-
-
-//
-// Panel stuff
-//
-
-#ifdef USE_VC
-//
-// naive caller for the O(N^2) particle-panel kernel
-//
-template <class S, class A, class I>
-float add_influence_ppan_Vc (Elements<S,I> const & _src, Panels<S,I>& _targ) {
-
-  // get handles for the vectors
-  std::vector<S> const& sx = _src.get_x();	// contains 0=x, 1=y, 2=str, 3=rad
-  std::vector<S> const& tx = _targ.get_x();
-  std::vector<I> const& ti = _targ.get_idx();
-  std::vector<S>&       tu = _targ.get_vel();
-
-  // make sure we have enough room for the results
-  assert(tx.size() == tu.size());
-
-  // define vector types for Vc (still only S==A supported here)
-  typedef Vc::Vector<S> StoreVec;
-  typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
-
-  // sources are points, so de-interleave
-  const Vc::Memory<StoreVec> vsx = deinterleave(sx, 0, 4, 0.0);
-  const Vc::Memory<StoreVec> vsy = deinterleave(sx, 1, 4, 0.0);
-  const Vc::Memory<StoreVec> vss = deinterleave(sx, 2, 4, 0.0);
-  //const Vc::Memory<StoreVec> sr = deinterleave(sx, 3, 4, 1.0);
-
-  // accumulate results into targvel
-  #pragma omp parallel for
-  for (size_t i=0; i<_targ.get_n(); ++i) {
-
-    // helper constants
-    const I id1 = ti[2*i];
-    const I id2 = ti[2*i+1];
-
-    // scale by the panel size
-    const AccumVec plen = 1.0 / std::sqrt(std::pow(tx[2*id2]-tx[2*id1],2) + std::pow(tx[2*id2+1]-tx[2*id1+1],2));
-
-    // spread the target out over a vector
-    const StoreVec vtx1 = tx[2*id1];
-    const StoreVec vty1 = tx[2*id1+1];
-    const StoreVec vtx2 = tx[2*id2];
-    const StoreVec vty2 = tx[2*id2+1];
-
-    // generate accumulator
-    AccumVec accumu(0.0);
-    AccumVec accumv(0.0);
-    AccumVec resultu(0.0);
-    AccumVec resultv(0.0);
-
-    // iterate and accumulate
-    for (size_t j=0; j<vsx.vectorsCount(); ++j) {
-      vortex_panel_affects_point_Vc<StoreVec,AccumVec>(vtx1, vty1, vtx2, vty2,
-                                                       vss.vector(j), vsx.vector(j), vsy.vector(j),
-                                                       &resultu, &resultv);
-      // and add to accumulator
-      accumu += plen*resultu;
-      accumv += plen*resultv;
-    }
-
-    // subtract from running sum because of way that kernel is written
-    tu[2*i+0] -= accumu.sum();
-    tu[2*i+1] -= accumv.sum();
-    //if (std::isnan(tu[2*i+0]) or std::isnan(tu[2*i+1])) exit(0);
-  }
-
-  return (float)_targ.get_n() * (9.0 + 42.0 * (float)_src.get_n());
-}
-#endif
-
-//
-// naive caller for the O(N^2) particle-panel kernel
-//
-template <class S, class A, class I>
-float add_influence_ppan (Elements<S,I> const & _src, Panels<S,I>& _targ) {
-
-  // get handles for the vectors
-  std::vector<S> const& sx = _src.get_x();	// contains 0=x, 1=y, 2=str, 3=rad
-  std::vector<S> const& tx = _targ.get_x();
-  std::vector<I> const& ti = _targ.get_idx();
-  std::vector<S>&       tu = _targ.get_vel();
-
-  // make sure we have enough room for the results
-  assert(tx.size() == tu.size());
-
-  // accumulate results into targvel
-  #pragma omp parallel for
-  for (size_t i=0; i<_targ.get_n(); ++i) {
-
-    // helper constants
-    const I id1 = ti[2*i];
-    const I id2 = ti[2*i+1];
-
-    // scale by the panel size
-    const A plen = 1.0 / std::sqrt(std::pow(tx[2*id2]-tx[2*id1],2) + std::pow(tx[2*id2+1]-tx[2*id1+1],2));
-
-    // generate accumulator
-    std::array<A,2> accum = {{0.0}};
-    std::array<A,2> result = {{0.0}};
-
-    // iterate and accumulate
-    for (size_t j=0; j<_src.get_n(); ++j) {
-      result = vortex_panel_affects_point<S,A>(tx[2*id1], tx[2*id1+1],
-                                               tx[2*id2], tx[2*id2+1],
-                                               sx[4*j+2], sx[4*j+0], sx[4*j+1]);
-      // and add to accumulator
-      for (size_t j=0; j<2; ++j) {
-        accum[j] += plen*result[j];
+      const Vc::Vector<S> txv = tx[0][i];
+      const Vc::Vector<S> tyv = tx[1][i];
+      // care must be taken if S != A, because these vectors must have the same length
+      Vc::Vector<A> accumu = 0.0;
+      Vc::Vector<A> accumv = 0.0;
+      for (size_t j=0; j<sxv.vectorsCount(); ++j) {
+        kernel_0v_0p<Vc::Vector<S>,Vc::Vector<A>>(
+                          sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
+                          txv, tyv,
+                          &accumu, &accumv);
       }
+      tu[0][i] += accumu.sum();
+      tu[1][i] += accumv.sum();
+#else  // no Vc
+      A accumu = 0.0;
+      A accumv = 0.0;
+      for (size_t j=0; j<src.get_n(); ++j) {
+        kernel_0v_0p<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
+                          tx[0][i], tx[1][i],
+                          &accumu, &accumv);
+      }
+      tu[0][i] += accumu;
+      tu[1][i] += accumv;
+#endif // no Vc
     }
+    flops *= 2.0 + 13.0*(float)src.get_n();
 
-    // subtract from running sum because of way that kernel is written
-    for (size_t j=0; j<2; ++j) {
-      tu[2*i+j] -= accum[j];
+  } else {
+    std::cout << "    0v_0v compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
+    // targets are particles
+    const Vector<S>&				tr = targ.get_rad();
+
+    #pragma omp parallel for
+    for (size_t i=0; i<targ.get_n(); ++i) {
+#ifdef USE_VC
+      const Vc::Vector<S> txv = tx[0][i];
+      const Vc::Vector<S> tyv = tx[1][i];
+      const Vc::Vector<S> trv = tr[i];
+      // care must be taken if S != A, because these vectors must have the same length
+      Vc::Vector<A> accumu = 0.0;
+      Vc::Vector<A> accumv = 0.0;
+      for (size_t j=0; j<sxv.vectorsCount(); ++j) {
+        kernel_0v_0v<Vc::Vector<S>,Vc::Vector<A>>(
+                          sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
+                          txv, tyv, trv,
+                          &accumu, &accumv);
+        /*
+        if (false) {
+          // this is how to print
+          Vc::Vector<S> temp = sxv.vector(j,0);
+          std::cout << "src " << j << " has sxv " << temp << std::endl;
+        }
+        */
+      }
+      tu[0][i] += accumu.sum();
+      tu[1][i] += accumv.sum();
+#else  // no Vc
+      A accumu = 0.0;
+      A accumv = 0.0;
+      for (size_t j=0; j<src.get_n(); ++j) {
+        kernel_0v_0v<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
+                          tx[0][i], tx[1][i], tr[i],
+                          &accumu, &accumv);
+      }
+      tu[0][i] += accumu;
+      tu[1][i] += accumv;
+#endif // no Vc
     }
+    flops *= 2.0 + 15.0*(float)src.get_n();
+
   }
 
-  return (float)_targ.get_n() * (9.0 + 42.0 * (float)_src.get_n());
+  auto end = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end-start;
+  const float gflops = 1.e-9 * flops / (float)elapsed_seconds.count();
+  printf("    points_affect_points: [%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);
 }
 
+
+//
+// Vc and x86 versions of Panels/Surfaces affecting Points/Particles
+//
+template <class S, class A>
+void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
+  std::cout << "    1_0 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
+  auto start = std::chrono::system_clock::now();
+
+  // get references to use locally
+  const std::array<Vector<S>,Dimensions>& sx = src.get_pos();
+  const std::vector<Int>&                 si = src.get_idx();
+  const Vector<S>&                        ss = src.get_str();
+  const std::array<Vector<S>,Dimensions>& tx = targ.get_pos();
+  std::array<Vector<S>,Dimensions>&       tu = targ.get_vel();
+
+  float flops = (float)targ.get_n();
+
 #ifdef USE_VC
-//
-// naive caller for the O(N^2) panel-particle kernel for Vc
-//
-template <class S, class A, class I>
-float add_influence_panp_Vc (Panels<S,I> const & _src, Elements<S,I>& _targ) {
-
-  // get handles for the vectors
-  std::vector<S> const& sx = _src.get_x();
-  std::vector<I> const& si = _src.get_idx();
-  std::vector<S> const& ss = _src.get_strengths();
-  std::vector<S> const& tx = _targ.get_x();		// contains 0=x, 1=y, 2=str, 3=rad
-  std::vector<S>&       tu = _targ.get_u();		// contains derivs 0=u, 1=v, 2=dstrdt, 3=draddt
-
-  // make sure we have enough room for the results
-  assert(tx.size() == tu.size());
-
   // define vector types for Vc (still only S==A supported here)
   typedef Vc::Vector<S> StoreVec;
   typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
 
   // sources are panels, assemble de-interleaved vectors
-  Vc::Memory<StoreVec> vsx1(_src.get_n());
-  Vc::Memory<StoreVec> vsy1(_src.get_n());
-  Vc::Memory<StoreVec> vsx2(_src.get_n());
-  Vc::Memory<StoreVec> vsy2(_src.get_n());
-  Vc::Memory<StoreVec> vss(_src.get_n());
-  for (size_t j=0; j<_src.get_n(); ++j) {
-    const I id1 = 2*si[2*j];
-    const I id2 = 2*si[2*j+1];
-    vsx1[j]     = sx[id1];
-    vsy1[j]     = sx[id1+1];
-    vsx2[j]     = sx[id2];
-    vsy2[j]     = sx[id2+1];
+  Vc::Memory<StoreVec> vsx0(src.get_npanels());
+  Vc::Memory<StoreVec> vsy0(src.get_npanels());
+  Vc::Memory<StoreVec> vsx1(src.get_npanels());
+  Vc::Memory<StoreVec> vsy1(src.get_npanels());
+  Vc::Memory<StoreVec>  vss(src.get_npanels());
+  for (size_t j=0; j<src.get_npanels(); ++j) {
+    const size_t id0 = si[2*j];
+    const size_t id1 = si[2*j+1];
+    vsx0[j]     = sx[0][id0];
+    vsy0[j]     = sx[1][id0];
+    vsx1[j]     = sx[0][id1];
+    vsy1[j]     = sx[1][id1];
     vss[j]      = ss[j];
     //std::cout << "  src panel " << j << " has " << vsx1[j] << " " << vsy1[j] << " and str " << vss[j] << std::endl;
   }
-  for (size_t j=_src.get_n(); j<vss.vectorsCount()*StoreVec::size(); ++j) {
-    vsx1[j] = 0.0;
+  for (size_t j=src.get_npanels(); j<vss.vectorsCount()*StoreVec::size(); ++j) {
+    vsx0[j] = 0.0;
+    vsy0[j] = 0.0;
+    vsx1[j] = 1.0;
     vsy1[j] = 0.0;
-    vsx2[j] = 1.0;
-    vsy2[j] = 0.0;
     vss[j]  = 0.0;
     //std::cout << "  src panel " << j << " has " << vsx1[j] << " " << vsy1[j] << " and str " << vss[j] << std::endl;
   }
 
-  // accumulate results into targvel
   #pragma omp parallel for
-  for (size_t i=0; i<_targ.get_n(); ++i) {
+  for (size_t i=0; i<targ.get_n(); ++i) {
 
     // spread the target points out over a vector
-    const StoreVec vtx = tx[4*i+0];
-    const StoreVec vty = tx[4*i+1];
+    const StoreVec vtx = tx[0][i];
+    const StoreVec vty = tx[1][i];
 
     // generate accumulator
     AccumVec accumu(0.0);
@@ -384,136 +204,191 @@ float add_influence_panp_Vc (Panels<S,I> const & _src, Elements<S,I>& _targ) {
     AccumVec resultu(0.0);
     AccumVec resultv(0.0);
 
-    // iterate and accumulate
     for (size_t j=0; j<vss.vectorsCount(); ++j) {
-      vortex_panel_affects_point_Vc<StoreVec,AccumVec>(vsx1.vector(j), vsy1.vector(j),
-                                                       vsx2.vector(j), vsy2.vector(j),
-                                                       vss.vector(j), vtx, vty,
-                                                       &resultu, &resultv);
-      // and add to accumulator
+      // note that this is the same kernel as panels_affect_points!
+      kernel_1_0v<StoreVec,AccumVec>(vsx0.vector(j), vsy0.vector(j),
+                                     vsx1.vector(j), vsy1.vector(j),
+                                     vss.vector(j),
+                                     vtx, vty,
+                                     &resultu, &resultv);
       accumu += resultu;
       accumv += resultv;
     }
-    //std::cout << "  targ pt " << i << " has old vel " << tu[4*i] << " " << tu[4*i+1] << std::endl;
 
-    // add to running sum because of way that kernel is written
-    tu[4*i+0] += accumu.sum();
-    tu[4*i+1] += accumv.sum();
-    //std::cout << "              and new vel " << tu[4*i] << " " << tu[4*i+1] << std::endl;
-    if (std::isnan(tu[4*i])) exit(0);
-    //std::cout << "  targ pt " << i << " has new vel " << tu[4*i] << " " << tu[4*i+1] << std::endl;
+    // use this as normal
+    tu[0][i] += accumu.sum();
+    tu[1][i] += accumv.sum();
+    //std::cout << "    new 1_0 vel on " << i << " is " << accumu.sum() << " " << accumv.sum() << std::endl;
   }
+#else
 
-  return (float)_targ.get_n() * (2.0 + 40.0 * (float)_src.get_n());
-}
+  #pragma omp parallel for
+  for (size_t i=0; i<targ.get_n(); ++i) {
+
+    A accumu  = 0.0;
+    A accumv  = 0.0;
+    A resultu = 0.0;
+    A resultv = 0.0;
+
+    for (size_t j=0; j<src.get_npanels(); ++j) {
+      const size_t jp0 = si[2*j];
+      const size_t jp1 = si[2*j+1];
+
+      // note that this is the same kernel as points_affect_panels
+      kernel_1_0v<S,A>(sx[0][jp0], sx[1][jp0], 
+                       sx[0][jp1], sx[1][jp1],
+                       ss[j],
+                       tx[0][i],   tx[1][i],
+                       &resultu, &resultv);
+
+      accumu += resultu;
+      accumv += resultv;
+    }
+
+    // use this as normal
+    tu[0][i] += accumu;
+    tu[1][i] += accumv;
+    //std::cout << "    new 1_0 vel on " << i << " is " << accumu << " " << accumv << std::endl;
+  }
 #endif
 
+  flops *= 2.0 + 37.0*(float)src.get_npanels();
+
+  auto end = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end-start;
+  const float gflops = 1.e-9 * flops / (float)elapsed_seconds.count();
+  printf("    panels_affect_points: [%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);
+}
+
+
 //
-// naive caller for the O(N^2) panel-particle kernel
+// Vc and x86 versions of Points/Particles affecting Panels/Surfaces
 //
-template <class S, class A, class I>
-float add_influence_panp (Panels<S,I> const & _src, Elements<S,I>& _targ) {
+template <class S, class A>
+void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
+  std::cout << "    0_1 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
+  auto start = std::chrono::system_clock::now();
 
-  // get handles for the vectors
-  std::vector<S> const& sx = _src.get_x();
-  std::vector<I> const& si = _src.get_idx();
-  std::vector<S> const& ss = _src.get_strengths();
-  std::vector<S> const& tx = _targ.get_x();		// contains 0=x, 1=y, 2=str, 3=rad
-  std::vector<S>&       tu = _targ.get_u();		// contains derivs 0=u, 1=v, 2=dstrdt, 3=draddt
+  // get references to use locally
+  const std::array<Vector<S>,Dimensions>& sx = src.get_pos();
+  const Vector<S>&                        ss = src.get_str();
+  const std::array<Vector<S>,Dimensions>& tx = targ.get_pos();
+  const std::vector<Int>&                 ti = targ.get_idx();
+  std::array<Vector<S>,Dimensions>&       tu = targ.get_vel();
 
-  // make sure we have enough room for the results
-  assert(tx.size() == tu.size());
+#ifdef USE_VC
+  // define vector types for Vc (still only S==A supported here)
+  typedef Vc::Vector<S> StoreVec;
+  typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
 
-  // accumulate results into targvel
+  const Vc::Memory<StoreVec> sxv = stdvec_to_vcvec<S>(sx[0], 0.0);
+  const Vc::Memory<StoreVec> syv = stdvec_to_vcvec<S>(sx[1], 0.0);
+  const Vc::Memory<StoreVec> ssv = stdvec_to_vcvec<S>(ss,    0.0);
+#endif
+
+  float flops = (float)targ.get_npanels();
+
   #pragma omp parallel for
-  for (size_t i=0; i<_targ.get_n(); ++i) {
+  for (size_t i=0; i<targ.get_npanels(); ++i) {
+
+    const size_t ip0 = ti[2*i];
+    const size_t ip1 = ti[2*i+1];
+
+    // scale by the panel size
+    const A plen = 1.0 / std::sqrt(std::pow(tx[0][ip1]-tx[0][ip0],2) + std::pow(tx[1][ip1]-tx[1][ip0],2));
+
+#ifdef USE_VC
+    // spread the target out over a vector
+    const StoreVec vtx0 = tx[0][ip0];
+    const StoreVec vty0 = tx[1][ip0];
+    const StoreVec vtx1 = tx[0][ip1];
+    const StoreVec vty1 = tx[1][ip1];
 
     // generate accumulator
-    std::array<A,2> accum = {{0.0}};
-    std::array<A,2> result = {{0.0}};
+    AccumVec accumu(0.0);
+    AccumVec accumv(0.0);
+    AccumVec resultu(0.0);
+    AccumVec resultv(0.0);
 
-    // iterate and accumulate
-    for (size_t j=0; j<_src.get_n(); ++j) {
-      result = vortex_panel_affects_point<S,A>(sx[2*si[2*j]],   sx[2*si[2*j]+1],
-                                               sx[2*si[2*j+1]], sx[2*si[2*j+1]+1],
-                                               ss[j], tx[4*i+0], tx[4*i+1]);
-      for (size_t j=0; j<2; ++j) {
-        accum[j] += result[j];
-      }
+    for (size_t j=0; j<ssv.vectorsCount(); ++j) {
+      // note that this is the same kernel as panels_affect_points!
+      kernel_1_0v<StoreVec,AccumVec>(vtx0, vty0,
+                                     vtx1, vty1,
+                                     ssv.vector(j),
+                                     sxv.vector(j), syv.vector(j),
+                                     &resultu, &resultv);
+      accumu += resultu;
+      accumv += resultv;
     }
-    //std::cout << "  targ pt " << i << " has old vel " << tu[4*i] << " " << tu[4*i+1] << std::endl;
 
-    // add to running sum because of way that kernel is written
-    for (size_t j=0; j<2; ++j) {
-      tu[4*i+j] += accum[j];
+    // but we use it backwards, so the resulting velocities are negative
+    tu[0][i] -= plen*accumu.sum();
+    tu[1][i] -= plen*accumv.sum();
+    //std::cout << "    new 0_1 vel on " << i << " is " << (-plen*accumu.sum()) << " " << (-plen*accumv.sum()) << std::endl;
+
+#else
+    A accumu  = 0.0;
+    A accumv  = 0.0;
+    A resultu = 0.0;
+    A resultv = 0.0;
+
+    for (size_t j=0; j<src.get_n(); ++j) {
+      // note that this is the same kernel as panels_affect_points!
+      kernel_1_0v<S,A>(tx[0][ip0], tx[1][ip0],
+                       tx[0][ip1], tx[1][ip1],
+                       ss[j],
+                       sx[0][j],   sx[1][j],
+                       &resultu, &resultv);
+      accumu += resultu;
+      accumv += resultv;
     }
-    //std::cout << "             and new vel " << tu[4*i] << " " << tu[4*i+1] << std::endl;
-    //std::cout << "  targ pt " << i << " has new vel " << tu[4*i] << " " << tu[4*i+1] << std::endl;
+
+    // but we use it backwards, so the resulting velocities are negative
+    tu[0][i] -= plen*accumu;
+    tu[1][i] -= plen*accumv;
+    //std::cout << "  vel on " << i << " is " << tu[0][i] << " " << tu[1][i] << std::endl;
+    //std::cout << "    new 0_1 vel on " << i << " is " << (-plen*accumu) << " " << (-plen*accumv) << std::endl;
+#endif
   }
+  flops *= 11.0 + 37.0*(float)src.get_n();
 
-  return (float)_targ.get_n() * (2.0 + 40.0 * (float)_src.get_n());
+  auto end = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end-start;
+  const float gflops = 1.e-9 * flops / (float)elapsed_seconds.count();
+  printf("    points_affect_panels: [%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);
 }
+
+
+template <class S, class A>
+void panels_affect_panels (Surfaces<S> const& src, Surfaces<S>& targ) {
+  std::cout << "    1_1 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
+
+  // get references to use locally
+/*
+  const std::array<Vector<S>,Dimensions>& sx = src.get_pos();
+  const std::vector<Int>&                 si = src.get_idx();
+  const Vector<S>&                        ss = src.get_str();
+  const std::array<Vector<S>,Dimensions>& tx = targ.get_pos();
+  const std::vector<Int>&                 ti = targ.get_idx();
+  std::array<Vector<S>,Dimensions>&       tu = targ.get_vel();
+*/
+
+  // generate temporary colocation points as Points? Ouch.
+  // run panels_affect_points on those
+  // or do it on the fly here
+  // return results
+}
+
 
 //
-// High-level driver for all-affects-all
+// helper struct for dispatching through a variant
 //
-template <class S, class A, class I>
-void add_influence (Vorticity<S,I> const & _src, Boundaries<S,I>& _targ) {
-  std::cout << "  inside add_influence(Vorticity, Boundaries)" << std::endl;
-
-  // start timers
-  std::chrono::system_clock::time_point start, end;
-  std::chrono::duration<double> elapsed_seconds;
-
-  // just one set of panels for all boundaries now
-  Panels<S,I>& targ_elem = _targ.get_panels();
-  // iterate over all sets of source vorticities (currently only one Particles object)
-  for (auto& src_elem : _src.get_collections()) {
-    std::cout << "    computing influence of " << src_elem->get_n() << " particles on " << targ_elem.get_n() << " panels" << std::endl;
-    start = std::chrono::system_clock::now();
-
-    // here's the problem: the routine here doesn't know what type each of these is!
-    // HACK - let's assume it's always Particles and Panels
-#ifdef USE_VC
-    const float flops = add_influence_ppan_Vc<S,A,I>(*src_elem, targ_elem);
-#else
-    const float flops = add_influence_ppan<S,A,I>(*src_elem, targ_elem);
-#endif
-
-    end = std::chrono::system_clock::now();
-    elapsed_seconds = end-start;
-    const float gflops = (flops / 1.e+9) / (float)elapsed_seconds.count();
-    printf("    add_influence_ppan:\t[%.6f] cpu seconds at [%.3f] GFlop/s\n", (float)elapsed_seconds.count(), gflops);
-  }
-}
-
-template <class S, class A, class I>
-void add_influence (Boundaries<S,I> const & _src, Vorticity<S,I>& _targ) {
-  std::cout << "  inside add_influence(Boundaries, Vorticity)" << std::endl;
-
-  // start timers
-  std::chrono::system_clock::time_point start, end;
-  std::chrono::duration<double> elapsed_seconds;
-
-  // just one set of panels for all boundaries now
-  Panels<S,I> const& src_elem = _src.get_panels();
-  // iterate over all sets of target vorticities (currently only one Particles object)
-  for (auto& targ_elem : _targ.get_collections()) {
-    std::cout << "    computing influence of " << src_elem.get_n() << " panels on " << targ_elem->get_n() << " particles" << std::endl;
-    start = std::chrono::system_clock::now();
-
-    // here's the problem: the routine here doesn't know what type each of these is!
-    // HACK - let's assume it's always Particles and Panels
-#ifdef USE_VC
-    const float flops = add_influence_panp_Vc<S,A,I>(src_elem, *targ_elem);
-#else
-    const float flops = add_influence_panp<S,A,I>(src_elem, *targ_elem);
-#endif
-
-    end = std::chrono::system_clock::now();
-    elapsed_seconds = end-start;
-    const float gflops = (flops / 1.e+9) / (float)elapsed_seconds.count();
-    printf("    add_influence_panp:\t[%.6f] cpu seconds at [%.3f] GFlop/s\n", (float)elapsed_seconds.count(), gflops);
-  }
-}
+template <class A>
+struct InfluenceVisitor {
+  // source collection, target collection
+  void operator()(Points<float> const& src,   Points<float>& targ)   { points_affect_points<float,A>(src, targ); } 
+  void operator()(Surfaces<float> const& src, Points<float>& targ)   { panels_affect_points<float,A>(src, targ); } 
+  void operator()(Points<float> const& src,   Surfaces<float>& targ) { points_affect_panels<float,A>(src, targ); } 
+  void operator()(Surfaces<float> const& src, Surfaces<float>& targ) { panels_affect_panels<float,A>(src, targ); } 
+};
 

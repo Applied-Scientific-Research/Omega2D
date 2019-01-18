@@ -16,11 +16,11 @@ SET (CMAKE_VERBOSE_MAKEFILE on)
 SET (CMAKE_EXPORT_COMPILE_COMMANDS on)
 
 IF (CMAKE_COMPILER_IS_GNUCXX)
-  SET (CMAKE_CXX_FLAGS "-Wall -Wformat -std=c++14 -Wno-int-in-bool-context")
+  SET (CMAKE_CXX_FLAGS "-Wall -Wformat -std=c++17 -Wno-int-in-bool-context")
   SET (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -ggdb")
   SET (CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native")
 ELSEIF (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  SET (CMAKE_CXX_FLAGS "-Wall -Wformat -std=c++14 -stdlib=libc++")
+  SET (CMAKE_CXX_FLAGS "-Wall -Wformat -std=c++17 -stdlib=libc++")
   SET (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -ggdb")
   SET (CMAKE_CXX_FLAGS_RELEASE "-O3")
 ELSEIF (MSVC)
@@ -88,7 +88,9 @@ ELSEIF( UNIX )
       set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
     ENDIF()
   ELSE()
-    # need to find pthreads
+    # suppress the warning
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unknown-pragmas")
+    # need to find pthreads (for std::async?)
     FIND_PACKAGE( Threads REQUIRED )
     #SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_THREAD_LIBS_INIT}")
     #IF (CMAKE_THREAD_LIBS_INIT)
@@ -112,13 +114,15 @@ set(GLADSRC "src/glad/glad.c" )
 INCLUDE_DIRECTORIES( "src/glad" )
 SET(SOURCES "src/Simulation.cpp"
             "src/FlowFeature.cpp"
+            "src/CollectionHelper.cpp"
             "src/BoundaryFeature.cpp"
-            "src/ShaderHelper.cpp"
+            "src/MeasureFeature.cpp"
             "src/main.cpp")
 file(GLOB IMGUISOURCES "src/imgui/*.cpp" )
 
 # create a binary for the GUI version
-ADD_EXECUTABLE( ${PROJECT_NAME} ${GLADSRC} ${IMGUISOURCES} ${SOURCES} )
-set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${PROJECT_NAME}.bin")
+ADD_EXECUTABLE( ${PROJECT_NAME} ${GLADSRC} ${IMGUISOURCES} ${SOURCES} "src/ShaderHelper.cpp" )
+SET_TARGET_PROPERTIES( ${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${PROJECT_NAME}.bin" )
 TARGET_LINK_LIBRARIES( ${PROJECT_NAME} ${PLATFORM_LIBS} )
+TARGET_COMPILE_DEFINITIONS( ${PROJECT_NAME} PRIVATE "-DUSE_GL" )
 

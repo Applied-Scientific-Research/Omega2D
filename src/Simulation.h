@@ -7,15 +7,24 @@
 
 #pragma once
 
-#include "Body.h"
-#include "Boundaries.h"
-#include "BoundaryFeature.h"
+#include "Omega2D.h"
+#include "Collection.h"
+#include "BEM.h"
 #include "Convection.h"
 #include "Diffusion.h"
-#include "Vorticity.h"
 
 #include <string>
+#include <vector>
 #include <future>
+#include <chrono>
+
+#ifdef USE_VC
+#define STORE float
+#define ACCUM float
+#else
+#define STORE float
+#define ACCUM double
+#endif
 
 template <class T>
 bool is_future_ready(std::future<T> const& f) {
@@ -44,13 +53,15 @@ public:
   // get runtime status
   size_t get_npanels();
   size_t get_nparts();
+  size_t get_nfldpts();
 
   // inviscid case needs this
   void set_re_for_ips(float);
 
   // receive and add a set of particles
   void add_particles(std::vector<float>);
-  void add_boundary(bdryType, std::vector<float>);
+  void add_tracers(std::vector<float>);
+  void add_boundary(ElementPacket<float>);
 
   // act on stuff
   //void set_amr(const bool);
@@ -58,46 +69,48 @@ public:
   void reset();
   void async_step();
   void step();
-  void init_bcs();
   bool is_initialized();
   void set_initialized();
   std::string check_simulation(const size_t, const size_t);
   bool test_for_new_results();
 
   // graphics pass-through calls
-  void initGL(std::vector<float>&, float*, float*);
+  void initGL(std::vector<float>&, float*, float*, float*);
   void updateGL();
-  void drawGL(std::vector<float>&, float*, float*);
+  void drawGL(std::vector<float>&, float*, float*, float*, float);
 
 private:
   // primary simulation params
   float re;
   float dt;
-  float fs[2];
+  float fs[Dimensions];
 
   // Object to contain all Lagrangian elements
-  Vorticity<float,uint16_t> vort;
+  std::vector<Collection> vort;		// active elements
 
   // Object to contain all Reactive elements
   //   inside is the vector of bodies and inlets and liftinglines/kuttapoints
   //   and the Panels list of all unknowns discretized representations
-  Boundaries<float,uint16_t> bdry;
+  std::vector<Collection> bdry;		// reactive-active elements like BEM surfaces
+
+  // Object with all of the non-reactive, non-active (inert) points
+  std::vector<Collection> fldpt;	// tracers and field points
+
+  // The need to solve for the unknown strengths of reactive elements inside both the
+  //   diffusion and convection steps necessitates a BEM object here
+  BEM<STORE,Int> bem;
 
   // Diffusion will resolve exchange of strength among particles and between panels and particles
   // Note that NNLS needs doubles for its compute type or else it will fail
   //   but velocity evaluations using Vc need S=A=float
-  Diffusion<float,double,uint16_t> diff;
+  Diffusion<STORE,ACCUM,Int> diff;
 
   // Convection class takes bodies, panels, and vector of Particles objects
   //   and performs 1st, 2nd, etc. RK forward integration
   //   inside here are non-drawing Particles objects used as temporaries in the multi-step methods
   //   also copies of the panels, which will be recreated for each step, and solutions to unknowns
   // Note that with Vc, the storage and accumulator classes have to be the same
-#ifdef USE_VC
-  Convection<float,float,uint16_t> conv;
-#else
-  Convection<float,double,uint16_t> conv;
-#endif
+  Convection<STORE,ACCUM,Int> conv;
 
   // state
   double time;

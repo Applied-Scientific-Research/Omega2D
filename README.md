@@ -9,7 +9,7 @@ Omega2D is a platform for testing methods and techniques for implementing a comb
 This open-source code is aimed at users interested in understanding vortex methods as a tool for fluid simulation, or simply eager to try a fast fluid simulator without the gross approximations present in most other real-time tools.
 
 ## Build and run
-This code uses some C++14 features, so should compile on GCC 5, Clang 3.3, MSVC 19.10, and Intel 16.0 compilers.
+This code uses some C++17 features, so should compile on GCC 7, Clang 4, and MSVC 19.10 compilers.
 
 #### Prerequisites
 Users will also need CMake and GLFW version 3 on their machines to build this, other requirements are included in this distribution. Get these on Fedora with
@@ -73,6 +73,11 @@ Pictured below is a simulation of viscous flow over a circle at Reynolds number 
 ## To do
 Tasks to consider or implement:
 
+* Get Vc into the influence calculations for the new arch
+* Allow Points to be able to draw not only blobs but dots at the middles, too, using same arrays but different draw programs (turn either on or off?)
+* Allow inert Points collections to never allocate space for radius
+* Replace core architecture (using std::variant and Collection)
+* Move some initialization back into ElementBase - like positions and such, keep radius in Points, then ElementBase can draw points?
 * Move the GUI and pre-run parts of the various Body classes into their own class/file and out of main.cpp and Body.h
 * When running, grey out the dt and Re fields - those are the only things you can't change
 * Add a "ms/frame" and "FPS" for the simulation component also
@@ -84,11 +89,10 @@ Tasks to consider or implement:
 * Ideal initial interface: lots of stuff hidden, just a graphical menu with circles, squares, vortex patches, etc. Each has handles that you can drag to resize and reposition the element; all sizes/locations quantized to 0.1 or 0.05. "Expert" box lets you change Re, dt, etc.
 * Add an animated GIF to the page to show how to set up a run?
 * Have "status" line indicate when we're waiting for a step to finish after we've hit pause
-* Replace core architecture (using std::variant and Collection)
 * Instead of manipulating the projection matrix, have the mouse change the view matrix (assume model matrix is unity), see [here](https://solarianprogrammer.com/2013/05/22/opengl-101-matrices-projection-view-model/) for a nice write-up on the three OpenGL matrices
-* Support multiple Lagrangian element collections under an Elements structure
+* Support multiple Lagrangian element collections under an Elements structure - new arch will allow this
 * Support faster VRM by caching values from first half to use in second half
-* Make more of the sliders dynamic (like dt and color) - be able to add new particles while a sim is running
+* Make more of the sliders dynamic (like dt ~~and color~~) - be able to add new particles while a sim is running
 * Right-click on the draw screen to add features - hard? can imgui handle it?
 * Draw something when you add a feature (so we know it's doing something)
 * Create an OpenGL compute shader routine for the particle-particle influence
@@ -100,9 +104,7 @@ Tasks to consider or implement:
 * Draw a freestream arrow in the LR corner
 * Let the user grab the fs arrow to dynamically change the freestream
 * Add field points in a grid over the visible domain, find vels, display as streaks
-* Draw panels as polygons extending along the normal with a sharp edge on the body side and a
-  gradient to zero on the flow side - then they can visually merge with the particles to make
-  a visibly smooth and more-correct vorticity field
+* Draw panels as polygons extending along the normal with a sharp edge on the body side and a gradient to zero on the flow side - then they can visually merge with the particles to make a visibly smooth and more-correct vorticity field
 * Add Read Setup, Read State, Write Setup, Write State buttons, which call a JSON library, like [nlohmann/json](https://github.com/nlohmann/json), to perform those actions
 * Reconsider templatizing on the scalar type. If you don't intend for floats or doubles in the same code, perhaps create a header with `using Scalar = float;` so you can flip back and forth easier. NBL
 * Consider different method for including shader code NBL
@@ -111,6 +113,16 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~For new BEM: get particles to create correct RHS, then panels to create correct A matrix, then Points to generate correct particles, finally for Surfaces to remove Points beneath them~~
+* ~~Get the Panels into the new arch - includes creation, BEM, vel-finding, drawing~~
+* ~~Upgrade Merge to the new arch, then particle-only diffusion will be complete~~
+* ~~Get new arch to perform VRM~~
+* ~~Get new arch to create a line or a blob of inert particles, compute their motion, and draw them~~
+* ~~Set tracer points to be a constant fraction of the minimum particle size~~
+* ~~Echo correct number of particles and points in the GUI~~
+* ~~Make alternative path for drawing points - do not pass strength or radius, just color and position~~
+* ~~Make a second copy of all particles in Points and compute their motion, also - compare to Particles~~
+* ~~Move radius from ElementBase to Points~~
 * ~~Space bar pauses and resumes simulation (need to capture keyboard inputs)~~
 * ~~Add warning when there are no flow structures or boundary structures~~
 * ~~Add warning when there are bodies, but no freestream and no flow structures and no particles (because nothing will happen)~~

@@ -7,6 +7,7 @@
 
 #include "FlowFeature.h"
 #include "BoundaryFeature.h"
+#include "MeasureFeature.h"
 #include "Simulation.h"
 
 #ifdef _WIN32
@@ -143,6 +144,7 @@ int main(int argc, char const *argv[]) {
   Simulation sim;
   std::vector< std::unique_ptr<FlowFeature> > ffeatures;
   std::vector< std::unique_ptr<BoundaryFeature> > bfeatures;
+  std::vector< std::unique_ptr<MeasureFeature> > mfeatures;
   static bool sim_is_running = false;
   static bool begin_single_step = false;
 
@@ -193,9 +195,11 @@ int main(int argc, char const *argv[]) {
   bool show_stats_window = false;
   bool show_terminal_window = false;
   bool show_test_window = false;
-  ImVec4 clear_color = ImColor(15, 15, 15);
   ImVec4 pos_circ_color = ImColor(207, 47, 47);
   ImVec4 neg_circ_color = ImColor(63, 63, 255);
+  ImVec4 default_color = ImColor(204, 204, 204);
+  ImVec4 clear_color = ImColor(15, 15, 15);
+  float tracer_size = 0.15;
   //static bool show_origin = true;
   static bool is_viscous = false;
 
@@ -226,11 +230,14 @@ int main(int argc, char const *argv[]) {
 
         // initialize solid objects
         for (auto const& bf : bfeatures) {
-          sim.add_boundary( bf->get_type(), bf->get_params() );
+          sim.add_boundary( bf->init_elements(sim.get_ips()) );
         }
 
-        // initialize panels
-        sim.init_bcs();
+        // initialize measurement features
+        for (auto const& mf: mfeatures) {
+          sim.add_tracers( mf->init_particles(tracer_size*sim.get_ips()) );
+        }
+
         sim.set_initialized();
       }
 
@@ -243,6 +250,9 @@ int main(int argc, char const *argv[]) {
         // generate new particles from emitters
         for (auto const& ff : ffeatures) {
           sim.add_particles( ff->step_particles(sim.get_ips()) );
+        }
+        for (auto const& mf: mfeatures) {
+          sim.add_tracers( mf->step_particles(tracer_size*sim.get_ips()) );
         }
 
         // begin a new dynamic step: convection and diffusion
@@ -361,8 +371,24 @@ int main(int argc, char const *argv[]) {
         bfeatures.erase(bfeatures.begin()+del_this_bdry);
       }
 
-      // button and modal window for adding new ones
-      if (ImGui::Button("Add new flow structure")) ImGui::OpenPopup("New flow structure");
+      // list existing measurement features here
+      int del_this_measure = -1;
+      for (int i=0; i<(int)mfeatures.size(); ++i) {
+        // add a "remove" button here somehow
+        ImGui::PushID(++buttonIDs);
+        if (ImGui::SmallButton("remove")) del_this_measure = i;
+        ImGui::PopID();
+
+        ImGui::SameLine();
+        ImGui::Text("%s", mfeatures[i]->to_string().c_str());
+      }
+      if (del_this_measure > -1) {
+        std::cout << "Asked to delete measurement feature " << del_this_measure << std::endl;
+        mfeatures.erase(mfeatures.begin()+del_this_measure);
+      }
+
+      // button and modal window for adding new flow structures
+      if (ImGui::Button("Add flow structure")) ImGui::OpenPopup("New flow structure");
       ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiSetCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New flow structure"))
       {
@@ -391,8 +417,6 @@ int main(int argc, char const *argv[]) {
             if (ImGui::Button("Add single particle")) {
               // this is C++14
               ffeatures.emplace_back(std::make_unique<SingleParticle>(xc[0], xc[1], str));
-              // this is C++11
-              //ffeatures.emplace_back(std::unique_ptr<SingleParticle>(new SingleParticle(xc[0], xc[1], str)));
               std::cout << "Added " << (*ffeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
@@ -409,7 +433,6 @@ int main(int argc, char const *argv[]) {
             ImGui::TextWrapped("This feature will add about %d particles", (int)(0.785398175*pow((2*rad+soft)/sim.get_ips(), 2)));
             if (ImGui::Button("Add vortex blob")) {
               ffeatures.emplace_back(std::make_unique<VortexBlob>(xc[0], xc[1], str, rad, soft));
-              //ffeatures.emplace_back(std::unique_ptr<VortexBlob>(new VortexBlob(xc[0], xc[1], str, rad, soft)));
               std::cout << "Added " << (*ffeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
@@ -424,7 +447,6 @@ int main(int argc, char const *argv[]) {
             ImGui::TextWrapped("This feature will add %d particles", npart);
             if (ImGui::Button("Add random vorticies")) {
               ffeatures.emplace_back(std::make_unique<BlockOfRandom>(xc[0], xc[1], xs[0], xs[1], strlo, strhi, npart));
-              //ffeatures.emplace_back(std::unique_ptr<BlockOfRandom>(new BlockOfRandom(xc[0], xc[1], xs[0], xs[1], strlo, strhi, npart)));
               std::cout << "Added " << (*ffeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
@@ -439,7 +461,6 @@ int main(int argc, char const *argv[]) {
             if (ImGui::Button("Add particle emitter")) {
               // this is C++11
               ffeatures.emplace_back(std::make_unique<ParticleEmitter>(xc[0], xc[1], estr));
-              //ffeatures.emplace_back(std::unique_ptr<ParticleEmitter>(new ParticleEmitter(xc[0], xc[1], estr)));
               std::cout << "Added " << (*ffeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
@@ -454,16 +475,18 @@ int main(int argc, char const *argv[]) {
 
       // button and modal window for adding new boundary objects
       ImGui::SameLine();
-      if (ImGui::Button("Add new boundary structure")) ImGui::OpenPopup("New boundary structure");
+      if (ImGui::Button("Add boundary structure")) ImGui::OpenPopup("New boundary structure");
       ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiSetCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New boundary structure"))
       {
         static int item = 0;
         //const char* items[] = { "solid circle", "solid square", "solid object from file", "draw outline in UI" };
-        const char* items[] = { "solid circle", "solid square" };
-        ImGui::Combo("type", &item, items, 2);
+        const char* items[] = { "solid circle", "solid square", "solid oval" };
+        ImGui::Combo("type", &item, items, 3);
 
         static float xc[2] = {0.0f, 0.0f};
+        static float rotdeg = 0.0f;
+        static float circdiam = 1.0;
 
         // always ask for center
         ImGui::InputFloat2("center", xc);
@@ -472,12 +495,10 @@ int main(int argc, char const *argv[]) {
         switch(item) {
           case 0:
             // create a circular boundary
-            static float circdiam = 1.0;
             ImGui::SliderFloat("diameter", &circdiam, 0.01f, 10.0f, "%.4f", 2.0);
             ImGui::TextWrapped("This feature will add a solid circular body centered at the given coordinates");
             if (ImGui::Button("Add circular body")) {
               bfeatures.emplace_back(std::make_unique<SolidCircle>(xc[0], xc[1], circdiam));
-              //bfeatures.emplace_back(std::unique_ptr<SolidCircle>(new SolidCircle(xc[0], xc[1], circdiam)));
               std::cout << "Added " << (*bfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
@@ -487,8 +508,26 @@ int main(int argc, char const *argv[]) {
             // create a square/rectangle boundary
             static float sqside = 1.0;
             ImGui::SliderFloat("side length", &sqside, 0.1f, 10.0f, "%.4f");
+            ImGui::SliderFloat("rotation", &rotdeg, 0.0f, 89.0f, "%.0f");
             ImGui::TextWrapped("This feature will add a solid square body centered at the given coordinates");
             if (ImGui::Button("Add square body")) {
+              // old arch does not support this, new one does:
+              bfeatures.emplace_back(std::make_unique<SolidSquare>(xc[0], xc[1], sqside, rotdeg));
+              std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            break;
+          case 2:
+            // create an oval boundary
+            static float minordiam = 0.5;
+            ImGui::SliderFloat("major diameter", &circdiam, 0.01f, 10.0f, "%.4f", 2.0);
+            ImGui::SliderFloat("minor diameter", &minordiam, 0.01f, 10.0f, "%.4f", 2.0);
+            ImGui::SliderFloat("rotation", &rotdeg, 0.0f, 179.0f, "%.0f");
+            ImGui::TextWrapped("This feature will add a solid oval body centered at the given coordinates");
+            if (ImGui::Button("Add oval body")) {
+              bfeatures.emplace_back(std::make_unique<SolidOval>(xc[0], xc[1], circdiam, minordiam, rotdeg));
+              std::cout << "Added " << (*bfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
@@ -506,12 +545,86 @@ int main(int argc, char const *argv[]) {
         ImGui::EndPopup();
       }
 
+
+      // button and modal window for adding new measurement objects
+      ImGui::SameLine();
+      if (ImGui::Button("Add measurement structure")) ImGui::OpenPopup("New measurement structure");
+      ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiSetCond_FirstUseEver);
+      if (ImGui::BeginPopupModal("New measurement structure"))
+      {
+        static int item = 0;
+        const char* items[] = { "single point/tracer", "streakline", "circle of tracers", "line of tracers" };
+        ImGui::Combo("type", &item, items, 4);
+
+        static float xc[2] = {0.0f, 0.0f};
+        static float xf[2] = {0.0f, 1.0f};
+        static bool is_lagrangian = true;
+        static float rad = 5.0 * sim.get_ips();
+
+        // show different inputs based on what is selected
+        switch(item) {
+          case 0:
+            // a single measurement point
+            ImGui::InputFloat2("position", xc);
+            ImGui::Checkbox("Point follows flow", &is_lagrangian);
+            ImGui::TextWrapped("This feature will add 1 point");
+            if (ImGui::Button("Add single point")) {
+              mfeatures.emplace_back(std::make_unique<SinglePoint>(xc[0], xc[1], is_lagrangian));
+              std::cout << "Added " << (*mfeatures.back()) << std::endl;
+              ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            break;
+          case 1:
+            // a tracer emitter
+            ImGui::InputFloat2("position", xc);
+            ImGui::TextWrapped("This feature will add 1 tracer emitter");
+            if (ImGui::Button("Add streakline")) {
+              mfeatures.emplace_back(std::make_unique<TracerEmitter>(xc[0], xc[1]));
+              std::cout << "Added " << (*mfeatures.back()) << std::endl;
+              ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            break;
+          case 2:
+            // a tracer circle
+            ImGui::InputFloat2("center", xc);
+            ImGui::SliderFloat("radius", &rad, sim.get_ips(), 1.0f, "%.4f");
+            ImGui::TextWrapped("This feature will add about %d field points",
+                               (int)(0.785398175*pow(2*rad/(tracer_size*sim.get_ips()), 2)));
+            if (ImGui::Button("Add circle of tracers")) {
+              mfeatures.emplace_back(std::make_unique<TracerBlob>(xc[0], xc[1], rad));
+              std::cout << "Added " << (*mfeatures.back()) << std::endl;
+              ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            break;
+          case 3:
+            // a tracer line
+            ImGui::InputFloat2("start", xc);
+            ImGui::InputFloat2("finish", xf);
+            ImGui::TextWrapped("This feature will add about %d field points",
+                               1+(int)(std::sqrt(std::pow(xf[0]-xc[0],2)+std::pow(xf[1]-xc[1],2))/(tracer_size*sim.get_ips())));
+            if (ImGui::Button("Add line of tracers")) {
+              mfeatures.emplace_back(std::make_unique<TracerLine>(xc[0], xc[1], xf[0], xf[1]));
+              std::cout << "Added " << (*mfeatures.back()) << std::endl;
+              ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            break;
+        }
+
+        if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
+        ImGui::EndPopup();
+      }
+
     } // end flow structures
 
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Rendering parameters")) {
       ImGui::ColorEdit3("positive circulation", (float*)&pos_circ_color);
       ImGui::ColorEdit3("negative circulation", (float*)&neg_circ_color);
+      ImGui::ColorEdit3("feature color", (float*)&default_color);
       ImGui::ColorEdit3("background color", (float*)&clear_color);
       //ImGui::Checkbox("show origin", &show_origin);
 
@@ -562,9 +675,11 @@ int main(int argc, char const *argv[]) {
       //if (ImGui::Button("ImGui Samples")) show_test_window ^= 1;
       //if (ImGui::Button("Another Window")) show_another_window ^= 1;
 
-      ImGui::Text("Draw frame rate: %.2f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+      ImGui::Text("Draw frame rate: %.2f ms/frame (%.1f FPS)",
+                  1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
-      ImGui::Text("Number of panels: %ld  Number of particles: %ld", sim.get_npanels(), sim.get_nparts());
+      ImGui::Text("Number of panels: %ld  particles: %ld  field points: %ld",
+                  sim.get_npanels(), sim.get_nparts(), sim.get_nfldpts());
 
     }
 
@@ -606,7 +721,10 @@ int main(int argc, char const *argv[]) {
 
     // draw the simulation: panels and particles
     compute_projection_matrix(window, vcx, vcy, &vsize, gl_projection);
-    sim.drawGL(gl_projection, &pos_circ_color.x, &neg_circ_color.x);
+    sim.drawGL(gl_projection, &pos_circ_color.x, &neg_circ_color.x, &default_color.x, tracer_size);
+
+    // if simulation has not been initted, draw the features instead!
+    //for (auto const& bf : bfeatures) { bf.drawGL(); }
 
     // draw the GUI
     ImGui::Render();
