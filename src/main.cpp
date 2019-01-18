@@ -309,10 +309,108 @@ int main(int argc, char const *argv[]) {
     {
 
     ImGui::Begin("Omega2D");
-    ImGui::TextWrapped("Welcome to Omega2D. First set your simulation globals, then add one or more flow structures, then press RUN. Have fun!");
-
+    ImGui::TextWrapped("Welcome to Omega2D. Select a simulation from the drop-down, or manually set your simulation global properites and add one or more flow, boundary, or measurement structures. Space bar starts and stops the run. Have fun!");
     ImGui::Spacing();
-    if (ImGui::CollapsingHeader("Simulation globals", ImGuiTreeNodeFlags_DefaultOpen)) {
+
+    // Select pre-populated simulations
+    {
+      static int sim_item = 0;
+      const char* sim_items[] = { "Select a simulation...", "co-rotating vortices", "traveling vortex pair", "flow over circle", "flow over square" };
+      ImGui::Combo("", &sim_item, sim_items, 5);
+
+      float* dt = sim.addr_dt();
+      float* fs = sim.addr_fs();
+      float* re = sim.addr_re();
+
+      switch(sim_item) {
+        case 0:
+          // nothing
+          break;
+        case 1:
+          // axisymmetrization of a co-rotating vortex pair
+          sim.reset();
+          bfeatures.clear();
+          ffeatures.clear();
+          *dt = 0.02;
+          fs[0] = 0.0; fs[1] = 0.0;
+          sim.set_re_for_ips(0.025);
+          // generate the vortices
+          ffeatures.emplace_back(std::make_unique<VortexBlob>(0.0, 0.5, 1.0, 0.30, 0.1));
+          ffeatures.emplace_back(std::make_unique<VortexBlob>(0.0, -0.5, 1.0, 0.30, 0.1));
+          is_viscous = false;
+          sim.set_diffuse(false);
+          // start it up
+          sim_is_running = true;
+          // and make sure we don't keep re-entering this
+          sim_item = 0;
+          break;
+        case 2:
+          // travelling counter-rotating pair
+          sim.reset();
+          bfeatures.clear();
+          ffeatures.clear();
+          *dt = 0.02;
+          fs[0] = 0.0; fs[1] = 0.0;
+          sim.set_re_for_ips(0.025);
+          // generate the vortices
+          ffeatures.emplace_back(std::make_unique<VortexBlob>(0.0, 0.5, 1.0, 0.30, 0.1));
+          ffeatures.emplace_back(std::make_unique<VortexBlob>(0.0, -0.5, -1.0, 0.30, 0.1));
+          is_viscous = false;
+          sim.set_diffuse(false);
+          // start it up
+          sim_is_running = true;
+          // and make sure we don't keep re-entering this
+          sim_item = 0;
+          break;
+        case 3:
+          // Re=250 flow over a circular cylinder
+          sim.reset();
+          bfeatures.clear();
+          ffeatures.clear();
+          *dt = 0.02;
+          fs[0] = 1.0; fs[1] = 0.0;
+          *re = 250.0;
+          // generate the boundary
+          bfeatures.emplace_back(std::make_unique<SolidCircle>(0.0, 0.0, 1.0));
+          is_viscous = true;
+          sim.set_diffuse(true);
+          // start it up
+          sim_is_running = true;
+          // and make sure we don't keep re-entering this
+          sim_item = 0;
+          break;
+        case 4:
+          // Re=500 flow over a square
+          sim.reset();
+          bfeatures.clear();
+          ffeatures.clear();
+          *dt = 0.01;
+          fs[0] = 1.0; fs[1] = 0.0;
+          *re = 500.0;
+          // generate the boundary
+          bfeatures.emplace_back(std::make_unique<SolidSquare>(0.0, 0.0, 1.0, 0.0));
+          is_viscous = true;
+          sim.set_diffuse(true);
+          // start it up
+          sim_is_running = true;
+          // and make sure we don't keep re-entering this
+          sim_item = 0;
+          break;
+      } // end switch
+    }
+
+    // or load a simulation from a JSON file
+    //if (ImGui::Button("Or load a json file", ImVec2(160,0))) {
+    //  std::cout << std::endl << "Loading simulation from file" << std::endl;
+      // remove all particles and reset timer
+      //sim.reset();
+      //std::cout << "Loaded and reset" << std::endl;
+    //}
+    ImGui::Spacing();
+
+
+    //if (ImGui::CollapsingHeader("Simulation globals", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::CollapsingHeader("Simulation globals")) {
 
       ImGui::SliderFloat("Time step", sim.addr_dt(), 0.001f, 0.1f, "%.4f", 2.0f);
       ImGui::Checkbox("Fluid is viscous (diffuses)", &is_viscous);
@@ -330,12 +428,14 @@ int main(int argc, char const *argv[]) {
         ImGui::SliderFloat("Particle spacing", &my_ips, 0.001f, 0.1f, "%.3f", 2.0f);
         // change underlying Re when this changes
         sim.set_re_for_ips(my_ips);
+        my_ips = sim.get_ips();
       }
       ImGui::InputFloat2("Freestream speed", sim.addr_fs());
     }
 
     ImGui::Spacing();
-    if (ImGui::CollapsingHeader("Flow structures", ImGuiTreeNodeFlags_DefaultOpen)) {
+    //if (ImGui::CollapsingHeader("Flow structures", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::CollapsingHeader("Flow structures")) {
 
       int buttonIDs = 10;
 
@@ -652,12 +752,14 @@ int main(int argc, char const *argv[]) {
       if (sim_is_running) {
         ImGui::Text("Simulation is running...time = %g", sim.get_time());
         if (ImGui::Button("PAUSE", ImVec2(200,0))) sim_is_running = false;
+        // space bar pauses
         if (ImGui::IsKeyPressed(32)) sim_is_running = false;
       } else {
         ImGui::Text("Simulation is not running, time = %g", sim.get_time());
         if (ImGui::Button("RUN", ImVec2(200,0))) sim_is_running = true;
         ImGui::SameLine();
         if (ImGui::Button("Step", ImVec2(120,0))) begin_single_step = true;
+        // and space bar resumes
         if (ImGui::IsKeyPressed(32)) sim_is_running = true;
       }
       ImGui::SameLine();
