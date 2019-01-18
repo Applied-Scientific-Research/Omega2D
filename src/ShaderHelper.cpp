@@ -33,20 +33,6 @@ const std::string part_frag_shader_source =
 #include "shaders/particle.frag"
 ;
 
-const std::string oldpart_vert_shader_source =
-#include "shaders/oldparticle.vert"
-;
-const std::string oldpart_frag_shader_source =
-#include "shaders/oldparticle.frag"
-;
-
-const std::string panel_vert_shader_source =
-#include "shaders/panel.vert"
-;
-const std::string panel_frag_shader_source =
-#include "shaders/panel.frag"
-;
-
 const std::string surfline_vert_shader_source =
 #include "shaders/surfaceline.vert"
 ;
@@ -105,28 +91,6 @@ GLuint create_draw_blob_program() {
 }
 
 
-// Create a program from two shaders to render particles as blobs
-GLuint create_particle_program() {
-  // Load and compile the vertex and fragment shaders
-  GLuint vertexShader = load_and_compile_shader(oldpart_vert_shader_source, GL_VERTEX_SHADER);
-  GLuint fragmentShader = load_and_compile_shader(oldpart_frag_shader_source, GL_FRAGMENT_SHADER);
-
-  // Attach the above shader to a program
-  GLuint shaderProgram = glCreateProgram();
-  glAttachShader(shaderProgram, vertexShader);
-  glAttachShader(shaderProgram, fragmentShader);
-
-  // Flag the shaders for deletion
-  glDeleteShader(vertexShader);
-  glDeleteShader(fragmentShader);
-
-  // Link and use the program
-  glLinkProgram(shaderProgram);
-  glUseProgram(shaderProgram);
-
-  return shaderProgram;
-}
-
 // Create a program from one shader to render particles as points
 GLuint create_draw_point_program() {
   // Load and compile the vertex and fragment shaders
@@ -149,27 +113,6 @@ GLuint create_draw_point_program() {
   return shaderProgram;
 }
 
-// Create a program from two shaders to render panels
-GLuint create_panel_program() {
-  // Load and compile the vertex and fragment shaders
-  GLuint vertexShader = load_and_compile_shader(panel_vert_shader_source, GL_VERTEX_SHADER);
-  GLuint fragmentShader = load_and_compile_shader(panel_frag_shader_source, GL_FRAGMENT_SHADER);
-
-  // Attach the above shader to a program
-  GLuint shaderProgram = glCreateProgram();
-  glAttachShader(shaderProgram, vertexShader);
-  glAttachShader(shaderProgram, fragmentShader);
-
-  // Flag the shaders for deletion
-  glDeleteShader(vertexShader);
-  glDeleteShader(fragmentShader);
-
-  // Link and use the program
-  glLinkProgram(shaderProgram);
-  glUseProgram(shaderProgram);
-
-  return shaderProgram;
-}
 
 // Create a program from two shaders to render panels
 GLuint create_draw_surface_line_prog() {
