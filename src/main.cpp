@@ -334,6 +334,7 @@ int main(int argc, char const *argv[]) {
           sim.reset();
           bfeatures.clear();
           ffeatures.clear();
+          mfeatures.clear();
           *dt = 0.02;
           fs[0] = 0.0; fs[1] = 0.0;
           sim.set_re_for_ips(0.025);
@@ -352,6 +353,7 @@ int main(int argc, char const *argv[]) {
           sim.reset();
           bfeatures.clear();
           ffeatures.clear();
+          mfeatures.clear();
           *dt = 0.02;
           fs[0] = 0.0; fs[1] = 0.0;
           sim.set_re_for_ips(0.025);
@@ -370,6 +372,7 @@ int main(int argc, char const *argv[]) {
           sim.reset();
           bfeatures.clear();
           ffeatures.clear();
+          mfeatures.clear();
           *dt = 0.02;
           fs[0] = 1.0; fs[1] = 0.0;
           *re = 250.0;
@@ -387,6 +390,7 @@ int main(int argc, char const *argv[]) {
           sim.reset();
           bfeatures.clear();
           ffeatures.clear();
+          mfeatures.clear();
           *dt = 0.01;
           fs[0] = 1.0; fs[1] = 0.0;
           *re = 500.0;
