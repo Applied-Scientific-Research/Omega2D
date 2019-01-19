@@ -73,7 +73,7 @@ Pictured below is a simulation of viscous flow over a circle at Reynolds number 
 ## To do
 Tasks to consider or implement:
 
-* Add file selector dialog, like [this one](https://github.com/gileoo/Imgui-IGS-Snippets)
+* Add file selector dialog, like [this one](https://github.com/gileoo/Imgui-IGS-Snippets) or [this one](https://github.com/Flix01/imgui/tree/imgui_with_addons/addons/imguifilesystem)
 * Allow Points to be able to draw not only blobs but dots at the middles, too, using same arrays but different draw programs (turn either on or off?)
 * Allow inert Points collections to never allocate space for radius
 * Move some initialization back into ElementBase - like positions and such, keep radius in Points, then ElementBase can draw points?
