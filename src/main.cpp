@@ -312,7 +312,7 @@ int main(int argc, char const *argv[]) {
     {
 
     ImGui::Begin("Omega2D");
-    ImGui::TextWrapped("Welcome to Omega2D. Select a simulation from the drop-down, or manually set your simulation global properites and add one or more flow, boundary, or measurement structures. Space bar starts and stops the run. Have fun!");
+    ImGui::TextWrapped("Welcome to Omega2D. Select a simulation from the drop-down, load from a file, or manually set your simulation global properites and add one or more flow, boundary, or measurement structures. Space bar starts and stops the run. Have fun!");
     ImGui::Spacing();
 
     // Select pre-populated simulations
@@ -412,7 +412,10 @@ int main(int argc, char const *argv[]) {
       // load and report
       std::string infile = "input.json";
       read_json(sim, ffeatures, bfeatures, mfeatures, infile);
-      std::cout << std::endl << "Loaded simulation from " << infile << std::endl;
+      // we have to manually set this variable
+      is_viscous = sim.get_diffuse();
+      // run one step so we know what we have
+      begin_single_step = true;
     }
     ImGui::Spacing();
 

@@ -194,6 +194,7 @@ BlockOfRandom::to_json() const {
   j["center"] = {m_x, m_y};
   j["size"] = {m_xsize, m_ysize};
   j["strength range"] = {m_minstr, m_maxstr};
+  j["num"] = m_num;
   return j;
 }
 
