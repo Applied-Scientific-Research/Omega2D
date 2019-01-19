@@ -205,8 +205,11 @@ int main(int argc, char const *argv[]) {
   static bool is_viscous = false;
 
   // check for json file name on the command line
-  //read_json_test();
-  //write_json_test();
+  if (false) {
+    std::string infile = "input.json";
+    read_json(sim, ffeatures, bfeatures, mfeatures, infile);
+    std::cout << std::endl << "Loaded simulation from " << infile << std::endl;
+  }
 
   // Main loop
   while (!glfwWindowShouldClose(window))
@@ -400,13 +403,17 @@ int main(int argc, char const *argv[]) {
     }
 
     // or load a simulation from a JSON file
-    //ImGui::SameLine();
-    //if (ImGui::Button("Or load a json file", ImVec2(160,0))) {
-    //  std::cout << std::endl << "Loading simulation from file" << std::endl;
-      // remove all particles and reset timer
-      //sim.reset();
-      //std::cout << "Loaded and reset" << std::endl;
-    //}
+    ImGui::SameLine();
+    if (ImGui::Button("Or load a json file", ImVec2(160,0))) {
+      // stop and clear before loading
+      sim.reset();
+      bfeatures.clear();
+      ffeatures.clear();
+      // load and report
+      std::string infile = "input.json";
+      read_json(sim, ffeatures, bfeatures, mfeatures, infile);
+      std::cout << std::endl << "Loaded simulation from " << infile << std::endl;
+    }
     ImGui::Spacing();
 
 
@@ -792,7 +799,6 @@ int main(int argc, char const *argv[]) {
       // save the simulation to a JSON file
       ImGui::Spacing();
       if (ImGui::Button("Save simulation to file", ImVec2(180,0))) {
-
         // first take - just make up a file name and write it
         std::string outfile = "output.json";
 

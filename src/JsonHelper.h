@@ -12,8 +12,11 @@
 
 #include <string>
 
-void read_json_test();
-void write_json_test();
+void read_json (Simulation&,
+                std::vector<std::unique_ptr<FlowFeature>>&,
+                std::vector<std::unique_ptr<BoundaryFeature>>&,
+                std::vector<std::unique_ptr<MeasureFeature>>&,
+                std::string);
 void write_json(Simulation&,
                 std::vector<std::unique_ptr<FlowFeature>>&,
                 std::vector<std::unique_ptr<BoundaryFeature>>&,

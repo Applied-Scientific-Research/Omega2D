@@ -17,83 +17,64 @@
 
 using json = nlohmann::json;
  
+
 //
-// see if the library works
+// create a json object from the file and apply it to the simulation
 //
-void read_json_test() {
+void read_json (Simulation& sim,
+                std::vector<std::unique_ptr<FlowFeature>>& ffeatures,
+                std::vector<std::unique_ptr<BoundaryFeature>>& bfeatures,
+                std::vector<std::unique_ptr<MeasureFeature>>& mfeatures,
+                const std::string filename) {
 
   // read a JSON file
-  std::ifstream json_in("file.json");
-  json j_object;
-  json_in >> j_object;
-
-  // create JSON values
-  //json j_object = {{"one", 1}, {"two", 2}};
-  //json j_array = {1, 2, 4, 8, 16};
- 
-  // example for an object
-  for (auto& x : j_object.items()) {
-    std::cout << "key: " << x.key() << ", value: " << x.value() << '\n';
-  }
- 
-  // example for an array
-  //for (auto& x : j_array.items()) {
-  //  std::cout << "key: " << x.key() << ", value: " << x.value() << '\n';
-  //}
-}
-
-//
-// create a json object and write it to a test file
-//
-void write_json_test() {
-
-  // create an empty structure (null)
+  std::ifstream json_in(filename);
   json j;
+  json_in >> j;
 
-  // add a number that is stored as double (note the implicit conversion of j to an object)
-  j["pi"] = 3.141;
+  // march through the parameters and apply them
 
-  // add a Boolean that is stored as bool
-  j["happy"] = true;
+  // must do this first, as we need to set viscous before reading Re
+  if (j.count("simparams") == 1) {
+    json params = j["simparams"];
+    if (params.find("nominalDt") != params.end()) {
+      float* dt = sim.addr_dt();
+      *dt = params["nominalDt"];
+    }
+    if (params.find("viscous") != params.end()) {
+      std::string viscous = params["viscous"];
+      if (viscous == "vrm") { sim.set_diffuse(true); }
+      else { sim.set_diffuse(false); }
+    }
+  }
 
-  // add a string that is stored as std::string
-  j["name"] = "Niels";
+  // now we can read Re
+  if (j.count("flowparams") == 1) {
+    json params = j["flowparams"];
+    if (params.find("Re") != params.end()) {
+      float* re = sim.addr_re();
+      *re = params["Re"];
+    }
+    if (params.find("Uinf") != params.end()) {
+      float* fs = sim.addr_fs();
+      std::vector<float> new_fs = params["Uinf"];
+      fs[0] = new_fs[0];
+      fs[1] = new_fs[1];
+    }
+  }
 
-  // add another null object by passing nullptr
-  j["nothing"] = nullptr;
-
-  // add an object inside the object
-  j["answer"]["everything"] = 42;
-
-  // add an array that is stored as std::vector (using an initializer list)
-  j["list"] = { 1, 0, 2 };
-
-  // add another object (using an initializer list of pairs)
-  j["object"] = { {"currency", "USD"}, {"value", 42.99} };
-
-  // instead, you could also write (which looks very similar to the JSON above)
-  json j2 = {
-    {"pi", 3.141},
-    {"happy", true},
-    {"name", "Niels"},
-    {"nothing", nullptr},
-    {"answer", {
-      {"everything", 42}
-    }},
-    {"list", {1, 0, 2}},
-    {"object", {
-      {"currency", "USD"},
-      {"value", 42.99}
-    }}
-  };
-
-  // write prettified JSON to another file
-  std::ofstream json_out("pretty.json");
-  json_out << std::setw(2) << j << std::endl;
+  // read the flow features, if any
+  if (j.count("flowstructures") == 1) {
+    json params = j["flowstructures"];
+    //std::vector<json> = 
+  }
 }
+
 
 //
 // create a json object representing the simulation and write it to the given file
+//
+// the inputs should be const
 //
 void write_json(Simulation& sim,
                 std::vector<std::unique_ptr<FlowFeature>>& ffeatures,
@@ -123,10 +104,6 @@ void write_json(Simulation& sim,
     jflows.push_back(ff->to_json());
   }
   j["flowstructures"] = jflows;
-
-  //jflows.push_back({{"name", "myname"}, {"value", 3.0}});
-  //jflows.push_back({{"name", "othername"}, {"value", 13.0}});
-  //j["testing"] = jflows;
 
   // assemble a vector of boundary features
   std::vector<json> jbounds;
