@@ -147,6 +147,32 @@ void read_json (Simulation& sim,
       }
     }
   }
+
+  // read the measurement features, if any
+  if (j.count("measurements") == 1) {
+    const std::vector<json> mf_json = j["measurements"];
+    // iterate through vector of measurement features
+    for (auto const& mf: mf_json) {
+      //if (mf.count("type") == 1) {
+      const std::string ftype = mf["type"];
+      const std::vector<float> c = mf["center"];
+      if (ftype == "tracer") {
+        std::cout << "  found single tracer" << std::endl;
+        mfeatures.emplace_back(std::make_unique<SinglePoint>(c[0], c[1], true));
+      } else if (ftype == "tracer emitter") {
+        std::cout << "  found tracer emitter" << std::endl;
+        mfeatures.emplace_back(std::make_unique<TracerEmitter>(c[0], c[1]));
+      } else if (ftype == "tracer blob") {
+        std::cout << "  found tracer blob" << std::endl;
+        const float rad = mf["rad"];
+        mfeatures.emplace_back(std::make_unique<TracerBlob>(c[0], c[1], rad));
+      } else if (ftype == "tracer line") {
+        std::cout << "  found tracer line" << std::endl;
+        const std::vector<float> e = mf["end"];
+        mfeatures.emplace_back(std::make_unique<TracerLine>(c[0], c[1], e[0], e[1]));
+      }
+    }
+  }
 }
 
 
