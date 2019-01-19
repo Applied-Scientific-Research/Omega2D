@@ -73,7 +73,7 @@ Pictured below is a simulation of viscous flow over a circle at Reynolds number 
 ## To do
 Tasks to consider or implement:
 
-* Add json reading and writing to allow batch modes - just like 3D code
+* Add file selector dialog, like [this one](https://github.com/gileoo/Imgui-IGS-Snippets)
 * Allow Points to be able to draw not only blobs but dots at the middles, too, using same arrays but different draw programs (turn either on or off?)
 * Allow inert Points collections to never allocate space for radius
 * Move some initialization back into ElementBase - like positions and such, keep radius in Points, then ElementBase can draw points?
@@ -89,14 +89,12 @@ Tasks to consider or implement:
 * Add an animated GIF to the page to show how to set up a run?
 * Have "status" line indicate when we're waiting for a step to finish after we've hit pause
 * Instead of manipulating the projection matrix, have the mouse change the view matrix (assume model matrix is unity), see [here](https://solarianprogrammer.com/2013/05/22/opengl-101-matrices-projection-view-model/) for a nice write-up on the three OpenGL matrices
-* Support multiple Lagrangian element collections under an Elements structure - new arch will allow this
 * Support faster VRM by caching values from first half to use in second half
 * Make more of the sliders dynamic (like dt ~~and color~~) - be able to add new particles while a sim is running
 * Right-click on the draw screen to add features - hard? can imgui handle it?
 * Draw something when you add a feature (so we know it's doing something)
 * Create an OpenGL compute shader routine for the particle-particle influence
 * Add option to draw particles as thin white dots/lines "Draw elements"
-* Generalize bodies to allow squares and circles in the GUI
 * Add to Core.h a routine to precalculate and save the "trim tables" to be used when pushing particles away from boundaries
 * Use these correct trim tables to push particles away from the boundary
 * Re-orient the VRM insertion points to align to the nearest boundary - should smooth out the shedding
@@ -112,6 +110,9 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~Support multiple Lagrangian element collections under an Elements structure - new arch will allow this~~
+* ~~Generalize bodies to allow squares and circles in the GUI~~
+* ~~Add json reading and writing to allow batch modes - just like 3D code~~
 * ~~Replace core architecture (using std::variant and Collection)~~
 * ~~Get Vc into the influence calculations for the new arch~~
 * ~~For new BEM: get particles to create correct RHS, then panels to create correct A matrix, then Points to generate correct particles, finally for Surfaces to remove Points beneath them~~

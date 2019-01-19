@@ -69,6 +69,10 @@ void read_json (Simulation& sim,
     }
   }
 
+  // Eventually we will want to generate a constructor for each feature type
+  //   which accepts a json object, the feature then constructs itself, saving
+  //   us from having feature-specific code here
+
   // read the flow features, if any
   if (j.count("flowstructures") == 1) {
     const std::vector<json> ff_json = j["flowstructures"];
