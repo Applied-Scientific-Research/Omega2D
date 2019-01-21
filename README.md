@@ -73,6 +73,10 @@ Pictured below is a simulation of viscous flow over a circle at Reynolds number 
 ## To do
 Tasks to consider or implement:
 
+* Need to periodically check tracer particles to make sure they do not go inside of objects - like every frame we check 1/10th of all tracers and bump them out
+* When background is white, nothing else shows up! Check blending mode. Need this to change so that we can make more attractive visuals. Like, presets for "technical (red/blue), b/w (white/grey), vibrant (??)
+* If I add a measurement structure in the middle of a simulation, it doesn't init - should it?
+* Add rendering parameters to the json file read and write, this includes window size and projection!
 * Add file selector dialog, like [this one](https://github.com/gileoo/Imgui-IGS-Snippets) or [this one](https://github.com/Flix01/imgui/tree/imgui_with_addons/addons/imguifilesystem)
 * Allow Points to be able to draw not only blobs but dots at the middles, too, using same arrays but different draw programs (turn either on or off?)
 * Allow inert Points collections to never allocate space for radius
