@@ -118,7 +118,7 @@ SET(SOURCES "src/Simulation.cpp"
             "src/BoundaryFeature.cpp"
             "src/MeasureFeature.cpp"
             "src/JsonHelper.cpp"
-            "src/main.cpp")
+            "src/main_gui.cpp")
 file(GLOB IMGUISOURCES "src/imgui/*.cpp" )
 
 # create a binary for the GUI version

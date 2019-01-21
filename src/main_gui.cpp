@@ -1,5 +1,6 @@
 /*
- * main.cpp - Driver code for Omega2D + ImGui + Vc vortex particle method and boundary element method solver
+ * main_gui.cpp - Driver code for Omega2D + ImGui + Vc vortex particle method
+ *                and boundary element method solver, GUI version
  *
  * (c)2017-9 Applied Scientific Research, Inc.
  *           Written by Mark J Stock <markjstock@gmail.com>
