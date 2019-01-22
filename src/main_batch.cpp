@@ -39,12 +39,15 @@ int main(int argc, char const *argv[]) {
   // a string to hold any error messages
   std::string sim_err_msg;
 
-  // load a simulation from a JSON file
-  // check for json file name on the command line
-  if (true) {
-    std::string infile = "input.json";
+  // load a simulation from a JSON file - check command line for file name
+  if (argc == 2) {
+    std::string infile = argv[1];
     read_json(sim, ffeatures, bfeatures, mfeatures, infile);
     std::cout << std::endl << "Loaded simulation from " << infile << std::endl;
+  } else {
+    std::cout << std::endl << "Usage:" << std::endl;
+    std::cout << "  " << argv[0] << " filename.json" << std::endl << std::endl;
+    return -1;
   }
 
 
