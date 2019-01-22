@@ -84,11 +84,13 @@ Output will be written to the terminal and files to the working directory.
 ## To do
 Tasks to consider or implement:
 
+* Add Read Setup, Read State, Write Setup, Write State buttons, which call a JSON library, like [nlohmann/json](https://github.com/nlohmann/json), to perform those actions
+* Output particles and grid values to VTK-XML format, consider [tinyvtkxml](https://github.com/lighttransport/tinyvtkxml), [tinyxml2](https://github.com/leethomason/tinyxml2), or [AEXML](https://github.com/tadija/AEXML)
 * Add batch job params to the json format: end time, output time step, etc.
+* Add rendering parameters to the json file read and write, this includes window size and projection!
 * Need to periodically check tracer particles to make sure they do not go inside of objects - like every frame we check 1/10th of all tracers and bump them out
 * When background is white, nothing else shows up! Check blending mode. Need this to change so that we can make more attractive visuals. Like, presets for "technical (red/blue), b/w (white/grey), vibrant (??)
 * If I add a measurement structure in the middle of a simulation, it doesn't init - should it?
-* Add rendering parameters to the json file read and write, this includes window size and projection!
 * Add file selector dialog, like [this one](https://github.com/gileoo/Imgui-IGS-Snippets) or [this one](https://github.com/Flix01/imgui/tree/imgui_with_addons/addons/imguifilesystem)
 * Allow Points to be able to draw not only blobs but dots at the middles, too, using same arrays but different draw programs (turn either on or off?)
 * Allow inert Points collections to never allocate space for radius
@@ -101,7 +103,7 @@ Tasks to consider or implement:
 * Add a "Run to time..." button to allow users to run a sim up to an exact time
 * Add "Save setup", "Save flow", and "Save image" buttons
 * Ideal initial interface: lots of stuff hidden, just a graphical menu with circles, squares, vortex patches, etc. Each has handles that you can drag to resize and reposition the element; all sizes/locations quantized to 0.1 or 0.05. "Expert" box lets you change Re, dt, etc.
-* Add an animated GIF to the page to show how to set up a run?
+* Add an animated GIF to the page to show how to set up a run? See [peek](https://github.com/phw/peek)
 * Have "status" line indicate when we're waiting for a step to finish after we've hit pause
 * Instead of manipulating the projection matrix, have the mouse change the view matrix (assume model matrix is unity), see [here](https://solarianprogrammer.com/2013/05/22/opengl-101-matrices-projection-view-model/) for a nice write-up on the three OpenGL matrices
 * Support faster VRM by caching values from first half to use in second half
@@ -117,7 +119,6 @@ Tasks to consider or implement:
 * Let the user grab the fs arrow to dynamically change the freestream
 * Add field points in a grid over the visible domain, find vels, display as streaks
 * Draw panels as polygons extending along the normal with a sharp edge on the body side and a gradient to zero on the flow side - then they can visually merge with the particles to make a visibly smooth and more-correct vorticity field
-* Add Read Setup, Read State, Write Setup, Write State buttons, which call a JSON library, like [nlohmann/json](https://github.com/nlohmann/json), to perform those actions
 * Reconsider templatizing on the scalar type. If you don't intend for floats or doubles in the same code, perhaps create a header with `using Scalar = float;` so you can flip back and forth easier. NBL
 * Consider different method for including shader code NBL
 * Consider reducing the number of virtual methods; the `variant` path NBL
