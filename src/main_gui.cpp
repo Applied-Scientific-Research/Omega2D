@@ -22,6 +22,7 @@
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw_gl3.h"
+#include "imgui/ImguiWindowsFileIO.hpp"
 
 //#include <GL/gl3w.h>    // This example is using gl3w to access OpenGL
 // functions (because it is small). You may use glew/glad/glLoadGen/etc.
@@ -197,6 +198,7 @@ int main(int argc, char const *argv[]) {
   bool show_stats_window = false;
   bool show_terminal_window = false;
   bool show_test_window = false;
+  bool show_file_input_window = false;
   ImVec4 pos_circ_color = ImColor(207, 47, 47);
   ImVec4 neg_circ_color = ImColor(63, 63, 255);
   ImVec4 default_color = ImColor(204, 204, 204);
@@ -205,12 +207,6 @@ int main(int argc, char const *argv[]) {
   //static bool show_origin = true;
   static bool is_viscous = false;
 
-  // check for json file name on the command line
-  if (false) {
-    std::string infile = "input.json";
-    read_json(sim, ffeatures, bfeatures, mfeatures, infile);
-    std::cout << std::endl << "Loaded simulation from " << infile << std::endl;
-  }
 
   // Main loop
   while (!glfwWindowShouldClose(window))
@@ -409,18 +405,34 @@ int main(int argc, char const *argv[]) {
 
     // or load a simulation from a JSON file
     ImGui::SameLine();
-    if (ImGui::Button("Or load a json file", ImVec2(160,0))) {
-      // stop and clear before loading
-      sim.reset();
-      bfeatures.clear();
-      ffeatures.clear();
-      // load and report
+    if (ImGui::Button("Or load a json file", ImVec2(160,0))) show_file_input_window = true;
+
+    if (show_file_input_window) {
+
+      std::vector<std::string> recent_files;
       std::string infile = "input.json";
-      read_json(sim, ffeatures, bfeatures, mfeatures, infile);
-      // we have to manually set this variable
-      is_viscous = sim.get_diffuse();
-      // run one step so we know what we have
-      begin_single_step = true;
+
+      if (fileIOWindow( infile, recent_files, "Open", {"*.usr", "*.json"}, true  )) {
+
+        show_file_input_window = false;
+        if (!infile.empty()) {
+          // remember
+          recent_files.push_back( infile );
+
+          // stop and clear before loading
+          sim.reset();
+          bfeatures.clear();
+          ffeatures.clear();
+
+          // load and report
+          read_json(sim, ffeatures, bfeatures, mfeatures, infile);
+
+          // we have to manually set this variable
+          is_viscous = sim.get_diffuse();
+          // run one step so we know what we have
+          begin_single_step = true;
+        }
+      }
     }
     ImGui::Spacing();
 
