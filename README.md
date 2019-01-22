@@ -1,6 +1,7 @@
 # Omega2D
 Two-dimensional flow solver with GUI using vortex particle and boundary element methods
 
+
 ## Overview
 [Computational Fluid Dynamics (CFD)](https://en.wikipedia.org/wiki/Computational_fluid_dynamics) encompasses a wide variety of methods to aid in the numerical simulation of fluid flows on digital computers. Most methods rely on the subdivision of the fluid domain into small, stationary cells, such as tetrahedra, and solve the [Navier-Stokes equations](https://en.wikipedia.org/wiki/Navier%E2%80%93Stokes_equations) on each Eulerian (not moving) cell. In contrast, vortex methods rely on a Lagrangian (moving with the flow) description of the only the [vorticity](https://en.wikipedia.org/wiki/Vorticity)-containing region of the fluid domain and any solid boundaries present. This eliminates many of the difficulties present in traditional CFD. In addition, the form of the equations used also removes the pressure term from the Navier-Stokes equations, which is a large source of instability and extra effort in traditional CFD. This is why many new flow solvers for unsteady momentum-dominated flows (non-microscopic in scale) are implemented using vortex methods.
 
@@ -8,7 +9,8 @@ Omega2D is a platform for testing methods and techniques for implementing a comb
 
 This open-source code is aimed at users interested in understanding vortex methods as a tool for fluid simulation, or simply eager to try a fast fluid simulator without the gross approximations present in most other real-time tools.
 
-## Build and run
+
+## Build the software
 This code uses some C++17 features, so should compile on GCC 7, Clang 4, and MSVC 19.10 compilers.
 
 #### Prerequisites
@@ -36,7 +38,7 @@ or on OSX via [Homebrew](https://docs.brew.sh/Installation) with
     sudo make install
     cd ../..
 
-#### Compile and run
+#### Compile
 Upon installation of the prerequisites, the following commands should build Omega2D.
 
     git clone git@github.com:Applied-Scientific-Research/Omega2D.git
@@ -45,7 +47,6 @@ Upon installation of the prerequisites, the following commands should build Omeg
     cd build
     cmake -DCMAKE_BUILD_TYPE=Release -DUSE_OMP=ON -DUSE_VC=OFF ..
     make
-    ./Omega2D.bin
 
 If you were able to build and install Vc, then you should set `-DUSE_VC=ON` in the above `cmake` command.
 
@@ -54,25 +55,36 @@ On OSX, to get OpenMP parallization of the solver, you may need to use Clang, or
     brew install gcc
     cmake -DCMAKE_C_COMPILER=/usr/local/bin/gcc-7 -DCMAKE_CXX_COMPILER=/usr/local/bin/g++-7 ..
 
-## Set up and run a simulation
 
-Upon running Omega2D, you will see the following GUI:
+## Run a simulation in the GUI
+If you were able to build the software, you should be able to run
 
-![screenshot](media/Screenshot_v4a.png?raw=true "Fresh GUI window")
+    ./Omega2D.bin
 
-In this window you can toggle viscous mode, set a freestream and time step, and tweak the simulation colors. But, most importantly, you can set the initial conditions, which consist of any number of *flow structures* and *boundary structures*. Pictured below is the action of adding a boundary structure:
+Upon running Omega2D, you will see a GUI floating over a black field. Using the *Select a simulation...* pull-down menu, you can quickly load and run a preset simulation. Let's load "flow over circle".
 
-![screenshot](media/Screenshot_v4b.png?raw=true "Adding a boundary structure")
+![screenshot](media/Screenshot_v5a.png?raw=true "Load a preset simulation")
 
-Once flow and boundary structures are created, and the simulation parameters are set as desired, press the *RUN* button to start the simulation. At any time you can press *PAUSE* to pause the simulation or *Reset* to go back to the original conditions. At any time, you can left-click and drag on the flow field to move your point of view, or use the scroll wheel to zoom and unzoom.
+At any time you can press *PAUSE* to pause the simulation or *Reset* to go back to the original conditions. At any time, you can left-click and drag on the flow field to move your point of view, or use the scroll wheel to zoom and unzoom. Space bar also pauses and unpauses the simulation. Note that some simulations quickly become large enough to take several seconds between updates. Don't worry: when you pause, the current simulation step will finish.
 
-Pictured below is a simulation of viscous flow over a circle at Reynolds number 200 after two steps. The blue and red fields represent negative and positive vorticity (rotation). This is created by flow sliding over the solid bondary. Because this flow solver uses vortex methods, we only require computational elements (vortex particles) where there is vorticity.
+There are several collapsible headers which you can open to modify this simulation, those include *Simulation globals* such as viscosity and flow speed, *Flow structures* such as solid bodies, vortex blobs, and tracers, and *Rendering parameters*. Some changes you make in these fields will affect the simulation immediately, but most will require you to *Reset*.
 
-![screenshot](media/Screenshot_v4c.png?raw=true "2D flow over a circular cylinder at Re=200")
+![screenshot](media/Screenshot_v5b.png?raw=true "Flow over a circular cylinder")
+
+Pictured above is a simulation of viscous flow over a circle at Reynolds number 250 after 76 steps. The blue and red fields represent negative and positive vorticity (rotation). This is created by flow interacting with the solid bondary. Because this flow solver uses vortex methods, we only require computational elements (vortex particles) where there is vorticity.
+
+
+### Run a batch job
+If you already have an input file in JSON format, or you exported one from the GUI, you can run a batch (no GUI) simulation with
+
+    ./Omega2Dbatch.bin input.json
+
+Output will be written to the terminal and files to the working directory.
 
 ## To do
 Tasks to consider or implement:
 
+* Add batch job params to the json format: end time, output time step, etc.
 * Need to periodically check tracer particles to make sure they do not go inside of objects - like every frame we check 1/10th of all tracers and bump them out
 * When background is white, nothing else shows up! Check blending mode. Need this to change so that we can make more attractive visuals. Like, presets for "technical (red/blue), b/w (white/grey), vibrant (??)
 * If I add a measurement structure in the middle of a simulation, it doesn't init - should it?
@@ -84,7 +96,6 @@ Tasks to consider or implement:
 * Move the GUI and pre-run parts of the various Body classes into their own class/file and out of main.cpp and Body.h
 * When running, grey out the dt and Re fields - those are the only things you can't change
 * Add a "ms/frame" and "FPS" for the simulation component also
-* Add a batch mode also - once you get json reading and png writing working - do we really need this? yes.
 * If we're adding png output, might as well add a "Record" button!
 * Add "got it" button to first section (the welcome section) to make it go away (forever?)
 * Add a "Run to time..." button to allow users to run a sim up to an exact time
@@ -114,6 +125,7 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~Add a batch mode also - once you get json reading and png writing working - do we really need this? yes.~~
 * ~~Support multiple Lagrangian element collections under an Elements structure - new arch will allow this~~
 * ~~Generalize bodies to allow squares and circles in the GUI~~
 * ~~Add json reading and writing to allow batch modes - just like 3D code~~
