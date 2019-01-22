@@ -183,6 +183,7 @@ int main(int argc, char const *argv[]) {
   // Get and set some IO functions
   ImGuiIO& io = ImGui::GetIO();
   io.IniFilename = ".omega2d.ini";
+  std::vector<std::string> recent_files;
 
   // a string to hold any error messages
   std::string sim_err_msg;
@@ -199,6 +200,7 @@ int main(int argc, char const *argv[]) {
   bool show_terminal_window = false;
   bool show_test_window = false;
   bool show_file_input_window = false;
+  bool show_file_output_window = false;
   ImVec4 pos_circ_color = ImColor(207, 47, 47);
   ImVec4 neg_circ_color = ImColor(63, 63, 255);
   ImVec4 default_color = ImColor(204, 204, 204);
@@ -409,14 +411,13 @@ int main(int argc, char const *argv[]) {
 
     if (show_file_input_window) {
 
-      bool try_to_open = false;
+      bool try_it = false;
       std::string infile = "input.json";
-      std::vector<std::string> recent_files;
 
-      if (fileIOWindow( try_to_open, infile, recent_files, "Open", {"*.json", "*.*"}, true, ImVec2(500,250))) {
+      if (fileIOWindow( try_it, infile, recent_files, "Open", {"*.json", "*.*"}, true, ImVec2(500,250))) {
 
         show_file_input_window = false;
-        if (try_to_open and !infile.empty()) {
+        if (try_it and !infile.empty()) {
           // remember
           recent_files.push_back( infile );
 
@@ -819,18 +820,26 @@ int main(int argc, char const *argv[]) {
 
       // save the simulation to a JSON file
       ImGui::Spacing();
-      if (ImGui::Button("Save simulation to file", ImVec2(180,0))) {
-        // first take - just make up a file name and write it
+      if (ImGui::Button("Save simulation to file", ImVec2(180,0))) show_file_output_window = true;
+
+      if (show_file_output_window) {
+        bool try_it = false;
         std::string outfile = "output.json";
 
-        // second take - open a file browser like https://github.com/gileoo/Imgui-IGS-Snippets
+        if (fileIOWindow( try_it, outfile, recent_files, "Save", {"*.json", "*.*"}, false, ImVec2(500,250))) {
+          show_file_output_window = false;
 
-        // write and echo
-        write_json(sim, ffeatures, bfeatures, mfeatures, outfile);
-        std::cout << std::endl << "Wrote simulation to " << outfile << std::endl;
+          if (try_it) {
+            // remember
+            recent_files.push_back( outfile );
+
+            // write and echo
+            write_json(sim, ffeatures, bfeatures, mfeatures, outfile);
+            std::cout << std::endl << "Wrote simulation to " << outfile << std::endl;
+          }
+        }
       }
       //ImGui::SameLine();
-
     }
 
     // done drawing the Omega2D UI window
