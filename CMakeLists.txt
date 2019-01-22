@@ -117,13 +117,17 @@ SET(SOURCES "src/Simulation.cpp"
             "src/CollectionHelper.cpp"
             "src/BoundaryFeature.cpp"
             "src/MeasureFeature.cpp"
-            "src/JsonHelper.cpp"
-            "src/main_gui.cpp")
+            "src/JsonHelper.cpp")
 file(GLOB IMGUISOURCES "src/imgui/*.cpp" )
 
 # create a binary for the GUI version
-ADD_EXECUTABLE( ${PROJECT_NAME} ${GLADSRC} ${IMGUISOURCES} ${SOURCES} "src/ShaderHelper.cpp" )
+ADD_EXECUTABLE( ${PROJECT_NAME} ${GLADSRC} ${IMGUISOURCES} ${SOURCES} "src/ShaderHelper.cpp" "src/main_gui.cpp")
 SET_TARGET_PROPERTIES( ${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${PROJECT_NAME}.bin" )
 TARGET_LINK_LIBRARIES( ${PROJECT_NAME} ${PLATFORM_LIBS} )
 TARGET_COMPILE_DEFINITIONS( ${PROJECT_NAME} PRIVATE "-DUSE_GL" )
+
+# create a binary for the command-line version
+ADD_EXECUTABLE( "${PROJECT_NAME}batch" ${SOURCES} "src/main_batch.cpp" )
+SET_TARGET_PROPERTIES( "${PROJECT_NAME}batch" PROPERTIES OUTPUT_NAME "${PROJECT_NAME}batch.bin" )
+TARGET_LINK_LIBRARIES( "${PROJECT_NAME}batch" ${PLATFORM_LIBS} )
 
