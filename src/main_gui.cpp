@@ -409,13 +409,14 @@ int main(int argc, char const *argv[]) {
 
     if (show_file_input_window) {
 
-      std::vector<std::string> recent_files;
+      bool try_to_open = false;
       std::string infile = "input.json";
+      std::vector<std::string> recent_files;
 
-      if (fileIOWindow( infile, recent_files, "Open", {"*.usr", "*.json"}, true  )) {
+      if (fileIOWindow( try_to_open, infile, recent_files, "Open", {"*.json", "*.*"}, true, ImVec2(500,250))) {
 
         show_file_input_window = false;
-        if (!infile.empty()) {
+        if (try_to_open and !infile.empty()) {
           // remember
           recent_files.push_back( infile );
 

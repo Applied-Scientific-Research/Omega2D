@@ -419,6 +419,7 @@ void toCStringVec(
 
 
 bool fileIOWindow(
+        bool& try_open,
         string& file_path,
         const std::vector<string>& recently_used_files,
         const string& button_text,
@@ -437,7 +438,7 @@ bool fileIOWindow(
     if( current_folder == "x" )
         current_folder = MiniPath::getCurrentDir();
 
-    static char current_file[ 256 ] = "Test.usr";
+    static char current_file[ 256 ] = "input.json";
     static int  file_type_selected = 0;
     static int  file_selected = 0;
     static int  directory_selected = 0;
@@ -531,7 +532,7 @@ bool fileIOWindow(
             SameLine();
     }
 
-    if( CollapsingHeader("Browse Directories") )
+    if( CollapsingHeader("Browse Directories", ImGuiTreeNodeFlags_DefaultOpen) )
     {
         directory_browsing = true;
 
@@ -623,22 +624,26 @@ bool fileIOWindow(
             string ext_filter = ext_filter_v[1];
             if( current_mini_path.extension() == ext_filter )
                 file_path = current_mini_path.filePath();
-        }
-        else
+        } else {
             file_path = current_mini_path.filePath();
+        }
 
         if( ensure_file_exists )
         {
             if( MiniPath::pathExists( file_path ) )
                 close_it = true;
-        }
-        else
+        } else {
             close_it = true;
+        }
+
+        try_open = true;
     }
 
     SameLine();
-    if( Button( "Cancel" ) )
+    if( Button( "Cancel" ) ) {
         close_it = true;
+        try_open = false;
+    }
     End();
 
     return close_it;

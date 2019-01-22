@@ -14,6 +14,7 @@
 /** Show a file-io dialoge window, e.g. usable as file save and file close dialoge.
 */
 bool fileIOWindow(
+    bool& try_open,
     std::string& file_path,
     const std::vector<std::string>& recently_used_files,
     const std::string& button_text,
