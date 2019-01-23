@@ -25,6 +25,11 @@ Simulation::Simulation()
     diff(),
     conv(),
     time(0.0),
+    output_dt(0.0),
+    end_time(0.0),
+    use_end_time(false),
+    max_steps(0),
+    use_max_steps(false),
     sim_is_initialized(false),
     step_has_started(false),
     step_is_finished(false)
@@ -40,6 +45,16 @@ float Simulation::get_hnu() { return std::sqrt(dt/re); }
 float Simulation::get_ips() { return diff.get_nom_sep_scaled() * get_hnu(); }
 float Simulation::get_vdelta() { return diff.get_particle_overlap() * get_ips(); }
 float Simulation::get_time() { return (float)time; }
+float Simulation::get_end_time() { return (float)end_time; }
+bool Simulation::using_end_time() { return use_end_time; }
+size_t Simulation::get_max_steps() { return max_steps; }
+bool Simulation::using_max_steps() { return use_max_steps; }
+float Simulation::get_output_dt() { return (float)output_dt; }
+
+// setters
+void Simulation::set_end_time(const double net) { end_time = net; use_end_time = true; }
+void Simulation::set_max_steps(const size_t nms) { max_steps = nms; use_max_steps = true; }
+void Simulation::set_output_dt(const double nodt) { output_dt = nodt; }
 
 // status
 size_t Simulation::get_npanels() { //return bdry.get_npanels(); }

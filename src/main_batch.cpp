@@ -104,10 +104,11 @@ int main(int argc, char const *argv[]) {
     nsteps++;
 
     // for testing: always break after a few steps
-    if (nsteps == 2) break;
+    //if (nsteps == 2) break;
 
-    // check vs. stopping condition
-    //if (time > endtime) break;
+    // check vs. stopping conditions
+    if (sim.using_max_steps() and sim.get_max_steps() == nsteps) break;
+    if (sim.using_end_time() and sim.get_end_time() <= sim.get_time()) break;
 
   } // end step
 

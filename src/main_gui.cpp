@@ -148,6 +148,7 @@ int main(int argc, char const *argv[]) {
   std::vector< std::unique_ptr<FlowFeature> > ffeatures;
   std::vector< std::unique_ptr<BoundaryFeature> > bfeatures;
   std::vector< std::unique_ptr<MeasureFeature> > mfeatures;
+  size_t nsteps = 0;
   static bool sim_is_running = false;
   static bool begin_single_step = false;
 
@@ -776,6 +777,12 @@ int main(int argc, char const *argv[]) {
       ImGui::Separator();
     }
     ImGui::Spacing();
+
+    nsteps++;
+
+    // check vs. end conditions
+    if (sim.using_max_steps() and sim.get_max_steps() == nsteps) sim_is_running = false;
+    if (sim.using_end_time() and sim.get_end_time() <= sim.get_time()) sim_is_running = false;
 
     // all the other stuff
     {

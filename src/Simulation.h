@@ -1,7 +1,7 @@
 /*
  * Simulation.h - a class to control a 2d vortex particle sim
  *
- * (c)2017-8 Applied Scientific Research, Inc.
+ * (c)2017-9 Applied Scientific Research, Inc.
  *           Written by Mark J Stock <markjstock@gmail.com>
  */
 
@@ -49,6 +49,16 @@ public:
   float get_hnu();
   float get_vdelta();
   float get_time();
+  float get_end_time();
+  bool using_end_time();
+  size_t get_max_steps();
+  bool using_max_steps();
+  float get_output_dt();
+
+  // setters
+  void set_end_time(const double);
+  void set_max_steps(const size_t);
+  void set_output_dt(const double);
 
   // get runtime status
   size_t get_npanels();
@@ -115,6 +125,11 @@ private:
 
   // state
   double time;
+  double output_dt;
+  double end_time;
+  bool use_end_time;
+  size_t max_steps;
+  bool use_max_steps;
   bool sim_is_initialized;
   bool step_has_started;
   bool step_is_finished;

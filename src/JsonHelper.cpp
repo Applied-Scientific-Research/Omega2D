@@ -50,6 +50,21 @@ void read_json (Simulation& sim,
       else { sim.set_diffuse(false); }
       std::cout << "  setting is_viscous= " << sim.get_diffuse() << std::endl;
     }
+    if (params.find("outputDt") != params.end()) {
+      float odt = params["outputDt"];
+      sim.set_output_dt(odt);
+      std::cout << "  setting output_dt= " << odt << std::endl;
+    }
+    if (params.find("endTime") != params.end()) {
+      float et = params["endTime"];
+      sim.set_end_time(et);
+      std::cout << "  setting end_time= " << et << std::endl;
+    }
+    if (params.find("maxSteps") != params.end()) {
+      size_t ms = params["maxSteps"];
+      sim.set_max_steps(ms);
+      std::cout << "  setting max_steps= " << ms << std::endl;
+    }
   }
 
   // now we can read Re
@@ -67,6 +82,15 @@ void read_json (Simulation& sim,
       fs[1] = new_fs[1];
       std::cout << "  setting freestream to " << fs[0] << " " << fs[1] << std::endl;
     }
+  }
+
+  // must do this first, as we need to set viscous before reading Re
+  if (j.count("drawparams") == 1) {
+    json params = j["drawparams"];
+    // this will eventually include:
+    //   colors (4 of them so far)
+    //   window size (x, y)
+    //   projection (cx, cy, size)
   }
 
   // Eventually we will want to generate a constructor for each feature type

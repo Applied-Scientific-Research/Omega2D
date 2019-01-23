@@ -86,7 +86,6 @@ Tasks to consider or implement:
 
 * Add ability to edit features in the GUI, not just remove and re-add them
 * Output particles and grid values to VTK-XML format, consider [tinyvtkxml](https://github.com/lighttransport/tinyvtkxml), [tinyxml2](https://github.com/leethomason/tinyxml2), or [AEXML](https://github.com/tadija/AEXML)
-* Add batch job params to the json format: end time, output time step, etc.
 * Add a "Run to time..." button to allow users to run a sim up to an exact time
 * Add rendering parameters to the json file read and write, this includes window size and projection!
 * Need to periodically check tracer particles to make sure they do not go inside of objects - like every frame we check 1/10th of all tracers and bump them out
@@ -125,6 +124,7 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~Add batch job params to the json format: end time, output time step, etc.~~
 * ~~Add file selector dialog, like [this one](https://github.com/gileoo/Imgui-IGS-Snippets) or [this one](https://github.com/Flix01/imgui/tree/imgui_with_addons/addons/imguifilesystem)~~
 * ~~Add Read Setup, Read State, Write Setup, Write State buttons, which call a JSON library, like [nlohmann/json](https://github.com/nlohmann/json), to perform those actions~~
 * ~~Add a batch mode also - once you get json reading and png writing working - do we really need this? yes.~~
