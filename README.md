@@ -84,17 +84,17 @@ Output will be written to the terminal and files to the working directory.
 ## To do
 Tasks to consider or implement:
 
-* Add ability to edit features in the GUI, not just remove and re-add them
+* Be able to write out a png file of the render window
 * Output particles and grid values to VTK-XML format, consider [tinyvtkxml](https://github.com/lighttransport/tinyvtkxml), [tinyxml2](https://github.com/leethomason/tinyxml2), or [AEXML](https://github.com/tadija/AEXML)
 * Add a "Run to time..." button to allow users to run a sim up to an exact time
-* Add rendering parameters to the json file read and write, this includes window size and projection!
+* Add ability to edit features in the GUI, not just remove and re-add them
 * Need to periodically check tracer particles to make sure they do not go inside of objects - like every frame we check 1/10th of all tracers and bump them out
 * When background is white, nothing else shows up! Check blending mode. Need this to change so that we can make more attractive visuals. Like, presets for "technical (red/blue), b/w (white/grey), vibrant (??)
 * If I add a measurement structure in the middle of a simulation, it doesn't init - should it?
 * Allow Points to be able to draw not only blobs but dots at the middles, too, using same arrays but different draw programs (turn either on or off?)
 * Allow inert Points collections to never allocate space for radius
 * Move some initialization back into ElementBase - like positions and such, keep radius in Points, then ElementBase can draw points?
-* Move the GUI and pre-run parts of the various Body classes into their own class/file and out of main.cpp and Body.h
+* Move the GUI parts of the various Features classes into their own class/file and out of main.cpp and Features.cpp
 * When running, grey out the dt and Re fields - those are the only things you can't change
 * Add a "ms/frame" and "FPS" for the simulation component also
 * If we're adding png output, might as well add a "Record" button!
@@ -124,6 +124,7 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~Add rendering parameters to the json file read and write, this includes window size and projection! (view point, size)~~
 * ~~Add batch job params to the json format: end time, output time step, etc.~~
 * ~~Add file selector dialog, like [this one](https://github.com/gileoo/Imgui-IGS-Snippets) or [this one](https://github.com/Flix01/imgui/tree/imgui_with_addons/addons/imguifilesystem)~~
 * ~~Add Read Setup, Read State, Write Setup, Write State buttons, which call a JSON library, like [nlohmann/json](https://github.com/nlohmann/json), to perform those actions~~

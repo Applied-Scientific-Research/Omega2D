@@ -11,6 +11,7 @@
 #include "MeasureFeature.h"
 #include "Simulation.h"
 #include "JsonHelper.h"
+#include "RenderParams.h"
 
 #ifdef _WIN32
   // for glad
@@ -35,6 +36,7 @@ int main(int argc, char const *argv[]) {
   std::vector< std::unique_ptr<BoundaryFeature> > bfeatures;
   std::vector< std::unique_ptr<MeasureFeature> > mfeatures;
   size_t nsteps = 0;
+  RenderParams rparams;
 
   // a string to hold any error messages
   std::string sim_err_msg;
@@ -42,7 +44,7 @@ int main(int argc, char const *argv[]) {
   // load a simulation from a JSON file - check command line for file name
   if (argc == 2) {
     std::string infile = argv[1];
-    read_json(sim, ffeatures, bfeatures, mfeatures, infile);
+    read_json(sim, ffeatures, bfeatures, mfeatures, rparams, infile);
     std::cout << std::endl << "Loaded simulation from " << infile << std::endl;
   } else {
     std::cout << std::endl << "Usage:" << std::endl;
@@ -118,7 +120,7 @@ int main(int argc, char const *argv[]) {
     // just make up a file name and write it
     std::string outfile = "output.json";
     // write and echo
-    write_json(sim, ffeatures, bfeatures, mfeatures, outfile);
+    write_json(sim, ffeatures, bfeatures, mfeatures, rparams, outfile);
     std::cout << std::endl << "Wrote simulation to " << outfile << std::endl;
   }
   std::cout << std::endl << "Done" << std::endl;

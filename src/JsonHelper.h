@@ -9,6 +9,7 @@
 #include "FlowFeature.h"
 #include "BoundaryFeature.h"
 #include "MeasureFeature.h"
+#include "RenderParams.h"
 
 #include <string>
 
@@ -16,9 +17,11 @@ void read_json (Simulation&,
                 std::vector<std::unique_ptr<FlowFeature>>&,
                 std::vector<std::unique_ptr<BoundaryFeature>>&,
                 std::vector<std::unique_ptr<MeasureFeature>>&,
-                std::string);
+                RenderParams&,
+                const std::string);
 void write_json(Simulation&,
                 std::vector<std::unique_ptr<FlowFeature>>&,
                 std::vector<std::unique_ptr<BoundaryFeature>>&,
                 std::vector<std::unique_ptr<MeasureFeature>>&,
-                std::string);
+                const RenderParams&,
+                const std::string);

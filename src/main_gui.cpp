@@ -422,8 +422,7 @@ int main(int argc, char const *argv[]) {
           ffeatures.clear();
 
           // load and report
-          //read_json(sim, ffeatures, bfeatures, mfeatures, rparams, infile);
-          read_json(sim, ffeatures, bfeatures, mfeatures, infile);
+          read_json(sim, ffeatures, bfeatures, mfeatures, rparams, infile);
 
           // we have to manually set this variable
           is_viscous = sim.get_diffuse();
@@ -836,8 +835,7 @@ int main(int argc, char const *argv[]) {
             recent_files.push_back( outfile );
 
             // write and echo
-            write_json(sim, ffeatures, bfeatures, mfeatures, outfile);
-            //write_json(sim, ffeatures, bfeatures, mfeatures, rparams, outfile);
+            write_json(sim, ffeatures, bfeatures, mfeatures, rparams, outfile);
             std::cout << std::endl << "Wrote simulation to " << outfile << std::endl;
           }
         }

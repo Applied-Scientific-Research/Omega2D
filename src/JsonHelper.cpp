@@ -25,6 +25,7 @@ void read_json (Simulation& sim,
                 std::vector<std::unique_ptr<FlowFeature>>& ffeatures,
                 std::vector<std::unique_ptr<BoundaryFeature>>& bfeatures,
                 std::vector<std::unique_ptr<MeasureFeature>>& mfeatures,
+                RenderParams& rp,
                 const std::string filename) {
 
   // read a JSON file
@@ -87,10 +88,38 @@ void read_json (Simulation& sim,
   // must do this first, as we need to set viscous before reading Re
   if (j.count("drawparams") == 1) {
     json params = j["drawparams"];
-    // this will eventually include:
-    //   colors (4 of them so far)
-    //   window size (x, y)
-    //   projection (cx, cy, size)
+
+    if (params.find("backgroundColor") != params.end()) {
+      std::vector<float> new_color = params["backgroundColor"];
+      //std::cout << "  setting bg color to " << new_color[0] << " " << new_color[1] << " " << new_color[2] << " " << new_color[3] << std::endl;
+      for (size_t i=0; i<4; ++i) rp.clear_color[i] = new_color[i];
+    }
+    if (params.find("featureColor") != params.end()) {
+      std::vector<float> new_color = params["featureColor"];
+      //std::cout << "  setting def color to " << new_color[0] << " " << new_color[1] << " " << new_color[2] << " " << new_color[3] << std::endl;
+      for (size_t i=0; i<4; ++i) rp.default_color[i] = new_color[i];
+    }
+    if (params.find("positiveColor") != params.end()) {
+      std::vector<float> new_color = params["positiveColor"];
+      //std::cout << "  setting pos color to " << new_color[0] << " " << new_color[1] << " " << new_color[2] << " " << new_color[3] << std::endl;
+      for (size_t i=0; i<4; ++i) rp.pos_circ_color[i] = new_color[i];
+    }
+    if (params.find("negativeColor") != params.end()) {
+      std::vector<float> new_color = params["negativeColor"];
+      //std::cout << "  setting neg color to " << new_color[0] << " " << new_color[1] << " " << new_color[2] << " " << new_color[3] << std::endl;
+      for (size_t i=0; i<4; ++i) rp.neg_circ_color[i] = new_color[i];
+    }
+    if (params.find("tracerScale") != params.end()) {
+      rp.tracer_scale = params["tracerScale"];
+    }
+    if (params.find("viewPoint") != params.end()) {
+      std::vector<float> new_vec = params["viewPoint"];
+      rp.vcx = new_vec[0];
+      rp.vcy = new_vec[1];
+    }
+    if (params.find("viewScale") != params.end()) {
+      rp.vsize = params["viewScale"];
+    }
   }
 
   // Eventually we will want to generate a constructor for each feature type
@@ -99,10 +128,13 @@ void read_json (Simulation& sim,
 
   // read the flow features, if any
   if (j.count("flowstructures") == 1) {
+    //std::cout << "  found flowstructures" << std::endl;
     const std::vector<json> ff_json = j["flowstructures"];
+
     // iterate through vector of flow features
     for (auto const& ff: ff_json) {
       //if (ff.count("type") == 1) {
+
       const std::string ftype = ff["type"];
       if (ftype == "single particle") {
         std::cout << "  found single particle" << std::endl;
@@ -111,6 +143,7 @@ void read_json (Simulation& sim,
         ffeatures.emplace_back(std::make_unique<SingleParticle>(c[0], c[1], str));
       } else if (ftype == "vortex blob") {
         std::cout << "  found vortex blob" << std::endl;
+        // maybe put this in a try-catch block to prevent erroring out when it can't find one
         const float rad = ff["radius"];
         const float soft = ff["softness"];
         const float str = ff["strength"];
@@ -134,18 +167,27 @@ void read_json (Simulation& sim,
 
   // read the boundary features, if any
   if (j.count("bodies") == 1) {
+    //std::cout << "  found bodies" << std::endl;
     std::vector<json> bdy_json = j["bodies"];
+
     // iterate through vector of bodies and generate boundary features
     for (auto const& bdy: bdy_json) {
       // make a new Body (later) and attach these geometries to it
+      //std::cout << "  for this body" << std::endl;
+
       // see if there are meshes
       if (bdy.count("meshes") == 1) {
+        //std::cout << "  found the meshes" << std::endl;
         std::vector<json> bf_json = bdy["meshes"];
+
         // iterate through vector of meshes, all on this body
         for (auto const& bf: bf_json) {
+          //std::cout << "  for this mesh" << std::endl;
+
           const std::string ftype = bf["geometry"];
           const std::vector<float> tr = bf["translation"];
-          const float rot = bf["rotation"];
+          // need to use "value" because this entry may not exist
+          const float rot = bf.value("rotation", 0.0);
           // load scale into an object, because it can be a number or an array of numbers
           const json sc = bf["scale"];
           // split on geometry name
@@ -178,10 +220,13 @@ void read_json (Simulation& sim,
 
   // read the measurement features, if any
   if (j.count("measurements") == 1) {
+    //std::cout << "  found measurements" << std::endl;
     const std::vector<json> mf_json = j["measurements"];
+
     // iterate through vector of measurement features
     for (auto const& mf: mf_json) {
       //if (mf.count("type") == 1) {
+
       const std::string ftype = mf["type"];
       const std::vector<float> c = mf["center"];
       if (ftype == "tracer") {
@@ -213,6 +258,7 @@ void write_json(Simulation& sim,
                 std::vector<std::unique_ptr<FlowFeature>>& ffeatures,
                 std::vector<std::unique_ptr<BoundaryFeature>>& bfeatures,
                 std::vector<std::unique_ptr<MeasureFeature>>& mfeatures,
+                const RenderParams& rp,
                 const std::string filename) {
 
   json j;
@@ -229,7 +275,15 @@ void write_json(Simulation& sim,
   float dt = *(sim.addr_dt());
   std::string viscous = sim.get_diffuse() ? "vrm" : "none";
   j["simparams"] = { {"nominalDt", dt},
-                     {"viscous", viscous } };
+                     {"viscous", viscous} };
+
+  j["drawparams"] = { {"backgroundColor", {rp.clear_color[0], rp.clear_color[1], rp.clear_color[2], rp.clear_color[3]} },
+                      {"featureColor", {rp.default_color[0], rp.default_color[1], rp.default_color[2], rp.default_color[3]} },
+                      {"positiveColor", {rp.pos_circ_color[0], rp.pos_circ_color[1], rp.pos_circ_color[2], rp.pos_circ_color[3]} },
+                      {"negativeColor", {rp.neg_circ_color[0], rp.neg_circ_color[1], rp.neg_circ_color[2], rp.neg_circ_color[3]} },
+                      {"tracerScale", rp.tracer_scale},
+                      {"viewPoint", {rp.vcx, rp.vcy} },
+                      {"viewScale", rp.vsize} };
 
   // assemble a vector of flow features
   std::vector<json> jflows;

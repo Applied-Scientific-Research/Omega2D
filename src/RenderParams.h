@@ -22,8 +22,8 @@ struct RenderParams {
   // public-equivalent data
 
   // window space
-  size_t width = 1280;
-  size_t height = 720;
+  //size_t width = 1280;
+  //size_t height = 720;
 
   // world space
   float vcx = -0.5f;
