@@ -13,6 +13,10 @@
 #include "Convection.h"
 #include "Diffusion.h"
 
+#ifdef USE_GL
+#include "RenderParams.h"
+#endif
+
 #include <string>
 #include <vector>
 #include <future>
@@ -85,10 +89,12 @@ public:
   std::string check_simulation(const size_t, const size_t);
   bool test_for_new_results();
 
+#ifdef USE_GL
   // graphics pass-through calls
   void initGL(std::vector<float>&, float*, float*, float*);
   void updateGL();
-  void drawGL(std::vector<float>&, float*, float*, float*, float);
+  void drawGL(std::vector<float>&, RenderParams&);
+#endif
 
 private:
   // primary simulation params

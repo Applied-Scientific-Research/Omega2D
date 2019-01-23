@@ -12,6 +12,7 @@
 #include "ElementBase.h"
 
 #ifdef USE_GL
+#include "RenderParams.h"
 #include "OglHelper.h"
 #include "ShaderHelper.h"
 #include "glad.h"
@@ -440,16 +441,15 @@ public:
 
   // OpenGL3 stuff to display points, called once per frame
   void drawGL(std::vector<float>& _projmat,
-              float*              _poscolor,
-              float*              _negcolor,
-              float*              _defcolor,
-              float               _tracersize) {
+              RenderParams&       _rparams) {
 
     //std::cout << "inside Points.drawGL" << std::endl;
 
     // has this been init'd yet?
     if (glIsVertexArray(vao) == GL_FALSE) {
-      initGL(_projmat, _poscolor, _negcolor, _defcolor);
+      initGL(_projmat, (float*)(&_rparams.pos_circ_color.x),
+                       (float*)(&_rparams.neg_circ_color.x),
+                       (float*)(&_rparams.default_color.x));
       updateGL();
     }
 
@@ -471,8 +471,8 @@ public:
 
         // upload the current uniforms
         glUniformMatrix4fv(projmat_attribute_pt, 1, GL_FALSE, _projmat.data());
-        glUniform4fv(def_color_attribute, 1, (const GLfloat *)_defcolor);
-        glUniform1f (unif_rad_attribute, (const GLfloat)(2.5f*_tracersize));
+        glUniform4fv(def_color_attribute, 1, (const GLfloat *)(&_rparams.default_color.x));
+        glUniform1f (unif_rad_attribute, (const GLfloat)(2.5f*_rparams.tracer_size));
 
         // the one draw call here
         glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, num_uploaded);
@@ -488,8 +488,8 @@ public:
         glUniformMatrix4fv(projmat_attribute_bl, 1, GL_FALSE, _projmat.data());
 
         // upload the current color values
-        glUniform4fv(pos_color_attribute, 1, (const GLfloat *)_poscolor);
-        glUniform4fv(neg_color_attribute, 1, (const GLfloat *)_negcolor);
+        glUniform4fv(pos_color_attribute, 1, (const GLfloat *)(&_rparams.pos_circ_color.x));
+        glUniform4fv(neg_color_attribute, 1, (const GLfloat *)(&_rparams.neg_circ_color.x));
         glUniform1f (str_scale_attribute, (const GLfloat)(0.4f/max_strength));
 
         // the one draw call here

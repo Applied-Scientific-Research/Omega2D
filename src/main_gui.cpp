@@ -11,6 +11,7 @@
 #include "MeasureFeature.h"
 #include "Simulation.h"
 #include "JsonHelper.h"
+#include "RenderParams.h"
 
 #ifdef _WIN32
   // for glad
@@ -202,13 +203,9 @@ int main(int argc, char const *argv[]) {
   bool show_test_window = false;
   bool show_file_input_window = false;
   bool show_file_output_window = false;
-  ImVec4 pos_circ_color = ImColor(207, 47, 47);
-  ImVec4 neg_circ_color = ImColor(63, 63, 255);
-  ImVec4 default_color = ImColor(204, 204, 204);
-  ImVec4 clear_color = ImColor(15, 15, 15);
-  float tracer_size = 0.15;
   //static bool show_origin = true;
   static bool is_viscous = false;
+  RenderParams rparams;
 
 
   // Main loop
@@ -243,7 +240,7 @@ int main(int argc, char const *argv[]) {
 
         // initialize measurement features
         for (auto const& mf: mfeatures) {
-          sim.add_tracers( mf->init_particles(tracer_size*sim.get_ips()) );
+          sim.add_tracers( mf->init_particles(rparams.tracer_scale*sim.get_ips()) );
         }
 
         sim.set_initialized();
@@ -260,7 +257,7 @@ int main(int argc, char const *argv[]) {
           sim.add_particles( ff->step_particles(sim.get_ips()) );
         }
         for (auto const& mf: mfeatures) {
-          sim.add_tracers( mf->step_particles(tracer_size*sim.get_ips()) );
+          sim.add_tracers( mf->step_particles(rparams.tracer_scale*sim.get_ips()) );
         }
 
         // begin a new dynamic step: convection and diffusion
@@ -727,7 +724,7 @@ int main(int argc, char const *argv[]) {
             ImGui::InputFloat2("center", xc);
             ImGui::SliderFloat("radius", &rad, sim.get_ips(), 1.0f, "%.4f");
             ImGui::TextWrapped("This feature will add about %d field points",
-                               (int)(0.785398175*pow(2*rad/(tracer_size*sim.get_ips()), 2)));
+                               (int)(0.785398175*pow(2*rad/(rparams.tracer_scale*sim.get_ips()), 2)));
             if (ImGui::Button("Add circle of tracers")) {
               mfeatures.emplace_back(std::make_unique<TracerBlob>(xc[0], xc[1], rad));
               std::cout << "Added " << (*mfeatures.back()) << std::endl;
@@ -740,7 +737,7 @@ int main(int argc, char const *argv[]) {
             ImGui::InputFloat2("start", xc);
             ImGui::InputFloat2("finish", xf);
             ImGui::TextWrapped("This feature will add about %d field points",
-                               1+(int)(std::sqrt(std::pow(xf[0]-xc[0],2)+std::pow(xf[1]-xc[1],2))/(tracer_size*sim.get_ips())));
+                               1+(int)(std::sqrt(std::pow(xf[0]-xc[0],2)+std::pow(xf[1]-xc[1],2))/(rparams.tracer_scale*sim.get_ips())));
             if (ImGui::Button("Add line of tracers")) {
               mfeatures.emplace_back(std::make_unique<TracerLine>(xc[0], xc[1], xf[0], xf[1]));
               std::cout << "Added " << (*mfeatures.back()) << std::endl;
@@ -758,10 +755,10 @@ int main(int argc, char const *argv[]) {
 
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Rendering parameters")) {
-      ImGui::ColorEdit3("positive circulation", (float*)&pos_circ_color);
-      ImGui::ColorEdit3("negative circulation", (float*)&neg_circ_color);
-      ImGui::ColorEdit3("feature color", (float*)&default_color);
-      ImGui::ColorEdit3("background color", (float*)&clear_color);
+      ImGui::ColorEdit3("positive circulation", (float*)&rparams.pos_circ_color);
+      ImGui::ColorEdit3("negative circulation", (float*)&rparams.neg_circ_color);
+      ImGui::ColorEdit3("feature color",        (float*)&rparams.default_color);
+      ImGui::ColorEdit3("background color",     (float*)&rparams.clear_color);
       //ImGui::Checkbox("show origin", &show_origin);
 
       if (ImGui::Button("Recenter")) {
@@ -882,15 +879,15 @@ int main(int argc, char const *argv[]) {
     int display_w, display_h;
     glfwGetFramebufferSize(window, &display_w, &display_h);
     glViewport(0, 0, display_w, display_h);
-    glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+    glClearColor(rparams.clear_color.x, rparams.clear_color.y, rparams.clear_color.z, rparams.clear_color.w);
     glClear(GL_COLOR_BUFFER_BIT);
 
     // draw the simulation: panels and particles
     compute_projection_matrix(window, vcx, vcy, &vsize, gl_projection);
-    sim.drawGL(gl_projection, &pos_circ_color.x, &neg_circ_color.x, &default_color.x, tracer_size);
+    sim.drawGL(gl_projection, rparams);
 
     // if simulation has not been initted, draw the features instead!
-    //for (auto const& bf : bfeatures) { bf.drawGL(); }
+    //for (auto const& bf : bfeatures) { bf.drawGL(gl_projection, rparams); }
 
     // draw the GUI
     ImGui::Render();
