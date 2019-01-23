@@ -7,8 +7,6 @@
 
 #pragma once
 
-#include "imgui/imgui.h"
-
 //
 // Class-like struct for all Imgui and OpenGL render parameters
 //
@@ -33,10 +31,10 @@ struct RenderParams {
   float vsize = 2.0f;
 
   // colors
-  ImVec4 pos_circ_color = ImColor(207, 47, 47);
-  ImVec4 neg_circ_color = ImColor(63, 63, 255);
-  ImVec4 default_color  = ImColor(204, 204, 204);
-  ImVec4 clear_color    = ImColor(15, 15, 15);
+  float pos_circ_color[4] = {207./255.,  47./255.,  47./255., 1.0};
+  float neg_circ_color[4] = { 63./255.,  63./255., 255./255., 1.0};
+  float default_color[4]  = {204./255., 204./255., 204./255., 1.0};
+  float clear_color[4]    = { 15./255.,  15./255.,  15./255., 1.0};
 
   // other
   float tracer_scale = 0.15;	// non-dimensional

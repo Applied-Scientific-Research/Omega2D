@@ -422,6 +422,7 @@ int main(int argc, char const *argv[]) {
           ffeatures.clear();
 
           // load and report
+          //read_json(sim, ffeatures, bfeatures, mfeatures, rparams, infile);
           read_json(sim, ffeatures, bfeatures, mfeatures, infile);
 
           // we have to manually set this variable
@@ -752,10 +753,10 @@ int main(int argc, char const *argv[]) {
 
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Rendering parameters")) {
-      ImGui::ColorEdit3("positive circulation", (float*)&rparams.pos_circ_color);
-      ImGui::ColorEdit3("negative circulation", (float*)&rparams.neg_circ_color);
-      ImGui::ColorEdit3("feature color",        (float*)&rparams.default_color);
-      ImGui::ColorEdit3("background color",     (float*)&rparams.clear_color);
+      ImGui::ColorEdit3("positive circulation", rparams.pos_circ_color);
+      ImGui::ColorEdit3("negative circulation", rparams.neg_circ_color);
+      ImGui::ColorEdit3("feature color",        rparams.default_color);
+      ImGui::ColorEdit3("background color",     rparams.clear_color);
       //ImGui::Checkbox("show origin", &show_origin);
 
       if (ImGui::Button("Recenter")) {
@@ -836,6 +837,7 @@ int main(int argc, char const *argv[]) {
 
             // write and echo
             write_json(sim, ffeatures, bfeatures, mfeatures, outfile);
+            //write_json(sim, ffeatures, bfeatures, mfeatures, rparams, outfile);
             std::cout << std::endl << "Wrote simulation to " << outfile << std::endl;
           }
         }
@@ -876,7 +878,7 @@ int main(int argc, char const *argv[]) {
     int display_w, display_h;
     glfwGetFramebufferSize(window, &display_w, &display_h);
     glViewport(0, 0, display_w, display_h);
-    glClearColor(rparams.clear_color.x, rparams.clear_color.y, rparams.clear_color.z, rparams.clear_color.w);
+    glClearColor(rparams.clear_color[0], rparams.clear_color[1], rparams.clear_color[2], rparams.clear_color[3]);
     glClear(GL_COLOR_BUFFER_BIT);
 
     // draw the simulation: panels and particles
