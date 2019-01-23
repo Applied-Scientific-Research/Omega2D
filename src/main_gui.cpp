@@ -190,14 +190,8 @@ int main(int argc, char const *argv[]) {
   // a string to hold any error messages
   std::string sim_err_msg;
 
-  // projection matrix for the particles
-  float vcx = -0.5f;
-  float vcy = 0.0f;
-  float vsize = 2.0f;
-  std::vector<float> gl_projection;
-  compute_projection_matrix(window, vcx, vcy, &vsize, gl_projection);
-
   // GUI and drawing parameters
+  RenderParams rparams;
   bool show_stats_window = false;
   bool show_terminal_window = false;
   bool show_test_window = false;
@@ -205,7 +199,10 @@ int main(int argc, char const *argv[]) {
   bool show_file_output_window = false;
   //static bool show_origin = true;
   static bool is_viscous = false;
-  RenderParams rparams;
+
+  // projection matrix for the particles
+  std::vector<float> gl_projection;
+  compute_projection_matrix(window, rparams.vcx, rparams.vcy, &rparams.vsize, gl_projection);
 
 
   // Main loop
@@ -295,7 +292,7 @@ int main(int argc, char const *argv[]) {
 
     // check mouse for drag and rescaling!
     if (not io.WantCaptureMouse) {
-      mouse_callback(window, io, &vcx, &vcy, &vsize);
+      mouse_callback(window, io, &rparams.vcx, &rparams.vcy, &rparams.vsize);
     }
 
     // check for keypresses to toggle state
@@ -763,9 +760,9 @@ int main(int argc, char const *argv[]) {
 
       if (ImGui::Button("Recenter")) {
         // put everything back to center
-        vcx = -0.5f;
-        vcy = 0.0f;
-        vsize = 2.0f;
+        rparams.vcx = -0.5f;
+        rparams.vcy = 0.0f;
+        rparams.vsize = 2.0f;
       }
 
       // add button to recenter on all vorticity?
@@ -883,7 +880,7 @@ int main(int argc, char const *argv[]) {
     glClear(GL_COLOR_BUFFER_BIT);
 
     // draw the simulation: panels and particles
-    compute_projection_matrix(window, vcx, vcy, &vsize, gl_projection);
+    compute_projection_matrix(window, rparams.vcx, rparams.vcy, &rparams.vsize, gl_projection);
     sim.drawGL(gl_projection, rparams);
 
     // if simulation has not been initted, draw the features instead!
