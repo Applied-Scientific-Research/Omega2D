@@ -24,6 +24,7 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw_gl3.h"
 #include "imgui/ImguiWindowsFileIO.hpp"
+#include "imgui/FrameBufferToImage.hpp"
 
 //#include <GL/gl3w.h>    // This example is using gl3w to access OpenGL
 // functions (because it is small). You may use glew/glad/glLoadGen/etc.
@@ -35,6 +36,8 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <sstream> // for stringstream
+#include <iomanip> // for setw
 
 static void error_callback(int error, const char* description) {
   fprintf(stderr, "Error %d: %s\n", error, description);
@@ -192,6 +195,7 @@ int main(int argc, char const *argv[]) {
 
   // GUI and drawing parameters
   RenderParams rparams;
+  bool draw_this_frame = false;
   bool show_stats_window = false;
   bool show_terminal_window = false;
   bool show_test_window = false;
@@ -840,7 +844,9 @@ int main(int argc, char const *argv[]) {
           }
         }
       }
-      //ImGui::SameLine();
+
+      ImGui::SameLine();
+      if (ImGui::Button("Take screenshot", ImVec2(180,0))) draw_this_frame = true;
     }
 
     // done drawing the Omega2D UI window
@@ -885,6 +891,16 @@ int main(int argc, char const *argv[]) {
 
     // if simulation has not been initted, draw the features instead!
     //for (auto const& bf : bfeatures) { bf.drawGL(gl_projection, rparams); }
+
+    // here is where we write the buffer to a file
+    if (draw_this_frame) {
+      static int frameno = 0;
+      std::stringstream pngfn;
+      pngfn << "img_" << std::setfill('0') << std::setw(5) << frameno << ".png";
+      (void) saveFramePNG(pngfn.str());
+      frameno++;
+      draw_this_frame = false;
+    }
 
     // draw the GUI
     ImGui::Render();

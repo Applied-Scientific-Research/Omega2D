@@ -69,7 +69,7 @@ void saveFramePNG( string file_name )
 
 	GLubyte* buffer = new GLubyte[nPixels*3];
 	
-	glReadBuffer(GL_FRONT);
+	glReadBuffer(GL_BACK);
 	glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, buffer);
 
 	writePngFile(file_name.c_str(), width, height, buffer);
