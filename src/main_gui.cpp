@@ -195,8 +195,8 @@ int main(int argc, char const *argv[]) {
 
   // GUI and drawing parameters
   RenderParams rparams;
-  bool draw_next_frame = false;
-  bool record_all_frames = false;
+  bool draw_this_frame = false;		// draw the frame immediately
+  bool record_all_frames = false;	// save a frame when a new one is ready
   bool show_stats_window = false;
   bool show_terminal_window = false;
   bool show_test_window = false;
@@ -847,16 +847,14 @@ int main(int argc, char const *argv[]) {
       }
 
       ImGui::SameLine();
-      if (ImGui::Button("Take screenshot", ImVec2(130,0))) draw_next_frame = true;
+      if (ImGui::Button("Take screenshot", ImVec2(130,0))) draw_this_frame = true;
       if (record_all_frames) {
         if (ImGui::Button("STOP", ImVec2(80,0))) {
-          draw_next_frame = false;
           record_all_frames = false;
           sim_is_running = false;
         }
       } else {
         if (ImGui::Button("RECORD", ImVec2(80,0))) {
-          draw_next_frame = true;
           record_all_frames = true;
           sim_is_running = true;
         }
@@ -907,13 +905,13 @@ int main(int argc, char const *argv[]) {
     //for (auto const& bf : bfeatures) { bf.drawGL(gl_projection, rparams); }
 
     // here is where we write the buffer to a file
-    if (is_ready && draw_next_frame) {
+    if ((is_ready and record_all_frames) or draw_this_frame) {
       static int frameno = 0;
       std::stringstream pngfn;
       pngfn << "img_" << std::setfill('0') << std::setw(5) << frameno << ".png";
       (void) saveFramePNG(pngfn.str());
       frameno++;
-      draw_next_frame = record_all_frames;
+      draw_this_frame = false;
     }
 
     // draw the GUI
