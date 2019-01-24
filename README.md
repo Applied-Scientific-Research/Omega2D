@@ -84,6 +84,7 @@ Output will be written to the terminal and files to the working directory.
 ## To do
 Tasks to consider or implement:
 
+* Add airfoils - read them from a text file or generate them algorithmically
 * Output particles and grid values to VTK-XML format, consider [tinyvtkxml](https://github.com/lighttransport/tinyvtkxml), [tinyxml2](https://github.com/leethomason/tinyxml2), or [AEXML](https://github.com/tadija/AEXML)
 * Add a "Run to time..." button to allow users to run a sim up to an exact time
 * Add ability to edit features in the GUI, not just remove and re-add them
@@ -122,6 +123,7 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~Save, load, and resize window programmatically~~
 * ~~If we're adding png output, might as well add a "Record" button!~~
 * ~~Be able to write out a png file of the render window~~
 * ~~Add rendering parameters to the json file read and write, this includes window size and projection! (view point, size)~~
