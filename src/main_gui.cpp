@@ -848,6 +848,7 @@ int main(int argc, char const *argv[]) {
 
       ImGui::SameLine();
       if (ImGui::Button("Take screenshot", ImVec2(130,0))) draw_this_frame = true;
+      ImGui::SameLine();
       if (record_all_frames) {
         if (ImGui::Button("STOP", ImVec2(80,0))) {
           record_all_frames = false;
