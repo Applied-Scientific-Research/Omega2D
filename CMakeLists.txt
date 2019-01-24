@@ -132,15 +132,19 @@ ELSEIF( UNIX )
 ENDIF()
 
 ADD_DEFINITIONS (${CPREPROCDEFS})
-set(GLADSRC "src/glad/glad.c" )
+
+SET(GLADSRC "src/glad/glad.c" )
 INCLUDE_DIRECTORIES( "src/glad" )
+FILE(GLOB IMGUISOURCES "src/imgui/*.cpp" )
+INCLUDE_DIRECTORIES( "src/tinyxml2" )
+
 SET(SOURCES "src/Simulation.cpp"
             "src/FlowFeature.cpp"
             "src/CollectionHelper.cpp"
             "src/BoundaryFeature.cpp"
             "src/MeasureFeature.cpp"
-            "src/JsonHelper.cpp")
-file(GLOB IMGUISOURCES "src/imgui/*.cpp" )
+            "src/JsonHelper.cpp"
+            "src/tinyxml2/tinyxml2.cpp")
 
 # create a binary for the GUI version
 ADD_EXECUTABLE( ${PROJECT_NAME} ${GLADSRC} ${IMGUISOURCES} ${SOURCES} "src/ShaderHelper.cpp" "src/main_gui.cpp")

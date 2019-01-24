@@ -254,6 +254,9 @@ int main(int argc, char const *argv[]) {
     // see if we should start a new step
     if (is_ready and (sim_is_running || begin_single_step)) {
 
+      // before we start again, write the vtu output
+      if (sim.get_nparts() > 0 and false) sim.write_vtk();
+
       // if particles are not yet created, make them
       if (not sim.is_initialized()) {
         std::cout << std::endl << "Initializing simulation" << std::endl;

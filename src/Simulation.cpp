@@ -7,6 +7,7 @@
 
 #include "Simulation.h"
 #include "Points.h"
+#include "VtkXmlHelper.h"
 
 #include <cassert>
 #include <cmath>
@@ -172,6 +173,21 @@ void Simulation::reset() {
   sim_is_initialized = false;
   step_has_started = false;
   step_is_finished = false;
+}
+
+// Write a set of vtu files for the particles and panels
+void Simulation::write_vtk() {
+  for (auto &coll : vort) {
+
+    // eventually all collections will support vtk output
+    //std::visit([=](auto& elem) { elem.write_vtk(); }, coll);
+
+    // only proceed if the collection is Points
+    if (std::holds_alternative<Points<float>>(coll)) {
+      Points<float>& pts = std::get<Points<float>>(coll);
+      write_vtu_points<float>(pts);
+    }
+  }
 }
 
 //

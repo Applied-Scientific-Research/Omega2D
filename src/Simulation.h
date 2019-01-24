@@ -88,6 +88,7 @@ public:
   void set_initialized();
   std::string check_simulation(const size_t, const size_t);
   bool test_for_new_results();
+  void write_vtk();
 
 #ifdef USE_GL
   // graphics pass-through calls
