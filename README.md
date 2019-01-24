@@ -84,7 +84,6 @@ Output will be written to the terminal and files to the working directory.
 ## To do
 Tasks to consider or implement:
 
-* Be able to write out a png file of the render window
 * Output particles and grid values to VTK-XML format, consider [tinyvtkxml](https://github.com/lighttransport/tinyvtkxml), [tinyxml2](https://github.com/leethomason/tinyxml2), or [AEXML](https://github.com/tadija/AEXML)
 * Add a "Run to time..." button to allow users to run a sim up to an exact time
 * Add ability to edit features in the GUI, not just remove and re-add them
@@ -97,7 +96,6 @@ Tasks to consider or implement:
 * Move the GUI parts of the various Features classes into their own class/file and out of main.cpp and Features.cpp
 * When running, grey out the dt and Re fields - those are the only things you can't change
 * Add a "ms/frame" and "FPS" for the simulation component also
-* If we're adding png output, might as well add a "Record" button!
 * Add "got it" button to first section (the welcome section) to make it go away (forever?)
 * Add "Save setup", "Save flow", and "Save image" buttons
 * Ideal initial interface: lots of stuff hidden, just a graphical menu with circles, squares, vortex patches, etc. Each has handles that you can drag to resize and reposition the element; all sizes/locations quantized to 0.1 or 0.05. "Expert" box lets you change Re, dt, etc.
@@ -124,6 +122,8 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~If we're adding png output, might as well add a "Record" button!~~
+* ~~Be able to write out a png file of the render window~~
 * ~~Add rendering parameters to the json file read and write, this includes window size and projection! (view point, size)~~
 * ~~Add batch job params to the json format: end time, output time step, etc.~~
 * ~~Add file selector dialog, like [this one](https://github.com/gileoo/Imgui-IGS-Snippets) or [this one](https://github.com/Flix01/imgui/tree/imgui_with_addons/addons/imguifilesystem)~~
