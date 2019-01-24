@@ -120,6 +120,11 @@ void read_json (Simulation& sim,
     if (params.find("viewScale") != params.end()) {
       rp.vsize = params["viewScale"];
     }
+    if (params.find("windowSize") != params.end()) {
+      std::vector<int> new_vec = params["windowSize"];
+      rp.width = new_vec[0];
+      rp.height = new_vec[1];
+    }
   }
 
   // Eventually we will want to generate a constructor for each feature type
@@ -283,7 +288,8 @@ void write_json(Simulation& sim,
                       {"negativeColor", {rp.neg_circ_color[0], rp.neg_circ_color[1], rp.neg_circ_color[2], rp.neg_circ_color[3]} },
                       {"tracerScale", rp.tracer_scale},
                       {"viewPoint", {rp.vcx, rp.vcy} },
-                      {"viewScale", rp.vsize} };
+                      {"viewScale", rp.vsize},
+                      {"windowSize", {rp.width, rp.height} } };
 
   // assemble a vector of flow features
   std::vector<json> jflows;

@@ -142,6 +142,34 @@ void compute_projection_matrix(GLFWwindow*         _thiswin,
 }
 
 
+//
+// resize a window and framebuffer programmatically
+//
+void resize_to_resolution(GLFWwindow* window, const int new_w, const int new_h) {
+
+  // get framebuffer size
+  int fb_w, fb_h;
+  glfwGetFramebufferSize(window, &fb_w, &fb_h);
+  //std::cout << "Framebuffer size is " << fb_w << " x " << fb_h << std::endl;
+
+  // get window size
+  int ws_w, ws_h;
+  glfwGetWindowSize(window, &ws_w, &ws_h);
+  //std::cout << "Window size is " << ws_w << " x " << ws_h << std::endl;
+
+  // on normal monitors, these numbers should be the same; on retina displays, they may not
+
+  // check and resize
+  if (fb_w != new_w or fb_h != new_h) {
+    // on a retina display...do anything different?
+
+    glfwSetWindowSize(window, new_w, new_h);
+    std::cout << "Resizing window/framebuffer to " << new_w << " x " << new_h << std::endl;
+  }
+}
+
+
+
 // execution starts here
 
 int main(int argc, char const *argv[]) {
@@ -433,6 +461,9 @@ int main(int argc, char const *argv[]) {
           is_viscous = sim.get_diffuse();
           // run one step so we know what we have
           begin_single_step = true;
+
+          // check and possibly resize the window to match the saved resolution
+          resize_to_resolution(window, rparams.width, rparams.height);
         }
       }
     }
@@ -838,6 +869,9 @@ int main(int argc, char const *argv[]) {
           if (try_it) {
             // remember
             recent_files.push_back( outfile );
+
+            // retrieve window sizes
+            glfwGetWindowSize(window, &rparams.width, &rparams.height);
 
             // write and echo
             write_json(sim, ffeatures, bfeatures, mfeatures, rparams, outfile);
