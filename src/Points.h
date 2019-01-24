@@ -186,7 +186,7 @@ public:
       if (max_strength < 0.0) {
         max_strength = thismax;
       } else {
-        max_strength = 0.1*thismax + 0.9*max_strength;
+        max_strength = 0.05*thismax + 0.95*max_strength;
       }
       //std::cout << "  New max_strength is " << max_strength << std::endl;
     } else {
@@ -237,7 +237,7 @@ public:
       if (max_strength < 0.0) {
         max_strength = thismax;
       } else {
-        max_strength = 0.1*thismax + 0.9*max_strength;
+        max_strength = 0.05*thismax + 0.95*max_strength;
       }
 
     } else {
