@@ -87,7 +87,7 @@ void mouse_callback(GLFWwindow* /*_thiswin*/,
 
     // change the size
     const float oldsize = (*_size);
-    (*_size) *= pow(1.1f, io.MouseWheel);
+    (*_size) *= std::pow(1.1f, io.MouseWheel);
 
     // and adjust the center such that the zoom occurs about the pointer!
     //const float ar = (float)display_h / (float)display_w;
@@ -566,8 +566,8 @@ int main(int argc, char const *argv[]) {
       if (ImGui::BeginPopupModal("New flow structure"))
       {
         static int item = 1;
-        const char* items[] = { "single particle", "vortex blob", "random particles", "particle emitter" };
-        ImGui::Combo("type", &item, items, 4);
+        const char* items[] = { "single particle", "round vortex blob", "block of vorticity", "random particles", "particle emitter" };
+        ImGui::Combo("type", &item, items, 5);
 
         static float xc[2] = {0.0f, 0.0f};
         static float rad = 5.0 * sim.get_ips();
@@ -603,7 +603,7 @@ int main(int argc, char const *argv[]) {
             ImGui::SliderFloat("strength", &str, -5.0f, 5.0f, "%.4f");
             ImGui::SliderFloat("radius", &rad, sim.get_ips(), 1.0f, "%.4f");
             ImGui::SliderFloat("softness", &soft, sim.get_ips(), 1.0f, "%.4f");
-            ImGui::TextWrapped("This feature will add about %d particles", (int)(0.785398175*pow((2*rad+soft)/sim.get_ips(), 2)));
+            ImGui::TextWrapped("This feature will add about %d particles", (int)(0.785398175*std::pow((2*rad+soft)/sim.get_ips(), 2)));
             if (ImGui::Button("Add vortex blob")) {
               ffeatures.emplace_back(std::make_unique<VortexBlob>(xc[0], xc[1], str, rad, soft));
               std::cout << "Added " << (*ffeatures.back()) << std::endl;
@@ -613,6 +613,19 @@ int main(int argc, char const *argv[]) {
             break;
 
           case 2:
+            // random particles in a rectangle
+            ImGui::SliderFloat("strength", &str, -5.0f, 5.0f, "%.4f");
+            ImGui::SliderFloat2("box size", xs, 0.01f, 10.0f, "%.4f", 2.0f);
+            ImGui::TextWrapped("This feature will add %d particles", (int)(xs[0]*xs[1]/std::pow(sim.get_ips(),2)));
+            if (ImGui::Button("Add block of vorticies")) {
+              ffeatures.emplace_back(std::make_unique<UniformBlock>(xc[0], xc[1], xs[0], xs[1], str));
+              std::cout << "Added " << (*ffeatures.back()) << std::endl;
+              ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            break;
+
+          case 3:
             // random particles in a rectangle
             ImGui::SliderInt("number", &npart, 1, 10000);
             ImGui::SliderFloat2("box size", xs, 0.01f, 10.0f, "%.4f", 2.0f);
@@ -626,7 +639,7 @@ int main(int argc, char const *argv[]) {
             ImGui::SameLine();
             break;
 
-          case 3:
+          case 4:
             // create a particle emitter
             static float estr = 0.1f;
             ImGui::SliderFloat("strength", &estr, -0.1f, 0.1f, "%.4f");
@@ -764,7 +777,7 @@ int main(int argc, char const *argv[]) {
             ImGui::InputFloat2("center", xc);
             ImGui::SliderFloat("radius", &rad, sim.get_ips(), 1.0f, "%.4f");
             ImGui::TextWrapped("This feature will add about %d field points",
-                               (int)(0.785398175*pow(2*rad/(rparams.tracer_scale*sim.get_ips()), 2)));
+                               (int)(0.785398175*std::pow(2*rad/(rparams.tracer_scale*sim.get_ips()), 2)));
             if (ImGui::Button("Add circle of tracers")) {
               mfeatures.emplace_back(std::make_unique<TracerBlob>(xc[0], xc[1], rad));
               std::cout << "Added " << (*mfeatures.back()) << std::endl;

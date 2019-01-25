@@ -154,6 +154,12 @@ void read_json (Simulation& sim,
         const float str = ff["strength"];
         const std::vector<float> c = ff["center"];
         ffeatures.emplace_back(std::make_unique<VortexBlob>(c[0], c[1], str, rad, soft));
+      } else if (ftype == "uniform block") {
+        std::cout << "  found uniform block" << std::endl;
+        const float str = ff["strength"];
+        const std::vector<float> c = ff["center"];
+        const std::vector<float> sz = ff["size"];
+        ffeatures.emplace_back(std::make_unique<UniformBlock>(c[0], c[1], sz[0], sz[1], str));
       } else if (ftype == "block of random") {
         std::cout << "  found block of random" << std::endl;
         const std::vector<float> c = ff["center"];

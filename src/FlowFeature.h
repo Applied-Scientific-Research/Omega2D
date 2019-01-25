@@ -89,6 +89,33 @@ private:
 
 
 //
+// Concrete class for a rectangle of constant-strength particles
+//
+class UniformBlock : public SingleParticle {
+public:
+  UniformBlock(float _x,
+               float _y,
+               float _xsize,
+               float _ysize,
+               float _str)
+    : SingleParticle(_x, _y, _str),
+      m_xsize(_xsize),
+      m_ysize(_ysize)
+    {}
+
+  void debug(std::ostream& os) const override;
+  std::string to_string() const override;
+  nlohmann::json to_json() const override;
+  std::vector<float> init_particles(float) const override;
+  std::vector<float> step_particles(float) const override;
+
+private:
+  float m_xsize;
+  float m_ysize;
+};
+
+
+//
 // Concrete class for a rectangle of randomly-placed particles
 //
 class BlockOfRandom : public FlowFeature {

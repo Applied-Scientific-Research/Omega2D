@@ -146,6 +146,65 @@ VortexBlob::to_json() const {
 
 
 //
+// make the block of regular, and uniform-strength particles
+//
+std::vector<float>
+UniformBlock::init_particles(float _ips) const {
+
+  // what size 2D integer array will we loop over
+  int isize = 1 + m_xsize / _ips;
+  int jsize = 1 + m_ysize / _ips;
+  std::cout << "block needs " << isize << " by " << jsize << " particles" << std::endl;
+
+  // create a new vector to pass on
+  std::vector<float> x(4*isize*jsize);
+
+  const float each_str = m_str / (float)(isize*jsize);
+
+  // initialize the particles' locations and strengths, leave radius zero for now
+  size_t iptr = 0;
+  for (int i=0; i<isize; ++i) {
+  for (int j=0; j<jsize; ++j) {
+    x[iptr++] = m_x + m_xsize * (((float)i + 0.5)/(float)isize - 0.5);
+    x[iptr++] = m_y + m_ysize * (((float)j + 0.5)/(float)jsize - 0.5);
+    x[iptr++] = each_str;
+    x[iptr++] = 0.0f;
+  }
+  }
+  return x;
+}
+
+std::vector<float>
+UniformBlock::step_particles(float _ips) const {
+  return std::vector<float>();
+}
+
+void
+UniformBlock::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+UniformBlock::to_string() const {
+  std::stringstream ss;
+  ss << "block of particles in [" << (m_x-0.5*m_xsize) << " " << (m_x+0.5*m_xsize) << "] ["
+                                  << (m_y-0.5*m_ysize) << " " << (m_y+0.5*m_ysize) <<
+                             "] with strength " << m_str;
+  return ss.str();
+}
+
+nlohmann::json
+UniformBlock::to_json() const {
+  nlohmann::json j;
+  j["type"] = "uniform block";
+  j["center"] = {m_x, m_y};
+  j["size"] = {m_xsize, m_ysize};
+  j["strength"] = m_str;
+  return j;
+}
+
+
+//
 // make the block of randomly-placed and random-strength particles
 //
 std::vector<float>
