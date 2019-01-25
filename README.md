@@ -84,8 +84,9 @@ Output will be written to the terminal and files to the working directory.
 ## To do
 Tasks to consider or implement:
 
+* Add inlet and outlet surfaces to push flow around - the BC is that normal flow must equal some number
+* Consider adding base64 encoding to vtk output files, maybe with [this](https://github.com/tplgy/cppcodec)
 * Add airfoils - read them from a text file or generate them algorithmically
-* Output particles and grid values to VTK-XML format, consider [tinyvtkxml](https://github.com/lighttransport/tinyvtkxml), [tinyxml2](https://github.com/leethomason/tinyxml2), or [AEXML](https://github.com/tadija/AEXML)
 * Add a "Run to time..." button to allow users to run a sim up to an exact time
 * Add ability to edit features in the GUI, not just remove and re-add them
 * Need to periodically check tracer particles to make sure they do not go inside of objects - like every frame we check 1/10th of all tracers and bump them out
@@ -103,7 +104,7 @@ Tasks to consider or implement:
 * Add an animated GIF to the page to show how to set up a run? See [peek](https://github.com/phw/peek)
 * Have "status" line indicate when we're waiting for a step to finish after we've hit pause
 * Instead of manipulating the projection matrix, have the mouse change the view matrix (assume model matrix is unity), see [here](https://solarianprogrammer.com/2013/05/22/opengl-101-matrices-projection-view-model/) for a nice write-up on the three OpenGL matrices
-* Support faster VRM by caching values from first half to use in second half
+* Support 2nd order time accuracy in VRM by caching values from first half to use in second half
 * Make more of the sliders dynamic (like dt ~~and color~~) - be able to add new particles while a sim is running
 * Right-click on the draw screen to add features - hard? can imgui handle it?
 * Draw something when you add a feature (so we know it's doing something)
@@ -123,6 +124,7 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~Output particles and grid values to VTK-XML format, consider [tinyvtkxml](https://github.com/lighttransport/tinyvtkxml), [tinyxml2](https://github.com/leethomason/tinyxml2), or [AEXML](https://github.com/tadija/AEXML)~~
 * ~~Save, load, and resize window programmatically~~
 * ~~If we're adding png output, might as well add a "Record" button!~~
 * ~~Be able to write out a png file of the render window~~
@@ -161,4 +163,4 @@ Thanks to [Omar Cornut](http://www.miracleworld.net/) for his [dear imgui](https
 
 VRM code is functional thanks to jlblancoc for [Nanoflann](https://github.com/jlblancoc/nanoflann) (a header-only tree search library), and to all of the developers of [Eigen](http://eigen.tuxfamily.org/) (a C++ matrix/vector library). The BEM code also relies heavily on [Eigen](http://eigen.tuxfamily.org/). We also love [Vc](https://github.com/VcDevel/Vc), an excellent SIMD library by Matthias Kretz.
 
-JSON reading and writing is thanks to [JSON for Modern C++](https://github.com/nlohmann/json) by [Niels Lohmann](http://nlohmann.me).
+JSON reading and writing is thanks to [JSON for Modern C++](https://github.com/nlohmann/json) by [Niels Lohmann](http://nlohmann.me). XML output to VTK files is done using [tinyxml2](https://github.com/leethomason/tinyxml2).
