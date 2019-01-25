@@ -223,6 +223,7 @@ int main(int argc, char const *argv[]) {
 
   // GUI and drawing parameters
   RenderParams rparams;
+  bool export_vtk_this_frame = false;	// write a vtk with the current data
   bool draw_this_frame = false;		// draw the frame immediately
   bool record_all_frames = false;	// save a frame when a new one is ready
   bool show_stats_window = false;
@@ -251,11 +252,14 @@ int main(int argc, char const *argv[]) {
     // get results of latest step, if it just completed
     bool is_ready = sim.test_for_new_results();
 
+    // before we start again, write the vtu output
+    if (sim.get_nparts() > 0 and export_vtk_this_frame) {
+      sim.write_vtk();
+      export_vtk_this_frame = false;
+    }
+
     // see if we should start a new step
     if (is_ready and (sim_is_running || begin_single_step)) {
-
-      // before we start again, write the vtu output
-      if (sim.get_nparts() > 0 and false) sim.write_vtk();
 
       // if particles are not yet created, make them
       if (not sim.is_initialized()) {
@@ -860,7 +864,9 @@ int main(int argc, char const *argv[]) {
 
       // save the simulation to a JSON file
       ImGui::Spacing();
-      if (ImGui::Button("Save simulation to file", ImVec2(180,0))) show_file_output_window = true;
+      if (ImGui::Button("Save setup to json", ImVec2(180,0))) show_file_output_window = true;
+      ImGui::SameLine();
+      if (ImGui::Button("Save parts to vtk", ImVec2(170,0))) export_vtk_this_frame = true;
 
       if (show_file_output_window) {
         bool try_it = false;
@@ -883,8 +889,7 @@ int main(int argc, char const *argv[]) {
         }
       }
 
-      ImGui::SameLine();
-      if (ImGui::Button("Take screenshot", ImVec2(130,0))) draw_this_frame = true;
+      if (ImGui::Button("Save screenshot to png", ImVec2(180,0))) draw_this_frame = true;
       ImGui::SameLine();
       if (record_all_frames) {
         if (ImGui::Button("STOP", ImVec2(80,0))) {
@@ -892,7 +897,7 @@ int main(int argc, char const *argv[]) {
           sim_is_running = false;
         }
       } else {
-        if (ImGui::Button("RECORD", ImVec2(80,0))) {
+        if (ImGui::Button("RECORD to png", ImVec2(120,0))) {
           record_all_frames = true;
           sim_is_running = true;
         }
@@ -948,6 +953,7 @@ int main(int argc, char const *argv[]) {
       std::stringstream pngfn;
       pngfn << "img_" << std::setfill('0') << std::setw(5) << frameno << ".png";
       (void) saveFramePNG(pngfn.str());
+      std::cout << "Wrote screenshot to " << pngfn.str() << std::endl;
       frameno++;
       draw_this_frame = false;
     }
