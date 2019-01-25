@@ -14,14 +14,41 @@
 #include "tinyxml2.h"
 
 #include <vector>
+#include <cstdint>	// for uint32_t
 #include <cstdio>	// for FILE
 #include <sstream>	// for stringstream
 #include <iomanip>	// for setfill, setw
 
 //
+// compress a byte stream
+//
+
+
+//
+// convert an array or interleave arrays to generate a base64 bytestream
+//
+// why would you ever want to use base64 for floats and such? so wasteful.
+//
+template <class S>
+const char* convert_to_base64 (Vector<S> const & v, bool compress = false) {
+  const char* retval = "hi";
+
+  if (compress) {
+  }
+
+  return retval;
+}
+
+//const char* interleave_to_base64 (Vector<S>
+
+
+//
 // write point data to a .vtu file
 //
 // should we be using PolyData or UnstructuredGrid for particles?
+//
+// note bad documetation, somewhat corrected here:
+// https://mathema.tician.de/what-they-dont-tell-you-about-vtk-xml-binary-formats/
 //
 template <class S>
 void write_vtu_points(Points<S> const& pts) {
@@ -32,7 +59,7 @@ void write_vtu_points(Points<S> const& pts) {
   vtkfn << "part_" << std::setfill('0') << std::setw(5) << frameno << ".vtu";
 
   // prepare file pointer and printer
-  std::FILE* fp = std::fopen(vtkfn.str().c_str(), "w");
+  std::FILE* fp = std::fopen(vtkfn.str().c_str(), "wb");
   tinyxml2::XMLPrinter printer( fp );
 
   // write <?xml version="1.0"?>
@@ -43,6 +70,7 @@ void write_vtu_points(Points<S> const& pts) {
   //printer.PushAttribute( "type", "PolyData" );
   printer.PushAttribute( "version", "0.1" );
   printer.PushAttribute( "byte_order", "LittleEndian" );
+  printer.PushAttribute( "header_type", "UInt32" );
 
   // push comment with sim time?
 
@@ -57,14 +85,25 @@ void write_vtu_points(Points<S> const& pts) {
   printer.PushAttribute( "NumberOfComponents", "3" );
   printer.PushAttribute( "Name", "position" );
   printer.PushAttribute( "type", "Float32" );
-  printer.PushAttribute( "format", "ascii" );
-  // end the element header and write the data
-  printer.PushText( " " );
-  //printer.PushText( "" );
   const std::array<Vector<S>,Dimensions>& x = pts.get_pos();
-  for (size_t i=0; i<pts.get_n(); ++i) {
-    std::fprintf(fp, "%g %g 0.0 ", x[0][i], x[1][i]);
-  }
+  // write ascii version
+  printer.PushAttribute( "format", "ascii" );
+  printer.PushText( " " );
+  for (size_t i=0; i<pts.get_n(); ++i) { std::fprintf(fp, "%g %g 0.0 ", x[0][i], x[1][i]); }
+  // write binary version
+  //printer.PushAttribute( "format", "binary" );
+  //printer.PushText( "\n" );
+  //printer.PrintSpace(5);
+  //std::fwrite(v.data(), sizeof v[0], v.size(), f1);
+  //const float zero = 0.0;
+  //for (size_t i=0; i<pts.get_n(); ++i) {
+  //  std::fwrite(&x[0][i], sizeof(S), 1, fp);
+  //  std::fwrite(&x[1][i], sizeof(S), 1, fp);
+  //  std::fwrite(&zero, sizeof(S), 1, fp);
+  //}
+  //printer.PushText( "\n" );
+  //printer.PrintSpace(5);
+  // close it out
   printer.CloseElement();	// DataArray
   printer.CloseElement();	// Points
 
@@ -110,6 +149,9 @@ void write_vtu_points(Points<S> const& pts) {
   for (size_t i=0; i<pts.get_n(); ++i) {
     std::fprintf(fp, "%g ", s[i]);
   }
+  // write binary version
+  //printer.PushAttribute( "format", "appended" );
+  //printer.PushAttribute( "offset", "0" );
   printer.CloseElement();	// DataArray
 
   printer.OpenElement( "DataArray" );
@@ -130,11 +172,37 @@ void write_vtu_points(Points<S> const& pts) {
   //printer.OpenElement( "CellData" );
   //printer.CloseElement();	// CellData
 
+  // here's the problem: ParaView's VTK/XML reader is not able to read "raw" bytestreams
+  // it parses each character and inevitably sees a > or <, so complains about mismatched
+  //   tags, and doesn't seem to point to the right place
+  // everyone who complains about raw data in the AppendedData section makes the mistake
+  //   of forgetting the 4-byte length - I've got that
+  // it's VTK's fault here
+  // Jesus, for how inefficient saving 2D particle data is, it's compounded by having to 
+  //   do it all in ascii!!! VTK just sucks. That's really what my 6 hours of wasted work
+  //   has taught me. It just sucks. Don't use it. Not that anything else is better.
+/*
+  printer.OpenElement( "AppendedData" );
+  printer.PushAttribute( "encoding", "raw" );
+  printer.PushText( " " );
+  printer.PushText( "_" );
+  uint32_t arry_len = s.size() * sizeof(s[0]);
+  char* ptr = (char*)(&arry_len);
+  std::cout << "  writing " << arry_len << " bytes to appended data" << std::endl;
+  //std::fwrite(&arry_len, sizeof(uint32_t), 1, fp);
+  std::fwrite(ptr, sizeof(uint32_t), 1, fp);
+  std::fwrite(s.data(), sizeof(s[0]), s.size(), fp);
+  printer.PushText( " " );
+  printer.CloseElement();	// CellData
+
   printer.CloseElement();	// Piece
   printer.CloseElement();	// PolyData or UnstructuredGrid
   printer.CloseElement();	// VTKFile
+*/
 
   std::fclose(fp);
+
+  std::cout << "Wrote particle data to " << vtkfn.str() << std::endl;
 
   // increment and return
   frameno++;
