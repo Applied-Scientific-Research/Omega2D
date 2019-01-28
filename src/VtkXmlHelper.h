@@ -193,12 +193,12 @@ void write_vtu_points(Points<S> const& pts) {
   std::fwrite(ptr, sizeof(uint32_t), 1, fp);
   std::fwrite(s.data(), sizeof(s[0]), s.size(), fp);
   printer.PushText( " " );
-  printer.CloseElement();	// CellData
+  printer.CloseElement();	// AppendedData
+*/
 
   printer.CloseElement();	// Piece
   printer.CloseElement();	// PolyData or UnstructuredGrid
   printer.CloseElement();	// VTKFile
-*/
 
   std::fclose(fp);
 
