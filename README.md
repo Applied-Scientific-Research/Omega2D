@@ -81,6 +81,10 @@ If you already have an input file in JSON format, or you exported one from the G
 
 Output will be written to the terminal and files to the working directory.
 
+Generate an X.264-encoded video from a series of png images with the following command. Make sure to set the actual resolution of the images. The reason for all the extra options is that Quicktime is very picky about which video files it will play.
+
+    mencoder "mf://img*png" -mf w=1280:h=720:type=png:fps=30 -o video.mp4 -sws 9 -of lavf -lavfopts format=mp4 -nosub -vf softskip,harddup -nosound -ovc x264 -x264encopts bitrate=4000:vbv_maxrate=6000:vbv_bufsize=2000:nointerlaced:force_cfr:frameref=3:mixed_refs:bframes=1:b_adapt=2:weightp=1:direct_pred=auto:aq_mode=1:me=umh:me_range=16:subq=6:mbtree:psy_rd=0.8,0.2:chroma_me:trellis=1:nocabac:deblock:partitions=p8x8,b8x8,i8x8,i4x4:nofast_pskip:nodct_decimate:threads=auto:ssim:psnr:keyint=300:keyint_min=30:level_idc=30:global_header
+
 ## To do
 Tasks to consider or implement:
 
