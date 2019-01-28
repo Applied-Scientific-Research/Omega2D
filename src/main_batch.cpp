@@ -67,7 +67,7 @@ int main(int argc, char const *argv[]) {
 
   // initialize measurement features
   for (auto const& mf: mfeatures) {
-    sim.add_tracers( mf->init_particles(0.1*sim.get_ips()) );
+    sim.add_fldpts( mf->init_particles(0.1*sim.get_ips()), mf->moves() );
   }
 
   sim.set_initialized();
@@ -89,7 +89,7 @@ int main(int argc, char const *argv[]) {
         sim.add_particles( ff->step_particles(sim.get_ips()) );
       }
       for (auto const& mf: mfeatures) {
-        sim.add_tracers( mf->step_particles(0.1*sim.get_ips()) );
+        sim.add_fldpts( mf->step_particles(0.1*sim.get_ips()), mf->moves() );
       }
 
       // begin a new dynamic step: convection and diffusion

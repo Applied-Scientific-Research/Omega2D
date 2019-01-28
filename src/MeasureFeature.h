@@ -24,6 +24,7 @@ public:
       m_is_lagrangian(_moves)
     {}
 
+  bool moves() const { return m_is_lagrangian; }
   virtual void debug(std::ostream& os) const = 0;
   virtual std::string to_string() const = 0;
   virtual nlohmann::json to_json() const = 0;
@@ -122,6 +123,28 @@ class TracerLine : public SinglePoint {
 public:
   TracerLine(float _x, float _y, float _xf, float _yf)
     : SinglePoint(_x, _y, true),
+      m_xf(_xf),
+      m_yf(_yf)
+    {}
+
+  void debug(std::ostream& os) const override;
+  std::string to_string() const override;
+  nlohmann::json to_json() const override;
+  std::vector<float> init_particles(float) const override;
+  std::vector<float> step_particles(float) const override;
+
+protected:
+  float m_xf, m_yf;
+};
+
+
+//
+// Concrete class for a line of static measurement points
+//
+class MeasurementLine : public SinglePoint {
+public:
+  MeasurementLine(float _x, float _y, float _xf, float _yf)
+    : SinglePoint(_x, _y, false),
       m_xf(_xf),
       m_yf(_yf)
     {}

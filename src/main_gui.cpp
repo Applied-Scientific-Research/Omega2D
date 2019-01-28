@@ -277,7 +277,7 @@ int main(int argc, char const *argv[]) {
 
         // initialize measurement features
         for (auto const& mf: mfeatures) {
-          sim.add_tracers( mf->init_particles(rparams.tracer_scale*sim.get_ips()) );
+          sim.add_fldpts( mf->init_particles(rparams.tracer_scale*sim.get_ips()), mf->moves() );
         }
 
         sim.set_initialized();
@@ -294,7 +294,7 @@ int main(int argc, char const *argv[]) {
           sim.add_particles( ff->step_particles(sim.get_ips()) );
         }
         for (auto const& mf: mfeatures) {
-          sim.add_tracers( mf->step_particles(rparams.tracer_scale*sim.get_ips()) );
+          sim.add_fldpts( mf->step_particles(rparams.tracer_scale*sim.get_ips()), mf->moves() );
         }
 
         // begin a new dynamic step: convection and diffusion
@@ -739,8 +739,8 @@ int main(int argc, char const *argv[]) {
       if (ImGui::BeginPopupModal("New measurement structure"))
       {
         static int item = 0;
-        const char* items[] = { "single point/tracer", "streakline", "circle of tracers", "line of tracers" };
-        ImGui::Combo("type", &item, items, 4);
+        const char* items[] = { "single point/tracer", "streakline", "circle of tracers", "line of tracers", "measurement line" };
+        ImGui::Combo("type", &item, items, 5);
 
         static float xc[2] = {0.0f, 0.0f};
         static float xf[2] = {0.0f, 1.0f};
@@ -793,6 +793,19 @@ int main(int argc, char const *argv[]) {
                                1+(int)(std::sqrt(std::pow(xf[0]-xc[0],2)+std::pow(xf[1]-xc[1],2))/(rparams.tracer_scale*sim.get_ips())));
             if (ImGui::Button("Add line of tracers")) {
               mfeatures.emplace_back(std::make_unique<TracerLine>(xc[0], xc[1], xf[0], xf[1]));
+              std::cout << "Added " << (*mfeatures.back()) << std::endl;
+              ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            break;
+          case 4:
+            // a static, measurement line
+            ImGui::InputFloat2("start", xc);
+            ImGui::InputFloat2("finish", xf);
+            ImGui::TextWrapped("This feature will add about %d field points",
+                               1+(int)(std::sqrt(std::pow(xf[0]-xc[0],2)+std::pow(xf[1]-xc[1],2))/(rparams.tracer_scale*sim.get_ips())));
+            if (ImGui::Button("Add line of measurement points")) {
+              mfeatures.emplace_back(std::make_unique<MeasurementLine>(xc[0], xc[1], xf[0], xf[1]));
               std::cout << "Added " << (*mfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }

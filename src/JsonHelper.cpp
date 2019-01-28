@@ -254,6 +254,10 @@ void read_json (Simulation& sim,
         std::cout << "  found tracer line" << std::endl;
         const std::vector<float> e = mf["end"];
         mfeatures.emplace_back(std::make_unique<TracerLine>(c[0], c[1], e[0], e[1]));
+      } else if (ftype == "measurement line") {
+        std::cout << "  found measurement line" << std::endl;
+        const std::vector<float> e = mf["end"];
+        mfeatures.emplace_back(std::make_unique<MeasurementLine>(c[0], c[1], e[0], e[1]));
       }
     }
   }

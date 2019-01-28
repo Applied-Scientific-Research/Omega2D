@@ -74,7 +74,7 @@ public:
 
   // receive and add a set of particles
   void add_particles(std::vector<float>);
-  void add_tracers(std::vector<float>);
+  void add_fldpts(std::vector<float>, const bool);
   void add_boundary(ElementPacket<float>);
 
   // act on stuff

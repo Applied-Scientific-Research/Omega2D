@@ -204,3 +204,58 @@ TracerLine::to_json() const {
   return j;
 }
 
+
+//
+// Create a line of static measurement points
+//
+std::vector<float>
+MeasurementLine::init_particles(float _ips) const {
+
+  // create a new vector to pass on
+  std::vector<float> x;
+
+  // how many points do we need?
+  float llen = std::sqrt( std::pow(m_xf-m_x, 2) + std::pow(m_yf-m_y, 2) );
+  int ilen = 1 + llen / _ips;
+
+  // loop over integer indices
+  for (int i=0; i<ilen; ++i) {
+
+    // how far along the line?
+    float frac = (float)i / (float)(ilen-1);
+
+    // create a particle here
+    x.emplace_back((1.0-frac)*m_x + frac*m_xf);
+    x.emplace_back((1.0-frac)*m_y + frac*m_yf);
+  }
+
+  return x;
+}
+
+std::vector<float>
+MeasurementLine::step_particles(float _ips) const {
+  // does not emit
+  return std::vector<float>();
+}
+
+void
+MeasurementLine::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+MeasurementLine::to_string() const {
+  std::stringstream ss;
+  ss << "measurement line from " << m_x << " " << m_y << " to " << m_xf << " " << m_yf;
+  return ss.str();
+}
+
+nlohmann::json
+MeasurementLine::to_json() const {
+  nlohmann::json j;
+  j["type"] = "measurement line";
+  j["center"] = {m_x, m_y};
+  j["end"] = {m_xf, m_yf};
+  return j;
+}
+

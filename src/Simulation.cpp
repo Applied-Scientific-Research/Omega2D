@@ -341,19 +341,21 @@ void Simulation::add_particles(std::vector<float> _xysr) {
 }
 
 // add some tracer particles to new arch
-void Simulation::add_tracers(std::vector<float> _xy) {
+void Simulation::add_fldpts(std::vector<float> _xy, const bool _moves) {
 
   if (_xy.size() == 0) return;
 
   // make sure we're getting full points
   assert(_xy.size() % 2 == 0);
 
+  const move_t move_type = _moves ? lagrangian : fixed;
+
   // add to new archtecture
 
   // if no collections exist
   if (fldpt.size() == 0) {
     // make a new collection
-    fldpt.push_back(Points<float>(_xy, inert, lagrangian));      // vortons
+    fldpt.push_back(Points<float>(_xy, inert, move_type));
 
   } else {
     // THIS MUST USE A VISITOR
