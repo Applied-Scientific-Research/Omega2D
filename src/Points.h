@@ -65,7 +65,7 @@ public:
 
 
     if (_e == inert) {
-      // field points need no radius, but we must set one anyway so that vel evals work
+      // field points need no radius, but we must set one anyway so that vel evals work - not any more
       r.resize(this->n);
       for (size_t i=0; i<this->n; ++i) {
         r[i] = 0.0;
