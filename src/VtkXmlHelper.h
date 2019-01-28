@@ -51,12 +51,20 @@ const char* convert_to_base64 (Vector<S> const & v, bool compress = false) {
 // https://mathema.tician.de/what-they-dont-tell-you-about-vtk-xml-binary-formats/
 //
 template <class S>
-void write_vtu_points(Points<S> const& pts) {
+void write_vtu_points(Points<S> const& pts, const size_t file_idx, const size_t frameno) {
+
+  bool has_radii = true;
+  bool has_strengths = true;
+  std::string prefix = "part_";
+  if (pts.is_inert()) {
+    has_strengths = false;
+    has_radii = false;
+    prefix = "fldpt_";
+  }
 
   // generate file name
-  static int frameno = 0;
   std::stringstream vtkfn;
-  vtkfn << "part_" << std::setfill('0') << std::setw(5) << frameno << ".vtu";
+  vtkfn << prefix << std::setfill('0') << std::setw(2) << file_idx << "_" << std::setw(5) << frameno << ".vtu";
 
   // prepare file pointer and printer
   std::FILE* fp = std::fopen(vtkfn.str().c_str(), "wb");
@@ -137,22 +145,39 @@ void write_vtu_points(Points<S> const& pts) {
 
   printer.OpenElement( "PointData" );
   printer.PushAttribute( "Vectors", "velocity" );
-  printer.PushAttribute( "Scalars", "circulation" );
+  if (has_strengths) printer.PushAttribute( "Scalars", "circulation" );
+  if (has_radii) printer.PushAttribute( "Scalars", "radius" );
 
-  printer.OpenElement( "DataArray" );
-  printer.PushAttribute( "Name", "circulation" );
-  printer.PushAttribute( "type", "Float32" );
-  printer.PushAttribute( "format", "ascii" );
-  // end the element header and write the data
-  printer.PushText( " " );
-  const Vector<S>& s = pts.get_str();
-  for (size_t i=0; i<pts.get_n(); ++i) {
-    std::fprintf(fp, "%g ", s[i]);
+  if (has_strengths) {
+    printer.OpenElement( "DataArray" );
+    printer.PushAttribute( "Name", "circulation" );
+    printer.PushAttribute( "type", "Float32" );
+    printer.PushAttribute( "format", "ascii" );
+    // end the element header and write the data
+    printer.PushText( " " );
+    const Vector<S>& s = pts.get_str();
+    for (size_t i=0; i<pts.get_n(); ++i) {
+      std::fprintf(fp, "%g ", s[i]);
+    }
+    // write binary version
+    //printer.PushAttribute( "format", "appended" );
+    //printer.PushAttribute( "offset", "0" );
+    printer.CloseElement();	// DataArray
   }
-  // write binary version
-  //printer.PushAttribute( "format", "appended" );
-  //printer.PushAttribute( "offset", "0" );
-  printer.CloseElement();	// DataArray
+
+  if (has_radii) {
+    printer.OpenElement( "DataArray" );
+    printer.PushAttribute( "Name", "radius" );
+    printer.PushAttribute( "type", "Float32" );
+    printer.PushAttribute( "format", "ascii" );
+    // end the element header and write the data
+    printer.PushText( " " );
+    const Vector<S>& r = pts.get_rad();
+    for (size_t i=0; i<pts.get_n(); ++i) {
+      std::fprintf(fp, "%g ", r[i]);
+    }
+    printer.CloseElement();	// DataArray
+  }
 
   printer.OpenElement( "DataArray" );
   printer.PushAttribute( "NumberOfComponents", "3" );
@@ -203,7 +228,4 @@ void write_vtu_points(Points<S> const& pts) {
   std::fclose(fp);
 
   std::cout << "Wrote particle data to " << vtkfn.str() << std::endl;
-
-  // increment and return
-  frameno++;
 }
