@@ -88,6 +88,7 @@ Generate an X.264-encoded video from a series of png images with the following c
 ## To do
 Tasks to consider or implement:
 
+* Use a mathematical equation parser, I like [exprtk](http://www.partow.net/programming/exprtk/), to define rotation and tranlation of bodies; muparser and tinyexpr are also options
 * Add inlet and outlet surfaces to push flow around - the BC is that normal flow must equal some number
 * Consider adding base64 encoding to vtk output files, maybe with [this](https://github.com/tplgy/cppcodec)
 * Add airfoils - read them from a text file or generate them algorithmically
