@@ -37,6 +37,11 @@ Body::Body(const std::string _pos, const std::string _rot) :
   {}
 
 // getters/setters
+
+void Body::set_name(const std::string _name) { name = _name; }
+void Body::set_parent_name(const std::string _name) { parent = _name; }
+std::string Body::get_name() { return name; }
+
 Vec Body::get_pos(const double _time) {
   // for testing, return a sinusoid
   pos[0] = 0.0;

@@ -395,3 +395,9 @@ void Simulation::add_boundary(ElementPacket<float> _geom) {
   }
 }
 
+// add a new body
+void Simulation::add_body(std::shared_ptr<Body> _body) {
+  bodies.emplace_back(_body);
+  std::cout << "Added new body (" << _body->get_name() << "), now have " << bodies.size() << std::endl;
+}
+

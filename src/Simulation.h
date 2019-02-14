@@ -77,6 +77,7 @@ public:
   void add_particles(std::vector<float>);
   void add_fldpts(std::vector<float>, const bool);
   void add_boundary(ElementPacket<float>);
+  void add_body(std::shared_ptr<Body>);
 
   // act on stuff
   //void set_amr(const bool);

@@ -6,10 +6,11 @@
  */
 
 #include "JsonHelper.h"
+#include "Body.h"
 
 #include "json/json.hpp"
 
-//#include <string>
+#include <string>
 #include <vector>
 #include <iostream>	// for cout,endl
 #include <iomanip>	// for setw
@@ -185,8 +186,31 @@ void read_json (Simulation& sim,
     for (auto const& bdy: bdy_json) {
       // make a new Body (later) and attach these geometries to it
       //std::cout << "  for this body" << std::endl;
+      auto bp = std::make_shared<Body>();
 
-      // see if there are meshes
+      // get the body name ("ground" is default)
+      if (bdy.find("name") != bdy.end()) {
+        // by making a variable out of it, we implicitly cast whatever is there to a string
+        const std::string bname = bdy["name"];
+        // so we don't screw this part up
+        bp->set_name(bname);
+      }
+
+      // get the parent name, if any ("none" is default)
+      if (bdy.find("parent") != bdy.end()) {
+        const std::string pname = bdy["parent"];
+        bp->set_parent_name(pname);
+      }
+
+      // get the motions of this body w.r.t. parent
+      if (bdy.find("translation") != bdy.end()) {
+        // look for an array, each entry can be a float or a string
+      }
+      if (bdy.find("rotation") != bdy.end()) {
+        // look for a float or a string
+      }
+
+      // see if there are meshes (there don't have to be - a Body can just act as a virtual joint
       if (bdy.count("meshes") == 1) {
         //std::cout << "  found the meshes" << std::endl;
         std::vector<json> bf_json = bdy["meshes"];
@@ -226,6 +250,9 @@ void read_json (Simulation& sim,
           }
         }
       }
+
+      // and add the Body pointer bp to the master list
+      sim.add_body(bp);
     }
   }
 
@@ -309,6 +336,7 @@ void write_json(Simulation& sim,
   j["flowstructures"] = jflows;
 
   // assemble a vector of boundary features
+  // this requires care, as we need to write them one body at a time!
   std::vector<json> jbounds;
   for (auto const& bf: bfeatures) {
     jbounds.push_back(bf->to_json());
