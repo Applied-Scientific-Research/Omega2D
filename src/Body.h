@@ -1,74 +1,60 @@
 /*
  * Body.h - class for an independent solid boundary
  *
- * (c)2017-8 Applied Scientific Research, Inc.
+ * (c)2017-9 Applied Scientific Research, Inc.
  *           Written by Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
 
-#include <cstdlib>
-#include <cstdio>
-#include <cstdint>
+#include "Omega2D.h"
+
+#include <string>
 #define _USE_MATH_DEFINES // Required by MSVC to define M_PI,etc. in <cmath>
 #include <cmath>
-#include <vector>
 #include <array>
+
+using Vec = std::array<double,Dimensions>;
 
 //------------------------------------------------------------------------
 //
 // A single rigid body
 //
-// Draws and moves itself, so needs to know its panels? no.
-//
-// movement subtypes DynamicBody, KinematicBody, StaticBody
+// Holds and reports only motions
 //
 // how would we support inside-out bodies? say we're simulating flow inside a circle or box?
+//   those collections would be attached to the ground body - the default 0th body
+//
+// for use in 2D and 3D codes, should really use a custom Rotation object instead of a double
 //
 
-template <class S>
 class Body {
 public:
   Body();
-  Body(const S, const S);
-  virtual ~Body() {}
+  Body(const double, const double);
+  Body(const std::string, const std::string);
+  ~Body() = default;
 
   // following are handled by the base class
-  std::array<S,2> getPos();
-
-  // following must be implemented by derived classes
-  virtual std::vector<S> discretize(const S) = 0;
-
-protected:
-  // 2D position and velocity
-  std::array<S,2> pos;
-  std::array<S,2> vel;
-
-  // angular position and velocity
-  S apos;
-  S avel;
+  Vec get_pos(const double);
+  Vec get_vel(const double);
+  double get_orient(const double);
+  double get_rotvel(const double);
 
 private:
+  // string containing formulae to be parsed when needed
+  std::string pos_func;
+  std::string apos_func;
+
+  // 2D position and velocity (initial, or constant)
+  Vec pos;
+  Vec vel;
+
+  // angular position and velocity (initial, or constant)
+  double apos;
+  double avel;
+
+  // enclosed volume (needed for total circulation of rotating body)
+  double vol;
 };
-
-// delegating ctor
-template <class S>
-Body<S>::Body() :
-  Body(0.0, 0.0)
-  {}
-
-// primary constructor
-template <class S>
-Body<S>::Body(const S _x, const S _y) :
-  pos(std::array<S,2>({{_x, _y}})),
-  vel(std::array<S,2>({{0.0, 0.0}})),
-  apos(0.0),
-  avel(0.0)
-  {}
-
-// getters/setters
-template <class S>
-std::array<S,2> Body<S>::getPos() {
-  return pos;
-}
 

@@ -143,6 +143,7 @@ SET(SOURCES "src/Simulation.cpp"
             "src/CollectionHelper.cpp"
             "src/BoundaryFeature.cpp"
             "src/MeasureFeature.cpp"
+            "src/Body.cpp"
             "src/JsonHelper.cpp"
             "src/tinyxml2/tinyxml2.cpp")
 

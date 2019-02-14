@@ -9,6 +9,7 @@
 
 #include "VectorHelper.h"
 #include "Omega2D.h"
+#include "Body.h"
 
 #include <iostream>
 #include <vector>
@@ -219,9 +220,8 @@ protected:
   elem_t E;
   // how does it move? use move_t or Body*
   move_t M;
-  //Body* b = nullptr;
-  //Move_t get_move_type() {
-  //}
+  // if attached to a body, which one?
+  std::shared_ptr<Body> b;
 
   // common arrays for all derived types
   size_t n;

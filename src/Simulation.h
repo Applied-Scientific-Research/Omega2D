@@ -8,6 +8,7 @@
 #pragma once
 
 #include "Omega2D.h"
+#include "Body.h"
 #include "Collection.h"
 #include "BEM.h"
 #include "Convection.h"
@@ -102,6 +103,9 @@ private:
   float re;
   float dt;
   float fs[Dimensions];
+
+  // List of independent rigid bodies (and one for ground)
+  std::vector< std::shared_ptr<Body> > bodies;
 
   // Object to contain all Lagrangian elements
   std::vector<Collection> vort;		// active elements
