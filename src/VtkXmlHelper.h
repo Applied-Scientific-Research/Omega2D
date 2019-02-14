@@ -145,8 +145,13 @@ void write_vtu_points(Points<S> const& pts, const size_t file_idx, const size_t 
 
   printer.OpenElement( "PointData" );
   printer.PushAttribute( "Vectors", "velocity" );
-  if (has_strengths) printer.PushAttribute( "Scalars", "circulation" );
-  if (has_radii) printer.PushAttribute( "Scalars", "radius" );
+  std::string scalar_list;
+  if (has_strengths) scalar_list.append("circulation,");
+  if (has_radii) scalar_list.append("radius,");
+  if (scalar_list.size()>1) {
+    scalar_list.pop_back();
+    printer.PushAttribute( "Scalars", scalar_list.c_str() );
+  }
 
   if (has_strengths) {
     printer.OpenElement( "DataArray" );
