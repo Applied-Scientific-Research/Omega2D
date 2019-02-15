@@ -212,6 +212,25 @@ public:
     this->n += nnodes;
   }
 
+  void add_body_motion(const S _factor, const double _time) {
+    // no need to call base class now
+    //ElementBase<S>::add_body_motion(_factor);
+    // apply a factor times the body motion
+    for (size_t i=0; i<this->get_n(); ++i) {
+      // center of this panel
+      //Int id0 = idx[2*i];
+      //Int id1 = idx[2*i+1];
+      // start at center of panel
+      //px[4*i+0] = 0.5 * (this->x[0][id1] + this->x[0][id0]);
+      //px[4*i+1] = 0.5 * (this->x[1][id1] + this->x[1][id0]);
+      std::array<double,Dimensions> thisvel = B->get_vel(_time);
+      // apply the velocity
+      for (size_t d=0; d<Dimensions; ++d) {
+        this->u[d][i] += _factor * (float)thisvel[d];
+      }
+    }
+  }
+
 /*
   // up-size all arrays to the new size, filling with sane values
   void resize(const size_t _nnew) {

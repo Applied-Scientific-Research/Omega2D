@@ -26,7 +26,8 @@
 // helper function to solve BEM equations on given state
 //
 template <class S, class A, class I>
-void solve_bem(const std::array<double,Dimensions>& _fs,
+void solve_bem(const double                         _time,
+               const std::array<double,Dimensions>& _fs,
                std::vector<Collection>&             _vort,
                std::vector<Collection>&             _bdry,
                BEM<S,I>&                            _bem) {
@@ -43,14 +44,20 @@ void solve_bem(const std::array<double,Dimensions>& _fs,
   // loop over boundary collections
   for (auto &targ : _bdry) {
     std::cout << "  Solving for velocities on" << to_string(targ) << std::endl;
+
     // zero velocities
     std::visit([=](auto& elem) { elem.zero_vels(); }, targ);
+
     // accumulate from vorticity
     for (auto &src : _vort) {
       std::visit(ivisitor, src, targ);
     }
-    // add freestream and divide by 2pi
+
+    // divide by 2pi and add freestream
     std::visit([=](auto& elem) { elem.finalize_vels(_fs); }, targ);
+
+    // include the effects of the motion of the parent body
+    std::visit([=](auto& elem) { elem.add_body_motion(-1.0, _time); }, targ);
 
     // find portion of RHS vector
     const size_t tstart = std::visit([=](auto& elem) { return elem.get_first_row(); }, targ);

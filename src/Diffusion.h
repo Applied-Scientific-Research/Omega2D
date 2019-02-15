@@ -43,6 +43,7 @@ public:
   S get_particle_overlap() const { return particle_overlap; }
 
   void step(const double,
+            const double,
             const S,
             const S,
             const std::array<double,2>&,
@@ -76,7 +77,8 @@ private:
 // take a diffusion step
 //
 template <class S, class A, class I>
-void Diffusion<S,A,I>::step(const double                _dt,
+void Diffusion<S,A,I>::step(const double                _time,
+                            const double                _dt,
                             const S                     _re,
                             const S                     _vdelta,
                             const std::array<double,2>& _fs,
@@ -89,7 +91,7 @@ void Diffusion<S,A,I>::step(const double                _dt,
   std::cout << "Inside Diffusion::step with dt=" << _dt << std::endl;
 
   // always re-run the BEM calculation before shedding
-  solve_bem<S,A,I>(_fs, _vort, _bdry, _bem);
+  solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
 
   //
   // generate particles at boundary surfaces

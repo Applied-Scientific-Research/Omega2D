@@ -258,6 +258,19 @@ public:
     }
   }
 
+  void add_body_motion(const S _factor, const double _time) {
+    // no need to call base class now
+    //ElementBase<S>::add_body_motion(_factor);
+    // apply a factor times the body motion
+    //for (size_t i=0; i<this->get_n(); ++i) {
+    //  std::array<S,Dimensions> thisvel = B->get_vel(_time);
+    //  // apply the velocity
+    //  for (size_t d=0; d<Dimensions; ++d) {
+    //    this->u[d][i] += _factor * thisvel[d];
+    //  }
+    //}
+  }
+
 #ifdef USE_GL
   //
   // OpenGL functions

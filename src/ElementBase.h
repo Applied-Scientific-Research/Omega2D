@@ -148,6 +148,9 @@ public:
       }
     }
   }
+  void add_body_motion(const double _factor) {
+    // do nothing here
+  }
   void move(const double _dt) {
     if (M == lagrangian) {
       std::cout << "  Moving" << to_string() << std::endl;
