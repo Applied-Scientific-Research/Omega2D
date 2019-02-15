@@ -218,10 +218,8 @@ public:
 protected:
   // active, reactive, or inert?
   elem_t E;
-  // how does it move? use move_t or Body*
+  // how does it move? use move_t and Body*
   move_t M;
-  // if attached to a body, which one?
-  std::shared_ptr<Body> b;
 
   // common arrays for all derived types
   size_t n;
@@ -233,5 +231,10 @@ protected:
   // time derivative of state vector
   std::array<Vector<S>,Dimensions> u;                   // velocity
   //std::optional<std::array<Vector<S>,Dimensions>> dsdt; // strength change
+
+  // if attached to a body, which one?
+  // adding this member variable causes no particles to be drawn!
+  // doesn't matter where it is, or whether we completely rebuild!
+  //std::shared_ptr<Body> B;
 };
 

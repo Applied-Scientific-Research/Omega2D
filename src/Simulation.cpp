@@ -380,7 +380,7 @@ void Simulation::add_boundary(std::shared_ptr<Body> _bptr, ElementPacket<float> 
     bdry.push_back(Surfaces<float>(_geom.x,
                                    _geom.idx,
                                    _geom.val,
-                                   0, reactive, fixed));
+                                   0, reactive, fixed, _bptr));
   } else {
 
     auto& coll = bdry.back();

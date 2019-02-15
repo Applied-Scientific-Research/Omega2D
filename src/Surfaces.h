@@ -44,8 +44,11 @@ public:
            const std::vector<Int>& _idx,
            const std::vector<S>&   _val,
            const Int _firstrow,
-           const elem_t _e, const move_t _m)
+           const elem_t _e, const move_t _m,
+           std::shared_ptr<Body> _bp)
     : ElementBase<S>(0, _e, _m),
+      istart(_firstrow),
+      B(_bp),
       max_strength(-1.0) {
 
     // make sure input arrays are correctly-sized
@@ -103,9 +106,6 @@ public:
     for (size_t d=0; d<Dimensions; ++d) {
       this->u[d].resize(nnodes);
     }
-
-    // set range in the BEM
-    istart = _firstrow;
 
     // debug print
     if (false) {
@@ -513,6 +513,9 @@ protected:
 
   //std::vector<std::pair<Int,Int>> body_idx;	// n, offset of rows in the BEM?
   Int istart;	// index of first entry in RHS vector and A matrix
+
+  // why cant I put this in ElementBase.h ?
+  std::shared_ptr<Body> B;
 
 private:
 #ifdef USE_GL
