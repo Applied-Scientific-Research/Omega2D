@@ -230,19 +230,19 @@ void read_json (Simulation& sim,
             std::cout << "  found solid circle" << std::endl;
             if (sc.is_number()) {
               const float scale = bf["scale"];
-              bfeatures.emplace_back(std::make_unique<SolidCircle>(tr[0], tr[1], scale));
+              bfeatures.emplace_back(std::make_unique<SolidCircle>(bp, tr[0], tr[1], scale));
             }
           } else if (ftype == "oval") {
             std::cout << "  found solid oval" << std::endl;
             if (sc.is_array()) {
               const std::vector<float> scale = bf["scale"];
-              bfeatures.emplace_back(std::make_unique<SolidOval>(tr[0], tr[1], scale[0], scale[1], rot));
+              bfeatures.emplace_back(std::make_unique<SolidOval>(bp, tr[0], tr[1], scale[0], scale[1], rot));
             }
           } else if (ftype == "square") {
             std::cout << "  found solid square" << std::endl;
             if (sc.is_number()) {
               const float scale = bf["scale"];
-              bfeatures.emplace_back(std::make_unique<SolidSquare>(tr[0], tr[1], scale, rot));
+              bfeatures.emplace_back(std::make_unique<SolidSquare>(bp, tr[0], tr[1], scale, rot));
             }
           } else {
             // it's not a predefined geometry, but a file

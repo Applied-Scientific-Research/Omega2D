@@ -62,7 +62,7 @@ int main(int argc, char const *argv[]) {
 
   // initialize solid objects
   for (auto const& bf : bfeatures) {
-    sim.add_boundary( bf->init_elements(sim.get_ips()) );
+    sim.add_boundary( bf->get_body(), bf->init_elements(sim.get_ips()) );
   }
 
   // initialize measurement features

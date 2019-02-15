@@ -11,6 +11,7 @@
 #include "MeasureFeature.h"
 #include "Simulation.h"
 #include "JsonHelper.h"
+#include "Body.h"
 #include "RenderParams.h"
 
 #ifdef _WIN32
@@ -180,6 +181,8 @@ int main(int argc, char const *argv[]) {
   std::vector< std::unique_ptr<FlowFeature> > ffeatures;
   std::vector< std::unique_ptr<BoundaryFeature> > bfeatures;
   std::vector< std::unique_ptr<MeasureFeature> > mfeatures;
+  auto bp = std::make_shared<Body>();
+  bp->set_name("ground");
   size_t nsteps = 0;
   static bool sim_is_running = false;
   static bool begin_single_step = false;
@@ -272,7 +275,7 @@ int main(int argc, char const *argv[]) {
 
         // initialize solid objects
         for (auto const& bf : bfeatures) {
-          sim.add_boundary( bf->init_elements(sim.get_ips()) );
+          sim.add_boundary( bf->get_body(), bf->init_elements(sim.get_ips()) );
         }
 
         // initialize measurement features
@@ -411,7 +414,7 @@ int main(int argc, char const *argv[]) {
           fs[0] = 1.0; fs[1] = 0.0;
           *re = 250.0;
           // generate the boundary
-          bfeatures.emplace_back(std::make_unique<SolidCircle>(0.0, 0.0, 1.0));
+          bfeatures.emplace_back(std::make_unique<SolidCircle>(bp, 0.0, 0.0, 1.0));
           is_viscous = true;
           sim.set_diffuse(true);
           // start it up
@@ -429,7 +432,7 @@ int main(int argc, char const *argv[]) {
           fs[0] = 1.0; fs[1] = 0.0;
           *re = 500.0;
           // generate the boundary
-          bfeatures.emplace_back(std::make_unique<SolidSquare>(0.0, 0.0, 1.0, 0.0));
+          bfeatures.emplace_back(std::make_unique<SolidSquare>(bp, 0.0, 0.0, 1.0, 0.0));
           is_viscous = true;
           sim.set_diffuse(true);
           // start it up
@@ -684,7 +687,8 @@ int main(int argc, char const *argv[]) {
             ImGui::SliderFloat("diameter", &circdiam, 0.01f, 10.0f, "%.4f", 2.0);
             ImGui::TextWrapped("This feature will add a solid circular body centered at the given coordinates");
             if (ImGui::Button("Add circular body")) {
-              bfeatures.emplace_back(std::make_unique<SolidCircle>(xc[0], xc[1], circdiam));
+              //auto bp = std::make_shared<Body>();
+              bfeatures.emplace_back(std::make_unique<SolidCircle>(bp, xc[0], xc[1], circdiam));
               std::cout << "Added " << (*bfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
@@ -697,8 +701,8 @@ int main(int argc, char const *argv[]) {
             ImGui::SliderFloat("rotation", &rotdeg, 0.0f, 89.0f, "%.0f");
             ImGui::TextWrapped("This feature will add a solid square body centered at the given coordinates");
             if (ImGui::Button("Add square body")) {
-              // old arch does not support this, new one does:
-              bfeatures.emplace_back(std::make_unique<SolidSquare>(xc[0], xc[1], sqside, rotdeg));
+              //auto bp = std::make_shared<Body>();
+              bfeatures.emplace_back(std::make_unique<SolidSquare>(bp, xc[0], xc[1], sqside, rotdeg));
               std::cout << "Added " << (*bfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
@@ -712,7 +716,8 @@ int main(int argc, char const *argv[]) {
             ImGui::SliderFloat("rotation", &rotdeg, 0.0f, 179.0f, "%.0f");
             ImGui::TextWrapped("This feature will add a solid oval body centered at the given coordinates");
             if (ImGui::Button("Add oval body")) {
-              bfeatures.emplace_back(std::make_unique<SolidOval>(xc[0], xc[1], circdiam, minordiam, rotdeg));
+              //auto bp = std::make_shared<Body>();
+              bfeatures.emplace_back(std::make_unique<SolidOval>(bp, xc[0], xc[1], circdiam, minordiam, rotdeg));
               std::cout << "Added " << (*bfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }

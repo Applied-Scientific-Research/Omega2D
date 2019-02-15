@@ -372,7 +372,7 @@ void Simulation::add_fldpts(std::vector<float> _xy, const bool _moves) {
 }
 
 // add geometry
-void Simulation::add_boundary(ElementPacket<float> _geom) {
+void Simulation::add_boundary(std::shared_ptr<Body> _bptr, ElementPacket<float> _geom) {
 
   // if no collections exist
   if (bdry.size() == 0) {
@@ -386,6 +386,7 @@ void Simulation::add_boundary(ElementPacket<float> _geom) {
     auto& coll = bdry.back();
     // only proceed if the last collection is Surfaces
     // eventually check each collection for a element and movement type match (i.e. reactive and fixed)
+    // and if the body matches
     if (std::holds_alternative<Surfaces<float>>(coll)) {
       Surfaces<float>& surf = std::get<Surfaces<float>>(coll);
       surf.add_new(_geom.x,

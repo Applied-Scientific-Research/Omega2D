@@ -8,11 +8,13 @@
 #pragma once
 
 #include "Omega2D.h"
+#include "Body.h"
 
 #include "json/json.hpp"
 
 #include <iostream>
-#include <vector>
+//#include <vector>
+#include <memory>
 
 
 //
@@ -21,8 +23,9 @@
 class BoundaryFeature {
 public:
   explicit
-  BoundaryFeature(float _x, float _y)
-    : m_x(_x),
+  BoundaryFeature(std::shared_ptr<Body> _bp, float _x, float _y)
+    : m_bp(_bp),
+      m_x(_x),
       m_y(_y)
     {}
   virtual ~BoundaryFeature() {}
@@ -32,8 +35,10 @@ public:
   virtual nlohmann::json to_json() const = 0;
   virtual ElementPacket<float> init_elements(const float) const = 0;
   //virtual std::vector<float> step_elements(const float) const = 0;
+  std::shared_ptr<Body> get_body() { return m_bp; }
 
 protected:
+  std::shared_ptr<Body> m_bp;
   float m_x;
   float m_y;
 };
@@ -66,8 +71,8 @@ protected:
 //
 class SolidCircle : public BoundaryFeature {
 public:
-  SolidCircle(float _x, float _y, float _diam)
-    : BoundaryFeature(_x, _y),
+  SolidCircle(std::shared_ptr<Body> _bp, float _x, float _y, float _diam)
+    : BoundaryFeature(_bp, _x, _y),
       m_diam(_diam)
     {}
 
@@ -86,8 +91,8 @@ protected:
 //
 class SolidOval : public SolidCircle {
 public:
-  SolidOval(float _x, float _y, float _diam, float _dmin, float _theta)
-    : SolidCircle(_x, _y, _diam),
+  SolidOval(std::shared_ptr<Body> _bp, float _x, float _y, float _diam, float _dmin, float _theta)
+    : SolidCircle(_bp, _x, _y, _diam),
       m_dmin(_dmin),
       m_theta(_theta)
     {}
@@ -108,8 +113,8 @@ protected:
 //
 class SolidSquare : public BoundaryFeature {
 public:
-  SolidSquare(float _x, float _y, float _side, float _theta)
-    : BoundaryFeature(_x, _y),
+  SolidSquare(std::shared_ptr<Body> _bp, float _x, float _y, float _side, float _theta)
+    : BoundaryFeature(_bp, _x, _y),
       m_side(_side),
       m_theta(_theta)
     {}
