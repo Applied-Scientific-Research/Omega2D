@@ -119,13 +119,13 @@ void Convection<S,A,I>::advect_1st(const double _time,
 
   // move every movable element
   for (auto &coll : _vort) {
-    std::visit([=](auto& elem) { elem.move(_dt); }, coll);
+    std::visit([=](auto& elem) { elem.move(_time, _dt); }, coll);
   }
   for (auto &coll : _bdry) {
-    std::visit([=](auto& elem) { elem.move(_dt); }, coll);
+    std::visit([=](auto& elem) { elem.move(_time, _dt); }, coll);
   }
   for (auto &coll : _fldpt) {
-    std::visit([=](auto& elem) { elem.move(_dt); }, coll);
+    std::visit([=](auto& elem) { elem.move(_time, _dt); }, coll);
   }
 }
 
@@ -156,7 +156,7 @@ void Convection<S,A,I>::advect_2nd(const double _time,
   // advect into an intermediate system
   std::vector<Collection> interim_vort = _vort;
   for (auto &coll : interim_vort) {
-    std::visit([=](auto& elem) { elem.move(_dt); }, coll);
+    std::visit([=](auto& elem) { elem.move(_time, _dt); }, coll);
   }
   // now _vort has its original positions and the velocities evaluated there
   // and interm_vort has the positions at t+dt
@@ -164,7 +164,7 @@ void Convection<S,A,I>::advect_2nd(const double _time,
   // do the same for bdry and fldpt, if necessary
   std::vector<Collection> interim_fldpt = _fldpt;
   for (auto &coll : interim_fldpt) {
-    std::visit([=](auto& elem) { elem.move(_dt); }, coll);
+    std::visit([=](auto& elem) { elem.move(_time, _dt); }, coll);
   }
 
   // might need to do bdry when bodies start moving
@@ -193,7 +193,7 @@ void Convection<S,A,I>::advect_2nd(const double _time,
     if (std::holds_alternative<Points<float>>(c1) and std::holds_alternative<Points<float>>(c2)) {
       Points<float>& p1 = std::get<Points<float>>(c1);
       Points<float>& p2 = std::get<Points<float>>(c2);
-      p1.move(_dt, 0.5, p1, 0.5, p2);
+      p1.move(_time, _dt, 0.5, p1, 0.5, p2);
     }
     ++v1p;
     ++v2p;
@@ -208,7 +208,7 @@ void Convection<S,A,I>::advect_2nd(const double _time,
     if (std::holds_alternative<Points<float>>(c1) and std::holds_alternative<Points<float>>(c2)) {
       Points<float>& p1 = std::get<Points<float>>(c1);
       Points<float>& p2 = std::get<Points<float>>(c2);
-      p1.move(_dt, 0.5, p1, 0.5, p2);
+      p1.move(_time, _dt, 0.5, p1, 0.5, p2);
     }
     ++v1p;
     ++v2p;

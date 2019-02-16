@@ -68,6 +68,11 @@ public:
       }
     }
 
+    // save them as untransformed if we are given a Body pointer
+    if (_bp) {
+      this->ux = this->x;
+    }
+
     // copy over the node indices (with a possible type change)
     bool idx_are_all_good = true;
     idx.resize(_idx.size());
@@ -160,6 +165,16 @@ public:
       this->x[d].resize(nnold+nnodes);
       for (size_t i=0; i<nnodes; ++i) {
         this->x[d][nnold+i] = _x[2*i+d];
+      }
+    }
+
+    // save them as untransformed if we have a Body pointer
+    if (this->B) {
+      for (size_t d=0; d<Dimensions; ++d) {
+        (*this->ux)[d].resize(nnold+nnodes);
+        for (size_t i=nnold; i<nnold+nnodes; ++i) {
+          (*this->ux)[d][i] = this->x[d][i];
+        }
       }
     }
 
@@ -263,9 +278,9 @@ public:
   //
   // 1st order Euler advection and stretch
   //
-  void move(const double _dt) {
+  void move(const double _time, const double _dt) {
     // must explicitly call the method in the base class
-    ElementBase<S>::move(_dt);
+    ElementBase<S>::move(_time, _dt);
 
     // no specialization needed
     if (this->M == lagrangian and this->E != inert) {

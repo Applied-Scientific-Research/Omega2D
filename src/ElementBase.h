@@ -151,10 +151,27 @@ public:
       }
     }
   }
+
   void add_body_motion(const double _factor) {
     // do nothing here
   }
-  void move(const double _dt) {
+  void transform(const double _time) {
+    // reset positions according to prescribed motion
+    if (B and M == bodybound) {
+      // for the no-rotation case, we can just transform here
+      std::array<double,Dimensions> thispos = B->get_pos(_time);
+      std::cout << "    transforming body at time " << (S)_time << " to " << (S)thispos[0] << " " << (S)thispos[1] << std::endl;
+      // and do the transform
+      for (size_t d=0; d<Dimensions; ++d) {
+        for (size_t i=0; i<get_n(); ++i) {
+          x[d][i] = (*ux)[d][i] + (S)thispos[d];
+        }
+      }
+    }
+  }
+
+  // time is the starting time, time_dt is the ending time
+  void move(const double _time, const double _dt) {
     if (M == lagrangian) {
       std::cout << "  Moving" << to_string() << std::endl;
 
@@ -166,9 +183,14 @@ public:
       }
 
       // update strengths (in derived class)
+
+    } else if (B and M == bodybound) {
+      transform(_time+_dt);
     }
   }
-  void move(const double _dt,
+
+  // time is the starting time, time_dt is the ending time
+  void move(const double _time, const double _dt,
             const double _wt1, ElementBase<S> const & _u1,
             const double _wt2, ElementBase<S> const & _u2) {
     // must confirm that incoming time derivates include velocity
@@ -184,6 +206,9 @@ public:
       }
 
       // update strengths (in derived class)
+
+    } else if (B and M == bodybound) {
+      transform(_time+_dt);
     }
   }
 

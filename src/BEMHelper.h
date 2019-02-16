@@ -45,6 +45,9 @@ void solve_bem(const double                         _time,
   for (auto &targ : _bdry) {
     std::cout << "  Solving for velocities on" << to_string(targ) << std::endl;
 
+    // transform the collection according to prescribed motion
+    std::visit([=](auto& elem) { elem.transform(_time); }, targ);
+
     // zero velocities
     std::visit([=](auto& elem) { elem.zero_vels(); }, targ);
 
@@ -89,6 +92,8 @@ void solve_bem(const double                         _time,
 
       // assemble from all boundaries
       for (auto &src : _bdry) {
+
+        // did these blocks move relative to each other? must test
 
         // find portion of influence matrix
         const size_t sstart = std::visit([=](auto& elem) { return elem.get_first_row(); }, src);

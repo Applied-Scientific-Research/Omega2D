@@ -376,11 +376,13 @@ void Simulation::add_boundary(std::shared_ptr<Body> _bptr, ElementPacket<float> 
 
   // if no collections exist
   if (bdry.size() == 0) {
+    // figure out the move type
+    const move_t this_move_type = (_bptr ? bodybound : fixed);
     // make a new collection - assume BEM panels
     bdry.push_back(Surfaces<float>(_geom.x,
                                    _geom.idx,
                                    _geom.val,
-                                   0, reactive, fixed, _bptr));
+                                   0, reactive, this_move_type, _bptr));
   } else {
 
     auto& coll = bdry.back();

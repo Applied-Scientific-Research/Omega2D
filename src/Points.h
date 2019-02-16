@@ -66,6 +66,10 @@ public:
       }
     }
 
+    // save untransformed positions if we are given a Body pointer
+    if (_bp) {
+      this->ux = this->x;
+    }
 
     if (_e == inert) {
       // field points need no radius, but we must set one anyway so that vel evals work - not any more
@@ -128,6 +132,16 @@ public:
         r[nold+i] = _in[4*i+3];
       }
     }
+
+    // save the new untransformed positions if we have a Body pointer
+    if (this->B) {
+      for (size_t d=0; d<Dimensions; ++d) {
+        (*this->ux)[d].resize(nold+nnew);
+        for (size_t i=nold; i<nold+nnew; ++i) {
+          (*this->ux)[d][i] = this->x[d][i];
+        }
+      }
+    }
   }
 
   // up-size all arrays to the new size, filling with sane values
@@ -161,9 +175,9 @@ public:
   //
   // 1st order Euler advection and stretch
   //
-  void move(const double _dt) {
+  void move(const double _time, const double _dt) {
     // must explicitly call the method in the base class
-    ElementBase<S>::move(_dt);
+    ElementBase<S>::move(_time, _dt);
 
     // no specialization needed
     if (this->M == lagrangian and this->E != inert) {
@@ -201,11 +215,11 @@ public:
   //
   // 2nd order RK advection and stretch
   //
-  void move(const double _dt,
+  void move(const double _time, const double _dt,
             const double _wt1, Points<S> const & _u1,
             const double _wt2, Points<S> const & _u2) {
     // must explicitly call the method in the base class
-    ElementBase<S>::move(_dt, _wt1, _u1, _wt2, _u2);
+    ElementBase<S>::move(_time, _dt, _wt1, _u1, _wt2, _u2);
 
     // must confirm that incoming time derivates include velocity
 
