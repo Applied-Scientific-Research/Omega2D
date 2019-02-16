@@ -75,7 +75,7 @@ private:
 
   // do not perform VRM if source particle strength is less than
   //   this fraction of max particle strength
-  const ST ignore_thresh = 1.e-6;
+  const ST ignore_thresh = 1.e-5;
   // are thresholds absolute or relative to strongest particle?
   const bool thresholds_are_relative = true;
 
