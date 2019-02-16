@@ -9,6 +9,9 @@
 
 #include "Omega2D.h"
 
+#define TE_NAT_LOG
+#include "tinyexpr.h"
+
 #include <string>
 #include <memory>
 #define _USE_MATH_DEFINES // Required by MSVC to define M_PI,etc. in <cmath>
@@ -33,7 +36,8 @@ class Body {
 public:
   Body();
   Body(const double, const double);
-  ~Body() = default;
+  // destructor needs to call te_free on all te_expr pointers
+  ~Body();// = default;
 
   // setters, as we may not construct the class at once
   void set_name(const std::string);
@@ -53,9 +57,14 @@ private:
   std::string name;
 
   // string containing expression to be parsed when needed
-  std::array<std::string,Dimensions> pos_func;
-  std::string apos_func;
+  std::array<std::string,Dimensions> pos_expr;
+  std::string apos_expr;
   // why not std::variant<double, std::string> for these?
+
+  // needed by tinyexpr
+  double this_time;
+  std::vector<te_variable> func_vars;
+  std::vector<te_expr*> pos_func;
 
   // 2D position and velocity (initial, or constant)
   Vec pos;
