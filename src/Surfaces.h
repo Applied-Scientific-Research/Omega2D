@@ -44,11 +44,11 @@ public:
            const std::vector<Int>& _idx,
            const std::vector<S>&   _val,
            const Int _firstrow,
-           const elem_t _e, const move_t _m,
+           const elem_t _e,
+           const move_t _m,
            std::shared_ptr<Body> _bp)
-    : ElementBase<S>(0, _e, _m),
+    : ElementBase<S>(0, _e, _m, _bp),
       istart(_firstrow),
-      B(_bp),
       max_strength(-1.0) {
 
     // make sure input arrays are correctly-sized
@@ -223,7 +223,7 @@ public:
       // start at center of panel
       //px[4*i+0] = 0.5 * (this->x[0][id1] + this->x[0][id0]);
       //px[4*i+1] = 0.5 * (this->x[1][id1] + this->x[1][id0]);
-      std::array<double,Dimensions> thisvel = B->get_vel(_time);
+      std::array<double,Dimensions> thisvel = this->B->get_vel(_time);
       // apply the velocity
       for (size_t d=0; d<Dimensions; ++d) {
         this->u[d][i] += _factor * (float)thisvel[d];
@@ -532,9 +532,6 @@ protected:
 
   //std::vector<std::pair<Int,Int>> body_idx;	// n, offset of rows in the BEM?
   Int istart;	// index of first entry in RHS vector and A matrix
-
-  // why cant I put this in ElementBase.h ?
-  std::shared_ptr<Body> B;
 
 private:
 #ifdef USE_GL

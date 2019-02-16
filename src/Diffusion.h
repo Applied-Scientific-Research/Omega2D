@@ -109,7 +109,7 @@ void Diffusion<S,A,I>::step(const double                _time,
       // add those particles to the main particle list
       if (_vort.size() == 0) {
         // no collections yet? make a new collection
-        _vort.push_back(Points<S>(new_pts, active, lagrangian));      // vortons
+        _vort.push_back(Points<S>(new_pts, active, lagrangian, nullptr));      // vortons
       } else {
         // HACK - add all particles to first collection
         auto& coll = _vort.back();

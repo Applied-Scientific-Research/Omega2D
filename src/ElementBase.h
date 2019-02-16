@@ -26,8 +26,11 @@
 template <class S>
 class ElementBase {
 public:
-  ElementBase<S>(const size_t _n, const elem_t _e, const move_t _m) :
-      E(_e), M(_m), n(_n) {
+  ElementBase<S>(const size_t _n,
+                 const elem_t _e,
+                 const move_t _m,
+                 std::shared_ptr<Body> _bp) :
+      E(_e), M(_m), B(_bp), n(_n) {
   }
 
   size_t get_n() const { return n; }
@@ -219,10 +222,14 @@ public:
   }
 
 protected:
+  // if you add anything here, you need to wipe out all build files and run cmake again!
+
   // active, reactive, or inert?
   elem_t E;
   // how does it move? use move_t and Body*
   move_t M;
+  // if attached to a body, which one?
+  std::shared_ptr<Body> B;
 
   // common arrays for all derived types
   size_t n;
@@ -235,9 +242,7 @@ protected:
   std::array<Vector<S>,Dimensions> u;                   // velocity
   //std::optional<std::array<Vector<S>,Dimensions>> dsdt; // strength change
 
-  // if attached to a body, which one?
-  // adding this member variable causes no particles to be drawn!
-  // doesn't matter where it is, or whether we completely rebuild!
-  //std::shared_ptr<Body> B;
+  // for objects moving with a body
+  std::optional<std::array<Vector<S>,Dimensions>> ux;   // untransformed position
 };
 

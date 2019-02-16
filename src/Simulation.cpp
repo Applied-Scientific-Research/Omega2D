@@ -326,7 +326,7 @@ void Simulation::add_particles(std::vector<float> _xysr) {
   // if no collections exist
   if (vort.size() == 0) {
     // make a new collection
-    vort.push_back(Points<float>(_xysr, active, lagrangian));      // vortons
+    vort.push_back(Points<float>(_xysr, active, lagrangian, nullptr));      // vortons
   } else {
     // THIS MUST USE A VISITOR
     // HACK - add all particles to first collection
@@ -355,7 +355,7 @@ void Simulation::add_fldpts(std::vector<float> _xy, const bool _moves) {
   // if no collections exist
   if (fldpt.size() == 0) {
     // make a new collection
-    fldpt.push_back(Points<float>(_xy, inert, move_type));
+    fldpt.push_back(Points<float>(_xy, inert, move_type, nullptr));
 
   } else {
     // THIS MUST USE A VISITOR

@@ -36,8 +36,11 @@ class Points: public ElementBase<S> {
 public:
   // flexible constructor - use input 4*n vector (x, y, s, r)
   //                         or input 2*n vector (x, y)
-  Points(const std::vector<S>& _in, const elem_t _e, const move_t _m)
-    : ElementBase<S>(0, _e, _m),
+  Points(const std::vector<S>& _in,
+         const elem_t _e,
+         const move_t _m,
+         std::shared_ptr<Body> _bp)
+    : ElementBase<S>(0, _e, _m, _bp),
       max_strength(-1.0) {
 
     size_t nper = 4;
