@@ -33,15 +33,16 @@ class Body {
 public:
   Body();
   Body(const double, const double);
-  Body(const std::string, const std::string);
   ~Body() = default;
 
   // setters, as we may not construct the class at once
   void set_name(const std::string);
   void set_parent_name(const std::string);
-  std::string get_name();
+  void set_pos(const size_t, const double);
+  void set_pos(const size_t, const std::string);
 
-  // return positional and orientation data
+  // return positional, orientation, or other data
+  std::string get_name();
   Vec get_pos(const double);
   Vec get_vel(const double);
   double get_orient(const double);
@@ -51,8 +52,8 @@ private:
   // a name to refer to this body and echo when asked
   std::string name;
 
-  // string containing formulae to be parsed when needed
-  std::string pos_func;
+  // string containing expression to be parsed when needed
+  std::array<std::string,Dimensions> pos_func;
   std::string apos_func;
   // why not std::variant<double, std::string> for these?
 

@@ -78,10 +78,16 @@ void read_json (Simulation& sim,
       std::cout << "  setting re= " << *re << std::endl;
     }
     if (params.find("Uinf") != params.end()) {
+      // eventually support an expression for Uinf instead of just a single float
+      std::vector<float> new_fs = {0.0, 0.0, 0.0};
+      new_fs.resize(Dimensions);
+      if (params["Uinf"].is_array()) {
+        new_fs = params["Uinf"].get<std::vector<float>>();
+      } else if (params["Uinf"].is_number()) {
+        new_fs[0] = params["Uinf"].get<float>();
+      }
       float* fs = sim.addr_fs();
-      std::vector<float> new_fs = params["Uinf"];
-      fs[0] = new_fs[0];
-      fs[1] = new_fs[1];
+      for (size_t i=0; i<Dimensions; ++i) fs[i] = new_fs[i];
       std::cout << "  setting freestream to " << fs[0] << " " << fs[1] << std::endl;
     }
   }
@@ -204,7 +210,22 @@ void read_json (Simulation& sim,
 
       // get the motions of this body w.r.t. parent
       if (bdy.find("translation") != bdy.end()) {
-        // look for an array, each entry can be a float or a string
+        // look for an array of possibly dissimilar terms
+        const std::vector<json> trans_json = bdy["translation"];
+        size_t idx = 0;
+        for (auto const& term: trans_json) {
+          // each entry can be a float or a string
+          if (term.is_number()) {
+            const double val = term.get<double>();
+            std::cout << "Component " << idx << " of position is constant (" << val << ")" << std::endl;
+            bp->set_pos(idx, val);
+          } else if (term.is_string()) {
+            const std::string expr = term.get<std::string>();
+            std::cout << "Component " << idx << " of position is expression (" << expr << ")" << std::endl;
+            bp->set_pos(idx, expr);
+          }
+          ++idx;
+        }
       }
       if (bdy.find("rotation") != bdy.end()) {
         // look for a float or a string
