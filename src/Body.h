@@ -44,6 +44,8 @@ public:
   void set_parent_name(const std::string);
   void set_pos(const size_t, const double);
   void set_pos(const size_t, const std::string);
+  void set_rot(const double);
+  void set_rot(const std::string);
 
   // return positional, orientation, or other data
   std::string get_name();
@@ -65,6 +67,7 @@ private:
   double this_time;
   std::vector<te_variable> func_vars;
   std::vector<te_expr*> pos_func;
+  te_expr* apos_func;
 
   // 2D position and velocity (initial, or constant)
   Vec pos;

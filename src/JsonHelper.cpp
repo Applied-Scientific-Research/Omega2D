@@ -229,6 +229,13 @@ void read_json (Simulation& sim,
       }
       if (bdy.find("rotation") != bdy.end()) {
         // look for a float or a string
+        if (bdy["rotation"].is_number()) {
+          const double val = bdy["rotation"].get<double>();
+          bp->set_rot(val);
+        } else if (bdy["rotation"].is_string()) {
+          const std::string expr = bdy["rotation"].get<std::string>();
+          bp->set_rot(expr);
+        }
       }
 
       // see if there are meshes (there don't have to be - a Body can just act as a virtual joint

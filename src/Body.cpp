@@ -71,6 +71,29 @@ void Body::set_pos(const size_t _i, const std::string _val) {
   }
 }
 
+void Body::set_rot(const double _val) {
+  apos = _val;
+}
+
+void Body::set_rot(const std::string _val) {
+  // store the expression locally
+  apos_expr = _val;
+  // compile it
+  int ierr = 0;
+  apos_func = te_compile(_val.c_str(), func_vars.data(), 1, &ierr);
+  if (apos_func) {
+    std::cout << "  read expression (" << apos_expr << ")" << std::endl;
+    this_time = 0.0;
+    std::cout << "  testing parsed expression, with t=0, value is " << te_eval(apos_func) << std::endl;
+    this_time = 1.0;
+    std::cout << "                                  t=1, value is " << te_eval(apos_func) << std::endl;
+    //this_time = 2.0;
+    //std::cout << "                                  t=2, value is " << te_eval(apos_func) << std::endl;
+  } else {
+    std::cout << "  Error parsing expression (" << _val << "), near character " << ierr << std::endl;
+  }
+}
+
 Vec Body::get_pos(const double _time) {
   // for testing, return a loop
   //pos[0] = 0.5 * sin(2.0*_time);
@@ -113,10 +136,29 @@ Vec Body::get_vel(const double _time) {
 }
 
 double Body::get_orient(const double _time) {
+  // for realsies, get the value or evaluate the expression
+  this_time = _time;
+  //std::cout << "  ROTATING BODY (" << get_name() << ") at time " << _time << std::endl;
+  if (apos_func) {
+    apos = te_eval(apos_func);
+    //std::cout << "  ROTATED BODY apos to " << apos << std::endl;
+  }
+
   return apos;
 }
 
 double Body::get_rotvel(const double _time) {
+
+  // 2-point first derivative estimate
+  const double dt = 1.e-5;
+  if (apos_func) {
+    this_time = _time + dt;
+    const double pplus = te_eval(apos_func);
+    this_time = _time - dt;
+    const double pminus = te_eval(apos_func);
+    avel = (pplus - pminus) / (2.0*dt);
+  }
+
   return avel;
 }
 
