@@ -175,6 +175,10 @@ void Simulation::reset() {
   step_is_finished = false;
 }
 
+void Simulation::clear_bodies() {
+  bodies.clear();
+}
+
 // Write a set of vtu files for the particles and panels
 void Simulation::write_vtk() {
   static size_t frameno = 0;
@@ -398,9 +402,47 @@ void Simulation::add_boundary(std::shared_ptr<Body> _bptr, ElementPacket<float> 
   }
 }
 
-// add a new body
+// add a new Body with the given name
 void Simulation::add_body(std::shared_ptr<Body> _body) {
   bodies.emplace_back(_body);
-  std::cout << "Added new body (" << _body->get_name() << "), now have " << bodies.size() << std::endl;
+  std::cout << "  added new body (" << _body->get_name() << "), now have " << bodies.size() << std::endl;
+}
+
+// return a Body pointer to the last Body in the array
+std::shared_ptr<Body> Simulation::get_last_body() {
+  std::shared_ptr<Body> bp;
+
+  if (bodies.size() == 0) {
+    std::cout << "  no last body found, creating (ground)" << std::endl;
+    bp = std::make_shared<Body>();
+    bp->set_name("ground");
+    add_body(bp);
+  } else {
+    bp = bodies.back();
+    std::cout << "  returning last body (" << bp->get_name() << ")" << std::endl;
+  }
+
+  return bp;
+}
+
+// return a Body pointer to the body matching the given name
+std::shared_ptr<Body> Simulation::get_pointer_to_body(const std::string _name) {
+  std::shared_ptr<Body> bp;
+
+  for (auto &bptr : bodies) {
+    if (bptr->get_name() == _name) {
+      std::cout << "  found body matching name (" << _name << ")" << std::endl;
+    }
+  }
+
+  // or ground if none match
+  if (not bp) {
+    std::cout << "  no body matching (" << _name << ") found, creating (ground)" << std::endl;
+    bp = std::make_shared<Body>();
+    bp->set_name("ground");
+    add_body(bp);
+  }
+
+  return bp;
 }
 

@@ -169,6 +169,18 @@ void resize_to_resolution(GLFWwindow* window, const int new_w, const int new_h) 
   }
 }
 
+static void ShowHelpMarker(const char* desc)
+{
+    ImGui::TextDisabled("(?)");
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::BeginTooltip();
+        ImGui::PushTextWrapPos(450.0f);
+        ImGui::TextUnformatted(desc);
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
+}
 
 
 // execution starts here
@@ -181,8 +193,6 @@ int main(int argc, char const *argv[]) {
   std::vector< std::unique_ptr<FlowFeature> > ffeatures;
   std::vector< std::unique_ptr<BoundaryFeature> > bfeatures;
   std::vector< std::unique_ptr<MeasureFeature> > mfeatures;
-  auto bp = std::make_shared<Body>();
-  bp->set_name("ground");
   size_t nsteps = 0;
   static bool sim_is_running = false;
   static bool begin_single_step = false;
@@ -361,6 +371,7 @@ int main(int argc, char const *argv[]) {
       float* dt = sim.addr_dt();
       float* fs = sim.addr_fs();
       float* re = sim.addr_re();
+      std::shared_ptr<Body> bp;
 
       switch(sim_item) {
         case 0:
@@ -369,6 +380,7 @@ int main(int argc, char const *argv[]) {
         case 1:
           // axisymmetrization of a co-rotating vortex pair
           sim.reset();
+          sim.clear_bodies();
           bfeatures.clear();
           ffeatures.clear();
           mfeatures.clear();
@@ -388,6 +400,7 @@ int main(int argc, char const *argv[]) {
         case 2:
           // travelling counter-rotating pair
           sim.reset();
+          sim.clear_bodies();
           bfeatures.clear();
           ffeatures.clear();
           mfeatures.clear();
@@ -407,6 +420,7 @@ int main(int argc, char const *argv[]) {
         case 3:
           // Re=250 flow over a circular cylinder
           sim.reset();
+          sim.clear_bodies();
           bfeatures.clear();
           ffeatures.clear();
           mfeatures.clear();
@@ -414,6 +428,8 @@ int main(int argc, char const *argv[]) {
           fs[0] = 1.0; fs[1] = 0.0;
           *re = 250.0;
           // generate the boundary
+          bp = std::make_shared<Body>();
+          bp->set_name("ground");
           bfeatures.emplace_back(std::make_unique<SolidCircle>(bp, 0.0, 0.0, 1.0));
           is_viscous = true;
           sim.set_diffuse(true);
@@ -425,6 +441,7 @@ int main(int argc, char const *argv[]) {
         case 4:
           // Re=500 flow over a square
           sim.reset();
+          sim.clear_bodies();
           bfeatures.clear();
           ffeatures.clear();
           mfeatures.clear();
@@ -432,6 +449,8 @@ int main(int argc, char const *argv[]) {
           fs[0] = 1.0; fs[1] = 0.0;
           *re = 500.0;
           // generate the boundary
+          bp = std::make_shared<Body>();
+          bp->set_name("ground");
           bfeatures.emplace_back(std::make_unique<SolidSquare>(bp, 0.0, 0.0, 1.0, 0.0));
           is_viscous = true;
           sim.set_diffuse(true);
@@ -665,9 +684,37 @@ int main(int argc, char const *argv[]) {
       // button and modal window for adding new boundary objects
       ImGui::SameLine();
       if (ImGui::Button("Add boundary structure")) ImGui::OpenPopup("New boundary structure");
-      ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiSetCond_FirstUseEver);
+      ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiSetCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New boundary structure"))
       {
+        // define movement first
+        static int mitem = 0;
+        const char* mitems[] = { "fixed", "attached to previous", "according to formula" };
+        //const char* mitems[] = { "fixed", "attached to previous", "according to formula", "dynamic" };
+        ImGui::Combo("movement", &mitem, mitems, 3);
+        static char strx[512] = "0.0*t";
+        static char stry[512] = "0.0*t";
+
+        // show different inputs based on what is selected
+        switch(mitem) {
+          case 0:
+            // this geometry is fixed (attached to inertial)
+            break;
+          case 1:
+            // this geometry is attached to the previous geometry
+            break;
+          case 2:
+            // this geometry is attached to a new moving body
+            ImGui::InputText("x position", strx, 512);
+            ImGui::SameLine();
+            ShowHelpMarker("Use C-style expressions, t is time\n+ - / * \% ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
+            ImGui::InputText("y position", stry, 512);
+            ImGui::SameLine();
+            ShowHelpMarker("Use C-style expressions, t is time\n+ - / * \% ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
+            break;
+        }
+
+        // define geometry second
         static int item = 0;
         //const char* items[] = { "solid circle", "solid square", "solid object from file", "draw outline in UI" };
         const char* items[] = { "solid circle", "solid square", "solid oval" };
@@ -687,7 +734,25 @@ int main(int argc, char const *argv[]) {
             ImGui::SliderFloat("diameter", &circdiam, 0.01f, 10.0f, "%.4f", 2.0);
             ImGui::TextWrapped("This feature will add a solid circular body centered at the given coordinates");
             if (ImGui::Button("Add circular body")) {
-              //auto bp = std::make_shared<Body>();
+              std::shared_ptr<Body> bp;
+              switch(mitem) {
+                case 0:
+                  // this geometry is fixed (attached to inertial)
+                  bp = sim.get_pointer_to_body("ground");
+                  break;
+                case 1:
+                  // this geometry is attached to the previous geometry (or ground)
+                  bp = sim.get_last_body();
+                  break;
+                case 2:
+                  // this geometry is attached to a new moving body
+                  bp = std::make_shared<Body>();
+                  bp->set_pos(0, std::string(strx));
+                  bp->set_pos(1, std::string(stry));
+                  bp->set_name("circular cylinder");
+                  sim.add_body(bp);
+                  break;
+              }
               bfeatures.emplace_back(std::make_unique<SolidCircle>(bp, xc[0], xc[1], circdiam));
               std::cout << "Added " << (*bfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
@@ -698,10 +763,11 @@ int main(int argc, char const *argv[]) {
             // create a square/rectangle boundary
             static float sqside = 1.0;
             ImGui::SliderFloat("side length", &sqside, 0.1f, 10.0f, "%.4f");
-            ImGui::SliderFloat("rotation", &rotdeg, 0.0f, 89.0f, "%.0f");
+            ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 89.0f, "%.0f");
+            //ImGui::SliderAngle("orientation", &rotdeg);
             ImGui::TextWrapped("This feature will add a solid square body centered at the given coordinates");
             if (ImGui::Button("Add square body")) {
-              //auto bp = std::make_shared<Body>();
+              auto bp = std::make_shared<Body>();
               bfeatures.emplace_back(std::make_unique<SolidSquare>(bp, xc[0], xc[1], sqside, rotdeg));
               std::cout << "Added " << (*bfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
@@ -713,10 +779,10 @@ int main(int argc, char const *argv[]) {
             static float minordiam = 0.5;
             ImGui::SliderFloat("major diameter", &circdiam, 0.01f, 10.0f, "%.4f", 2.0);
             ImGui::SliderFloat("minor diameter", &minordiam, 0.01f, 10.0f, "%.4f", 2.0);
-            ImGui::SliderFloat("rotation", &rotdeg, 0.0f, 179.0f, "%.0f");
+            ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 179.0f, "%.0f");
             ImGui::TextWrapped("This feature will add a solid oval body centered at the given coordinates");
             if (ImGui::Button("Add oval body")) {
-              //auto bp = std::make_shared<Body>();
+              auto bp = std::make_shared<Body>();
               bfeatures.emplace_back(std::make_unique<SolidOval>(bp, xc[0], xc[1], circdiam, minordiam, rotdeg));
               std::cout << "Added " << (*bfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();

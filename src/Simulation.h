@@ -77,13 +77,18 @@ public:
   void add_particles(std::vector<float>);
   void add_fldpts(std::vector<float>, const bool);
   void add_boundary(std::shared_ptr<Body>, ElementPacket<float>);
+
+  // access body list
   void add_body(std::shared_ptr<Body>);
+  std::shared_ptr<Body> get_last_body();
+  std::shared_ptr<Body> get_pointer_to_body(const std::string);
 
   // act on stuff
   //void set_amr(const bool);
   void set_diffuse(const bool);
   const bool get_diffuse();
   void reset();
+  void clear_bodies();
   void async_step();
   void step();
   bool is_initialized();

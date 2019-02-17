@@ -59,7 +59,13 @@ void Body::set_pos(const size_t _i, const std::string _val) {
   int ierr = 0;
   pos_func[_i] = te_compile(_val.c_str(), func_vars.data(), 1, &ierr);
   if (pos_func[_i]) {
+    std::cout << "  read expression (" << pos_expr[_i] << ")" << std::endl;
+    this_time = 0.0;
     std::cout << "  testing parsed expression, with t=0, value is " << te_eval(pos_func[_i]) << std::endl;
+    this_time = 1.0;
+    std::cout << "                                  t=1, value is " << te_eval(pos_func[_i]) << std::endl;
+    //this_time = 2.0;
+    //std::cout << "                                  t=2, value is " << te_eval(pos_func[_i]) << std::endl;
   } else {
     std::cout << "  Error parsing expression (" << _val << "), near character " << ierr << std::endl;
   }
@@ -72,10 +78,12 @@ Vec Body::get_pos(const double _time) {
 
   // for realsies, get the value or evaluate the expression
   this_time = _time;
+  //std::cout << "  MOVING BODY (" << get_name() << ") at time " << _time << std::endl;
   for (size_t i=0; i<Dimensions; ++i) {
     if (pos_func[i]) {
       pos[i] = te_eval(pos_func[i]);
       //std::cout << "IDEAL POS " << (0.5 * (1.0-cos(2.0*_time))) << "  AND ACTUAL " << pos[i] << std::endl;
+      //std::cout << "  MOVED BODY pos[" << i << "] to " << pos[i] << std::endl;
     }
   }
 
