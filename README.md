@@ -88,6 +88,10 @@ Generate an X.264-encoded video from a series of png images with the following c
 ## To do
 Tasks to consider or implement:
 
+* Allow geometries with different Body pointers to be different collections
+* Get motion expressions to write to JSON file correctly - including collecting separate geometries into one body
+* User can enter an equation in the rotation field
+* Support body rotation by precalculating the surface sheet strengths necessary to account for the motion of the enclosed body
 * Add inlet and outlet surfaces to push flow around - the BC is that normal flow must equal some number
 * Consider adding base64 encoding to vtk output files, maybe with [this](https://github.com/tplgy/cppcodec)
 * Add airfoils - read them from a text file or generate them algorithmically
