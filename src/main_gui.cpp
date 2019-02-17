@@ -767,7 +767,25 @@ int main(int argc, char const *argv[]) {
             //ImGui::SliderAngle("orientation", &rotdeg);
             ImGui::TextWrapped("This feature will add a solid square body centered at the given coordinates");
             if (ImGui::Button("Add square body")) {
-              auto bp = std::make_shared<Body>();
+              std::shared_ptr<Body> bp;
+              switch(mitem) {
+                case 0:
+                  // this geometry is fixed (attached to inertial)
+                  bp = sim.get_pointer_to_body("ground");
+                  break;
+                case 1:
+                  // this geometry is attached to the previous geometry (or ground)
+                  bp = sim.get_last_body();
+                  break;
+                case 2:
+                  // this geometry is attached to a new moving body
+                  bp = std::make_shared<Body>();
+                  bp->set_pos(0, std::string(strx));
+                  bp->set_pos(1, std::string(stry));
+                  bp->set_name("square cylinder");
+                  sim.add_body(bp);
+                  break;
+              }
               bfeatures.emplace_back(std::make_unique<SolidSquare>(bp, xc[0], xc[1], sqside, rotdeg));
               std::cout << "Added " << (*bfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
@@ -782,7 +800,25 @@ int main(int argc, char const *argv[]) {
             ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 179.0f, "%.0f");
             ImGui::TextWrapped("This feature will add a solid oval body centered at the given coordinates");
             if (ImGui::Button("Add oval body")) {
-              auto bp = std::make_shared<Body>();
+              std::shared_ptr<Body> bp;
+              switch(mitem) {
+                case 0:
+                  // this geometry is fixed (attached to inertial)
+                  bp = sim.get_pointer_to_body("ground");
+                  break;
+                case 1:
+                  // this geometry is attached to the previous geometry (or ground)
+                  bp = sim.get_last_body();
+                  break;
+                case 2:
+                  // this geometry is attached to a new moving body
+                  bp = std::make_shared<Body>();
+                  bp->set_pos(0, std::string(strx));
+                  bp->set_pos(1, std::string(stry));
+                  bp->set_name("oval cylinder");
+                  sim.add_body(bp);
+                  break;
+              }
               bfeatures.emplace_back(std::make_unique<SolidOval>(bp, xc[0], xc[1], circdiam, minordiam, rotdeg));
               std::cout << "Added " << (*bfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
