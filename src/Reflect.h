@@ -134,14 +134,16 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
     }
 
     // dump out the hits
-    //std::cout << "point is " << tx[0][i] << " " << tx[1][i] << std::endl;
-    //for (auto & ahit: hits) {
-    //  if (ahit.disttype == node) {
-    //    std::cout << "  node " << ahit.jpanel << " is " << std::sqrt(ahit.distsq) << std::endl;
-    //  } else {
-    //    std::cout << "  panel " << ahit.jpanel << " is " << std::sqrt(ahit.distsq) << std::endl;
-    //  }
-    //}
+    if (false) {
+    std::cout << "point " << i << " is " << tx[0][i] << " " << tx[1][i] << std::endl;
+    for (auto & ahit: hits) {
+      if (ahit.disttype == node) {
+        std::cout << "  node " << ahit.jpanel << " is " << std::sqrt(ahit.distsq) << std::endl;
+      } else {
+        std::cout << "  panel " << ahit.jpanel << " is " << std::sqrt(ahit.distsq) << std::endl;
+      }
+    }
+    }
 
     //std::cout << "  REFLECTING pt at " << tx[0][i] << " " << tx[1][i] << std::endl;
 

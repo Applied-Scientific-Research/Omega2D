@@ -40,7 +40,7 @@ std::vector<S> vels_to_rhs_points (Points<S> const& targ) {
 
 template <class S>
 std::vector<S> vels_to_rhs_panels (Surfaces<S> const& targ) {
-  std::cout << "    convert vels to RHS vector for " << targ.to_string() << std::endl;
+  std::cout << "    convert vels to RHS vector for" << targ.to_string() << std::endl;
 
   // this assumes one unknown per panel - not generally true!!!
   const size_t ntarg  = targ.get_npanels();

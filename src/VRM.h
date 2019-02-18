@@ -278,6 +278,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
 
     // find the nearest neighbor particles
     //std::cout << "\nDiffusing particle " << i << " with strength " << s[i] << std::endl;
+    //std::cout << "  part " << i << " with strength " << s[i] << std::endl;
 
     // if current particle strength is very small, skip out
     //   (this particle still core-spreads somewhat)
