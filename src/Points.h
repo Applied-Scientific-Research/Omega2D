@@ -106,6 +106,7 @@ public:
 
   // find out the next row index in the BEM after this collection
   // once we start supporting BEM unknowns on points, we'll have to change these
+  void set_first_row(const Int _i) { return; }
   const Int get_first_row() const { return 0; }
   const Int get_num_rows()  const { return 0; }
   const Int get_next_row()  const { return 0; }

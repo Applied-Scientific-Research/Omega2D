@@ -43,12 +43,10 @@ public:
   Surfaces(const std::vector<S>&   _x,
            const std::vector<Int>& _idx,
            const std::vector<S>&   _val,
-           const Int _firstrow,
            const elem_t _e,
            const move_t _m,
            std::shared_ptr<Body> _bp)
     : ElementBase<S>(0, _e, _m, _bp),
-      istart(_firstrow),
       max_strength(-1.0) {
 
     // make sure input arrays are correctly-sized
@@ -135,6 +133,7 @@ public:
   const Vector<S>&        get_bcs() const { return bc; }
 
   // find out the next row index in the BEM after this collection
+  void set_first_row(const Int _i) { istart = _i; }
   const Int get_first_row() const { return istart; }
   const Int get_num_rows()  const { return bc.size(); }
   const Int get_next_row()  const { return istart+bc.size(); }

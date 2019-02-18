@@ -193,3 +193,22 @@ double Body::get_rotvel(const double _time) {
   return avel;
 }
 
+// compare motion vs another Body
+bool Body::relative_motion_vs(std::shared_ptr<Body> _other, const double _last, const double _current) {
+  bool motion = false;
+
+  const Vec this_old_pos = get_pos(_last);
+  const Vec other_old_pos = _other->get_pos(_last);
+  const Vec this_new_pos = get_pos(_current);
+  const Vec other_new_pos = _other->get_pos(_current);
+
+  for (size_t i=0; i<Dimensions; ++i) {
+    const double relative = this_new_pos[i] - this_old_pos[i] - other_new_pos[i] + other_old_pos[i];
+    if (std::abs(relative) > 4.0*std::numeric_limits<double>::epsilon()) motion = true;
+  }
+
+  //std::cout << "  relative_motion_vs " << this << " " << _other << " returns " << motion << std::endl;
+
+  return motion;
+}
+

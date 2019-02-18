@@ -59,6 +59,9 @@ public:
   double get_orient(const double);
   double get_rotvel(const double);
 
+  // compare motion vs another Body
+  bool relative_motion_vs(std::shared_ptr<Body>, const double, const double);
+
 private:
   // a name to refer to this body and echo when asked
   std::string name;

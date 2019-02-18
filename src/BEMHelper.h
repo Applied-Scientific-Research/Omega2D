@@ -35,6 +35,19 @@ void solve_bem(const double                         _time,
   // no unknowns? no problem.
   if (_bdry.size() == 0) return;
 
+  // save the simulation time from the last time we entered this function
+  static double last_time = -99.9;
+
+  // if this is the first time through after a reset, recalculate the row indices
+  if (not _bem.is_A_current()) {
+    I rowcnt = 0;
+    // loop over boundary collections
+    for (auto &targ : _bdry) {
+      std::visit([=](auto& elem) { return elem.set_first_row(rowcnt); }, targ);
+      rowcnt = std::visit([=](auto& elem) { return elem.get_next_row(); }, targ);
+    }
+  }
+
   // need this for dispatching velocity influence calls, template param is accumulator type
   InfluenceVisitor<A> ivisitor;
   RHSVisitor rvisitor;
@@ -73,10 +86,27 @@ void solve_bem(const double                         _time,
     _bem.set_rhs(tstart, tnum, rhs);
   }
 
-  // check to see if we even have to make the A matrix
+  // options from here are: rebuild every block, rebuild some blocks, rebuild no blocks
+  bool rebuild_every_block = false;
+  bool rebuild_some_blocks = false;
 
-  if (not _bem.is_A_current()) {
+  if (_bem.is_A_current()) {
+    // we've already built the A matrix once, so unmoving blocks are correct
+    if (last_time == _time) {
+      // even moving blocks didn't move again, so we don't have to recalculate them
+    } else {
+      // time is different, check every block pair for relative movement
+      rebuild_some_blocks = true;
+    }
+  } else {
+    // if this is the first call after a reset, we need to rebuild everything
+    rebuild_every_block = true;
     std::cout << "  Solving for BEM matrix" << std::endl;
+  }
+
+  // actually make or remake the A matrix
+  if (rebuild_every_block or rebuild_some_blocks) {
+
     auto start = std::chrono::system_clock::now();
 
     // this is the dispatcher for Points/Surfaces on Points/Surfaces
@@ -84,7 +114,7 @@ void solve_bem(const double                         _time,
 
     // loop over boundary collections
     for (auto &targ : _bdry) {
-      std::cout << "  Solving for influence coefficients on" << to_string(targ) << std::endl;
+      //std::cout << "  Solving for influence coefficients on" << to_string(targ) << std::endl;
 
       // find portion of influence matrix
       const size_t tstart = std::visit([=](auto& elem) { return elem.get_first_row(); }, targ);
@@ -93,16 +123,26 @@ void solve_bem(const double                         _time,
       // assemble from all boundaries
       for (auto &src : _bdry) {
 
-        // did these blocks move relative to each other? must test
+        // should we build/rebuild this block of the A matrix?
+        bool rebuild_this_block = rebuild_every_block;
+        if (rebuild_some_blocks) {
+          // test for relative motion between these two blocks (translation only for now)
+          std::shared_ptr<Body> tb = std::visit([=](auto& elem) { return elem.get_body_ptr(); }, targ);
+          std::shared_ptr<Body> sb = std::visit([=](auto& elem) { return elem.get_body_ptr(); }, src);
+          rebuild_this_block = tb->relative_motion_vs(sb, last_time, _time);
+        }
 
-        // find portion of influence matrix
-        const size_t sstart = std::visit([=](auto& elem) { return elem.get_first_row(); }, src);
-        const size_t snum = std::visit([=](auto& elem) { return elem.get_num_rows(); }, src);
+        if (rebuild_this_block) {
+          // find portion of influence matrix
+          const size_t sstart = std::visit([=](auto& elem) { return elem.get_first_row(); }, src);
+          const size_t snum = std::visit([=](auto& elem) { return elem.get_num_rows(); }, src);
+          std::cout << "  Computing A matrix block [" << tstart << ":" << (tstart+tnum) << "] x [" << sstart << ":" << (sstart+snum) << "]" << std::endl;
 
-        // solve for the coefficients in this block
-        Vector<S> coeffs = std::visit(cvisitor, src, targ);
-        assert(coeffs.size() == tnum*snum);
-        _bem.set_block(tstart, tnum, sstart, snum, coeffs);
+          // solve for the coefficients in this block
+          Vector<S> coeffs = std::visit(cvisitor, src, targ);
+          assert(coeffs.size() == tnum*snum);
+          _bem.set_block(tstart, tnum, sstart, snum, coeffs);
+        }
       }
     }
     _bem.just_made_A();
@@ -126,5 +166,8 @@ void solve_bem(const double                         _time,
     // and send it to the elements
     std::visit([=](auto& elem) { elem.set_str(tstart, tnum, new_s);  }, targ);
   }
+
+  // save the simulation time to compare to the next call
+  last_time = _time;
 }
 

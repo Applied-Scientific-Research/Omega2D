@@ -35,6 +35,9 @@ public:
 
   size_t get_n() const { return n; }
   bool is_inert() const { return E==inert; }
+  elem_t                                  get_elemt() const { return E; }
+  move_t                                  get_movet() const { return M; }
+  std::shared_ptr<Body>                   get_body_ptr()  { return B; }
   const std::array<Vector<S>,Dimensions>& get_pos() const { return x; }
   std::array<Vector<S>,Dimensions>&       get_pos()       { return x; }
   const Vector<S>&                        get_str() const { return *s; }

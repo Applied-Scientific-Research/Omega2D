@@ -400,21 +400,51 @@ void Simulation::add_fldpts(std::vector<float> _xy, const bool _moves) {
 // add geometry
 void Simulation::add_boundary(std::shared_ptr<Body> _bptr, ElementPacket<float> _geom) {
 
-  // if no collections exist
-  if (bdry.size() == 0) {
-    // figure out the move type
-    const move_t this_move_type = (_bptr ? bodybound : fixed);
+  // incoming collections types
+  const elem_t this_elem_type = reactive;
+  const move_t this_move_type = (_bptr ? bodybound : fixed);
+
+  // search the collections list for a match (same movement type and Body)
+  size_t imatch = 0;
+  bool no_match = true;
+  for (size_t i=0; i<bdry.size(); ++i) {
+    // assume match
+    bool this_match = true;
+
+    // check element type
+    elem_t tet = std::visit([=](auto& elem) { return elem.get_elemt(); }, bdry[i]);
+    if (this_elem_type != tet) this_match = false;
+
+    // check movement type
+    move_t tmt = std::visit([=](auto& elem) { return elem.get_movet(); }, bdry[i]);
+    if (this_move_type != tmt) this_match = false;
+
+    // check body pointer
+    if (this_move_type == bodybound and tmt == bodybound) {
+      std::shared_ptr<Body> tbp = std::visit([=](auto& elem) { return elem.get_body_ptr(); }, bdry[i]);
+      if (_bptr != tbp) this_match = false;
+    }
+
+    // check Collections type (add later)
+    //if (std::holds_alternative<Surfaces<float>>(coll) not std::holds_alternative<Surfaces<float>>(coll)) this_match = false;
+
+    if (this_match) {
+      imatch = i;
+      no_match = false;
+    }
+  }
+
+  // if no match, or no collections exist
+  if (no_match) {
     // make a new collection - assume BEM panels
     bdry.push_back(Surfaces<float>(_geom.x,
                                    _geom.idx,
                                    _geom.val,
-                                   0, reactive, this_move_type, _bptr));
+                                   reactive, this_move_type, _bptr));
   } else {
-
-    auto& coll = bdry.back();
+    // found a match
+    auto& coll = bdry[imatch];
     // only proceed if the last collection is Surfaces
-    // eventually check each collection for a element and movement type match (i.e. reactive and fixed)
-    // and if the body matches
     if (std::holds_alternative<Surfaces<float>>(coll)) {
       Surfaces<float>& surf = std::get<Surfaces<float>>(coll);
       surf.add_new(_geom.x,
