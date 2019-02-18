@@ -96,6 +96,7 @@ public:
   bool is_initialized();
   void set_initialized();
   std::string check_simulation(const size_t, const size_t);
+  bool do_any_bodies_move();
   bool test_for_new_results();
   void write_vtk();
 

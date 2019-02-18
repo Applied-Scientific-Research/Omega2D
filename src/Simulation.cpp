@@ -222,8 +222,11 @@ std::string Simulation::check_simulation(const size_t _nff, const size_t _nbf) {
   // Check for a body and no particles
   if (_nbf > 0 and get_nparts() == 0) {
 
+    const bool zero_freestream = (fs[0]*fs[0]+fs[1]*fs[1] < std::numeric_limits<float>::epsilon());
+    const bool no_body_movement = not do_any_bodies_move();
+
     // AND no freestream
-    if (fs[0]*fs[0]+fs[1]*fs[1] < std::numeric_limits<float>::epsilon()) {
+    if (zero_freestream and no_body_movement) {
       retstr.append("No flow features and zero freestream speed - try adding one or both.\n");
       return retstr;
     }
@@ -244,6 +247,25 @@ std::string Simulation::check_simulation(const size_t _nff, const size_t _nbf) {
   //if (max_elong > 2.0) retstr.append("Elongation threshold exceeded! Reset and reduce the time step size.\n");
 
   return retstr;
+}
+
+//
+// query and get() the future if possible
+//
+bool Simulation::do_any_bodies_move() {
+  bool some_move = false;
+  for (size_t i=0; i<bodies.size(); ++i) {
+    auto thisvel = bodies[i]->get_vel(time);
+    auto nextvel = bodies[i]->get_vel(time+dt);
+    auto thisrot = bodies[i]->get_rotvel(time);
+    auto nextrot = bodies[i]->get_rotvel(time+dt);
+    if (std::abs(thisvel[0]) + std::abs(thisvel[1]) + std::abs(thisrot) +
+        std::abs(nextvel[0]) + std::abs(nextvel[1]) + std::abs(nextrot) >
+        std::numeric_limits<float>::epsilon()) {
+      some_move = true;
+    }
+  }
+  return some_move;
 }
 
 //

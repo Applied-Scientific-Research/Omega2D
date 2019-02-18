@@ -24,6 +24,7 @@ Body::Body() :
 // primary constructor
 Body::Body(const double _x, const double _y) :
   this_time(0.0),
+  apos_func(nullptr),
   pos(Vec({{_x, _y}})),
   vel(Vec({{0.0, 0.0}})),
   apos(0.0),
