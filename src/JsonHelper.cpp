@@ -363,13 +363,32 @@ void write_json(Simulation& sim,
   }
   j["flowstructures"] = jflows;
 
-  // assemble a vector of boundary features
-  // this requires care, as we need to write them one body at a time!
-  std::vector<json> jbounds;
-  for (auto const& bf: bfeatures) {
-    jbounds.push_back(bf->to_json());
+  // assemble a vector of bodies, each with 0 or more boundary features
+  std::vector<json> jbods;
+  auto b_iter = sim.bodies_begin();
+  for (; b_iter != sim.bodies_end(); ++b_iter) {
+
+    // generate the body information
+    auto bp = *b_iter;
+    nlohmann::json jb = bp->to_json();
+    //std::cout << "FOR BODY (" << (*b_iter)->get_name() << ")" << std::endl;
+
+    // meshes has to be an array
+    nlohmann::json meshes = nlohmann::json::array();
+    // now add all accompanying geometries (if any)
+    for (auto const& bf: bfeatures) {
+      //std::cout << "  BDRY FEATURE (" << (&bf) << ")";
+      if (bf->get_body() == bp) {
+        //std::cout << " MATCHES" << std::endl;
+        meshes.push_back(bf->to_json());
+      } else {
+        //std::cout << " DOES NOT MATCH" << std::endl;
+      }
+    }
+    jb["meshes"] = meshes;
+    jbods.push_back(jb);
   }
-  j["bodies"] = jbounds;
+  j["bodies"] = jbods;
 
   // assemble a vector of measurement features
   std::vector<json> jmeas;

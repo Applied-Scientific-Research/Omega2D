@@ -40,6 +40,36 @@ Body::~Body() {
   for (size_t i=0; i<pos_func.size(); ++i) te_free(pos_func[i]);
 }
 
+
+// create and write a json object to which to add geometries
+nlohmann::json
+Body::to_json() const {
+  nlohmann::json j;
+
+  if (not name.empty()) j["name"] = name;
+  if (not parent.empty()) j["parent"] = parent;
+
+  // translation has to be an array
+  nlohmann::json jpos = nlohmann::json::array();
+  for (size_t i=0; i<Dimensions; ++i) {
+    if (pos_func[i]) {
+      jpos.push_back(pos_expr[i]);
+    } else {
+      jpos.push_back(pos[i]);
+    }
+  }
+  j["translation"] = jpos;
+
+  if (apos_func) {
+    j["rotation"] = apos_expr;
+  } else {
+    j["rotation"] = apos;
+  }
+
+  return j;
+}
+
+
 // getters/setters
 
 void Body::set_name(const std::string _name) { name = _name; }

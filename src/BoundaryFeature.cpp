@@ -64,23 +64,12 @@ SolidCircle::to_string() const {
 
 nlohmann::json
 SolidCircle::to_json() const {
-  nlohmann::json j;
-  j["name"] = "a circular cylinder";
-
-  // meshes has to be an array
-  nlohmann::json meshes = nlohmann::json::array();
-
   // make an object for the mesh
   nlohmann::json mesh = nlohmann::json::object();
   mesh["geometry"] = "circle";
   mesh["translation"] = {m_x, m_y};
   mesh["scale"] = m_diam;
-
-  // finalize the meshes array
-  meshes.push_back(mesh);
-  j["meshes"] = meshes;
-
-  return j;
+  return mesh;
 }
 
 
@@ -136,24 +125,13 @@ SolidOval::to_string() const {
 
 nlohmann::json
 SolidOval::to_json() const {
-  nlohmann::json j;
-  j["name"] = "a solid oval";
-
-  // meshes has to be an array
-  nlohmann::json meshes = nlohmann::json::array();
-
   // make an object for the mesh
   nlohmann::json mesh = nlohmann::json::object();
   mesh["geometry"] = "oval";
   mesh["translation"] = {m_x, m_y};
   mesh["scale"] = {m_diam, m_dmin};;
   mesh["rotation"] = m_theta;
-
-  // finalize the meshes array
-  meshes.push_back(mesh);
-  j["meshes"] = meshes;
-
-  return j;
+  return mesh;
 }
 
 
@@ -231,23 +209,12 @@ SolidSquare::to_string() const {
 
 nlohmann::json
 SolidSquare::to_json() const {
-  nlohmann::json j;
-  j["name"] = "a rotated square";
-
-  // meshes has to be an array
-  nlohmann::json meshes = nlohmann::json::array();
-
   // make an object for the mesh
   nlohmann::json mesh = nlohmann::json::object();
   mesh["geometry"] = "square";
   mesh["translation"] = {m_x, m_y};
   mesh["scale"] = m_side;
   mesh["rotation"] = m_theta;
-
-  // finalize the meshes array
-  meshes.push_back(mesh);
-  j["meshes"] = meshes;
-
-  return j;
+  return mesh;
 }
 

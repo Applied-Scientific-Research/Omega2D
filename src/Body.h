@@ -12,6 +12,8 @@
 #define TE_NAT_LOG
 #include "tinyexpr.h"
 
+#include "json/json.hpp"
+
 #include <string>
 #include <memory>
 #define _USE_MATH_DEFINES // Required by MSVC to define M_PI,etc. in <cmath>
@@ -38,6 +40,9 @@ public:
   Body(const double, const double);
   // destructor needs to call te_free on all te_expr pointers
   ~Body();// = default;
+
+  // dump a json object for writing
+  nlohmann::json to_json() const;
 
   // setters, as we may not construct the class at once
   void set_name(const std::string);

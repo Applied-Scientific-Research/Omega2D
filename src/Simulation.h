@@ -82,6 +82,8 @@ public:
   void add_body(std::shared_ptr<Body>);
   std::shared_ptr<Body> get_last_body();
   std::shared_ptr<Body> get_pointer_to_body(const std::string);
+  std::vector<std::shared_ptr<Body>>::iterator bodies_begin() { return bodies.begin(); }
+  std::vector<std::shared_ptr<Body>>::iterator bodies_end() { return bodies.end(); }
 
   // act on stuff
   //void set_amr(const bool);
