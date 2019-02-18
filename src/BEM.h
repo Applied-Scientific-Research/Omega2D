@@ -111,7 +111,7 @@ void BEM<S,I>::set_block(const size_t rstart, const size_t nrows,
   const size_t new_rows = std::max((size_t)(A.rows()), (size_t)(rstart+nrows));
   const size_t new_cols = std::max((size_t)(A.cols()), (size_t)(cstart+ncols));
   std::cout << "    resizing A to " << new_rows << " rows and " << new_cols << " cols" << std::endl;
-  A.resize(new_rows, new_cols);
+  A.conservativeResize(new_cols, new_rows);
 
   size_t iptr = 0;
   for (size_t j=0; j<nrows; ++j) {
@@ -138,11 +138,15 @@ void BEM<S,I>::set_rhs(const size_t cstart, const size_t ncols, std::vector<S>& 
   std::cout << "    putting data into rhs vector from " << cstart << " to " << (cstart+ncols) << std::endl;
   assert(_b.size() == ncols);
   const size_t new_n = std::max((size_t)(b.size()), (size_t)(cstart+ncols));
-  b.resize(new_n);
+  b.conservativeResize(new_n);
   // but for now, assume _b is the whole thing
   //b = Eigen::Map<Eigen::Matrix<S, Eigen::Dynamic, 1>>(_b.data(), _b.size());
   // put the pieces where they belong
   for (size_t i=0; i<ncols; ++i) b[cstart+i] = _b[i];
+
+  //std::cout << "RHS size is " << b.size() << std::endl;
+  //std::cout << "RHS vector is" << std::endl;
+  //std::cout << b << std::endl;
 }
 
 
@@ -188,10 +192,14 @@ void BEM<S,I>::solve() {
   printf("    solver.solve:\t[%.6f] cpu seconds\n", (float)elapsed_seconds.count());
 
   if (false) {
+    //const size_t nr = 50;
+    const size_t nr = b.size();
     std::cout << "Matrix equation is" << std::endl;
-    std::cout << A.block(0,0,50,8) << std::endl;
-    std::cout << b.head(50) << std::endl;
-    std::cout << strengths.head(50) << std::endl;
+    std::cout << A.block(0,0,nr,8) << std::endl;
+    std::cout << "RHS vector is" << std::endl;
+    std::cout << b.head(nr) << std::endl;
+    std::cout << "Solution vector is" << std::endl;
+    std::cout << strengths.head(nr) << std::endl;
   }
 
   if (verbose) printf("    num iterations:     %d\n", (uint32_t)solver.iterations());

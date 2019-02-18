@@ -241,7 +241,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
 #endif
 
     // special case: self-influence
-    coeffs[j*ntarg+j] = M_PI;
+    if (&src == &targ) coeffs[j*ntarg+j] = M_PI;
   }
 
   // scale all influences by the constant
