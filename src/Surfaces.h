@@ -124,6 +124,11 @@ public:
 
     // need to reset the base class n
     this->n = nnodes;
+
+    // find geometric center
+    if (this->M == bodybound) {
+      set_geom_center();
+    }
   }
 
   size_t get_npanels() const { return idx.size()/2; }
@@ -224,6 +229,11 @@ public:
 
     // need to reset the base class n
     this->n += nnodes;
+
+    // re-find geometric center
+    if (this->M == bodybound) {
+      set_geom_center();
+    }
   }
 
   void add_body_motion(const S _factor, const double _time) {
@@ -243,6 +253,49 @@ public:
         this->u[d][i] += _factor * (float)thisvel[d];
       }
     }
+  }
+
+  // calculate the geometric center of all geometry in this object
+  void set_geom_center() {
+
+    // we must have an attached body and a set of untransformed coordinates
+    assert(this->B);
+    assert(this->ux);
+
+    std::cout << "  inside Surfaces::set_geom_center with " << get_npanels() << " panels" << std::endl;
+    // (*this->ux)[d][i]
+
+    // iterate over panels, accumulating area and CM
+    S asum = 0.0;
+    S xsum = 0.0;
+    S ysum = 0.0;
+    for (size_t i=0; i<get_npanels(); i++) {
+      const size_t j   = idx[2*i];
+      const size_t jp1 = idx[2*i+1];
+      // assume a triangle from 0,0 to two ends of each panel
+      const S xc = (0.0 + (*this->ux)[0][j] + (*this->ux)[0][jp1]) / 3.0;
+      const S yc = (0.0 + (*this->ux)[1][j] + (*this->ux)[1][jp1]) / 3.0;
+      const S panelx = (*this->ux)[0][jp1] - (*this->ux)[0][j];
+      const S panely = (*this->ux)[1][jp1] - (*this->ux)[1][j];
+      // and the side lengths
+      const S a = std::sqrt(std::pow((*this->ux)[0][j],2)+std::pow((*this->ux)[1][j],2));
+      const S b = std::sqrt(std::pow(panelx,2)+std::pow(panely,2));
+      const S c = std::sqrt(std::pow((*this->ux)[0][jp1],2)+std::pow((*this->ux)[1][jp1],2));
+      //std::cout << "  panel " << i << " has side lens " << a << " " << b << " " << c << std::endl;
+      // Heron's formula for the area
+      const S hs = 0.5*(a+b+c);
+      S area = std::sqrt(hs*(hs-a)*(hs-b)*(hs-c));
+      // negate area if the winding is backwards
+      if ((*this->ux)[1][j]*panelx - (*this->ux)[0][j]*panely < 0.0) area = -area;
+      // add this to the running sums
+      asum += area;
+      xsum += xc*area;
+      ysum += yc*area;
+    }
+    xsum /= asum;
+    ysum /= asum;
+
+    std::cout << "    geom center is " << xsum << " " << ysum << " and area is " << asum << std::endl;
   }
 
 /*
@@ -546,6 +599,10 @@ protected:
 
   //std::vector<std::pair<Int,Int>> body_idx;	// n, offset of rows in the BEM?
   Int istart;	// index of first entry in RHS vector and A matrix
+
+  // the vortex and source strengths per unit length which represent the velocity
+  //   influence of the voume vorticity of the parent body, when omega=+1.0
+  //std::optional<std::array<Vector<S>,Dimensions>> urs;
 
 private:
 #ifdef USE_GL
