@@ -5,7 +5,7 @@ Two-dimensional flow solver with GUI using vortex particle and boundary element 
 ## Overview
 [Computational Fluid Dynamics (CFD)](https://en.wikipedia.org/wiki/Computational_fluid_dynamics) encompasses a wide variety of methods to aid in the numerical simulation of fluid flows on digital computers. Most methods rely on the subdivision of the fluid domain into small, stationary cells, such as tetrahedra, and solve the [Navier-Stokes equations](https://en.wikipedia.org/wiki/Navier%E2%80%93Stokes_equations) on each Eulerian (not moving) cell. In contrast, vortex methods rely on a Lagrangian (moving with the flow) description of the only the [vorticity](https://en.wikipedia.org/wiki/Vorticity)-containing region of the fluid domain and any solid boundaries present. This eliminates many of the difficulties present in traditional CFD. In addition, the form of the equations used also removes the pressure term from the Navier-Stokes equations, which is a large source of instability and extra effort in traditional CFD. This is why many new flow solvers for unsteady momentum-dominated flows (non-microscopic in scale) are implemented using vortex methods.
 
-Omega2D is a platform for testing methods and techniques for implementing a combined Lagrangian-Eulerian fluid flow solver for unsteady flows with complex boundaries. Lessons learned here will be applied to a full three-dimensional GUI and solver. The current version supports 2nd order convection and diffusion with uniform freestream and an arbitrary number of solid circular objects. The main focus right now is functionality instead of correctness.
+Omega2D is a platform for testing methods and techniques for implementing a combined Lagrangian-Eulerian fluid flow solver for unsteady flows with complex boundaries. Lessons learned here will be applied to a full three-dimensional GUI and solver. The current version supports 2nd order convection and diffusion with uniform freestream, an arbitrary number of moving objects, and low to moderate Reynolds numbers. The main focus of effort right now is toward functionality instead of absolute correctness.
 
 This open-source code is aimed at users interested in understanding vortex methods as a tool for fluid simulation, or simply eager to try a fast fluid simulator without the gross approximations present in most other real-time tools.
 
@@ -71,7 +71,7 @@ There are several collapsible headers which you can open to modify this simulati
 
 ![screenshot](media/Screenshot_v5b.png?raw=true "Flow over a circular cylinder")
 
-Pictured above is a simulation of viscous flow over a circle at Reynolds number 250 after 76 steps. The blue and red fields represent negative and positive vorticity (rotation). This is created by flow interacting with the solid bondary. Because this flow solver uses vortex methods, we only require computational elements (vortex particles) where there is vorticity.
+Pictured above is a simulation of viscous flow over a circular cylinder at Reynolds number 250 after 76 steps. The blue and red fields represent negative and positive vorticity (rotation). Vorticity is created when flow moves over a solid boundary, but must stick to the boundary surface. Because this flow solver uses vortex methods, we only require computational elements (vortex particles) where there is vorticity - nowhere else.
 
 
 ### Run a batch job
@@ -81,16 +81,17 @@ If you already have an input file in JSON format, or you exported one from the G
 
 Output will be written to the terminal and files to the working directory.
 
-Generate an X.264-encoded video from a series of png images with the following command. Make sure to set the actual resolution of the images. The reason for all the extra options is that Quicktime is very picky about which video files it will play.
+### Render a movie
+The GUI has an option to `RECORD to png`. When you press this button, the simulation will progress as fast as it can, writing the flow field to a PNG image every time step. It is suggested that you set your view point first, then `Reset`, before recording.
+
+Generate an X.264-encoded video from a series of png images with the following command. Make sure to use the actual resolution of the images. The reason for all the extra options is to ensure that the resulting video will play on Linux, Windows, and Mac - Quicktime is very picky about which video files it will play.
 
     mencoder "mf://img*png" -mf w=1280:h=720:type=png:fps=30 -o video.mp4 -sws 9 -of lavf -lavfopts format=mp4 -nosub -vf softskip,harddup -nosound -ovc x264 -x264encopts bitrate=4000:vbv_maxrate=6000:vbv_bufsize=2000:nointerlaced:force_cfr:frameref=3:mixed_refs:bframes=1:b_adapt=2:weightp=1:direct_pred=auto:aq_mode=1:me=umh:me_range=16:subq=6:mbtree:psy_rd=0.8,0.2:chroma_me:trellis=1:nocabac:deblock:partitions=p8x8,b8x8,i8x8,i4x4:nofast_pskip:nodct_decimate:threads=auto:ssim:psnr:keyint=300:keyint_min=30:level_idc=30:global_header
 
 ## To do
 Tasks to consider or implement:
 
-* Allow geometries with different Body pointers to be different collections
-* Get motion expressions to write to JSON file correctly - including collecting separate geometries into one body
-* User can enter an equation in the rotation field
+* How awesome would it be to show the flow as a time-consistent LIC image? See UFLIC (Shen & Kao, IEEE ToVaCG 1999)
 * Support body rotation by precalculating the surface sheet strengths necessary to account for the motion of the enclosed body
 * Add inlet and outlet surfaces to push flow around - the BC is that normal flow must equal some number
 * Consider adding base64 encoding to vtk output files, maybe with [this](https://github.com/tplgy/cppcodec)
@@ -107,7 +108,6 @@ Tasks to consider or implement:
 * When running, grey out the dt and Re fields - those are the only things you can't change
 * Add a "ms/frame" and "FPS" for the simulation component also
 * Add "got it" button to first section (the welcome section) to make it go away (forever?)
-* Add "Save setup", "Save flow", and "Save image" buttons
 * Ideal initial interface: lots of stuff hidden, just a graphical menu with circles, squares, vortex patches, etc. Each has handles that you can drag to resize and reposition the element; all sizes/locations quantized to 0.1 or 0.05. "Expert" box lets you change Re, dt, etc.
 * Add an animated GIF to the page to show how to set up a run? See [peek](https://github.com/phw/peek)
 * Have "status" line indicate when we're waiting for a step to finish after we've hit pause
@@ -115,7 +115,7 @@ Tasks to consider or implement:
 * Support 2nd order time accuracy in VRM by caching values from first half to use in second half
 * Make more of the sliders dynamic (like dt ~~and color~~) - be able to add new particles while a sim is running
 * Right-click on the draw screen to add features - hard? can imgui handle it?
-* Draw something when you add a feature (so we know it's doing something)
+* Draw something when you add a feature (so we know it's doing something) - means that the \*Feature objects need draw calls
 * Create an OpenGL compute shader routine for the particle-particle influence
 * Add option to draw particles as thin white dots/lines "Draw elements"
 * Add to Core.h a routine to precalculate and save the "trim tables" to be used when pushing particles away from boundaries
@@ -123,7 +123,7 @@ Tasks to consider or implement:
 * Re-orient the VRM insertion points to align to the nearest boundary - should smooth out the shedding
 * Draw a freestream arrow in the LR corner
 * Let the user grab the fs arrow to dynamically change the freestream
-* Add field points in a grid over the visible domain, find vels, display as streaks
+* Add field points in a grid over the visible domain, find vels, display as streaks - make this one of a few rendering options
 * Draw panels as polygons extending along the normal with a sharp edge on the body side and a gradient to zero on the flow side - then they can visually merge with the particles to make a visibly smooth and more-correct vorticity field
 * Reconsider templatizing on the scalar type. If you don't intend for floats or doubles in the same code, perhaps create a header with `using Scalar = float;` so you can flip back and forth easier. NBL
 * Consider different method for including shader code NBL
@@ -132,6 +132,10 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~Allow geometries with different Body pointers to be different collections~~
+* ~~Add "Save setup", "Save flow", and "Save image" buttons~~ - Good enough
+* ~~Get motion expressions to write to JSON file correctly - including collecting separate geometries into one body~~
+* ~~User can enter an equation in the rotation field~~
 * ~~Use a mathematical equation parser, I like [exprtk](http://www.partow.net/programming/exprtk/), to define rotation and tranlation of bodies; muparser and tinyexpr are also options - Wound up using tinyexpr~~
 * ~~Output particles and grid values to VTK-XML format, consider [tinyvtkxml](https://github.com/lighttransport/tinyvtkxml), [tinyxml2](https://github.com/leethomason/tinyxml2), or [AEXML](https://github.com/tadija/AEXML)~~
 * ~~Save, load, and resize window programmatically~~
