@@ -207,6 +207,18 @@ bool Body::relative_motion_vs(std::shared_ptr<Body> _other, const double _last, 
     if (std::abs(relative) > 4.0*std::numeric_limits<double>::epsilon()) motion = true;
   }
 
+  // how do we account for rotation?
+
+  // the correct way - compute the true relative motion between the two objects
+  // the hack-y way - just compare positions and orientations separately <- do this one for now
+
+  const double this_old_theta = get_orient(_last);
+  const double other_old_theta = _other->get_orient(_last);
+  const double this_new_theta = get_orient(_current);
+  const double other_new_theta = _other->get_orient(_current);
+  const double relative = this_new_theta - this_old_theta - other_new_theta + other_old_theta;
+  if (std::abs(relative) > 4.0*std::numeric_limits<double>::epsilon()) motion = true;
+
   //std::cout << "  relative_motion_vs " << this << " " << _other << " returns " << motion << std::endl;
 
   return motion;
