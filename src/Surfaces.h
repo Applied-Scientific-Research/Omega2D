@@ -47,6 +47,7 @@ public:
            const move_t _m,
            std::shared_ptr<Body> _bp)
     : ElementBase<S>(0, _e, _m, _bp),
+      area(-1.0),
       max_strength(-1.0) {
 
     // make sure input arrays are correctly-sized
@@ -132,6 +133,7 @@ public:
   }
 
   size_t get_npanels() const { return idx.size()/2; }
+  const S get_area() const { return area; }
 
   // callers should never have to change this array
   const std::vector<Int>& get_idx() const { return idx; }
@@ -284,19 +286,38 @@ public:
       //std::cout << "  panel " << i << " has side lens " << a << " " << b << " " << c << std::endl;
       // Heron's formula for the area
       const S hs = 0.5*(a+b+c);
-      S area = std::sqrt(hs*(hs-a)*(hs-b)*(hs-c));
+      S thisarea = std::sqrt(hs*(hs-a)*(hs-b)*(hs-c));
       // negate area if the winding is backwards
-      if ((*this->ux)[1][j]*panelx - (*this->ux)[0][j]*panely < 0.0) area = -area;
+      if ((*this->ux)[1][j]*panelx - (*this->ux)[0][j]*panely < 0.0) thisarea = -thisarea;
       // add this to the running sums
-      asum += area;
-      xsum += xc*area;
-      ysum += yc*area;
+      //std::cout << "    and area " << thisarea << " and center " << xc << " " << yc << std::endl;
+      asum += thisarea;
+      xsum += xc*thisarea;
+      ysum += yc*thisarea;
     }
-    xsum /= asum;
-    ysum /= asum;
+    area = asum;
+    utc[0] = xsum/area;
+    utc[1] = ysum/area;
 
-    std::cout << "    geom center is " << xsum << " " << ysum << " and area is " << asum << std::endl;
+    std::cout << "    geom center is " << utc[0] << " " << utc[1] << " and area is " << area << std::endl;
   }
+
+  // when transforming a body-bound object to a new time, we must also transform the geometric center
+  void transform(const double _time) {
+    // must explicitly call the method in the base class
+    ElementBase<S>::transform(_time);
+
+    // prepare for the transform
+    std::array<double,Dimensions> thispos = this->B->get_pos(_time);
+    const double theta = this->B->get_orient(_time);
+    const S st = std::sin(M_PI * theta / 180.0);
+    const S ct = std::cos(M_PI * theta / 180.0);
+
+    // transform the utc to tc here
+    tc[0] = (S)thispos[0] + utc[0]*ct - utc[1]*st;
+    tc[1] = (S)thispos[1] + utc[0]*st + utc[1]*ct;
+  }
+
 
 /*
   // up-size all arrays to the new size, filling with sane values
@@ -603,6 +624,10 @@ protected:
   // the vortex and source strengths per unit length which represent the velocity
   //   influence of the voume vorticity of the parent body, when omega=+1.0
   //std::optional<std::array<Vector<S>,Dimensions>> urs;
+
+  S area;	// area of the body - for augmented BEM solution
+  std::array<S,2> utc;		// untransformed geometric center
+  std::array<S,2>  tc;		// transformed geometric center
 
 private:
 #ifdef USE_GL

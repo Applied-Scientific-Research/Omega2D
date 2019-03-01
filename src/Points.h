@@ -173,6 +173,12 @@ public:
     ElementBase<S>::finalize_vels(_fs);
   }
 
+  void transform(const double _time) {
+    // must explicitly call the method in the base class
+    ElementBase<S>::transform(_time);
+    // no other specialization required here
+  }
+
   //
   // 1st order Euler advection and stretch
   //

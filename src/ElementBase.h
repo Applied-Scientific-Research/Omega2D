@@ -37,6 +37,7 @@ public:
   bool is_inert() const { return E==inert; }
   elem_t                                  get_elemt() const { return E; }
   move_t                                  get_movet() const { return M; }
+  const std::shared_ptr<Body>             get_body_ptr() const { return B; }
   std::shared_ptr<Body>                   get_body_ptr()  { return B; }
   const std::array<Vector<S>,Dimensions>& get_pos() const { return x; }
   std::array<Vector<S>,Dimensions>&       get_pos()       { return x; }
@@ -161,14 +162,20 @@ public:
   void transform(const double _time) {
     // reset positions according to prescribed motion
     if (B and M == bodybound) {
+
       // for the no-rotation case, we can just transform here
       std::array<double,Dimensions> thispos = B->get_pos(_time);
-      std::cout << "    transforming body at time " << (S)_time << " to " << (S)thispos[0] << " " << (S)thispos[1] << std::endl;
+      const double theta = B->get_orient(_time);
+      const S st = std::sin(M_PI * theta / 180.0);
+      const S ct = std::cos(M_PI * theta / 180.0);
+
+      std::cout << "    transforming body at time " << (S)_time << " to " << (S)thispos[0] << " " << (S)thispos[1] << " and theta " << theta << std::endl;
+
       // and do the transform
-      for (size_t d=0; d<Dimensions; ++d) {
-        for (size_t i=0; i<get_n(); ++i) {
-          x[d][i] = (*ux)[d][i] + (S)thispos[d];
-        }
+      for (size_t i=0; i<get_n(); ++i) {
+        // rotate and translate
+        x[0][i] = (S)thispos[0] + (*ux)[0][i]*ct - (*ux)[1][i]*st;
+        x[1][i] = (S)thispos[1] + (*ux)[0][i]*st + (*ux)[1][i]*ct;
       }
     }
   }
