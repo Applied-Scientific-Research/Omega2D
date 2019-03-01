@@ -141,7 +141,7 @@ void solve_bem(const double                         _time,
           // solve for the coefficients in this block
           Vector<S> coeffs = std::visit(cvisitor, src, targ);
           assert(coeffs.size() == tnum*snum);
-          _bem.set_block(tstart, tnum, sstart, snum, coeffs);
+          _bem.set_block(sstart, snum, tstart, tnum, coeffs);
         }
       }
     }

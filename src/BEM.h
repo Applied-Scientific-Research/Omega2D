@@ -111,13 +111,12 @@ void BEM<S,I>::set_block(const size_t rstart, const size_t nrows,
   const size_t new_rows = std::max((size_t)(A.rows()), (size_t)(rstart+nrows));
   const size_t new_cols = std::max((size_t)(A.cols()), (size_t)(cstart+ncols));
   std::cout << "    resizing A to " << new_rows << " rows and " << new_cols << " cols" << std::endl;
-  A.conservativeResize(new_cols, new_rows);
+  A.conservativeResize(new_rows, new_cols);
 
   size_t iptr = 0;
-  for (size_t j=0; j<nrows; ++j) {
-    for (size_t i=0; i<ncols; ++i) {
-      // I mixed up my rows and columns. I mean, seriously. Those are just names.
-      A(i+cstart,j+rstart) = _in[iptr++];
+  for (size_t j=0; j<ncols; ++j) {
+    for (size_t i=0; i<nrows; ++i) {
+      A(i+rstart,j+cstart) = _in[iptr++];
     }
   }
 }
