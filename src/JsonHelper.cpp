@@ -217,11 +217,11 @@ void read_json (Simulation& sim,
           // each entry can be a float or a string
           if (term.is_number()) {
             const double val = term.get<double>();
-            std::cout << "Component " << idx << " of position is constant (" << val << ")" << std::endl;
+            //std::cout << "    component " << idx << " of position is constant (" << val << ")" << std::endl;
             bp->set_pos(idx, val);
           } else if (term.is_string()) {
             const std::string expr = term.get<std::string>();
-            std::cout << "Component " << idx << " of position is expression (" << expr << ")" << std::endl;
+            //std::cout << "    component " << idx << " of position is expression (" << expr << ")" << std::endl;
             bp->set_pos(idx, expr);
           }
           ++idx;
