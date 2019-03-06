@@ -137,9 +137,8 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
   std::cout << "    1_1 compute coefficients of" << src.to_string() << " on" << targ.to_string() << std::endl;
 
   // how large of a problem do we have?
-  // this assumes one unknown per panel - not generally true!!!
-  size_t nsrc  = src.get_npanels();
-  size_t ntarg = targ.get_npanels();
+  const size_t nsrc  = src.get_npanels();
+  const size_t ntarg = targ.get_npanels();
 
   // pull references to the element arrays
   const std::array<Vector<S>,Dimensions>& sx = src.get_pos();
@@ -249,7 +248,155 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
   std::transform(coeffs.begin(), coeffs.end(), coeffs.begin(),
                  [fac](S elem) { return elem * fac; });
 
-  return coeffs;
+
+  //
+  // now we augment this "matrix" with an optional new row and column
+  //
+
+  const size_t nrows = nsrc  + ( src.get_body_ptr() ? 1 : 0);
+  const size_t ncols = ntarg + (targ.get_body_ptr() ? 1 : 0);
+  std::cout << "    augmenting the " << nsrc << " x " << ntarg << " block to " << nrows << " x " << ncols << std::endl;
+
+  // make a new 1-D vector to contain the coefficients
+  Vector<S> augcoeff;
+  augcoeff.resize(nrows*ncols);
+
+  // first, copy the old vector into the new and generate the new bottom row
+
+  // original vector is column-major (row index changes fastest), so let's keep that
+  for (size_t i=0; i<ntarg; ++i) {
+
+    // iterators in each vector
+    auto c_iter = coeffs.begin() + i*nsrc;
+    auto a_iter = augcoeff.begin() + i*nrows;
+
+    // copy the next nsrc numbers into the new vector
+    std::copy(c_iter, c_iter+nsrc, a_iter);
+
+    if (src.get_body_ptr()) {
+      a_iter += nsrc;
+      if (&src == &targ) {
+        // then write the last value in this column - the length of this panel
+        const Int tfirst  = ti[2*i];
+        const Int tsecond = ti[2*i+1];
+        // target panel vector
+        const S panelx = tx[0][tsecond] - tx[0][tfirst];
+        const S panely = tx[1][tsecond] - tx[1][tfirst];
+        const S panell = std::sqrt(panelx*panelx + panely*panely);
+        *a_iter = panell;
+      } else {
+        *a_iter = 0.0;
+      }
+    }
+  }
+
+  // no longer need coeffs
+  coeffs.clear();
+
+  // then add the last column, if necessary, if target rotates
+  if (targ.get_body_ptr()) {
+    auto a_iter = augcoeff.begin() + ntarg*nrows;
+
+    // get the rotational center of this Surface
+    //std::array<S,2> rc = {0.0,0.0};
+    std::array<S,2> rc = targ.get_geom_center();
+
+    // fill in the entries - the influence of the target body's panels, when vort and source terms are set
+    //   such that the integration results in the flow imposed by the body's volume of vorticity,
+    //   on this source panel. Why does that sound backwards?
+    for (size_t j=0; j<nsrc; j++) {
+
+      // running velocity sum
+      std::array<S,2> vel = {0.0, 0.0};
+
+      // find target point - just above the panel
+      // yes, I know I am calling these "source"
+      const Int sfirst  = si[2*j];
+      const Int ssecond = si[2*j+1];
+      const S panelx = sx[0][ssecond] - sx[0][sfirst];
+      const S panely = sx[1][ssecond] - sx[1][sfirst];
+      const S panell = std::sqrt(panelx*panelx + panely*panely);
+      const S spx = 0.5 * (sx[0][ssecond] + sx[0][sfirst]) - 0.01*panely;
+      const S spy = 0.5 * (sx[1][ssecond] + sx[1][sfirst]) + 0.01*panelx;
+
+      // integrate over all panels on the other body, with source and vortex terms set
+      for (size_t i=0; i<ntarg; ++i) {
+
+        const Int tfirst  = ti[2*i];
+        const Int tsecond = ti[2*i+1];
+        const S tx0 = tx[0][tfirst];
+        const S ty0 = tx[1][tfirst];
+        const S tx1 = tx[0][tsecond];
+        const S ty1 = tx[1][tsecond];
+
+        // set the vortex and source strengths for this panel
+        // this is the vector from the geometric center to the center of this panel
+        const S tpx = 0.5 * (tx0 + tx1) - rc[0];
+        const S tpy = 0.5 * (ty0 + ty1) - rc[1];
+        // velocity of panel center under unit rotational rate
+        const S upc = -tpy;
+        const S vpc =  tpx;
+        // and this is the tangential vector along this panel (easy to find normal)
+        S tpanelx = tx1 - tx0;
+        S tpanely = ty1 - ty0;
+        const S tpanell = 1.0/std::sqrt(tpanelx*tpanelx + tpanely*tpanely);
+        tpanelx *= tpanell;
+        tpanely *= tpanell;
+
+        //const S str_vor = 0.5;	// for D=1 circle case, approx.
+        const S str_vor = -upc*tpanelx - vpc*tpanely;
+        const S str_src = -upc*tpanely + vpc*tpanelx;
+
+        // idea - have Surface::find_rotation_strengths() return a std::array<std::vector<S>,2> of strengths
+
+        // influence of vortex panel i with given vortex strength on center of panel j
+        S resultu, resultv;
+        kernel_1_0v<S,S>(tx0, ty0, tx1, ty1, str_vor, spx, spy, &resultu, &resultv);
+        vel[0] += resultu;
+        vel[1] += resultv;
+
+        // NOTE: I need to account for the source term if this is to work on non-circular bodies
+      }
+
+      // and find the component of that velocity along the "target" panel
+      *a_iter = fac * (vel[0]*panelx + vel[1]*panely) / panell;
+       ++a_iter;
+    }
+
+    // finally, the bottom corner is the circulation at unit rotation of the body
+    if (&src == &targ) {
+      *a_iter = 2.0 * src.get_area();
+    } else {
+      *a_iter = 0.0;
+    }
+  }
+
+  // debug print the top-left and bottom-right corners
+  if (true) {
+    //std::cout << "Top-left corner of influence matrix:" << std::endl;
+    //for (size_t i=0; i<6; ++i) {
+    //  for (size_t j=0; j<6; ++j) {
+    //    std::cout << " \t" << augcoeff[nrows*j+i];
+    //  }
+    //  std::cout << std::endl;
+    //}
+    std::cout << "Top-right corner of influence matrix:" << std::endl;
+    for (size_t i=0; i<6; ++i) {
+      for (size_t j=ncols-6; j<ncols; ++j) {
+        std::cout << " \t" << augcoeff[nrows*j+i];
+      }
+      std::cout << std::endl;
+    }
+    std::cout << "Bottom-right corner of influence matrix:" << std::endl;
+    for (size_t i=nrows-6; i<nrows; ++i) {
+      for (size_t j=ncols-6; j<ncols; ++j) {
+        std::cout << " \t" << augcoeff[nrows*j+i];
+      }
+      std::cout << std::endl;
+    }
+  }
+
+  return augcoeff;
 }
 
 

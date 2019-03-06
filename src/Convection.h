@@ -83,7 +83,14 @@ void Convection<S,A,I>::find_vels(const std::array<double,Dimensions>& _fs,
     }
     // accumulate from boundaries
     for (auto &src : _bdry) {
+      // add in vortex and source strengths due to rotation
+      std::visit([=](auto& elem) { elem.add_rot_strengths(1.0); }, src);
+
+      // call the Influence routine for these collections
       std::visit(visitor, src, targ);
+
+      // remove vortex and source strengths due to rotation
+      std::visit([=](auto& elem) { elem.add_rot_strengths(-1.0); }, src);
     }
     // add freestream and divide by 2pi
     std::visit([=](auto& elem) { elem.finalize_vels(_fs); }, targ);

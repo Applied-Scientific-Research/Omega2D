@@ -82,7 +82,28 @@ void solve_bem(const double                         _time,
     // have to convert these velocities into BCs based on the target element and BC type!
     // and send it over to the BEM system
     std::vector<S> rhs = std::visit(rvisitor, targ);
-    //_bem.set_rhs(tstart, tnum, std::visit(rvisitor, targ) );
+
+    // optionally augment with an additional value
+    if (rhs.size() < tnum) {
+      assert(tnum-rhs.size()==1);
+      // first, add up the free circulation
+      S tot_circ = 0.0;
+      for (auto &src : _vort) {
+        tot_circ += std::visit([=](auto& elem) { return elem.get_total_circ(_time); }, src);
+      }
+      // then add up the circulation in bodies other than this one
+      for (auto &src : _bdry) {
+        // only if this is not the same collection!
+        if (&src != &targ) {
+          tot_circ += std::visit([=](auto& elem) { return elem.get_total_circ(_time); }, src);
+        }
+      }
+      // negate and append
+      rhs.push_back(-tot_circ);
+      std::cout << "    augmenting rhs with -circ= " << -tot_circ << std::endl;
+    }
+
+    // finally, send it to the BEM
     _bem.set_rhs(tstart, tnum, rhs);
   }
 
@@ -165,6 +186,11 @@ void solve_bem(const double                         _time,
     Vector<S> new_s = _bem.get_str(tstart, tnum);
     // and send it to the elements
     std::visit([=](auto& elem) { elem.set_str(tstart, tnum, new_s);  }, targ);
+
+    //std::cout << "  Solution vector contains" << std::endl;
+    //for (size_t i=tstart; i<tstart+tnum; ++i) {
+    //  std::cout << "    " << i << " \t" << new_s[i-tstart] << std::endl;
+    //}
   }
 
   // save the simulation time to compare to the next call

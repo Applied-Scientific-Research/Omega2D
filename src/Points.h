@@ -295,6 +295,12 @@ public:
     //}
   }
 
+  // augment the strengths with a value equal to that which accounts for
+  //   the solid-body rotation of the object
+  void add_rot_strengths(const S _factor) {
+    // do nothing here, but when we get Kutta points, we may need to
+  }
+
 #ifdef USE_GL
   //
   // OpenGL functions

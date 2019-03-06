@@ -134,6 +134,7 @@ public:
 
   size_t get_npanels() const { return idx.size()/2; }
   const S get_area() const { return area; }
+  const std::array<S,2> get_geom_center() const { return tc; }
 
   // callers should never have to change this array
   const std::vector<Int>& get_idx() const { return idx; }
@@ -142,8 +143,8 @@ public:
   // find out the next row index in the BEM after this collection
   void set_first_row(const Int _i) { istart = _i; }
   const Int get_first_row() const { return istart; }
-  const Int get_num_rows()  const { return bc.size(); }
-  const Int get_next_row()  const { return istart+bc.size(); }
+  const Int get_num_rows()  const { return bc.size() + (this->B ? 1 : 0); }
+  const Int get_next_row()  const { return istart+get_num_rows(); }
 
   // add more nodes and panels to this collection
   void add_new(const std::vector<S>&   _x,
@@ -241,19 +242,71 @@ public:
   void add_body_motion(const S _factor, const double _time) {
     // no need to call base class now
     //ElementBase<S>::add_body_motion(_factor);
+
+    // make sure we've calculated transformed center (we do this when we do area)
+    assert(area > 0.0);
+    // and we trust that we've transformed utc to tc
+
     // apply a factor times the body motion
     for (size_t i=0; i<this->get_n(); ++i) {
-      // center of this panel
-      //Int id0 = idx[2*i];
-      //Int id1 = idx[2*i+1];
-      // start at center of panel
-      //px[4*i+0] = 0.5 * (this->x[0][id1] + this->x[0][id0]);
-      //px[4*i+1] = 0.5 * (this->x[1][id1] + this->x[1][id0]);
+
+      // apply the translational velocity
       std::array<double,Dimensions> thisvel = this->B->get_vel(_time);
-      // apply the velocity
       for (size_t d=0; d<Dimensions; ++d) {
         this->u[d][i] += _factor * (float)thisvel[d];
       }
+
+      // now compute the rotational velocity with respect to the geometric center
+      double thisrotvel = this->B->get_rotvel(_time);
+      // center of this panel
+      Int id0 = idx[2*i];
+      Int id1 = idx[2*i+1];
+      // panel center
+      const S xc = 0.5 * (this->x[0][id1] + this->x[0][id0]);
+      const S yc = 0.5 * (this->x[1][id1] + this->x[1][id0]);
+      // add rotational velocity
+      this->u[0][i] -= _factor * (float)thisrotvel * (yc - tc[1]);
+      this->u[1][i] += _factor * (float)thisrotvel * (xc - tc[0]);
+    }
+  }
+
+  // augment the strengths with a value equal to that which accounts for
+  //   the solid-body rotation of the object
+  // NOTE: this needs to provide both the vortex AND source strengths!
+  // AND we don't have the time - assume bodies have been transformed
+  void add_rot_strengths(const S _factor) {
+
+    // make sure we've calculated transformed center (we do this when we do area)
+    assert(area > 0.0);
+    // and we trust that we've transformed utc to tc
+
+    // if no rotation, strengths, or no parent Body, then no problem!
+    if (not this->B) return;
+    if (not this->s) return;
+    const S rotvel = (S)this->B->get_rotvel();
+    if (std::abs(rotvel) < std::numeric_limits<float>::epsilon()) return;
+
+    // still here? let's do it. use the untransformed coordinates
+    for (size_t i=0; i<get_npanels(); i++) {
+      const size_t j   = idx[2*i];
+      const size_t jp1 = idx[2*i+1];
+      // vector from object geometric center to panel center
+      const S dx = 0.5 * ((*this->ux)[0][j] + (*this->ux)[0][jp1]) - utc[0];
+      const S dy = 0.5 * ((*this->ux)[1][j] + (*this->ux)[1][jp1]) - utc[1];
+      // velocity of the panel center
+      const S ui = -rotvel * dy;
+      const S vi =  rotvel * dx;
+
+      // panel tangential vector, fluid to the left, body to the right
+      S panelx = (*this->ux)[0][jp1] - (*this->ux)[0][j];
+      S panely = (*this->ux)[1][jp1] - (*this->ux)[1][j];
+      const S panell = 1.0 / std::sqrt(panelx*panelx + panely*panely);
+      panelx *= panell;
+      panely *= panell;
+
+      (*this->s)[i] += _factor * -1.0 * (ui*panelx + vi*panely);
+
+      //if (_factor > 0.0) std::cout << "  panel " << i << " adds to vortex strength " << (-1.0 * (ui*panelx + vi*panely)) << std::endl;
     }
   }
 
@@ -308,8 +361,8 @@ public:
     ElementBase<S>::transform(_time);
 
     // prepare for the transform
-    std::array<double,Dimensions> thispos = this->B->get_pos(_time);
-    const double theta = this->B->get_orient(_time);
+    std::array<double,Dimensions> thispos = this->B->get_pos();
+    const double theta = this->B->get_orient();
     const S st = std::sin(M_PI * theta / 180.0);
     const S ct = std::cos(M_PI * theta / 180.0);
 
@@ -434,6 +487,18 @@ public:
       max_strength = thismax;
     } else {
       max_strength = 0.1*thismax + 0.9*max_strength;
+    }
+  }
+
+  // add and return the total circulation of all elements
+  S get_total_circ(const double _time) {
+    // do not call the parent
+    if (this->B) {
+      // we're attached to a body - great! what's the rotation rate?
+      return 2.0 * area * (S)this->B->get_rotvel(_time);
+    } else {
+      // we are fixed, thus not rotating
+      return 0.0;
     }
   }
 
