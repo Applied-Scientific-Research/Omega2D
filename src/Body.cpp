@@ -125,6 +125,40 @@ void Body::set_rot(const std::string _val) {
   }
 }
 
+void Body::transform(const double _time) {
+
+  // evaluate all expressions at this time
+  const double dt = 1.e-5;
+
+  for (size_t i=0; i<Dimensions; ++i) {
+    if (pos_func[i]) {
+      this_time = _time;
+      pos[i] = te_eval(pos_func[i]);
+
+      this_time = _time + dt;
+      const double pplus = te_eval(pos_func[i]);
+      this_time = _time - dt;
+      const double pminus = te_eval(pos_func[i]);
+      vel[i] = (pplus - pminus) / (2.0*dt);
+    }
+  }
+
+  if (apos_func) {
+    this_time = _time;
+    apos = te_eval(apos_func);
+
+    this_time = _time + dt;
+    const double pplus = te_eval(apos_func);
+    this_time = _time - dt;
+    const double pminus = te_eval(apos_func);
+    // 2-point first derivative estimate
+    avel = (pplus - pminus) / (2.0*dt);
+  }
+}
+
+Vec Body::get_pos() {
+  return pos;
+}
 Vec Body::get_pos(const double _time) {
   // for testing, return a loop
   //pos[0] = 0.5 * sin(2.0*_time);
@@ -144,6 +178,9 @@ Vec Body::get_pos(const double _time) {
   return pos;
 }
 
+Vec Body::get_vel() {
+  return vel;
+}
 Vec Body::get_vel(const double _time) {
   // for testing, return a loop
   //vel[0] = cos(2.0*_time);
@@ -166,6 +203,9 @@ Vec Body::get_vel(const double _time) {
   return vel;
 }
 
+double Body::get_orient() {
+  return apos;
+}
 double Body::get_orient(const double _time) {
   // for realsies, get the value or evaluate the expression
   this_time = _time;
@@ -178,6 +218,9 @@ double Body::get_orient(const double _time) {
   return apos;
 }
 
+double Body::get_rotvel() {
+  return avel;
+}
 double Body::get_rotvel(const double _time) {
 
   // 2-point first derivative estimate

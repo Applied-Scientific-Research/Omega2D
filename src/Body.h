@@ -54,9 +54,14 @@ public:
 
   // return positional, orientation, or other data
   std::string get_name();
+  void transform(const double);
+  Vec get_pos();
   Vec get_pos(const double);
+  Vec get_vel();
   Vec get_vel(const double);
+  double get_orient();
   double get_orient(const double);
+  double get_rotvel();
   double get_rotvel(const double);
 
   // compare motion vs another Body

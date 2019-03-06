@@ -156,16 +156,23 @@ public:
     }
   }
 
-  void add_body_motion(const double _factor) {
+  void add_body_motion(const S factor, const double _time) {
     // do nothing here
   }
+
+  void add_rot_strengths(const S _factor) {
+    // do nothing here
+  }
+
   void transform(const double _time) {
     // reset positions according to prescribed motion
     if (B and M == bodybound) {
+      // tell the Body to compute and save its position, vel, angular pos and angular vel
+      B->transform(_time);
 
       // for the no-rotation case, we can just transform here
-      std::array<double,Dimensions> thispos = B->get_pos(_time);
-      const double theta = B->get_orient(_time);
+      std::array<double,Dimensions> thispos = B->get_pos();
+      const double theta = B->get_orient();
       const S st = std::sin(M_PI * theta / 180.0);
       const S ct = std::cos(M_PI * theta / 180.0);
 
@@ -234,6 +241,19 @@ public:
       return thismax;
     } else {
       return 1.0;
+    }
+  }
+
+  // add and return the total circulation of all elements
+  S get_total_circ(const double _time) {
+    if (s) {
+      // we have strengths, add them up
+      // this is the c++17 way
+      //return std::reduce(std::execution::par, s->begin(), s->end());
+      // this is the c++11 way
+      return std::accumulate(s->begin(), s->end(), 0.0);
+    } else {
+      return 0.0;
     }
   }
 

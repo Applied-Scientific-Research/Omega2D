@@ -134,7 +134,6 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
 #endif // no Vc
     }
     flops *= 2.0 + 15.0*(float)src.get_n();
-
   }
 
   auto end = std::chrono::system_clock::now();
