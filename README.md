@@ -91,6 +91,8 @@ Generate an X.264-encoded video from a series of png images with the following c
 ## To do
 Tasks to consider or implement:
 
+* Support multiple body rotation by augmenting only the require blocks in the BEM calculation
+* Convert all angles (except in GUI) to radians
 * How awesome would it be to show the flow as a time-consistent LIC image? See UFLIC (Shen & Kao, IEEE ToVaCG 1999)
 * Support body rotation by precalculating the surface sheet strengths necessary to account for the motion of the enclosed body
 * Add inlet and outlet surfaces to push flow around - the BC is that normal flow must equal some number
