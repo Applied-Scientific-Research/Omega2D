@@ -274,7 +274,7 @@ public:
   //   the solid-body rotation of the object
   // NOTE: this needs to provide both the vortex AND source strengths!
   // AND we don't have the time - assume bodies have been transformed
-  void add_rot_strengths(const S _factor) {
+  void add_rot_strengths(const S _constfac, const S _rotfactor) {
 
     // make sure we've calculated transformed center (we do this when we do area)
     assert(area > 0.0);
@@ -284,7 +284,17 @@ public:
     if (not this->B) return;
     if (not this->s) return;
     const S rotvel = (S)this->B->get_rotvel();
-    if (std::abs(rotvel) < std::numeric_limits<float>::epsilon()) return;
+    //if (std::abs(rotvel) < std::numeric_limits<float>::epsilon()) return;
+
+    // have we made ss yet?
+    if (not ss) {
+      // value is a fixed strength for the segment
+      Vector<S> new_ss(this->s->size());
+      ss = std::move(new_ss);
+    }
+
+    // what is the actual factor that we will add?
+    const S factor = _constfac + rotvel*_rotfactor;
 
     // still here? let's do it. use the untransformed coordinates
     for (size_t i=0; i<get_npanels(); i++) {
@@ -294,8 +304,8 @@ public:
       const S dx = 0.5 * ((*this->ux)[0][j] + (*this->ux)[0][jp1]) - utc[0];
       const S dy = 0.5 * ((*this->ux)[1][j] + (*this->ux)[1][jp1]) - utc[1];
       // velocity of the panel center
-      const S ui = -rotvel * dy;
-      const S vi =  rotvel * dx;
+      const S ui = -factor * dy;
+      const S vi =  factor * dx;
 
       // panel tangential vector, fluid to the left, body to the right
       S panelx = (*this->ux)[0][jp1] - (*this->ux)[0][j];
@@ -304,9 +314,18 @@ public:
       panelx *= panell;
       panely *= panell;
 
-      (*this->s)[i] += _factor * -1.0 * (ui*panelx + vi*panely);
+      // the vortex strength - we ADD to the existing
+      (*this->s)[i] += -1.0 * (ui*panelx + vi*panely);
 
-      //if (_factor > 0.0) std::cout << "  panel " << i << " adds to vortex strength " << (-1.0 * (ui*panelx + vi*panely)) << std::endl;
+      // the source strength
+      (*ss)[i] += -1.0 * (ui*panely - vi*panelx);
+
+      // debug print
+      if (_rotfactor > 0.0 and false) {
+        std::cout << "  panel " << i << " at " << dx << " " << dy
+                  << " adds to vortex str " << (-1.0 * (ui*panelx + vi*panely))
+                  << " and source str " << (-1.0 * (ui*panely - vi*panelx)) << std::endl;
+      }
     }
   }
 
@@ -363,8 +382,8 @@ public:
     // prepare for the transform
     std::array<double,Dimensions> thispos = this->B->get_pos();
     const double theta = this->B->get_orient();
-    const S st = std::sin(M_PI * theta / 180.0);
-    const S ct = std::cos(M_PI * theta / 180.0);
+    const S st = std::sin(theta);
+    const S ct = std::cos(theta);
 
     // transform the utc to tc here
     tc[0] = (S)thispos[0] + utc[0]*ct - utc[1]*st;
@@ -686,11 +705,11 @@ protected:
   //std::vector<std::pair<Int,Int>> body_idx;	// n, offset of rows in the BEM?
   Int istart;	// index of first entry in RHS vector and A matrix
 
-  // the vortex and source strengths per unit length which represent the velocity
-  //   influence of the voume vorticity of the parent body, when omega=+1.0
-  //std::optional<std::array<Vector<S>,Dimensions>> urs;
+  // the source strengths per unit length which represent the velocity
+  //   influence of the volume vorticity of the parent body
+  std::optional<Vector<S>> ss;
 
-  S area;	// area of the body - for augmented BEM solution
+  S area;			// area of the body - for augmented BEM solution
   std::array<S,2> utc;		// untransformed geometric center
   std::array<S,2>  tc;		// transformed geometric center
 

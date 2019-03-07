@@ -160,7 +160,7 @@ public:
     // do nothing here
   }
 
-  void add_rot_strengths(const S _factor) {
+  void add_rot_strengths(const S _constfac, const S _rotfactor) {
     // do nothing here
   }
 
@@ -173,10 +173,11 @@ public:
       // for the no-rotation case, we can just transform here
       std::array<double,Dimensions> thispos = B->get_pos();
       const double theta = B->get_orient();
-      const S st = std::sin(M_PI * theta / 180.0);
-      const S ct = std::cos(M_PI * theta / 180.0);
+      const S st = std::sin(theta);
+      const S ct = std::cos(theta);
 
-      std::cout << "    transforming body at time " << (S)_time << " to " << (S)thispos[0] << " " << (S)thispos[1] << " and theta " << theta << std::endl;
+      std::cout << "    transforming body at time " << (S)_time << " to " << (S)thispos[0] << " " << (S)thispos[1]
+                << " and theta " << theta << " omega " << B->get_rotvel() << std::endl;
 
       // and do the transform
       for (size_t i=0; i<get_n(); ++i) {
