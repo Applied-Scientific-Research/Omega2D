@@ -63,37 +63,45 @@ template <class S, class A, class I>
 void Convection<S,A,I>::find_vels(const std::array<double,Dimensions>& _fs,
                                   std::vector<Collection>&             _vort,
                                   std::vector<Collection>&             _bdry,
-                                  std::vector<Collection>&             _fldpt) {
+                                  std::vector<Collection>&             _targets) {
 
-  //if (_fldpt.size() > 0) std::cout << std::endl << "Solving for velocities" << std::endl;
-  //if (_fldpt.size() > 0) std::cout << std::endl;
+  //if (_targets.size() > 0) std::cout << std::endl << "Solving for velocities" << std::endl;
+  //if (_targets.size() > 0) std::cout << std::endl;
 
   // need this for dispatching velocity influence calls, template param is accumulator type
   // should the solution_t be an argument to the constructor?
   InfluenceVisitor<A> visitor;
 
+  // add vortex and source strengths to account for rotating bodies
+  for (auto &src : _bdry) {
+    std::visit([=](auto& elem) { elem.add_rot_strengths(0.0, 1.0); }, src);
+  }
+
   // find the influence on every field point/tracer element
-  for (auto &targ : _fldpt) {
+  for (auto &targ : _targets) {
     std::cout << "  Solving for velocities on" << to_string(targ) << std::endl;
+
     // zero velocities
     std::visit([=](auto& elem) { elem.zero_vels(); }, targ);
+
     // accumulate from vorticity
     for (auto &src : _vort) {
       std::visit(visitor, src, targ);
     }
+
     // accumulate from boundaries
     for (auto &src : _bdry) {
-      // add in vortex and source strengths due to rotation
-      std::visit([=](auto& elem) { elem.add_rot_strengths(0.0, 1.0); }, src);
-
       // call the Influence routine for these collections
       std::visit(visitor, src, targ);
-
-      // remove vortex and source strengths due to rotation
-      std::visit([=](auto& elem) { elem.add_rot_strengths(0.0, -1.0); }, src);
     }
+
     // add freestream and divide by 2pi
     std::visit([=](auto& elem) { elem.finalize_vels(_fs); }, targ);
+  }
+
+  // remove vortex and source strengths due to rotation
+  for (auto &src : _bdry) {
+    std::visit([=](auto& elem) { elem.add_rot_strengths(0.0, -1.0); }, src);
   }
 }
 
