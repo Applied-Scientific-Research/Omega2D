@@ -146,6 +146,7 @@ void Body::transform(const double _time) {
   if (apos_func) {
     this_time = _time;
     apos = te_eval(apos_func);
+    apos = std::remainder(apos, 2.0*M_PI);
 
     this_time = _time + dt;
     const double pplus = te_eval(apos_func);
@@ -212,6 +213,7 @@ double Body::get_orient(const double _time) {
   //std::cout << "  ROTATING BODY (" << get_name() << ") at time " << _time << std::endl;
   if (apos_func) {
     apos = te_eval(apos_func);
+    apos = std::remainder(apos, 2.0*M_PI);
     //std::cout << "  ROTATED BODY apos to " << apos << std::endl;
   }
 
