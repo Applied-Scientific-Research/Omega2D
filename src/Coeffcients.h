@@ -248,7 +248,6 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
   std::transform(coeffs.begin(), coeffs.end(), coeffs.begin(),
                  [fac](S elem) { return elem * fac; });
 
-
   //
   // now we augment this "matrix" with an optional new row and column
   //
@@ -300,6 +299,9 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
 
     // get the rotational center of this Surface
     std::array<S,2> rc = targ.get_geom_center();
+
+    // this is the velocity influence from the source body with unit rotational rate on these target panels
+    std::array<Vector<S>,Dimensions> const& vel = targ.get_vel();
 
     // fill in the entries - the influence of the source body's panels, when vort and source terms are set
     //   such that the integration results in the flow imposed by the body's volume of vorticity,
@@ -374,13 +376,17 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
 
         // NOTE: I need to account for the source term if this is to work on non-circular bodies
       }
+      const S thisu = velx.sum();
+      const S thisv = vely.sum();
+      std::cout << "targ " << i << " this vel " << fac*thisu << " " << fac*thisv << " and precalc vel " << vel[0][i] << " " << vel[1][i] << std::endl;
 
       // and find the component of that velocity along the "target" panel
-      *a_iter = 0.0;
+      //*a_iter = 0.0;
       // spread the results from a vector register back to the primary array
-      for (size_t jj=0; jj<StoreVec::size() && jj<nsrc; ++jj) {
-        *a_iter += fac * (velx[jj]*panelx + vely[jj]*panely) / panell;
-      }
+      //for (size_t jj=0; jj<StoreVec::size() && jj<nsrc; ++jj) {
+      //  *a_iter += fac * (velx[jj]*panelx + vely[jj]*panely) / panell;
+      //}
+      *a_iter = fac * (thisu*panelx + thisv*panely) / panell;
       ++a_iter;
 
 #else	// no Vc
@@ -388,7 +394,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
       const S tpy = 0.5 * (tx[1][tsecond] + tx[1][tfirst]) + 0.01*panelx;
 
       // running velocity sum
-      std::array<S,2> vel = {0.0, 0.0};
+      std::array<S,2> velsum = {0.0, 0.0};
 
       // integrate over all panels on the other body, with source and vortex terms set
       for (size_t j=0; j<nsrc; ++j) {
@@ -423,14 +429,14 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
         // influence of vortex panel j with given vortex strength on center of panel i
         S resultu, resultv;
         kernel_1_0vs<S,S>(sx0, sy0, sx1, sy1, str_vor, str_src, tpx, tpy, &resultu, &resultv);
-        vel[0] += resultu;
-        vel[1] += resultv;
+        velsum[0] += resultu;
+        velsum[1] += resultv;
 
         // NOTE: I need to account for the source term if this is to work on non-circular bodies
       }
 
       // and find the component of that velocity along the target panel
-      *a_iter = fac * (vel[0]*panelx + vel[1]*panely) / panell;
+      *a_iter = fac * (velsum[0]*panelx + velsum[1]*panely) / panell;
        ++a_iter;
 #endif	// no Vc
     }

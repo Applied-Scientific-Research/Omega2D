@@ -418,6 +418,22 @@ template <class S, class A>
 void panels_affect_panels (Surfaces<S> const& src, Surfaces<S>& targ) {
   std::cout << "    1_1 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
 
+  // run panels_affect_points instead
+
+  // generate temporary colocation points as Points - is this inefficient?
+  std::vector<S> xysr = targ.represent_as_particles(0.0001, 0.0001);
+  Points<float> temppts(xysr, active, lagrangian, nullptr);
+
+  // run the calculation
+  panels_affect_points<S,A>(src, temppts);
+
+  // and copy the velocities to the real target
+  std::array<Vector<S>,Dimensions>& fromvel = temppts.get_vel();
+  std::array<Vector<S>,Dimensions>& tovel   = targ.get_vel();
+  for (size_t i=0; i<Dimensions; ++i) {
+    std::copy(fromvel[i].begin(), fromvel[i].end(), tovel[i].begin());
+  }
+
   // get references to use locally
 /*
   const std::array<Vector<S>,Dimensions>& sx = src.get_pos();
@@ -428,7 +444,6 @@ void panels_affect_panels (Surfaces<S> const& src, Surfaces<S>& targ) {
   std::array<Vector<S>,Dimensions>&       tu = targ.get_vel();
 */
 
-  // generate temporary colocation points as Points? Ouch.
   // run panels_affect_points on those
   // or do it on the fly here
   // return results

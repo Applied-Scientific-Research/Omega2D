@@ -173,11 +173,12 @@ void solve_bem(const double                         _time,
           std::cout << "  Computing A matrix block [" << tstart << ":" << (tstart+tnum) << "] x [" << sstart << ":" << (sstart+snum) << "]" << std::endl;
 
           // for augmentation, find the induced velocity from the source on the target
-          //std::array<Vector<S>,Dimensions> u;
-          //if (&src == &targ) {
-          //std::visit([=](auto& elem) { elem.add_rot_strengths(1.0, 0.0); }, src);
-          // divide by 2pi and add zero freestream
-          //std::visit([=](auto& elem) { elem.finalize_vels(std::array<double,Dimensions>(0.0,0.0)); }, targ);
+          std::visit([=](auto& elem) { elem.zero_vels(); }, targ);
+          std::visit([=](auto& elem) { elem.zero_strengths(); }, src);
+          std::visit([=](auto& elem) { elem.add_rot_strengths(1.0, 0.0); }, src);
+          std::visit(ivisitor, src, targ);
+          std::visit([=](auto& elem) { elem.zero_strengths(); }, src);
+          std::visit([=](auto& elem) { elem.finalize_vels(std::array<double,Dimensions>({0.0,0.0})); }, targ);
 
           // solve for the coefficients in this block
           Vector<S> coeffs = std::visit(cvisitor, src, targ);

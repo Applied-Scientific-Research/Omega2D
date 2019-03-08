@@ -160,6 +160,14 @@ public:
     // do nothing here
   }
 
+  void zero_strengths() {
+    if (s) {
+      for (size_t i=0; i<s->size(); ++i) {
+        (*s)[i] = 0.0;
+      }
+    }
+  }
+
   void add_rot_strengths(const S _constfac, const S _rotfactor) {
     // do nothing here
   }
