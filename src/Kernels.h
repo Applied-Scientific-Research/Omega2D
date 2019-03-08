@@ -114,3 +114,64 @@ static inline void kernel_1_0v (const S sx0, const S sy0,
   *tv = mult*vely;
 }
 
+
+//
+// analytic influence of 2d linear constant-strength vortex AND source panel
+//   on target point ignoring the 1/2pi factor, which will be multiplied later
+//   47 flops average
+//
+template <class S, class A>
+static inline void kernel_1_0vs (const S sx0, const S sy0,
+                                 const S sx1, const S sy1,
+                                 const S vs, const S ss,
+                                 const S tx, const S ty,
+                                 A* __restrict__ tu, A* __restrict__ tv) {
+
+  // segment vector
+  const S dx0   = tx - sx0;
+  const S dy0   = ty - sy0;
+  const S dx1   = tx - sx1;
+  const S dy1   = ty - sy1;
+
+  // side lengths of the triangle s0, s1, t
+  const S rij2  = dx0*dx0 + dy0*dy0;
+  const S rij12 = dx1*dx1 + dy1*dy1;
+#ifdef USE_VC
+  const S vstar = S(0.5) * Vc::log(rij2/rij12);
+#else
+  const S vstar = 0.5 * std::log(rij2/rij12);
+#endif
+  S ustar = std::atan2(dx1, dy1) - std::atan2(dx0, dy0);
+  //std::cout << "ustar started off as " << ustar << std::endl;
+#ifdef USE_VC
+  Vc::where(ustar < S(-M_PI)) | ustar += S(2.*M_PI);
+  Vc::where(ustar > S(M_PI)) | ustar -= S(2.*M_PI);
+#else
+  if (ustar < -M_PI) ustar += 2.*M_PI;
+  if (ustar > M_PI) ustar -= 2.*M_PI;
+#endif
+  //std::cout << "ustar is " << ustar << " and vstar is " << vstar << std::endl;
+
+  S px = sx1-sx0;
+  S py = sy1-sy0;
+  //std::cout << "px is " << px << " and py is " << py << std::endl;
+#ifdef USE_VC
+  const S mult  = Vc::rsqrt(px*px + py*py);
+#else
+  const S mult  = 1.0 / std::sqrt(px*px + py*py);
+#endif
+  px *= mult;
+  py *= mult;
+
+  // finally, rotate back into global coordinates
+  // and multiply by vortex sheet strength
+  *tu = vs * (ustar*px - vstar*py);
+  *tv = vs * (ustar*py + vstar*px);
+  //std::cout << "velx is " << velx << " and vely is " << vely << std::endl;
+  //std::cout << "finalx is " << (mult*velx) << " and finaly is " << (mult*vely) << std::endl;
+
+  // and now the source strength
+  *tu += ss * (ustar*py + vstar*px);
+  *tv += ss * (vstar*py - ustar*px);
+}
+

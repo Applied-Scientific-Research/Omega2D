@@ -154,9 +154,13 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
   // get references to use locally
   const std::array<Vector<S>,Dimensions>& sx = src.get_pos();
   const std::vector<Int>&                 si = src.get_idx();
-  const Vector<S>&                        ss = src.get_str();
+  const Vector<S>&                        vs = src.get_str();
   const std::array<Vector<S>,Dimensions>& tx = targ.get_pos();
   std::array<Vector<S>,Dimensions>&       tu = targ.get_vel();
+
+  // and get the source strengths, if they exist
+  const bool           have_source_strengths = src.have_src_str();
+  const Vector<S>&                        ss = src.get_src_str();
 
   float flops = (float)targ.get_n();
 
@@ -170,7 +174,7 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
   Vc::Memory<StoreVec> vsy0(src.get_npanels());
   Vc::Memory<StoreVec> vsx1(src.get_npanels());
   Vc::Memory<StoreVec> vsy1(src.get_npanels());
-  Vc::Memory<StoreVec>  vss(src.get_npanels());
+  Vc::Memory<StoreVec> vsvs(src.get_npanels());
   for (size_t j=0; j<src.get_npanels(); ++j) {
     const size_t id0 = si[2*j];
     const size_t id1 = si[2*j+1];
@@ -178,16 +182,31 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
     vsy0[j]     = sx[1][id0];
     vsx1[j]     = sx[0][id1];
     vsy1[j]     = sx[1][id1];
-    vss[j]      = ss[j];
-    //std::cout << "  src panel " << j << " has " << vsx1[j] << " " << vsy1[j] << " and str " << vss[j] << std::endl;
+    vsvs[j]     = vs[j];
+    //std::cout << "  src panel " << j << " has " << vsx1[j] << " " << vsy1[j] << " and str " << vsvs[j] << std::endl;
   }
-  for (size_t j=src.get_npanels(); j<vss.vectorsCount()*StoreVec::size(); ++j) {
+  for (size_t j=src.get_npanels(); j<vsvs.vectorsCount()*StoreVec::size(); ++j) {
     vsx0[j] = 0.0;
     vsy0[j] = 0.0;
     vsx1[j] = 1.0;
     vsy1[j] = 0.0;
-    vss[j]  = 0.0;
-    //std::cout << "  src panel " << j << " has " << vsx1[j] << " " << vsy1[j] << " and str " << vss[j] << std::endl;
+    vsvs[j] = 0.0;
+    //std::cout << "  src panel " << j << " has " << vsx1[j] << " " << vsy1[j] << " and str " << vsvs[j] << std::endl;
+  }
+
+  // set vectors for source source strength
+  Vc::Memory<StoreVec> vsss(src.get_npanels());
+  if (have_source_strengths) {
+    for (size_t j=0; j<src.get_npanels(); ++j) {
+      vsss[j] = ss[j];
+    }
+    for (size_t j=src.get_npanels(); j<vsss.vectorsCount()*StoreVec::size(); ++j) {
+      vsss[j] = 0.0;
+    }
+  } else {
+    for (size_t j=0; j<vsss.vectorsCount()*StoreVec::size(); ++j) {
+      vsss[j] = 0.0;
+    }
   }
 
   #pragma omp parallel for
@@ -203,15 +222,29 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
     AccumVec resultu(0.0);
     AccumVec resultv(0.0);
 
-    for (size_t j=0; j<vss.vectorsCount(); ++j) {
-      // note that this is the same kernel as panels_affect_points!
-      kernel_1_0v<StoreVec,AccumVec>(vsx0.vector(j), vsy0.vector(j),
-                                     vsx1.vector(j), vsy1.vector(j),
-                                     vss.vector(j),
-                                     vtx, vty,
-                                     &resultu, &resultv);
-      accumu += resultu;
-      accumv += resultv;
+    if (have_source_strengths) {
+      for (size_t j=0; j<vsvs.vectorsCount(); ++j) {
+        // note that this is the same kernel as panels_affect_points!
+        kernel_1_0vs<StoreVec,AccumVec>(vsx0.vector(j), vsy0.vector(j),
+                                        vsx1.vector(j), vsy1.vector(j),
+                                        vsvs.vector(j), vsss.vector(j),
+                                        vtx, vty,
+                                        &resultu, &resultv);
+        accumu += resultu;
+        accumv += resultv;
+      }
+    } else {
+      // only vortex strengths
+      for (size_t j=0; j<vsvs.vectorsCount(); ++j) {
+        // note that this is the same kernel as panels_affect_points!
+        kernel_1_0v<StoreVec,AccumVec>(vsx0.vector(j), vsy0.vector(j),
+                                       vsx1.vector(j), vsy1.vector(j),
+                                       vsvs.vector(j),
+                                       vtx, vty,
+                                       &resultu, &resultv);
+        accumu += resultu;
+        accumv += resultv;
+      }
     }
 
     // use this as normal
@@ -229,19 +262,38 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
     A resultu = 0.0;
     A resultv = 0.0;
 
-    for (size_t j=0; j<src.get_npanels(); ++j) {
-      const size_t jp0 = si[2*j];
-      const size_t jp1 = si[2*j+1];
+    if (have_source_strengths) {
+      // source and vortex strengths
+      for (size_t j=0; j<src.get_npanels(); ++j) {
+        const size_t jp0 = si[2*j];
+        const size_t jp1 = si[2*j+1];
 
-      // note that this is the same kernel as points_affect_panels
-      kernel_1_0v<S,A>(sx[0][jp0], sx[1][jp0], 
-                       sx[0][jp1], sx[1][jp1],
-                       ss[j],
-                       tx[0][i],   tx[1][i],
-                       &resultu, &resultv);
+        // note that this is the same kernel as points_affect_panels
+        kernel_1_0vs<S,A>(sx[0][jp0], sx[1][jp0], 
+                          sx[0][jp1], sx[1][jp1],
+                          vs[j],      ss[j],
+                          tx[0][i],   tx[1][i],
+                          &resultu, &resultv);
 
-      accumu += resultu;
-      accumv += resultv;
+        accumu += resultu;
+        accumv += resultv;
+      }
+    } else {
+      // only vortex strengths
+      for (size_t j=0; j<src.get_npanels(); ++j) {
+        const size_t jp0 = si[2*j];
+        const size_t jp1 = si[2*j+1];
+
+        // note that this is the same kernel as points_affect_panels
+        kernel_1_0v<S,A>(sx[0][jp0], sx[1][jp0], 
+                         sx[0][jp1], sx[1][jp1],
+                         vs[j],
+                         tx[0][i],   tx[1][i],
+                         &resultu, &resultv);
+
+        accumu += resultu;
+        accumv += resultv;
+      }
     }
 
     // use this as normal
@@ -251,7 +303,11 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
   }
 #endif
 
-  flops *= 2.0 + 37.0*(float)src.get_npanels();
+  if (have_source_strengths) {
+    flops *= 2.0 + 49.0*(float)src.get_npanels();
+  } else {
+    flops *= 2.0 + 37.0*(float)src.get_npanels();
+  }
 
   auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
@@ -270,7 +326,7 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
 
   // get references to use locally
   const std::array<Vector<S>,Dimensions>& sx = src.get_pos();
-  const Vector<S>&                        ss = src.get_str();
+  const Vector<S>&                        vs = src.get_str();
   const std::array<Vector<S>,Dimensions>& tx = targ.get_pos();
   const std::vector<Int>&                 ti = targ.get_idx();
   std::array<Vector<S>,Dimensions>&       tu = targ.get_vel();
@@ -282,7 +338,7 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
 
   const Vc::Memory<StoreVec> sxv = stdvec_to_vcvec<S>(sx[0], 0.0);
   const Vc::Memory<StoreVec> syv = stdvec_to_vcvec<S>(sx[1], 0.0);
-  const Vc::Memory<StoreVec> ssv = stdvec_to_vcvec<S>(ss,    0.0);
+  const Vc::Memory<StoreVec> vsv = stdvec_to_vcvec<S>(vs,    0.0);
 #endif
 
   float flops = (float)targ.get_npanels();
@@ -309,11 +365,11 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
     AccumVec resultu(0.0);
     AccumVec resultv(0.0);
 
-    for (size_t j=0; j<ssv.vectorsCount(); ++j) {
+    for (size_t j=0; j<vsv.vectorsCount(); ++j) {
       // note that this is the same kernel as panels_affect_points!
       kernel_1_0v<StoreVec,AccumVec>(vtx0, vty0,
                                      vtx1, vty1,
-                                     ssv.vector(j),
+                                     vsv.vector(j),
                                      sxv.vector(j), syv.vector(j),
                                      &resultu, &resultv);
       accumu += resultu;
@@ -335,7 +391,7 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
       // note that this is the same kernel as panels_affect_points!
       kernel_1_0v<S,A>(tx[0][ip0], tx[1][ip0],
                        tx[0][ip1], tx[1][ip1],
-                       ss[j],
+                       vs[j],
                        sx[0][j],   sx[1][j],
                        &resultu, &resultv);
       accumu += resultu;
