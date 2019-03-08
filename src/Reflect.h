@@ -8,7 +8,6 @@
 #pragma once
 
 #include "Omega2D.h"
-//#include "Collection.h"
 #include "Points.h"
 #include "Surfaces.h"
 
@@ -104,6 +103,7 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
   std::array<Vector<S>,Dimensions>&       tx = _targ.get_pos();
 
   size_t num_reflected = 0;
+  const S eps = 10.0*std::numeric_limits<S>::epsilon();
 
   // accumulate results into targvel
   #pragma omp parallel for
@@ -117,7 +117,7 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
                                                         sx[0][si[2*j+1]], sx[1][si[2*j+1]],
                                                         tx[0][i],         tx[1][i]);
 
-      if (result.distsq < mindist - std::numeric_limits<S>::epsilon()) {
+      if (result.distsq < mindist - eps) {
         // we blew the old one away
         mindist = result.distsq;
         result.jpanel = j;
@@ -125,7 +125,7 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
         hits.push_back(result);
         //std::cout << "  THIS BLOWS AWAY THE CLOSEST, AT " << std::sqrt(mindist) << std::endl;
 
-      } else if (result.distsq < mindist + std::numeric_limits<S>::epsilon()) {
+      } else if (result.distsq < mindist + eps) {
         // we are effectively the same as the old closest
         result.jpanel = j;
         hits.push_back(result);
@@ -247,6 +247,7 @@ void clear_inner_panp2 (Surfaces<S> const & _src, Points<S>& _targ, const S _cut
   Vector<S>&                              tr = _targ.get_rad();
 
   size_t num_cropped = 0;
+  const S eps = 10.0*std::numeric_limits<S>::epsilon();
 
   // accumulate results into targvel
   #pragma omp parallel for reduction(+:num_cropped)
@@ -275,41 +276,45 @@ void clear_inner_panp2 (Surfaces<S> const & _src, Points<S>& _targ, const S _cut
       along[1] = y1 - y0;
       // one over the panel length is useful
       oopanlen = 1.0 / std::sqrt(along[0]*along[0] + along[1]*along[1]);
+      // normalize along
+      along[0] *= oopanlen;
+      along[1] *= oopanlen;
       // and normal
-      thisnorm[0] = -along[1] * oopanlen;
-      thisnorm[1] =  along[0] * oopanlen;
+      thisnorm[0] = -along[1];
+      thisnorm[1] =  along[0];
       // find projection
       dotp = (tx[0][i]-x0)*along[0] + (tx[1][i]-y0)*along[1];
-      dotp *= oopanlen*oopanlen;
+      dotp *= oopanlen;
+      // dotp is now 0.0 to 1.0 for points ON the panel
 
-      if (dotp < 0.0) {
+      if (dotp < 0.0 + eps) {
         // particle is closer to first node
         dist_sqrd = std::pow(tx[0][i]-x0, 2) + pow(tx[1][i]-y0, 2);
-        if (dist_sqrd < near_dist_sqrd - std::numeric_limits<S>::epsilon()) {
+        if (dist_sqrd < near_dist_sqrd - eps) {
           // point is clearly the closest
           near_dist_sqrd = dist_sqrd;
           inear = si[2*j];
           // replace the running normal
           norm[0] = thisnorm[0];
           norm[1] = thisnorm[1];
-        } else if (dist_sqrd < near_dist_sqrd + std::numeric_limits<S>::epsilon()) {
+        } else if (dist_sqrd < near_dist_sqrd + eps) {
           // point is just as close as another point
           // add the normal to the running sum
           norm[0] += thisnorm[0];
           norm[1] += thisnorm[1];
         }
 
-      } else if (dotp > 1.0) {
+      } else if (dotp > 1.0 - eps) {
         // particle is closer to second node
         dist_sqrd = std::pow(tx[0][i]-x1, 2) + std::pow(tx[1][i]-y1, 2);
-        if (dist_sqrd < near_dist_sqrd - std::numeric_limits<S>::epsilon()) {
+        if (dist_sqrd < near_dist_sqrd - eps) {
           // point is clearly the closest
           near_dist_sqrd = dist_sqrd;
           inear = si[2*j+1];
           // replace the running normal
           norm[0] = thisnorm[0];
           norm[1] = thisnorm[1];
-        } else if (dist_sqrd < near_dist_sqrd + std::numeric_limits<S>::epsilon()) {
+        } else if (dist_sqrd < near_dist_sqrd + eps) {
           // point is just as close as another point
           // add the normal to the running sum
           norm[0] += thisnorm[0];
@@ -320,19 +325,24 @@ void clear_inner_panp2 (Surfaces<S> const & _src, Points<S>& _targ, const S _cut
         // particle is closest to segment, not ends
         // find actual distance
         // first find closest point along segment
-        along[0] = x0 + dotp*along[0];
-        along[1] = y0 + dotp*along[1];
+        const S cpx = x0 + dotp*along[0]/oopanlen;
+        const S cpy = y0 + dotp*along[1]/oopanlen;
         // then compute distance
-        dist_sqrd = std::pow(tx[0][i]-along[0], 2) + std::pow(tx[1][i]-along[1], 2);
+        dist_sqrd = std::pow(tx[0][i]-cpx, 2) + std::pow(tx[1][i]-cpy, 2);
         // and compare to saved
-        if (dist_sqrd < near_dist_sqrd + std::numeric_limits<S>::epsilon()) {
-          // even if its a tie, this one wins
+        if (dist_sqrd < near_dist_sqrd - eps) {
+          // point is clearly the closest
           near_dist_sqrd = dist_sqrd;
           // and it doesn't matter which node we pick, the normal calculation is always the same
           inear = si[2*j];
           // replace the normal with this normal
           norm[0] = thisnorm[0];
           norm[1] = thisnorm[1];
+        } else if (dist_sqrd < near_dist_sqrd + eps) {
+          // point is just as close as another point
+          // add the normal to the running sum
+          norm[0] += thisnorm[0];
+          norm[1] += thisnorm[1];
         }
       }
 
@@ -357,6 +367,8 @@ void clear_inner_panp2 (Surfaces<S> const & _src, Points<S>& _targ, const S _cut
     // eventually precompute table lookups for new position and remaining strength
     dotp -= _cutoff;
     if (dotp < tr[i]) {
+      //std::cout << "  CLEARING pt at " << tx[0][i] << " " << tx[1][i] << " because dotp " << dotp << " and norm " << norm[0] << " " << norm[1] << std::endl;
+
       // smoothly vary the strength scaling factor from 0..1 over range dotp/vdelta = -1..1
       const S sfac = 0.5 * (1.0 + sin(0.5*M_PI*std::max((S)-1.0, dotp/tr[i])));
       ts[i] *= sfac;
