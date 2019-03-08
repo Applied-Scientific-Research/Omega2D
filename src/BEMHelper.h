@@ -159,6 +159,8 @@ void solve_bem(const double                         _time,
           const size_t snum = std::visit([=](auto& elem) { return elem.get_num_rows(); }, src);
           std::cout << "  Computing A matrix block [" << tstart << ":" << (tstart+tnum) << "] x [" << sstart << ":" << (sstart+snum) << "]" << std::endl;
 
+          // for augmentation, find the induced velocity from the source on the target
+
           // solve for the coefficients in this block
           Vector<S> coeffs = std::visit(cvisitor, src, targ);
           assert(coeffs.size() == tnum*snum);
@@ -184,13 +186,22 @@ void solve_bem(const double                         _time,
 
     // get that chunk
     Vector<S> new_s = _bem.get_str(tstart, tnum);
-    // and send it to the elements
-    std::visit([=](auto& elem) { elem.set_str(tstart, tnum, new_s);  }, targ);
 
-    //std::cout << "  Solution vector contains" << std::endl;
-    //for (size_t i=tstart; i<tstart+tnum; ++i) {
-    //  std::cout << "    " << i << " \t" << new_s[i-tstart] << std::endl;
-    //}
+    // debug print
+    if (false) {
+      std::cout << "  Solution vector contains" << std::endl;
+      for (size_t i=tstart; i<tstart+tnum; ++i) {
+        std::cout << "    " << i << " \t" << new_s[i-tstart] << std::endl;
+      }
+    }
+
+    // peel off the last entry - the rotation rate - if there is a body pointer
+    const std::shared_ptr<Body> bptr = std::visit([=](auto& elem) { return elem.get_body_ptr(); }, targ);
+    if (bptr) new_s.pop_back();
+
+    // and send it to the elements
+    std::visit([=](auto& elem) { elem.set_str(tstart, new_s.size(), new_s);  }, targ);
+
   }
 
   // save the simulation time to compare to the next call
