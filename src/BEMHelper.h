@@ -48,9 +48,18 @@ void solve_bem(const double                         _time,
     }
   }
 
+  // add vortex and source strengths to account for rotating bodies
+  //for (auto &src : _bdry) {
+  //  std::visit([=](auto& elem) { elem.add_rot_strengths(1.0, 0.0); }, src);
+  //}
+
   // need this for dispatching velocity influence calls, template param is accumulator type
   InfluenceVisitor<A> ivisitor;
   RHSVisitor rvisitor;
+
+  //
+  // update rhs first
+  //
 
   std::cout << "  Solving for BEM RHS" << std::endl;
 
@@ -107,6 +116,10 @@ void solve_bem(const double                         _time,
     _bem.set_rhs(tstart, tnum, rhs);
   }
 
+  //
+  // rhs is done, update A matrix now
+  //
+
   // options from here are: rebuild every block, rebuild some blocks, rebuild no blocks
   bool rebuild_every_block = false;
   bool rebuild_some_blocks = false;
@@ -160,11 +173,17 @@ void solve_bem(const double                         _time,
           std::cout << "  Computing A matrix block [" << tstart << ":" << (tstart+tnum) << "] x [" << sstart << ":" << (sstart+snum) << "]" << std::endl;
 
           // for augmentation, find the induced velocity from the source on the target
+          //std::array<Vector<S>,Dimensions> u;
+          //if (&src == &targ) {
+          //std::visit([=](auto& elem) { elem.add_rot_strengths(1.0, 0.0); }, src);
+          // divide by 2pi and add zero freestream
+          //std::visit([=](auto& elem) { elem.finalize_vels(std::array<double,Dimensions>(0.0,0.0)); }, targ);
 
           // solve for the coefficients in this block
           Vector<S> coeffs = std::visit(cvisitor, src, targ);
           assert(coeffs.size() == tnum*snum);
-          _bem.set_block(sstart, snum, tstart, tnum, coeffs);
+          // targets are rows, sources are cols
+          _bem.set_block(tstart, tnum, sstart, snum, coeffs);
         }
       }
     }
@@ -175,8 +194,14 @@ void solve_bem(const double                         _time,
     printf("    make A matrix:\t[%.4f] cpu seconds\n", (float)elapsed_seconds.count());
   }
 
+  //
+  // solve here
+  //
   std::cout << "  Solving BEM for strengths" << std::endl;
   _bem.solve();
+  //
+  //
+  //
 
   // copy strengths down to Points/Surfaces
   for (auto &targ : _bdry) {
