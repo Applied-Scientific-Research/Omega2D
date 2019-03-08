@@ -146,6 +146,10 @@ public:
   const Int get_num_rows()  const { return bc.size() + (this->B ? 1 : 0); }
   const Int get_next_row()  const { return istart+get_num_rows(); }
 
+  // source strengths
+  const bool have_src_str() const { return (bool)ss; }
+  const Vector<S>& get_src_str() const { return *ss; }
+
   // add more nodes and panels to this collection
   void add_new(const std::vector<S>&   _x,
                const std::vector<Int>& _idx,
@@ -286,12 +290,17 @@ public:
     const S rotvel = (S)this->B->get_rotvel();
     //if (std::abs(rotvel) < std::numeric_limits<float>::epsilon()) return;
 
-    // have we made ss yet?
-    if (not ss) {
+    // have we made ss yet? or is it the right size?
+    if (ss) {
+      ss->resize(this->s->size());
+    } else {
       // value is a fixed strength for the segment
       Vector<S> new_ss(this->s->size());
       ss = std::move(new_ss);
     }
+
+    //std::cout << "Inside add_rot_strengths, sizes are: " << get_npanels() << " " << this->s->size() << " " << ss->size() << std::endl;
+    assert(this->s->size() == get_npanels());
 
     // what is the actual factor that we will add?
     const S factor = _constfac + rotvel*_rotfactor;
