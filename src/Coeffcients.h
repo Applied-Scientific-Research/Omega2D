@@ -253,9 +253,9 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
   // now we augment this "matrix" with an optional new row and column
   //
 
-  const size_t nrows = nsrc  + ( src.get_body_ptr() ? 1 : 0);
-  const size_t ncols = ntarg + (targ.get_body_ptr() ? 1 : 0);
-  std::cout << "    augmenting the " << nsrc << " x " << ntarg << " block to " << nrows << " x " << ncols << std::endl;
+  const size_t nrows = ntarg + (targ.get_body_ptr() ? 1 : 0);
+  const size_t ncols = nsrc  + ( src.get_body_ptr() ? 1 : 0);
+  std::cout << "    augmenting the " << ntarg << " x " << nsrc << " block to " << nrows << " x " << ncols << std::endl;
 
   // make a new 1-D vector to contain the coefficients
   Vector<S> augcoeff;
@@ -263,26 +263,27 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
 
   // first, copy the old vector into the new and generate the new bottom row
 
-  // original vector is column-major (row index changes fastest), so let's keep that
-  for (size_t i=0; i<ntarg; ++i) {
+  // original vector is column-major (src/column index changes slowest), so let's keep that
+  for (size_t j=0; j<nsrc; j++) {
 
     // iterators in each vector
-    auto c_iter = coeffs.begin() + i*nsrc;
-    auto a_iter = augcoeff.begin() + i*nrows;
+    auto c_iter = coeffs.begin() + j*ntarg;
+    auto a_iter = augcoeff.begin() + j*nrows;
 
     // copy the next nsrc numbers into the new vector
-    std::copy(c_iter, c_iter+nsrc, a_iter);
+    std::copy(c_iter, c_iter+ntarg, a_iter);
 
     if (src.get_body_ptr()) {
       a_iter += nsrc;
       if (&src == &targ) {
         // then write the last value in this column - the length of this panel
-        const Int tfirst  = ti[2*i];
-        const Int tsecond = ti[2*i+1];
+        const Int tfirst  = ti[2*j];
+        const Int tsecond = ti[2*j+1];
         // target panel vector
         const S panelx = tx[0][tsecond] - tx[0][tfirst];
         const S panely = tx[1][tsecond] - tx[1][tfirst];
         const S panell = std::sqrt(panelx*panelx + panely*panely);
+        // coefficient in matrix is the panel length
         *a_iter = panell;
       } else {
         *a_iter = 0.0;
@@ -295,77 +296,78 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
 
   // then add the last column, if necessary, if target rotates
   if (targ.get_body_ptr()) {
-    auto a_iter = augcoeff.begin() + ntarg*nrows;
+    auto a_iter = augcoeff.begin() + nsrc*nrows;
 
     // get the rotational center of this Surface
     std::array<S,2> rc = targ.get_geom_center();
 
-    // fill in the entries - the influence of the target body's panels, when vort and source terms are set
+    // fill in the entries - the influence of the source body's panels, when vort and source terms are set
     //   such that the integration results in the flow imposed by the body's volume of vorticity,
-    //   on this source panel. Why does that sound backwards?
-    for (size_t j=0; j<nsrc; j++) {
+    //   on this target panel.
+    for (size_t i=0; i<ntarg; ++i) {
 
       // find target point - just above the panel
       // yes, I know I am calling these "source"
-      const Int sfirst  = si[2*j];
-      const Int ssecond = si[2*j+1];
-      const S panelx = sx[0][ssecond] - sx[0][sfirst];
-      const S panely = sx[1][ssecond] - sx[1][sfirst];
+      const Int tfirst  = ti[2*i];
+      const Int tsecond = ti[2*i+1];
+      const S panelx = tx[0][tsecond] - tx[0][tfirst];
+      const S panely = tx[1][tsecond] - tx[1][tfirst];
       const S panell = std::sqrt(panelx*panelx + panely*panely);
-      //std::cout << "targ panel " << j << " at " << sx[0][sfirst] << " " << sx[1][sfirst] << std::endl;
+      //std::cout << "targ panel " << i << " at " << tx[0][tfirst] << " " << tx[1][tfirst] << std::endl;
 
 #ifdef USE_VC
-      // make an 8-wide vector of the target point (called "source" here)
-      const StoreVec spx = 0.5 * (sx[0][ssecond] + sx[0][sfirst]) - 0.01*panely;
-      const StoreVec spy = 0.5 * (sx[1][ssecond] + sx[1][sfirst]) + 0.01*panelx;
+      // make an 8-wide vector of the target point
+      const StoreVec tpx = 0.5 * (tx[0][tsecond] + tx[0][tfirst]) - 0.01*panely;
+      const StoreVec tpy = 0.5 * (tx[1][tsecond] + tx[1][tfirst]) + 0.01*panelx;
 
       // running velocity sum
       StoreVec velx = 0.0;
       StoreVec vely = 0.0;
 
-      const size_t ntargvec = 1 + (ntarg-1) / StoreVec::size();
-      for (size_t i=0; i<ntargvec; i++) {
+      const size_t nsrcvec = 1 + (nsrc-1) / StoreVec::size();
+      for (size_t j=0; j<nsrcvec; ++j) {
 
-        // fill a 4- or 8-wide vector with the target coordinates
-        StoreVec tx0 = StoreVec(-1.0);
-        StoreVec ty0 = StoreVec(0.0);
-        StoreVec tx1 = StoreVec(1.0);
-        StoreVec ty1 = StoreVec(0.0);
-        for (size_t ii=0; ii<StoreVec::size() && i*StoreVec::size()+ii<ntarg; ++ii) {
-          const size_t idx = i*StoreVec::size() + ii;
-          const Int tfirst  = ti[2*idx];
-          const Int tsecond = ti[2*idx+1];
-          tx0[ii] = tx[0][tfirst];
-          ty0[ii] = tx[1][tfirst];
-          tx1[ii] = tx[0][tsecond];
-          ty1[ii] = tx[1][tsecond];
+        // fill a 4- or 8-wide vector with the source coordinates
+        StoreVec sx0 = StoreVec(-1.0);
+        StoreVec sy0 = StoreVec(0.0);
+        StoreVec sx1 = StoreVec(1.0);
+        StoreVec sy1 = StoreVec(0.0);
+        for (size_t jj=0; jj<StoreVec::size() && j*StoreVec::size()+jj<nsrc; ++jj) {
+          const size_t idx = j*StoreVec::size() + jj;
+          const Int sfirst  = si[2*idx];
+          const Int ssecond = si[2*idx+1];
+          sx0[jj] = sx[0][sfirst];
+          sy0[jj] = sx[1][sfirst];
+          sx1[jj] = sx[0][ssecond];
+          sy1[jj] = sx[1][ssecond];
         }
 
         // set the vortex and source strengths for this panel
         // this is the vector from the geometric center to the center of this panel
-        const StoreVec tpx = StoreVec(0.5) * (tx0 + tx1) - StoreVec(rc[0]);
-        const StoreVec tpy = StoreVec(0.5) * (ty0 + ty1) - StoreVec(rc[1]);
+        const StoreVec spx = StoreVec(0.5) * (sx0 + sx1) - StoreVec(rc[0]);
+        const StoreVec spy = StoreVec(0.5) * (sy0 + sy1) - StoreVec(rc[1]);
 
         // velocity of panel center under unit rotational rate
-        const StoreVec upc = -tpy;
-        const StoreVec vpc =  tpx;
+        const StoreVec upc = -spy;
+        const StoreVec vpc =  spx;
         // and this is the tangential vector along this panel (easy to find normal)
-        StoreVec tpanelx = tx1 - tx0;
-        StoreVec tpanely = ty1 - ty0;
-        const StoreVec tpanell = Vc::rsqrt(tpanelx*tpanelx + tpanely*tpanely);
-        tpanelx *= tpanell;
-        tpanely *= tpanell;
+        StoreVec spanelx = sx1 - sx0;
+        StoreVec spanely = sy1 - sy0;
+        const StoreVec spanell = Vc::rsqrt(spanelx*spanelx + spanely*spanely);
+        spanelx *= spanell;
+        spanely *= spanell;
 
         // finally can compute the strengths - making sure that the unfilled portion of the vector is 0.0
-        StoreVec str_vor = -upc*tpanelx - vpc*tpanely;
-        for (size_t ii=ntarg-i*StoreVec::size(); ii<StoreVec::size(); ++ii) {
-          str_vor[ii] = 0.0;
+        StoreVec str_vor = -upc*spanelx - vpc*spanely;
+        StoreVec str_src = -upc*spanely + vpc*spanelx;
+        for (size_t jj=nsrc-j*StoreVec::size(); jj<StoreVec::size(); ++jj) {
+          str_vor[jj] = 0.0;
+          str_src[jj] = 0.0;
         }
-        const StoreVec str_src = -upc*tpanely + vpc*tpanelx;
 
         // influence of vortex panel j with unit circulation on center of panel i
         StoreVec resultu, resultv;
-        kernel_1_0v<StoreVec,StoreVec>(tx0, ty0, tx1, ty1, str_vor, spx, spy, &resultu, &resultv);
+        kernel_1_0vs<StoreVec,StoreVec>(sx0, sy0, sx1, sy1, str_vor, str_src, tpx, tpy, &resultu, &resultv);
         //std::cout << "  src vec " << i << " uvel " << resultu << std::endl;
         velx += resultu;
         vely += resultv;
@@ -376,58 +378,58 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
       // and find the component of that velocity along the "target" panel
       *a_iter = 0.0;
       // spread the results from a vector register back to the primary array
-      for (size_t ii=0; ii<StoreVec::size() && ii<ntarg; ++ii) {
-        *a_iter += fac * (velx[ii]*panelx + vely[ii]*panely) / panell;
+      for (size_t jj=0; jj<StoreVec::size() && jj<nsrc; ++jj) {
+        *a_iter += fac * (velx[jj]*panelx + vely[jj]*panely) / panell;
       }
       ++a_iter;
 
 #else	// no Vc
-      const S spx = 0.5 * (sx[0][ssecond] + sx[0][sfirst]) - 0.01*panely;
-      const S spy = 0.5 * (sx[1][ssecond] + sx[1][sfirst]) + 0.01*panelx;
+      const S tpx = 0.5 * (tx[0][tsecond] + tx[0][tfirst]) - 0.01*panely;
+      const S tpy = 0.5 * (tx[1][tsecond] + tx[1][tfirst]) + 0.01*panelx;
 
       // running velocity sum
       std::array<S,2> vel = {0.0, 0.0};
 
       // integrate over all panels on the other body, with source and vortex terms set
-      for (size_t i=0; i<ntarg; ++i) {
+      for (size_t j=0; j<nsrc; ++j) {
 
-        const Int tfirst  = ti[2*i];
-        const Int tsecond = ti[2*i+1];
-        const S tx0 = tx[0][tfirst];
-        const S ty0 = tx[1][tfirst];
-        const S tx1 = tx[0][tsecond];
-        const S ty1 = tx[1][tsecond];
+        const Int sfirst  = si[2*j];
+        const Int ssecond = si[2*j+1];
+        const S sx0 = sx[0][sfirst];
+        const S sy0 = sx[1][sfirst];
+        const S sx1 = sx[0][ssecond];
+        const S sy1 = sx[1][ssecond];
 
         // set the vortex and source strengths for this panel
         // this is the vector from the geometric center to the center of this panel
-        const S tpx = 0.5 * (tx0 + tx1) - rc[0];
-        const S tpy = 0.5 * (ty0 + ty1) - rc[1];
+        const S spx = 0.5 * (sx0 + sx1) - rc[0];
+        const S spy = 0.5 * (sy0 + sy1) - rc[1];
         // velocity of panel center under unit rotational rate
-        const S upc = -tpy;
-        const S vpc =  tpx;
+        const S upc = -spy;
+        const S vpc =  spx;
         // and this is the tangential vector along this panel (easy to find normal)
-        S tpanelx = tx1 - tx0;
-        S tpanely = ty1 - ty0;
-        const S tpanell = 1.0/std::sqrt(tpanelx*tpanelx + tpanely*tpanely);
-        tpanelx *= tpanell;
-        tpanely *= tpanell;
+        S spanelx = sx1 - sx0;
+        S spanely = sy1 - sy0;
+        const S spanell = 1.0/std::sqrt(spanelx*spanelx + spanely*spanely);
+        spanelx *= spanell;
+        spanely *= spanell;
 
         //const S str_vor = 0.5;	// for D=1 circle case, approx.
-        const S str_vor = -upc*tpanelx - vpc*tpanely;
-        const S str_src = -upc*tpanely + vpc*tpanelx;
+        const S str_vor = -upc*spanelx - vpc*spanely;
+        const S str_src = -upc*spanely + vpc*spanelx;
 
         // idea - have Surface::find_rotation_strengths() return a std::array<std::vector<S>,2> of strengths
 
-        // influence of vortex panel i with given vortex strength on center of panel j
+        // influence of vortex panel j with given vortex strength on center of panel i
         S resultu, resultv;
-        kernel_1_0v<S,S>(tx0, ty0, tx1, ty1, str_vor, spx, spy, &resultu, &resultv);
+        kernel_1_0vs<S,S>(sx0, sy0, sx1, sy1, str_vor, str_src, tpx, tpy, &resultu, &resultv);
         vel[0] += resultu;
         vel[1] += resultv;
 
         // NOTE: I need to account for the source term if this is to work on non-circular bodies
       }
 
-      // and find the component of that velocity along the "target" panel
+      // and find the component of that velocity along the target panel
       *a_iter = fac * (vel[0]*panelx + vel[1]*panely) / panell;
        ++a_iter;
 #endif	// no Vc
@@ -439,6 +441,8 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
     } else {
       *a_iter = 0.0;
     }
+  } else {
+    // if there's no body pointer, then what?
   }
 
   // debug print the top-left and bottom-right corners
