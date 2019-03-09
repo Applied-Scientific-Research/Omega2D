@@ -247,7 +247,9 @@ void clear_inner_panp2 (Surfaces<S> const & _src, Points<S>& _targ, const S _cut
   Vector<S>&                              tr = _targ.get_rad();
 
   size_t num_cropped = 0;
-  const S eps = 10.0*std::numeric_limits<S>::epsilon();
+  const S eps = 5.0*std::numeric_limits<S>::epsilon();
+  //const S opeps = 1.0 + eps;
+  //const S omeps = 1.0 - eps;
 
   // accumulate results into targvel
   #pragma omp parallel for reduction(+:num_cropped)
@@ -261,6 +263,9 @@ void clear_inner_panp2 (Surfaces<S> const & _src, Points<S>& _targ, const S _cut
     // inear is the NODE id that the particle is closest to
     Int inear = std::numeric_limits<Int>::max();
     norm[0] = 0.0; norm[1] = 0.0;
+
+    // first check - is the point far enough away from the body to ensure that it is outside/inside?
+    // implement this later
 
     // iterate and search for closest panel/node
     for (size_t j=0; j<_src.get_n(); ++j) {
@@ -290,35 +295,37 @@ void clear_inner_panp2 (Surfaces<S> const & _src, Points<S>& _targ, const S _cut
       if (dotp < 0.0 + eps) {
         // particle is closer to first node
         dist_sqrd = std::pow(tx[0][i]-x0, 2) + pow(tx[1][i]-y0, 2);
+        const S oodist = 1.0 / std::sqrt(dist_sqrd);
         if (dist_sqrd < near_dist_sqrd - eps) {
           // point is clearly the closest
           near_dist_sqrd = dist_sqrd;
           inear = si[2*j];
           // replace the running normal
-          norm[0] = thisnorm[0];
-          norm[1] = thisnorm[1];
+          norm[0] = (tx[0][i]-x0) * oodist;
+          norm[1] = (tx[1][i]-y0) * oodist;
         } else if (dist_sqrd < near_dist_sqrd + eps) {
           // point is just as close as another point
           // add the normal to the running sum
-          norm[0] += thisnorm[0];
-          norm[1] += thisnorm[1];
+          norm[0] += (tx[0][i]-x0) * oodist;
+          norm[1] += (tx[1][i]-y0) * oodist;
         }
 
       } else if (dotp > 1.0 - eps) {
         // particle is closer to second node
         dist_sqrd = std::pow(tx[0][i]-x1, 2) + std::pow(tx[1][i]-y1, 2);
+        const S oodist = 1.0 / std::sqrt(dist_sqrd);
         if (dist_sqrd < near_dist_sqrd - eps) {
           // point is clearly the closest
           near_dist_sqrd = dist_sqrd;
           inear = si[2*j+1];
           // replace the running normal
-          norm[0] = thisnorm[0];
-          norm[1] = thisnorm[1];
+          norm[0] = (tx[0][i]-x1) * oodist;
+          norm[1] = (tx[1][i]-y1) * oodist;
         } else if (dist_sqrd < near_dist_sqrd + eps) {
           // point is just as close as another point
           // add the normal to the running sum
-          norm[0] += thisnorm[0];
-          norm[1] += thisnorm[1];
+          norm[0] += (tx[0][i]-x1) * oodist;
+          norm[1] += (tx[1][i]-y1) * oodist;
         }
 
       } else {
