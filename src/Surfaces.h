@@ -132,6 +132,13 @@ public:
     }
   }
 
+  // must specifically destroy buffers
+  ~Surfaces() {
+#ifdef USE_GL
+    exitGL();
+#endif
+  }
+
   size_t get_npanels() const { return idx.size()/2; }
   const S get_area() const { return area; }
   const std::array<S,2> get_geom_center() const { return tc; }
@@ -698,6 +705,16 @@ public:
       glDisable(GL_BLEND);
       glBindVertexArray(0);
     }
+  }
+
+  // clean up resources
+  void exitGL() {
+    if (glIsVertexArray(vao) == GL_FALSE) return;
+    glBindVertexArray(vao);
+    glDeleteBuffers(4,vbo);
+    glDeleteProgram(draw_surface_line_prog);
+    glDeleteVertexArrays(1,&vao);
+    glBindVertexArray(0);
   }
 #endif
 

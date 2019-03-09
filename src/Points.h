@@ -101,6 +101,13 @@ public:
     }
   }
 
+  // must specifically destroy buffers
+  ~Points() {
+#ifdef USE_GL
+    exitGL();
+#endif
+  }
+
   const Vector<S>& get_rad() const { return r; }
   Vector<S>&       get_rad()       { return r; }
 
@@ -544,6 +551,17 @@ public:
       glDisable(GL_BLEND);
       glBindVertexArray(0);
     }
+  }
+
+  // clean up resources
+  void exitGL() {
+    if (glIsVertexArray(vao) == GL_FALSE) return;
+    glBindVertexArray(vao);
+    glDeleteBuffers(4,vbo);
+    glDeleteProgram(draw_blob_program);
+    glDeleteProgram(draw_point_program);
+    glDeleteVertexArrays(1,&vao);
+    glBindVertexArray(0);
   }
 #endif
 
