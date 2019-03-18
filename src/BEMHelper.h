@@ -143,6 +143,9 @@ void solve_bem(const double                         _time,
 
     auto start = std::chrono::system_clock::now();
 
+    // need this to inform bem that we need to re-init the solver
+    _bem.panels_changed();
+
     // this is the dispatcher for Points/Surfaces on Points/Surfaces
     CoefficientVisitor cvisitor;
 
@@ -223,7 +226,10 @@ void solve_bem(const double                         _time,
 
     // peel off the last entry - the rotation rate - if there is a body pointer
     const std::shared_ptr<Body> bptr = std::visit([=](auto& elem) { return elem.get_body_ptr(); }, targ);
-    if (bptr) new_s.pop_back();
+    if (bptr) {
+      std::cout << "    solved rotation rate is " << new_s.back() << std::endl;
+      new_s.pop_back();
+    }
 
     // and send it to the elements
     std::visit([=](auto& elem) { elem.set_str(tstart, new_s.size(), new_s);  }, targ);
