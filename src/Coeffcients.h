@@ -273,20 +273,17 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
     std::copy(c_iter, c_iter+ntarg, a_iter);
 
     if (src.get_body_ptr()) {
+      // always include the panel lengths of the source body
       a_iter += nsrc;
-      if (&src == &targ) {
-        // then write the last value in this column - the length of this panel
-        const Int tfirst  = ti[2*j];
-        const Int tsecond = ti[2*j+1];
-        // target panel vector
-        const S panelx = tx[0][tsecond] - tx[0][tfirst];
-        const S panely = tx[1][tsecond] - tx[1][tfirst];
-        const S panell = std::sqrt(panelx*panelx + panely*panely);
-        // coefficient in matrix is the panel length
-        *a_iter = panell;
-      } else {
-        *a_iter = 0.0;
-      }
+      // then write the last value in this column - the length of this panel
+      const Int tfirst  = ti[2*j];
+      const Int tsecond = ti[2*j+1];
+      // target panel vector
+      const S panelx = tx[0][tsecond] - tx[0][tfirst];
+      const S panely = tx[1][tsecond] - tx[1][tfirst];
+      const S panell = std::sqrt(panelx*panelx + panely*panely);
+      // coefficient in matrix is the panel length
+      *a_iter = panell;
     }
   }
 
