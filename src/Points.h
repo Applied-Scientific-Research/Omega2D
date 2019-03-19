@@ -102,13 +102,6 @@ public:
     }
   }
 
-  // must specifically destroy buffers
-  ~Points() {
-#ifdef USE_GL
-    exitGL();
-#endif
-  }
-
   const Vector<S>& get_rad() const { return r; }
   Vector<S>&       get_rad()       { return r; }
 
@@ -550,8 +543,6 @@ public:
       glBindVertexArray(0);
     }
   }
-
-  void exitGL() {}
 #endif
 
   std::string to_string() const {

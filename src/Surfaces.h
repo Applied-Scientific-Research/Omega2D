@@ -133,13 +133,6 @@ public:
     }
   }
 
-  // must specifically destroy buffers
-  ~Surfaces() {
-#ifdef USE_GL
-    exitGL();
-#endif
-  }
-
   size_t get_npanels() const { return idx.size()/2; }
   const S get_area() const { return area; }
   const std::array<S,2> get_geom_center() const { return tc; }
@@ -704,9 +697,6 @@ public:
       glBindVertexArray(0);
     }
   }
-
-  // clean up resources
-  void exitGL() {}
 #endif
 
   std::string to_string() const {
