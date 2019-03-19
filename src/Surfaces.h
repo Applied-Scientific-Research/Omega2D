@@ -274,6 +274,18 @@ public:
       this->u[1][i] += _factor * (float)thisrotvel * (xc - tc[0]);
     }
   }
+ 
+  void zero_strengths() {
+    // call base class first
+    ElementBase<S>::zero_strengths();
+
+    // and reset the source strengths here
+    if (ss) {
+      for (size_t i=0; i<ss->size(); ++i) {
+        (*ss)[i] = 0.0;
+      }
+    }
+  }
 
   // augment the strengths with a value equal to that which accounts for
   //   the solid-body rotation of the object
