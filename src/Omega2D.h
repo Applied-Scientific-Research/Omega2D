@@ -39,7 +39,7 @@ enum move_t {
   bodybound  = 2, // moves with attached body
   fixed      = 3  // does not move
 };
- 
+
 //
 // Helper class for passing arbitrary elements around
 //

@@ -123,7 +123,9 @@ int main(int argc, char const *argv[]) {
     write_json(sim, ffeatures, bfeatures, mfeatures, rparams, outfile);
     std::cout << std::endl << "Wrote simulation to " << outfile << std::endl;
   }
-  std::cout << std::endl << "Done" << std::endl;
+
+  sim.reset();
+  std::cout << "Quitting" << std::endl;
 
   return 0;
 }
