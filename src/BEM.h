@@ -104,13 +104,13 @@ void BEM<S,I>::set_block(const size_t rstart, const size_t nrows,
                          const size_t cstart, const size_t ncols,
                          const Vector<S>& _in) {
 
-  std::cout << "    putting data into A matrix at " << rstart << ":" << (rstart+nrows) << " "
-                                                    << cstart << ":" << (cstart+ncols) << std::endl;
+  //std::cout << "    putting data into A matrix at " << rstart << ":" << (rstart+nrows) << " "
+  //                                                  << cstart << ":" << (cstart+ncols) << std::endl;
 
   // allocate space
   const size_t new_rows = std::max((size_t)(A.rows()), (size_t)(rstart+nrows));
   const size_t new_cols = std::max((size_t)(A.cols()), (size_t)(cstart+ncols));
-  std::cout << "    resizing A to " << new_rows << " rows and " << new_cols << " cols" << std::endl;
+  //std::cout << "    resizing A to " << new_rows << " rows and " << new_cols << " cols" << std::endl;
   A.conservativeResize(new_rows, new_cols);
 
   size_t iptr = 0;

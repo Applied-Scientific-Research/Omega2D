@@ -254,7 +254,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
 
   const size_t nrows = ntarg + (targ.get_body_ptr() ? 1 : 0);
   const size_t ncols = nsrc  + ( src.get_body_ptr() ? 1 : 0);
-  std::cout << "    augmenting the " << ntarg << " x " << nsrc << " block to " << nrows << " x " << ncols << std::endl;
+  //std::cout << "    augmenting the " << ntarg << " x " << nsrc << " block to " << nrows << " x " << ncols << std::endl;
 
   // make a new 1-D vector to contain the coefficients
   Vector<S> augcoeff;
@@ -328,7 +328,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
   }
 
   // debug print the top-left and bottom-right corners
-  if (true) {
+  if (false) {
     //std::cout << "Top-left corner of influence matrix:" << std::endl;
     //for (size_t i=0; i<6; ++i) {
     //  for (size_t j=0; j<6; ++j) {
