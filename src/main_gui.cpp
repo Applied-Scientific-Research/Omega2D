@@ -223,6 +223,8 @@ int main(int argc, char const *argv[]) {
 
   //glfwSetKeyCallback(keyboard_callback);
 
+  //glfwSetWindowCloseCallback(window, window_close_callback);
+
   // Load Fonts
   // (there is a default font, this is only if you want to change it. see extra_fonts/README.txt for more details)
 
@@ -1099,6 +1101,7 @@ int main(int argc, char const *argv[]) {
   }
 
   // Cleanup
+  sim.reset();
   ImGui_ImplGlfwGL3_Shutdown();
   glfwTerminate();
 
