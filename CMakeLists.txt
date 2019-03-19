@@ -150,7 +150,7 @@ SET(SOURCES "src/Simulation.cpp"
             "src/tinyexpr/tinyexpr.c" )
 
 # create a binary for the GUI version
-ADD_EXECUTABLE( ${PROJECT_NAME} ${GLADSRC} ${IMGUISOURCES} ${SOURCES} "src/ShaderHelper.cpp" "src/main_gui.cpp")
+ADD_EXECUTABLE( ${PROJECT_NAME} ${GLADSRC} ${IMGUISOURCES} ${SOURCES} "src/ShaderHelper.cpp" "src/main_gui.cpp" )
 SET_TARGET_PROPERTIES( ${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${PROJECT_NAME}.bin" )
 TARGET_LINK_LIBRARIES( ${PROJECT_NAME} ${BASE_LIBS} ${GUI_LIBS} )
 TARGET_COMPILE_DEFINITIONS( ${PROJECT_NAME} PRIVATE "-DUSE_GL" )
