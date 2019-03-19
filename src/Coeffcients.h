@@ -272,6 +272,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
     // copy the next nsrc numbers into the new vector
     std::copy(c_iter, c_iter+ntarg, a_iter);
 
+    // and add the bottom value to this column
     if (src.get_body_ptr()) {
       // always include the panel lengths of the source body
       a_iter += nsrc;

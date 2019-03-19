@@ -108,8 +108,8 @@ void solve_bem(const double                         _time,
         }
       }
       // negate and append
-      rhs.push_back(-tot_circ);
-      std::cout << "    augmenting rhs with -circ= " << -tot_circ << std::endl;
+      rhs.push_back(-1.0*tot_circ);
+      std::cout << "    augmenting rhs with tot_circ= " << tot_circ << std::endl;
     }
 
     // finally, send it to the BEM
