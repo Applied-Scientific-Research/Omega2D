@@ -1101,6 +1101,7 @@ int main(int argc, char const *argv[]) {
   }
 
   // Cleanup
+  std::cout << "Quitting" << std::endl;
   sim.reset();
   ImGui_ImplGlfwGL3_Shutdown();
   glfwTerminate();
