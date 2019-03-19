@@ -12,6 +12,7 @@
 #include "ElementBase.h"
 
 #ifdef USE_GL
+#include "GlState.h"
 #include "RenderParams.h"
 #include "OglHelper.h"
 #include "ShaderHelper.h"
@@ -315,7 +316,7 @@ public:
 
   // helper function to clean up initGL
   void prepare_opengl_buffer(GLuint _prog, GLuint _idx, const GLchar* _name) {
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[_idx]);
+    glBindBuffer(GL_ARRAY_BUFFER, mgl->vbo[_idx]);
     const GLint position_attribute = glGetAttribLocation(_prog, _name);
     // Specify how the data for position can be accessed
     glVertexAttribPointer(position_attribute, 1, get_gl_type<S>, GL_FALSE, 0, 0);
@@ -334,16 +335,12 @@ public:
     //std::cout << "inside Points.initGL" << std::endl;
     std::cout << "inside Points.initGL with E=" << this->E << " and M=" << this->M << std::endl;
 
-    // Use a Vertex Array Object
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    // Create four Vector Buffer Objects that will store the vertex arrays in gpu memory
-    glGenBuffers(4, vbo);
+    // generate the opengl state object with space for 4 vbos and 2 shader programs
+    mgl = std::make_shared<GlState>(4,2);
 
     // Allocate space, but don't upload the data from CPU to GPU yet
     for (size_t i=0; i<Dimensions; ++i) {
-      glBindBuffer(GL_ARRAY_BUFFER, vbo[i]);
+      glBindBuffer(GL_ARRAY_BUFFER, mgl->vbo[i]);
       glBufferData(GL_ARRAY_BUFFER, 0, this->x[i].data(), GL_STATIC_DRAW);
     }
 
@@ -351,34 +348,34 @@ public:
     if (this->E == inert) {
 
       // Load and create the blob-drawing shader program
-      draw_point_program = create_draw_point_program();
+      mgl->spo[0] = create_draw_point_program();
 
       // Now do the four arrays
-      prepare_opengl_buffer(draw_point_program, 0, "px");
-      prepare_opengl_buffer(draw_point_program, 1, "py");
+      prepare_opengl_buffer(mgl->spo[0], 0, "px");
+      prepare_opengl_buffer(mgl->spo[0], 1, "py");
 
       // and for the compute shaders!
 
       // Get the location of the attributes that enters in the vertex shader
-      projmat_attribute_pt = glGetUniformLocation(draw_point_program, "Projection");
+      mgl->projmat_attribute_pt = glGetUniformLocation(mgl->spo[0], "Projection");
 
       // upload the projection matrix
-      glUniformMatrix4fv(projmat_attribute_pt, 1, GL_FALSE, _projmat.data());
+      glUniformMatrix4fv(mgl->projmat_attribute_pt, 1, GL_FALSE, _projmat.data());
 
       // locate where the colors and color scales go
-      def_color_attribute = glGetUniformLocation(draw_point_program, "def_color");
+      mgl->def_color_attribute = glGetUniformLocation(mgl->spo[0], "def_color");
 
       // send the current values
-      glUniform4fv(def_color_attribute, 1, _defcolor);
+      glUniform4fv(mgl->def_color_attribute, 1, _defcolor);
 
       // locate where the point radius goes
-      unif_rad_attribute = glGetUniformLocation(draw_point_program, "rad");
+      mgl->unif_rad_attribute = glGetUniformLocation(mgl->spo[0], "rad");
 
       // send the current values
-      glUniform1f(unif_rad_attribute, (const GLfloat)0.01);
+      glUniform1f(mgl->unif_rad_attribute, (const GLfloat)0.01);
 
       // and indicate the fragment color output
-      glBindFragDataLocation(draw_point_program, 0, "frag_color");
+      glBindFragDataLocation(mgl->spo[0], 0, "frag_color");
 
       // Initialize the quad attributes
       std::vector<float> quadverts = {-1,-1, 1,-1, 1,1, -1,1};
@@ -387,49 +384,49 @@ public:
       glBindBuffer(GL_ARRAY_BUFFER, qvbo);
       glBufferData(GL_ARRAY_BUFFER, quadverts.size()*sizeof(float), quadverts.data(), GL_STATIC_DRAW);
 
-      quad_attribute_pt = glGetAttribLocation(draw_point_program, "quad_attr");
-      glVertexAttribPointer(quad_attribute_pt, 2, GL_FLOAT, GL_FALSE, 0, 0);
-      glEnableVertexAttribArray(quad_attribute_pt);
+      mgl->quad_attribute_pt = glGetAttribLocation(mgl->spo[0], "quad_attr");
+      glVertexAttribPointer(mgl->quad_attribute_pt, 2, GL_FLOAT, GL_FALSE, 0, 0);
+      glEnableVertexAttribArray(mgl->quad_attribute_pt);
 
     } else { // this->E is active or reactive
 
-      glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
+      glBindBuffer(GL_ARRAY_BUFFER, mgl->vbo[2]);
       glBufferData(GL_ARRAY_BUFFER, 0, r.data(), GL_STATIC_DRAW);
       if (this->s) {
-        glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
+        glBindBuffer(GL_ARRAY_BUFFER, mgl->vbo[3]);
         glBufferData(GL_ARRAY_BUFFER, 0, (*this->s).data(), GL_STATIC_DRAW);
       }
 
       // Load and create the blob-drawing shader program
-      draw_blob_program = create_draw_blob_program();
+      mgl->spo[1] = create_draw_blob_program();
 
       // Now do the four arrays
-      prepare_opengl_buffer(draw_blob_program, 0, "px");
-      prepare_opengl_buffer(draw_blob_program, 1, "py");
-      prepare_opengl_buffer(draw_blob_program, 2, "r");
-      prepare_opengl_buffer(draw_blob_program, 3, "sx");
+      prepare_opengl_buffer(mgl->spo[1], 0, "px");
+      prepare_opengl_buffer(mgl->spo[1], 1, "py");
+      prepare_opengl_buffer(mgl->spo[1], 2, "r");
+      prepare_opengl_buffer(mgl->spo[1], 3, "sx");
 
       // and for the compute shaders!
 
       // Get the location of the attributes that enters in the vertex shader
-      projmat_attribute_bl = glGetUniformLocation(draw_blob_program, "Projection");
+      mgl->projmat_attribute_bl = glGetUniformLocation(mgl->spo[1], "Projection");
 
       // upload the projection matrix
-      glUniformMatrix4fv(projmat_attribute_bl, 1, GL_FALSE, _projmat.data());
+      glUniformMatrix4fv(mgl->projmat_attribute_bl, 1, GL_FALSE, _projmat.data());
 
       // locate where the colors and color scales go
-      pos_color_attribute = glGetUniformLocation(draw_blob_program, "pos_color");
-      neg_color_attribute = glGetUniformLocation(draw_blob_program, "neg_color");
-      str_scale_attribute = glGetUniformLocation(draw_blob_program, "str_scale");
+      mgl->pos_color_attribute = glGetUniformLocation(mgl->spo[1], "pos_color");
+      mgl->neg_color_attribute = glGetUniformLocation(mgl->spo[1], "neg_color");
+      mgl->str_scale_attribute = glGetUniformLocation(mgl->spo[1], "str_scale");
 
       // send the current values
-      glUniform4fv(pos_color_attribute, 1, (const GLfloat *)_poscolor);
-      glUniform4fv(neg_color_attribute, 1, (const GLfloat *)_negcolor);
-      glUniform1f (str_scale_attribute, (const GLfloat)1.0);
+      glUniform4fv(mgl->pos_color_attribute, 1, (const GLfloat *)_poscolor);
+      glUniform4fv(mgl->neg_color_attribute, 1, (const GLfloat *)_negcolor);
+      glUniform1f (mgl->str_scale_attribute, (const GLfloat)1.0);
       //std::cout << "init pos color as " << _poscolor[0] << " " << _poscolor[1] << " " << _poscolor[2] << " " << _poscolor[3] << std::endl;
 
       // and indicate the fragment color output
-      glBindFragDataLocation(draw_blob_program, 0, "frag_color");
+      glBindFragDataLocation(mgl->spo[1], 0, "frag_color");
 
       // Initialize the quad attributes
       std::vector<float> quadverts = {-1,-1, 1,-1, 1,1, -1,1};
@@ -438,9 +435,9 @@ public:
       glBindBuffer(GL_ARRAY_BUFFER, qvbo);
       glBufferData(GL_ARRAY_BUFFER, quadverts.size()*sizeof(float), quadverts.data(), GL_STATIC_DRAW);
 
-      quad_attribute_bl = glGetAttribLocation(draw_blob_program, "quad_attr");
-      glVertexAttribPointer(quad_attribute_bl, 2, GL_FLOAT, GL_FALSE, 0, 0);
-      glEnableVertexAttribArray(quad_attribute_bl);
+      mgl->quad_attribute_bl = glGetAttribLocation(mgl->spo[1], "quad_attr");
+      glVertexAttribPointer(mgl->quad_attribute_bl, 2, GL_FLOAT, GL_FALSE, 0, 0);
+      glEnableVertexAttribArray(mgl->quad_attribute_bl);
 
     } // end this->E is active or reactive
 
@@ -452,16 +449,17 @@ public:
     //std::cout << "inside Points.updateGL" << std::endl;
 
     // has this been init'd yet?
-    if (glIsVertexArray(vao) == GL_FALSE) return;
+    if (not mgl) return;
+    if (glIsVertexArray(mgl->vao) == GL_FALSE) return;
 
     const size_t vlen = this->x[0].size()*sizeof(S);
     if (vlen > 0) {
-      glBindVertexArray(vao);
+      glBindVertexArray(mgl->vao);
 
       // Indicate and upload the data from CPU to GPU
       for (size_t i=0; i<Dimensions; ++i) {
         // the positions
-        glBindBuffer(GL_ARRAY_BUFFER, vbo[i]);
+        glBindBuffer(GL_ARRAY_BUFFER, mgl->vbo[i]);
         glBufferData(GL_ARRAY_BUFFER, vlen, this->x[i].data(), GL_DYNAMIC_DRAW);
       }
 
@@ -474,18 +472,18 @@ public:
 
         // the strengths
         if (this->s) {
-          glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
+          glBindBuffer(GL_ARRAY_BUFFER, mgl->vbo[3]);
           glBufferData(GL_ARRAY_BUFFER, vlen, (*this->s).data(), GL_DYNAMIC_DRAW);
         }
         // the radii
-        glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
+        glBindBuffer(GL_ARRAY_BUFFER, mgl->vbo[2]);
         glBufferData(GL_ARRAY_BUFFER, vlen, r.data(), GL_DYNAMIC_DRAW);
       }
 
       glBindVertexArray(0);
 
       // must tell draw call how many elements are there
-      num_uploaded = this->x[0].size();
+      mgl->num_uploaded = this->x[0].size();
     }
   }
 
@@ -496,15 +494,15 @@ public:
     //std::cout << "inside Points.drawGL" << std::endl;
 
     // has this been init'd yet?
-    if (glIsVertexArray(vao) == GL_FALSE) {
+    if (not mgl) {
       initGL(_projmat, _rparams.pos_circ_color,
                        _rparams.neg_circ_color,
                        _rparams.default_color);
       updateGL();
     }
 
-    if (num_uploaded > 0) {
-      glBindVertexArray(vao);
+    if (mgl->num_uploaded > 0) {
+      glBindVertexArray(mgl->vao);
 
       // get blending ready
       glDisable(GL_DEPTH_TEST);
@@ -515,35 +513,35 @@ public:
       if (this->E == inert) {
 
         // draw as small dots
-        glUseProgram(draw_point_program);
+        glUseProgram(mgl->spo[0]);
 
-        glEnableVertexAttribArray(quad_attribute_pt);
+        glEnableVertexAttribArray(mgl->quad_attribute_pt);
 
         // upload the current uniforms
-        glUniformMatrix4fv(projmat_attribute_pt, 1, GL_FALSE, _projmat.data());
-        glUniform4fv(def_color_attribute, 1, (const GLfloat *)_rparams.default_color);
-        glUniform1f (unif_rad_attribute, (const GLfloat)(2.5f*_rparams.tracer_size));
+        glUniformMatrix4fv(mgl->projmat_attribute_pt, 1, GL_FALSE, _projmat.data());
+        glUniform4fv(mgl->def_color_attribute, 1, (const GLfloat *)_rparams.default_color);
+        glUniform1f (mgl->unif_rad_attribute, (const GLfloat)(2.5f*_rparams.tracer_size));
 
         // the one draw call here
-        glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, num_uploaded);
+        glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, mgl->num_uploaded);
 
       } else { // this->E is active or reactive
 
         // draw as colored clouds
-        glUseProgram(draw_blob_program);
+        glUseProgram(mgl->spo[1]);
 
-        glEnableVertexAttribArray(quad_attribute_bl);
+        glEnableVertexAttribArray(mgl->quad_attribute_bl);
 
         // upload the current projection matrix
-        glUniformMatrix4fv(projmat_attribute_bl, 1, GL_FALSE, _projmat.data());
+        glUniformMatrix4fv(mgl->projmat_attribute_bl, 1, GL_FALSE, _projmat.data());
 
         // upload the current color values
-        glUniform4fv(pos_color_attribute, 1, (const GLfloat *)_rparams.pos_circ_color);
-        glUniform4fv(neg_color_attribute, 1, (const GLfloat *)_rparams.neg_circ_color);
-        glUniform1f (str_scale_attribute, (const GLfloat)(0.4f/max_strength));
+        glUniform4fv(mgl->pos_color_attribute, 1, (const GLfloat *)_rparams.pos_circ_color);
+        glUniform4fv(mgl->neg_color_attribute, 1, (const GLfloat *)_rparams.neg_circ_color);
+        glUniform1f (mgl->str_scale_attribute, (const GLfloat)(0.4f/max_strength));
 
         // the one draw call here
-        glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, num_uploaded);
+        glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, mgl->num_uploaded);
       }
 
       // return state
@@ -553,16 +551,7 @@ public:
     }
   }
 
-  // clean up resources
-  void exitGL() {
-    if (glIsVertexArray(vao) == GL_FALSE) return;
-    glBindVertexArray(vao);
-    glDeleteBuffers(4,vbo);
-    glDeleteProgram(draw_blob_program);
-    glDeleteProgram(draw_point_program);
-    glDeleteVertexArrays(1,&vao);
-    glBindVertexArray(0);
-  }
+  void exitGL() {}
 #endif
 
   std::string to_string() const {
@@ -577,13 +566,7 @@ protected:
 
 private:
 #ifdef USE_GL
-  // OpenGL stuff
-  GLuint vao, vbo[4];
-  GLuint draw_blob_program, draw_point_program;
-  GLsizei num_uploaded;
-  GLint projmat_attribute_bl, projmat_attribute_pt, quad_attribute_bl, quad_attribute_pt;
-  GLint def_color_attribute, pos_color_attribute, neg_color_attribute, str_scale_attribute;
-  GLint unif_rad_attribute;
+  std::shared_ptr<GlState> mgl;
 #endif
   float max_strength;
 };

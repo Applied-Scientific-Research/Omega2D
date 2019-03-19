@@ -12,6 +12,7 @@
 #include "ElementBase.h"
 
 #ifdef USE_GL
+#include "GlState.h"
 #include "RenderParams.h"
 #include "OglHelper.h"
 #include "ShaderHelper.h"
@@ -545,7 +546,7 @@ public:
 
   // helper function to clean up initGL
   void prepare_opengl_buffer(GLuint _prog, GLuint _idx, const GLchar* _name) {
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[_idx]);
+    glBindBuffer(GL_ARRAY_BUFFER, mgl->vbo[_idx]);
     const GLint position_attribute = glGetAttribLocation(_prog, _name);
     // Specify how the data for position can be accessed
     glVertexAttribPointer(position_attribute, 1, get_gl_type<S>, GL_FALSE, 0, 0);
@@ -562,58 +563,54 @@ public:
     //std::cout << "inside Surfaces.initGL" << std::endl;
     std::cout << "inside Surfaces.initGL with E=" << this->E << " and M=" << this->M << std::endl;
 
-    // Use a Vertex Array Object
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    // Create four Vector Buffer Objects that will store the vertex arrays in gpu memory
-    glGenBuffers(4, vbo);
+    // generate the opengl state object with space for 4 vbos and 1 shader program
+    mgl = std::make_shared<GlState>(4,1);
 
     // Allocate space, but don't upload the data from CPU to GPU yet
     for (size_t i=0; i<Dimensions; ++i) {
-      glBindBuffer(GL_ARRAY_BUFFER, vbo[i]);
+      glBindBuffer(GL_ARRAY_BUFFER, mgl->vbo[i]);
       glBufferData(GL_ARRAY_BUFFER, 0, this->x[i].data(), GL_STATIC_DRAW);
     }
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[2]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mgl->vbo[2]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, 0, idx.data(), GL_STATIC_DRAW);
 
     if (this->s) {
-      glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
+      glBindBuffer(GL_ARRAY_BUFFER, mgl->vbo[3]);
       glBufferData(GL_ARRAY_BUFFER, 0, (*this->s).data(), GL_STATIC_DRAW);
     }
 
     // Load and create the blob-drawing shader program
-    draw_surface_line_prog = create_draw_surface_line_prog();
+    mgl->spo[0] = create_draw_surface_line_prog();
 
     // Now do the four arrays
-    prepare_opengl_buffer(draw_surface_line_prog, 0, "px");
-    prepare_opengl_buffer(draw_surface_line_prog, 1, "py");
-    prepare_opengl_buffer(draw_surface_line_prog, 2, "rawstr");
+    prepare_opengl_buffer(mgl->spo[0], 0, "px");
+    prepare_opengl_buffer(mgl->spo[0], 1, "py");
+    prepare_opengl_buffer(mgl->spo[0], 2, "rawstr");
 
     // and for the compute shaders! (later)
 
     // Get the location of the attributes that enters in the vertex shader
-    projmat_attribute = glGetUniformLocation(draw_surface_line_prog, "Projection");
+    mgl->projmat_attribute = glGetUniformLocation(mgl->spo[0], "Projection");
 
     // upload the projection matrix
-    glUniformMatrix4fv(projmat_attribute, 1, GL_FALSE, _projmat.data());
+    glUniformMatrix4fv(mgl->projmat_attribute, 1, GL_FALSE, _projmat.data());
 
     // locate where the colors and color scales go
-    pos_color_attribute = glGetUniformLocation(draw_surface_line_prog, "pos_color");
-    neg_color_attribute = glGetUniformLocation(draw_surface_line_prog, "neg_color");
-    def_color_attribute = glGetUniformLocation(draw_surface_line_prog, "def_color");
-    str_scale_attribute = glGetUniformLocation(draw_surface_line_prog, "str_scale");
+    mgl->pos_color_attribute = glGetUniformLocation(mgl->spo[0], "pos_color");
+    mgl->neg_color_attribute = glGetUniformLocation(mgl->spo[0], "neg_color");
+    mgl->def_color_attribute = glGetUniformLocation(mgl->spo[0], "def_color");
+    mgl->str_scale_attribute = glGetUniformLocation(mgl->spo[0], "str_scale");
 
     // send the current values
-    glUniform4fv(pos_color_attribute, 1, (const GLfloat *)_poscolor);
-    glUniform4fv(neg_color_attribute, 1, (const GLfloat *)_negcolor);
-    glUniform4fv(def_color_attribute, 1, (const GLfloat *)_defcolor);
-    glUniform1f (str_scale_attribute, (const GLfloat)1.0);
+    glUniform4fv(mgl->pos_color_attribute, 1, (const GLfloat *)_poscolor);
+    glUniform4fv(mgl->neg_color_attribute, 1, (const GLfloat *)_negcolor);
+    glUniform4fv(mgl->def_color_attribute, 1, (const GLfloat *)_defcolor);
+    glUniform1f (mgl->str_scale_attribute, (const GLfloat)1.0);
     //std::cout << "init pos color as " << _poscolor[0] << " " << _poscolor[1] << " " << _poscolor[2] << " " << _poscolor[3] << std::endl;
 
     // and indicate the fragment color output
-    glBindFragDataLocation(draw_surface_line_prog, 0, "frag_color");
+    glBindFragDataLocation(mgl->spo[0], 0, "frag_color");
 
     glBindVertexArray(0);
   }
@@ -623,20 +620,21 @@ public:
     //std::cout << "inside Surfaces.updateGL" << std::endl;
 
     // has this been init'd yet?
-    if (glIsVertexArray(vao) == GL_FALSE) return;
+    if (not mgl) return;
+    if (glIsVertexArray(mgl->vao) == GL_FALSE) return;
 
     const size_t vlen = this->x[0].size()*sizeof(S);
     if (vlen > 0) {
-      glBindVertexArray(vao);
+      glBindVertexArray(mgl->vao);
 
       // Indicate and upload the data from CPU to GPU
       for (size_t i=0; i<Dimensions; ++i) {
         // the positions
-        glBindBuffer(GL_ARRAY_BUFFER, vbo[i]);
+        glBindBuffer(GL_ARRAY_BUFFER, mgl->vbo[i]);
         glBufferData(GL_ARRAY_BUFFER, vlen, this->x[i].data(), GL_DYNAMIC_DRAW);
       }
 
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[2]);
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mgl->vbo[2]);
       glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Int)*idx.size(), idx.data(), GL_DYNAMIC_DRAW);
 
       // here is where we split on element type: active/reactive vs. inert
@@ -645,7 +643,7 @@ public:
       } else { // this->E is active or reactive
         // the strengths
         if (this->s) {
-          glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
+          glBindBuffer(GL_ARRAY_BUFFER, mgl->vbo[3]);
           glBufferData(GL_ARRAY_BUFFER, vlen, (*this->s).data(), GL_DYNAMIC_DRAW);
         }
       }
@@ -653,7 +651,7 @@ public:
       glBindVertexArray(0);
 
       // must tell draw call how many elements are there
-      num_uploaded = idx.size();
+      mgl->num_uploaded = idx.size();
     }
   }
 
@@ -664,15 +662,15 @@ public:
     //std::cout << "inside Surfaces.drawGL" << std::endl;
 
     // has this been init'd yet?
-    if (glIsVertexArray(vao) == GL_FALSE) {
+    if (not mgl) {
       initGL(_projmat, _rparams.pos_circ_color,
                        _rparams.neg_circ_color,
                        _rparams.default_color);
       updateGL();
     }
 
-    if (num_uploaded > 0) {
-      glBindVertexArray(vao);
+    if (mgl->num_uploaded > 0) {
+      glBindVertexArray(mgl->vao);
 
       // get blending ready
       glDisable(GL_DEPTH_TEST);
@@ -686,19 +684,19 @@ public:
       //} else { // this->E is active or reactive
 
       // draw as lines
-      glUseProgram(draw_surface_line_prog);
+      glUseProgram(mgl->spo[0]);
 
       // upload the current projection matrix
-      glUniformMatrix4fv(projmat_attribute, 1, GL_FALSE, _projmat.data());
+      glUniformMatrix4fv(mgl->projmat_attribute, 1, GL_FALSE, _projmat.data());
 
       // upload the current color values
-      glUniform4fv(pos_color_attribute, 1, (const GLfloat *)_rparams.pos_circ_color);
-      glUniform4fv(neg_color_attribute, 1, (const GLfloat *)_rparams.neg_circ_color);
-      glUniform4fv(def_color_attribute, 1, (const GLfloat *)_rparams.default_color);
-      glUniform1f (str_scale_attribute, (const GLfloat)max_strength);
+      glUniform4fv(mgl->pos_color_attribute, 1, (const GLfloat *)_rparams.pos_circ_color);
+      glUniform4fv(mgl->neg_color_attribute, 1, (const GLfloat *)_rparams.neg_circ_color);
+      glUniform4fv(mgl->def_color_attribute, 1, (const GLfloat *)_rparams.default_color);
+      glUniform1f (mgl->str_scale_attribute, (const GLfloat)max_strength);
 
       // the one draw call here
-      glDrawElements(GL_LINES, num_uploaded, get_gl_type<Int>, 0);
+      glDrawElements(GL_LINES, mgl->num_uploaded, get_gl_type<Int>, 0);
 
       // return state
       glEnable(GL_DEPTH_TEST);
@@ -708,14 +706,7 @@ public:
   }
 
   // clean up resources
-  void exitGL() {
-    if (glIsVertexArray(vao) == GL_FALSE) return;
-    glBindVertexArray(vao);
-    glDeleteBuffers(4,vbo);
-    glDeleteProgram(draw_surface_line_prog);
-    glDeleteVertexArrays(1,&vao);
-    glBindVertexArray(0);
-  }
+  void exitGL() {}
 #endif
 
   std::string to_string() const {
@@ -741,12 +732,7 @@ protected:
 
 private:
 #ifdef USE_GL
-  // OpenGL stuff
-  GLuint vao, vbo[4];
-  GLuint draw_surface_line_prog;
-  GLsizei num_uploaded;
-  GLint projmat_attribute;
-  GLint def_color_attribute, pos_color_attribute, neg_color_attribute, str_scale_attribute;
+  std::shared_ptr<GlState> mgl;
 #endif
   float max_strength;
 };
