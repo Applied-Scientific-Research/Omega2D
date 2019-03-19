@@ -58,7 +58,7 @@ void Simulation::set_max_steps(const size_t nms) { max_steps = nms; use_max_step
 void Simulation::set_output_dt(const double nodt) { output_dt = nodt; }
 
 // status
-size_t Simulation::get_npanels() { //return bdry.get_npanels(); }
+size_t Simulation::get_npanels() {
   size_t n = 0;
   for (auto &coll: bdry) {
     //std::visit([&n](auto& elem) { n += elem.get_npanels(); }, coll);
@@ -334,7 +334,7 @@ void Simulation::step() {
   time += (double)dt;
 }
 
-// add some vortex particles to both old and new arch
+// add some vortex particles
 void Simulation::add_particles(std::vector<float> _xysr) {
 
   if (_xysr.size() == 0) return;
@@ -348,7 +348,6 @@ void Simulation::add_particles(std::vector<float> _xysr) {
     _xysr[i] = thisvd;
   }
 
-  // add to new archtecture's vorticity (vort2)
   // if no collections exist
   if (vort.size() == 0) {
     // make a new collection
