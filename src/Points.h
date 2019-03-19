@@ -372,9 +372,8 @@ public:
 
       // Initialize the quad attributes
       std::vector<float> quadverts = {-1,-1, 1,-1, 1,1, -1,1};
-      GLuint qvbo;
-      glGenBuffers(1, &qvbo);
-      glBindBuffer(GL_ARRAY_BUFFER, qvbo);
+      glGenBuffers(1, &(mgl->qvbo));
+      glBindBuffer(GL_ARRAY_BUFFER, mgl->qvbo);
       glBufferData(GL_ARRAY_BUFFER, quadverts.size()*sizeof(float), quadverts.data(), GL_STATIC_DRAW);
 
       mgl->quad_attribute_pt = glGetAttribLocation(mgl->spo[0], "quad_attr");
@@ -423,9 +422,8 @@ public:
 
       // Initialize the quad attributes
       std::vector<float> quadverts = {-1,-1, 1,-1, 1,1, -1,1};
-      GLuint qvbo;
-      glGenBuffers(1, &qvbo);
-      glBindBuffer(GL_ARRAY_BUFFER, qvbo);
+      glGenBuffers(1, &(mgl->qvbo));
+      glBindBuffer(GL_ARRAY_BUFFER, mgl->qvbo);
       glBufferData(GL_ARRAY_BUFFER, quadverts.size()*sizeof(float), quadverts.data(), GL_STATIC_DRAW);
 
       mgl->quad_attribute_bl = glGetAttribLocation(mgl->spo[1], "quad_attr");

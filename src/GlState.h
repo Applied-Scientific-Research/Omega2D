@@ -59,6 +59,7 @@ public:
 
   // some number of vertex buffer objects (usually 4)
   std::vector<GLuint> vbo;
+  GLuint qvbo;
 
   // shader program objects (1 or 2)
   std::vector<GLuint> spo;
