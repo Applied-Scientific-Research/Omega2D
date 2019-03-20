@@ -989,7 +989,6 @@ int main(int argc, char const *argv[]) {
       ImGui::SameLine();
       */
       //if (ImGui::Button("ImGui Samples")) show_test_window ^= 1;
-      //if (ImGui::Button("Another Window")) show_another_window ^= 1;
 
       ImGui::Text("Draw frame rate: %.2f ms/frame (%.1f FPS)",
                   1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
@@ -997,7 +996,7 @@ int main(int argc, char const *argv[]) {
       ImGui::Text("Number of panels: %ld  particles: %ld  field points: %ld",
                   sim.get_npanels(), sim.get_nparts(), sim.get_nfldpts());
 
-      // save the simulation to a JSON file
+      // save the simulation to a JSON or VTK file
       ImGui::Spacing();
       if (ImGui::Button("Save setup to json", ImVec2(180,0))) show_file_output_window = true;
       ImGui::SameLine();
@@ -1024,6 +1023,7 @@ int main(int argc, char const *argv[]) {
         }
       }
 
+      // PNG output of the render frame
       if (ImGui::Button("Save screenshot to png", ImVec2(180,0))) draw_this_frame = true;
       ImGui::SameLine();
       if (record_all_frames) {
