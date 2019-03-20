@@ -415,7 +415,6 @@ public:
       glUniform4fv(mgl->pos_color_attribute, 1, (const GLfloat *)_poscolor);
       glUniform4fv(mgl->neg_color_attribute, 1, (const GLfloat *)_negcolor);
       glUniform1f (mgl->str_scale_attribute, (const GLfloat)1.0);
-      //std::cout << "init pos color as " << _poscolor[0] << " " << _poscolor[1] << " " << _poscolor[2] << " " << _poscolor[3] << std::endl;
 
       // and indicate the fragment color output
       glBindFragDataLocation(mgl->spo[1], 0, "frag_color");
