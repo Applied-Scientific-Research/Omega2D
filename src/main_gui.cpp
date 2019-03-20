@@ -1083,7 +1083,7 @@ int main(int argc, char const *argv[]) {
     //for (auto const& bf : bfeatures) { bf.drawGL(gl_projection, rparams); }
 
     // here is where we write the buffer to a file
-    if ((is_ready and record_all_frames) or draw_this_frame) {
+    if ((is_ready and record_all_frames and sim_is_running) or draw_this_frame) {
       static int frameno = 0;
       std::stringstream pngfn;
       pngfn << "img_" << std::setfill('0') << std::setw(5) << frameno << ".png";
