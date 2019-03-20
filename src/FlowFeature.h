@@ -82,7 +82,7 @@ public:
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 
-private:
+protected:
   float m_rad;
   float m_softness;
 };
@@ -141,7 +141,7 @@ public:
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 
-private:
+protected:
   float m_xsize;
   float m_ysize;
   float m_minstr;
@@ -165,7 +165,7 @@ public:
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 
-private:
+protected:
 };
 
 
