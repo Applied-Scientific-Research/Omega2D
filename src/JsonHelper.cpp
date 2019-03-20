@@ -15,6 +15,7 @@
 #include <iostream>	// for cout,endl
 #include <iomanip>	// for setw
 #include <fstream>	// for ofstream
+#include <exception>
 
 using json = nlohmann::json;
  
@@ -37,6 +38,36 @@ void read_json (Simulation& sim,
   std::cout << std::endl << "Loading simulation from " << filename << std::endl;
 
   // march through the parameters and apply them
+
+  if (j.count("description") == 1) {
+    std::string this_desc = j["description"];
+    sim.set_description(this_desc);
+  }
+
+  if (j.count("version") == 1) {
+    json params = j["version"];
+    if (params.find("Omega2D") != params.end()) {
+      int o2dv = params["Omega2D"];
+      std::cout << "  is an Omega2D file, version " << o2dv << std::endl;
+    }
+    if (params.find("Omega3D") != params.end()) {
+      std::cout << "  is an Omega3D file" << std::endl;
+      throw "Input file is not compatible.";
+    }
+    if (params.find("OmegaFlow") != params.end()) {
+      std::cout << "  is an OmegaFlow file" << std::endl;
+      throw "Input file is not compatible.";
+    }
+    if (params.find("jsonInput") != params.end()) {
+      int jiv = params["jsonInput"];
+      std::cout << "  json input version " << jiv << std::endl;
+    }
+  }
+
+  if (j.count("runtime") == 1) {
+    json params = j["runtime"];
+    // no runtime parameters used yet
+  }
 
   // must do this first, as we need to set viscous before reading Re
   if (j.count("simparams") == 1) {
@@ -333,7 +364,12 @@ void write_json(Simulation& sim,
 
   json j;
 
-  j["description"] = "Simulation created by Omega2D";
+  const std::string desc = sim.get_description();
+  if (desc.empty()) {
+    j["description"] = "Simulation created by Omega2D";
+  } else {
+    j["description"] = desc;
+  }
 
   j["version"] = { {"Omega2D", 1}, {"jsonInput", 1} };
 

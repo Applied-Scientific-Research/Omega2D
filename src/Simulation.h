@@ -59,8 +59,10 @@ public:
   size_t get_max_steps();
   bool using_max_steps();
   float get_output_dt();
+  std::string get_description();
 
   // setters
+  void set_description(const std::string);
   void set_end_time(const double);
   void set_max_steps(const size_t);
   void set_output_dt(const double);
@@ -144,6 +146,7 @@ private:
   Convection<STORE,ACCUM,Int> conv;
 
   // state
+  std::string description;
   double time;
   double output_dt;
   double end_time;

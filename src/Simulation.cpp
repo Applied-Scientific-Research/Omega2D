@@ -25,6 +25,7 @@ Simulation::Simulation()
     bem(),
     diff(),
     conv(),
+    description(),
     time(0.0),
     output_dt(0.0),
     end_time(0.0),
@@ -51,8 +52,10 @@ bool Simulation::using_end_time() { return use_end_time; }
 size_t Simulation::get_max_steps() { return max_steps; }
 bool Simulation::using_max_steps() { return use_max_steps; }
 float Simulation::get_output_dt() { return (float)output_dt; }
+std::string Simulation::get_description() { return description; }
 
 // setters
+void Simulation::set_description(const std::string desc) { description = desc; }
 void Simulation::set_end_time(const double net) { end_time = net; use_end_time = true; }
 void Simulation::set_max_steps(const size_t nms) { max_steps = nms; use_max_steps = true; }
 void Simulation::set_output_dt(const double nodt) { output_dt = nodt; }
