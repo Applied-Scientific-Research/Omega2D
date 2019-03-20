@@ -237,7 +237,6 @@ int main(int argc, char const *argv[]) {
   std::string sim_err_msg;
 
   // GUI and drawing parameters
-  RenderParams rparams;
   bool export_vtk_this_frame = false;	// write a vtk with the current data
   bool draw_this_frame = false;		// draw the frame immediately
   bool record_all_frames = false;	// save a frame when a new one is ready
@@ -249,7 +248,8 @@ int main(int argc, char const *argv[]) {
   //static bool show_origin = true;
   static bool is_viscous = false;
 
-  // projection matrix for the particles
+  // colors and projection matrix for the render view
+  RenderParams rparams;
   std::vector<float> gl_projection;
   compute_projection_matrix(window, rparams.vcx, rparams.vcy, &rparams.vsize, gl_projection);
 
@@ -926,7 +926,7 @@ int main(int argc, char const *argv[]) {
         ImGui::EndPopup();
       }
 
-    } // end flow structures
+    } // end structure entry
 
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Rendering parameters")) {
