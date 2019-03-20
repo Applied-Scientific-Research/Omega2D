@@ -44,12 +44,10 @@ public:
     : ElementBase<S>(0, _e, _m, _bp),
       max_strength(-1.0) {
 
-    size_t nper = 4;
+    const size_t nper = (this->E == inert) ? 2 : 4;
     if (_e == inert) {
-      nper = 2;
       std::cout << "  new collection with " << (_in.size()/nper) << " tracers..." << std::endl;
     } else {
-      nper = 4;
       std::cout << "  new collection with " << (_in.size()/nper) << " vortons..." << std::endl;
     }
 

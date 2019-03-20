@@ -176,13 +176,11 @@ void Convection<S,A,I>::advect_2nd(const double _time,
   // now _vort has its original positions and the velocities evaluated there
   // and interm_vort has the positions at t+dt
 
-  // do the same for bdry and fldpt, if necessary
+  // do the same for fldpt
   std::vector<Collection> interim_fldpt = _fldpt;
   for (auto &coll : interim_fldpt) {
     std::visit([=](auto& elem) { elem.move(_time, _dt); }, coll);
   }
-
-  // might need to do bdry when bodies start moving
 
   // begin the 2nd step ---------
 
@@ -228,8 +226,5 @@ void Convection<S,A,I>::advect_2nd(const double _time,
     ++v1p;
     ++v2p;
   }
-
-  // do the same for Panels
-  // what's there to convect?
 }
 
