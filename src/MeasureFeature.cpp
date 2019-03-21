@@ -18,6 +18,28 @@ std::ostream& operator<<(std::ostream& os, MeasureFeature const& ff) {
   return os;
 }
 
+//
+// parse the json and dispatch the constructors
+//
+void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
+                        const nlohmann::json _jin) {
+
+  // must have one and only one type
+  if (_jin.count("type") != 1) return;
+
+  const std::string ftype = _jin["type"];
+  std::cout << "  found " << ftype << std::endl;
+
+  if      (ftype == "tracer") {           _flist.emplace_back(std::make_unique<SinglePoint>()); }
+  else if (ftype == "tracer emitter") {   _flist.emplace_back(std::make_unique<TracerEmitter>()); }
+  else if (ftype == "tracer blob") {      _flist.emplace_back(std::make_unique<TracerBlob>()); }
+  else if (ftype == "tracer line") {      _flist.emplace_back(std::make_unique<TracerLine>()); }
+  else if (ftype == "measurement line") { _flist.emplace_back(std::make_unique<MeasurementLine>()); }
+
+  // and pass the json object to the specific parser
+  _flist.back()->from_json(_jin);
+}
+
 
 //
 // Create a single measurement point

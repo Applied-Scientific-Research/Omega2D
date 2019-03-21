@@ -181,5 +181,5 @@ protected:
 //
 // Parser for converting json object to new 
 //
-//std::unique_ptr<MeasureFeature> parse_json(const nlohmann::json);
+void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>&, const nlohmann::json);
 
