@@ -18,7 +18,8 @@
 class FlowFeature {
 public:
   explicit
-  FlowFeature(float _x, float _y)
+  FlowFeature(float _x,
+              float _y)
     : m_x(_x),
       m_y(_y)
     {}
@@ -49,7 +50,9 @@ std::ostream& operator<<(std::ostream& os, FlowFeature const& ff);
 //
 class SingleParticle : public FlowFeature {
 public:
-  SingleParticle(float _x, float _y, float _str)
+  SingleParticle(float _x = 0.0,
+                 float _y = 0.0,
+                 float _str = 1.0)
     : FlowFeature(_x, _y),
       m_str(_str)
     {}
@@ -70,7 +73,11 @@ protected:
 //
 class VortexBlob : public SingleParticle {
 public:
-  VortexBlob(float _x, float _y, float _str, float _rad, float _soft)
+  VortexBlob(float _x = 0.0,
+             float _y = 0.0,
+             float _str = 1.0,
+             float _rad = 0.1,
+             float _soft = 0.1)
     : SingleParticle(_x, _y, _str),
       m_rad(_rad),
       m_softness(_soft)
@@ -93,11 +100,11 @@ protected:
 //
 class UniformBlock : public SingleParticle {
 public:
-  UniformBlock(float _x,
-               float _y,
-               float _xsize,
-               float _ysize,
-               float _str)
+  UniformBlock(float _x = 0.0,
+               float _y = 0.0,
+               float _xsize = 1.0,
+               float _ysize = 1.0,
+               float _str = 1.0)
     : SingleParticle(_x, _y, _str),
       m_xsize(_xsize),
       m_ysize(_ysize)
@@ -120,13 +127,13 @@ private:
 //
 class BlockOfRandom : public FlowFeature {
 public:
-  BlockOfRandom(float _x,
-                float _y,
-                float _xsize,
-                float _ysize,
-                float _minstr,
-                float _maxstr,
-                int   _num)
+  BlockOfRandom(float _x = 0.0,
+                float _y = 0.0,
+                float _xsize = 1.0,
+                float _ysize = 1.0,
+                float _minstr = -0.1,
+                float _maxstr = 0.1,
+                int   _num = 100)
     : FlowFeature(_x, _y),
       m_xsize(_xsize),
       m_ysize(_ysize),
@@ -155,7 +162,9 @@ protected:
 //
 class ParticleEmitter : public SingleParticle {
 public:
-  ParticleEmitter(float _x, float _y, float _str)
+  ParticleEmitter(float _x = 0.0,
+                  float _y = 0.0,
+                  float _str = 0.1)
     : SingleParticle(_x, _y, _str)
     {}
 

@@ -18,7 +18,9 @@
 class MeasureFeature {
 public:
   explicit
-  MeasureFeature(float _x, float _y, bool _moves)
+  MeasureFeature(float _x,
+                 float _y,
+                 bool _moves)
     : m_x(_x),
       m_y(_y),
       m_is_lagrangian(_moves)
@@ -59,7 +61,9 @@ std::ostream& operator<<(std::ostream& os, MeasureFeature const& ff);
 //
 class SinglePoint : public MeasureFeature {
 public:
-  SinglePoint(float _x, float _y, bool _moves)
+  SinglePoint(float _x = 0.0,
+              float _y = 0.0,
+              bool _moves = true)
     : MeasureFeature(_x, _y, _moves)
     {}
 
@@ -79,7 +83,8 @@ protected:
 //
 class TracerEmitter : public SinglePoint {
 public:
-  TracerEmitter(float _x, float _y)
+  TracerEmitter(float _x = 0.0,
+                float _y = 0.0)
     : SinglePoint(_x, _y, false)
     {}
 
@@ -100,7 +105,9 @@ protected:
 //
 class TracerBlob : public SinglePoint {
 public:
-  TracerBlob(float _x, float _y, float _rad)
+  TracerBlob(float _x = 0.0,
+             float _y = 0.0,
+             float _rad = 0.1)
     : SinglePoint(_x, _y, true),
       m_rad(_rad)
     {}
@@ -121,7 +128,10 @@ protected:
 //
 class TracerLine : public SinglePoint {
 public:
-  TracerLine(float _x, float _y, float _xf, float _yf)
+  TracerLine(float _x = 0.0,
+             float _y = 0.0,
+             float _xf = 1.0,
+             float _yf = 0.0)
     : SinglePoint(_x, _y, true),
       m_xf(_xf),
       m_yf(_yf)
@@ -143,7 +153,10 @@ protected:
 //
 class MeasurementLine : public SinglePoint {
 public:
-  MeasurementLine(float _x, float _y, float _xf, float _yf)
+  MeasurementLine(float _x = 0.0,
+                  float _y = 0.0,
+                  float _xf = 1.0,
+                  float _yf = 0.0)
     : SinglePoint(_x, _y, false),
       m_xf(_xf),
       m_yf(_yf)
