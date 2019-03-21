@@ -102,7 +102,6 @@ Tasks to consider or implement:
 * When background is white, nothing else shows up! Check blending mode. Need this to change so that we can make more attractive visuals. Like, presets for "technical (red/blue), b/w (white/grey), vibrant (??)
 * If I add a measurement structure in the middle of a simulation, it doesn't init - should it?
 * Allow Points to be able to draw not only blobs but dots at the middles, too, using same arrays but different draw programs (turn either on or off?)
-* Allow inert Points collections to never allocate space for radius
 * Move some initialization back into ElementBase - like positions and such, keep radius in Points, then ElementBase can draw points?
 * Move the GUI parts of the various Features classes into their own class/file and out of main.cpp and Features.cpp
 * When running, grey out the dt and Re fields - those are the only things you can't change
@@ -132,6 +131,7 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~Allow inert Points collections to never allocate space for radius~~
 * ~~Support multiple body rotation by augmenting only the required blocks in the BEM calculation~~
 * ~~Support body rotation by precalculating the surface sheet strengths necessary to account for the motion of the enclosed body~~
 * ~~Allow geometries with different Body pointers to be different collections~~
@@ -179,3 +179,4 @@ Thanks to [Omar Cornut](http://www.miracleworld.net/) for his [dear imgui](https
 VRM code is functional thanks to jlblancoc for [Nanoflann](https://github.com/jlblancoc/nanoflann) (a header-only tree search library), and to all of the developers of [Eigen](http://eigen.tuxfamily.org/) (a C++ matrix/vector library). The BEM code also relies heavily on [Eigen](http://eigen.tuxfamily.org/). We also love [Vc](https://github.com/VcDevel/Vc), an excellent SIMD library by Matthias Kretz.
 
 JSON reading and writing is thanks to [JSON for Modern C++](https://github.com/nlohmann/json) by [Niels Lohmann](http://nlohmann.me). XML output to VTK files is done using [tinyxml2](https://github.com/leethomason/tinyxml2). And mathematical expression parsing came from [Lewis Van Winkle](https://codeplea.com/)'s [tinyexpr](https://github.com/codeplea/tinyexpr).
+
