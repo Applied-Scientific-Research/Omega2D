@@ -19,6 +19,28 @@ std::ostream& operator<<(std::ostream& os, BoundaryFeature const& ff) {
 
 
 //
+// parse the json and dispatch the constructors
+//
+void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
+                         std::shared_ptr<Body> _bp,
+                         const nlohmann::json _jin) {
+
+  // must have one and only one type
+  if (_jin.count("geometry") != 1) return;
+
+  const std::string ftype = _jin["geometry"];
+  std::cout << "  found " << ftype << std::endl;
+
+  if      (ftype == "circle") { _flist.emplace_back(std::make_unique<SolidCircle>(_bp)); }
+  else if (ftype == "oval") {   _flist.emplace_back(std::make_unique<SolidOval>(_bp)); }
+  else if (ftype == "square") { _flist.emplace_back(std::make_unique<SolidSquare>(_bp)); }
+
+  // and pass the json object to the specific parser
+  _flist.back()->from_json(_jin);
+}
+
+
+//
 // Create a circle (fluid is outside circle)
 //
 ElementPacket<float>
@@ -60,6 +82,14 @@ SolidCircle::to_string() const {
   std::stringstream ss;
   ss << "solid circle at " << m_x << " " << m_y << " with diameter " << m_diam;
   return ss.str();
+}
+
+void
+SolidCircle::from_json(const nlohmann::json j) {
+  const std::vector<float> tr = j["translation"];
+  m_x = tr[0];
+  m_y = tr[1];
+  m_diam = j["scale"];
 }
 
 nlohmann::json
@@ -121,6 +151,17 @@ SolidOval::to_string() const {
   std::stringstream ss;
   ss << "solid oval at " << m_x << " " << m_y << " with diameters " << m_diam << " " << m_dmin << " rotated " << m_theta << " deg";
   return ss.str();
+}
+
+void
+SolidOval::from_json(const nlohmann::json j) {
+  const std::vector<float> tr = j["translation"];
+  m_x = tr[0];
+  m_y = tr[1];
+  const std::vector<float> sc = j["scale"];
+  m_diam = sc[0];
+  m_dmin = sc[1];
+  m_theta = j.value("rotation", 0.0);
 }
 
 nlohmann::json
@@ -207,6 +248,15 @@ SolidSquare::to_string() const {
   return ss.str();
 }
 
+void
+SolidSquare::from_json(const nlohmann::json j) {
+  const std::vector<float> tr = j["translation"];
+  m_x = tr[0];
+  m_y = tr[1];
+  m_side = j["scale"];
+  m_theta = j.value("rotation", 0.0);
+}
+
 nlohmann::json
 SolidSquare::to_json() const {
   // make an object for the mesh
@@ -217,4 +267,6 @@ SolidSquare::to_json() const {
   mesh["rotation"] = m_theta;
   return mesh;
 }
+
+// SolidRect : SolidSquare
 

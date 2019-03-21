@@ -26,6 +26,7 @@ public:
 
   virtual void debug(std::ostream& os) const = 0;
   virtual std::string to_string() const = 0;
+  virtual void from_json(const nlohmann::json) = 0;
   virtual nlohmann::json to_json() const = 0;
   virtual std::vector<float> init_particles(float) const = 0;
   virtual std::vector<float> step_particles(float) const = 0;
@@ -59,6 +60,7 @@ public:
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
@@ -85,6 +87,7 @@ public:
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  void from_json(nlohmann::json) override;
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
@@ -112,6 +115,7 @@ public:
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
@@ -144,6 +148,7 @@ public:
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
@@ -170,6 +175,7 @@ public:
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
@@ -182,4 +188,9 @@ protected:
 
 // particles from file
 
+
+//
+// Parser for converting json object to new feature
+//
+void parse_flow_json(std::vector<std::unique_ptr<FlowFeature>>&, const nlohmann::json);
 

@@ -1,7 +1,7 @@
 /*
  * FlowFeature.cpp - GUI-side descriptions of flow features
  *
- * (c)2017-8 Applied Scientific Research, Inc.
+ * (c)2017-9 Applied Scientific Research, Inc.
  *           Written by Mark J Stock <markjstock@gmail.com>
  */
 
@@ -16,6 +16,29 @@
 std::ostream& operator<<(std::ostream& os, FlowFeature const& ff) {
   ff.debug(os);
   return os;
+}
+
+
+//
+// parse the json and dispatch the constructors
+//
+void parse_flow_json(std::vector<std::unique_ptr<FlowFeature>>& _flist,
+                     const nlohmann::json _jin) {
+
+  // must have one and only one type
+  if (_jin.count("type") != 1) return;
+
+  const std::string ftype = _jin["type"];
+  std::cout << "  found " << ftype << std::endl;
+
+  if      (ftype == "single particle") {  _flist.emplace_back(std::make_unique<SingleParticle>()); }
+  else if (ftype == "vortex blob") {      _flist.emplace_back(std::make_unique<VortexBlob>()); }
+  else if (ftype == "uniform block") {    _flist.emplace_back(std::make_unique<UniformBlock>()); }
+  else if (ftype == "block of random") {  _flist.emplace_back(std::make_unique<BlockOfRandom>()); }
+  else if (ftype == "particle emitter") { _flist.emplace_back(std::make_unique<ParticleEmitter>()); }
+
+  // and pass the json object to the specific parser
+  _flist.back()->from_json(_jin);
 }
 
 
@@ -48,6 +71,14 @@ SingleParticle::to_string() const {
   std::stringstream ss;
   ss << "single particle at " << m_x << " " << m_y << " with strength " << m_str;
   return ss.str();
+}
+
+void
+SingleParticle::from_json(const nlohmann::json j) {
+  const std::vector<float> c = j["center"];
+  m_x = c[0];
+  m_y = c[1];
+  m_str = j["strength"];
 }
 
 nlohmann::json
@@ -133,6 +164,16 @@ VortexBlob::to_string() const {
   return ss.str();
 }
 
+void
+VortexBlob::from_json(const nlohmann::json j) {
+  const std::vector<float> c = j["center"];
+  m_x = c[0];
+  m_y = c[1];
+  m_rad = j["rad"];
+  m_softness = j["softness"];
+  m_str = j["strength"];
+}
+
 nlohmann::json
 VortexBlob::to_json() const {
   nlohmann::json j;
@@ -193,6 +234,17 @@ UniformBlock::to_string() const {
   return ss.str();
 }
 
+void
+UniformBlock::from_json(const nlohmann::json j) {
+  const std::vector<float> c = j["center"];
+  m_x = c[0];
+  m_y = c[1];
+  const std::vector<float> s = j["size"];
+  m_xsize = s[0];
+  m_ysize = s[1];
+  m_str = j["strength"];
+}
+
 nlohmann::json
 UniformBlock::to_json() const {
   nlohmann::json j;
@@ -246,6 +298,20 @@ BlockOfRandom::to_string() const {
   return ss.str();
 }
 
+void
+BlockOfRandom::from_json(const nlohmann::json j) {
+  const std::vector<float> c = j["center"];
+  m_x = c[0];
+  m_y = c[1];
+  const std::vector<float> s = j["size"];
+  m_xsize = s[0];
+  m_ysize = s[1];
+  const std::vector<float> sr = j["strength range"];
+  m_minstr = sr[0];
+  m_maxstr = sr[1];
+  m_num = j["num"];
+}
+
 nlohmann::json
 BlockOfRandom::to_json() const {
   nlohmann::json j;
@@ -281,6 +347,14 @@ ParticleEmitter::to_string() const {
   std::stringstream ss;
   ss << "particle emitter at " << m_x << " " << m_y << " spawning particles with strength " << m_str;
   return ss.str();
+}
+
+void
+ParticleEmitter::from_json(const nlohmann::json j) {
+  const std::vector<float> c = j["center"];
+  m_x = c[0];
+  m_y = c[1];
+  m_str = j["strength"];
 }
 
 nlohmann::json

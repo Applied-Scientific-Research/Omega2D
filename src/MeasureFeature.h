@@ -178,8 +178,9 @@ protected:
   float m_xf, m_yf;
 };
 
+
 //
-// Parser for converting json object to new 
+// Parser for converting json object to new feature
 //
 void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>&, const nlohmann::json);
 

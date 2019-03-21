@@ -165,10 +165,6 @@ void read_json (Simulation& sim,
     }
   }
 
-  // Eventually we will want to generate a constructor for each feature type
-  //   which accepts a json object, the feature then constructs itself, saving
-  //   us from having feature-specific code here
-
   // read the flow features, if any
   if (j.count("flowstructures") == 1) {
     //std::cout << "  found flowstructures" << std::endl;
@@ -176,41 +172,8 @@ void read_json (Simulation& sim,
 
     // iterate through vector of flow features
     for (auto const& ff: ff_json) {
-      //if (ff.count("type") == 1) {
-
-      const std::string ftype = ff["type"];
-      if (ftype == "single particle") {
-        std::cout << "  found single particle" << std::endl;
-        const float str = ff["strength"];
-        const std::vector<float> c = ff["center"];
-        ffeatures.emplace_back(std::make_unique<SingleParticle>(c[0], c[1], str));
-      } else if (ftype == "vortex blob") {
-        std::cout << "  found vortex blob" << std::endl;
-        // maybe put this in a try-catch block to prevent erroring out when it can't find one
-        const float rad = ff["radius"];
-        const float soft = ff["softness"];
-        const float str = ff["strength"];
-        const std::vector<float> c = ff["center"];
-        ffeatures.emplace_back(std::make_unique<VortexBlob>(c[0], c[1], str, rad, soft));
-      } else if (ftype == "uniform block") {
-        std::cout << "  found uniform block" << std::endl;
-        const float str = ff["strength"];
-        const std::vector<float> c = ff["center"];
-        const std::vector<float> sz = ff["size"];
-        ffeatures.emplace_back(std::make_unique<UniformBlock>(c[0], c[1], sz[0], sz[1], str));
-      } else if (ftype == "block of random") {
-        std::cout << "  found block of random" << std::endl;
-        const std::vector<float> c = ff["center"];
-        const std::vector<float> sz = ff["size"];
-        const std::vector<float> sr = ff["strength range"];
-        const int num = ff["num"];
-        ffeatures.emplace_back(std::make_unique<BlockOfRandom>(c[0], c[1], sz[0], sz[1], sr[0], sr[1], num));
-      } else if (ftype == "particle emitter") {
-        std::cout << "  found particle emitter" << std::endl;
-        const float str = ff["strength"];
-        const std::vector<float> c = ff["center"];
-        ffeatures.emplace_back(std::make_unique<ParticleEmitter>(c[0], c[1], str));
-      }
+      // pass ff into a function in FlowFeature to generate the object
+      parse_flow_json(ffeatures, ff);
     }
   }
 
@@ -276,37 +239,8 @@ void read_json (Simulation& sim,
 
         // iterate through vector of meshes, all on this body
         for (auto const& bf: bf_json) {
-          //std::cout << "  for this mesh" << std::endl;
-
-          const std::string ftype = bf["geometry"];
-          const std::vector<float> tr = bf["translation"];
-          // need to use "value" because this entry may not exist
-          const float rot = bf.value("rotation", 0.0);
-          // load scale into an object, because it can be a number or an array of numbers
-          const json sc = bf["scale"];
-          // split on geometry name
-          if (ftype == "circle") {
-            std::cout << "  found solid circle" << std::endl;
-            if (sc.is_number()) {
-              const float scale = bf["scale"];
-              bfeatures.emplace_back(std::make_unique<SolidCircle>(bp, tr[0], tr[1], scale));
-            }
-          } else if (ftype == "oval") {
-            std::cout << "  found solid oval" << std::endl;
-            if (sc.is_array()) {
-              const std::vector<float> scale = bf["scale"];
-              bfeatures.emplace_back(std::make_unique<SolidOval>(bp, tr[0], tr[1], scale[0], scale[1], rot));
-            }
-          } else if (ftype == "square") {
-            std::cout << "  found solid square" << std::endl;
-            if (sc.is_number()) {
-              const float scale = bf["scale"];
-              bfeatures.emplace_back(std::make_unique<SolidSquare>(bp, tr[0], tr[1], scale, rot));
-            }
-          } else {
-            // it's not a predefined geometry, but a file
-            std::cout << "  found geometry file - but not loading it" << std::endl;
-          }
+          // pass bf into a function in BoundaryFeature to generate the object
+          parse_boundary_json(bfeatures, bp, bf);
         }
       }
 

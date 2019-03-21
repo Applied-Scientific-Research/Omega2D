@@ -13,9 +13,8 @@
 #include "json/json.hpp"
 
 #include <iostream>
-//#include <vector>
+#include <vector>
 #include <memory>
-
 
 //
 // Abstract class for any boundary feature present initially
@@ -34,6 +33,7 @@ public:
 
   virtual void debug(std::ostream& os) const = 0;
   virtual std::string to_string() const = 0;
+  virtual void from_json(const nlohmann::json) = 0;
   virtual nlohmann::json to_json() const = 0;
   virtual ElementPacket<float> init_elements(const float) const = 0;
   //virtual std::vector<float> step_elements(const float) const = 0;
@@ -60,6 +60,7 @@ public:
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  void from_json(nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 
@@ -83,6 +84,7 @@ public:
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  void from_json(nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 
@@ -109,6 +111,7 @@ public:
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 
@@ -135,6 +138,7 @@ public:
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 
@@ -142,4 +146,12 @@ protected:
   float m_side;
   float m_theta;
 };
+
+
+//
+// Parser for converting json object to new feature
+//
+void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>&,
+                         std::shared_ptr<Body>,
+                         const nlohmann::json);
 
