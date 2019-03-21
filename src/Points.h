@@ -44,12 +44,9 @@ public:
     : ElementBase<S>(0, _e, _m, _bp),
       max_strength(-1.0) {
 
-    const size_t nper = (this->E == inert) ? 2 : 4;
-    if (_e == inert) {
-      std::cout << "  new collection with " << (_in.size()/nper) << " tracers..." << std::endl;
-    } else {
-      std::cout << "  new collection with " << (_in.size()/nper) << " vortons..." << std::endl;
-    }
+    const size_t nper = (_e == inert) ? 2 : 4;
+    std::cout << "  new collection with " << (_in.size()/nper);
+    std::cout << ((_e == inert) ? " tracers" : " vortons") << std::endl;
 
     // need to reset the base class n
     this->n = _in.size()/nper;
@@ -71,11 +68,7 @@ public:
     }
 
     if (_e == inert) {
-      // field points need no radius, but we must set one anyway so that vel evals work - not any more
-      r.resize(this->n);
-      for (size_t i=0; i<this->n; ++i) {
-        r[i] = 0.0;
-      }
+      // field points need neither radius nor strength
 
     } else {
       // active vortons need a radius
@@ -122,12 +115,10 @@ public:
     ElementBase<S>::add_new(_in);
 
     // then do local stuff
-    r.resize(nold+nnew);
     if (this->E == inert) {
-      for (size_t i=0; i<nnew; ++i) {
-        r[nold+i] = 0.0;
-      }
+      // no radius needed
     } else {
+      r.resize(nold+nnew);
       for (size_t i=0; i<nnew; ++i) {
         r[nold+i] = _in[4*i+3];
       }
@@ -155,10 +146,14 @@ public:
     if (_nnew == currn) return;
 
     // radii here
-    const size_t thisn = r.size();
-    r.resize(_nnew);
-    for (size_t i=thisn; i<_nnew; ++i) {
-      r[i] = 1.0;
+    if (this->E == inert) {
+      // no radii
+    } else {
+      const size_t thisn = r.size();
+      r.resize(_nnew);
+      for (size_t i=thisn; i<_nnew; ++i) {
+        r[i] = 1.0;
+      }
     }
   }
 
@@ -191,21 +186,11 @@ public:
       S thismax = 0.0;
 
       for (size_t i=0; i<this->n; ++i) {
-        S this_s = (*this->s)[i];
-
-        // compute stretch term
-        std::array<S,2> wdu = {0.0};
-
-        // add Cottet SFS
-
-        // update strengths
-        (*this->s)[i] = this_s + _dt * wdu[0];
-
         // check for max strength
         S thisstr = std::abs((*this->s)[i]);
         if (thisstr > thismax) thismax = thisstr;
-
       }
+
       if (max_strength < 0.0) {
         max_strength = thismax;
       } else {
@@ -235,23 +220,6 @@ public:
       S thismax = 0.0;
 
       for (size_t i=0; i<this->n; ++i) {
-
-        // set up some convenient temporaries
-        S this_s = (*this->s)[i];
-
-        // compute stretch term
-        std::array<S,2> wdu1 = {0.0};
-        std::array<S,2> wdu2 = {0.0};
-        std::array<S,2> wdu  = {0.0};
-
-        wdu[0] = _wt1*wdu1[0] + _wt2*wdu2[0];
-        wdu[1] = _wt1*wdu1[1] + _wt2*wdu2[1];
-
-        // add Cottet SFS
-
-        // update strengths
-        (*this->s)[i] = this_s + _dt * wdu[0];
-
         // check for max strength
         S thisstr = std::abs((*this->s)[i]);
         if (thisstr > thismax) thismax = thisstr;
@@ -341,7 +309,7 @@ public:
       // Load and create the blob-drawing shader program
       mgl->spo[0] = create_draw_point_program();
 
-      // Now do the four arrays
+      // Only send position arrays - no radius or strength
       prepare_opengl_buffer(mgl->spo[0], 0, "px");
       prepare_opengl_buffer(mgl->spo[0], 1, "py");
 
@@ -454,7 +422,7 @@ public:
       // here is where we split on element type: active/reactive vs. inert
       if (this->E == inert) {
 
-        // just don't upload strengths or radii
+        // no strengths or radii needed or present
 
       } else { // this->E is active or reactive
 
