@@ -46,6 +46,13 @@ SinglePoint::to_string() const {
   return ss.str();
 }
 
+void
+SinglePoint::from_json(const nlohmann::json j) {
+  const std::vector<float> c = j["center"];
+  m_x = c[0];
+  m_y = c[1];
+}
+
 nlohmann::json
 SinglePoint::to_json() const {
   nlohmann::json j;
@@ -81,6 +88,13 @@ TracerEmitter::to_string() const {
   std::stringstream ss;
   ss << "tracer emitter at " << m_x << " " << m_y << " spawning tracers every step";
   return ss.str();
+}
+
+void
+TracerEmitter::from_json(const nlohmann::json j) {
+  const std::vector<float> c = j["center"];
+  m_x = c[0];
+  m_y = c[1];
 }
 
 nlohmann::json
@@ -140,6 +154,14 @@ TracerBlob::to_string() const {
   return ss.str();
 }
 
+void
+TracerBlob::from_json(const nlohmann::json j) {
+  const std::vector<float> c = j["center"];
+  m_x = c[0];
+  m_y = c[1];
+  m_rad = j["rad"];
+}
+
 nlohmann::json
 TracerBlob::to_json() const {
   nlohmann::json j;
@@ -195,6 +217,16 @@ TracerLine::to_string() const {
   return ss.str();
 }
 
+void
+TracerLine::from_json(const nlohmann::json j) {
+  const std::vector<float> c = j["center"];
+  m_x = c[0];
+  m_y = c[1];
+  const std::vector<float> e = j["end"];
+  m_xf = e[0];
+  m_yf = e[1];
+}
+
 nlohmann::json
 TracerLine::to_json() const {
   nlohmann::json j;
@@ -248,6 +280,16 @@ MeasurementLine::to_string() const {
   std::stringstream ss;
   ss << "measurement line from " << m_x << " " << m_y << " to " << m_xf << " " << m_yf;
   return ss.str();
+}
+
+void
+MeasurementLine::from_json(const nlohmann::json j) {
+  const std::vector<float> c = j["center"];
+  m_x = c[0];
+  m_y = c[1];
+  const std::vector<float> e = j["end"];
+  m_xf = e[0];
+  m_yf = e[1];
 }
 
 nlohmann::json

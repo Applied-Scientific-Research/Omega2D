@@ -324,26 +324,29 @@ void read_json (Simulation& sim,
     for (auto const& mf: mf_json) {
       //if (mf.count("type") == 1) {
 
+      // eventually pass mf into a function in MeasureFeature for this...
+
       const std::string ftype = mf["type"];
-      const std::vector<float> c = mf["center"];
       if (ftype == "tracer") {
         std::cout << "  found single tracer" << std::endl;
-        mfeatures.emplace_back(std::make_unique<SinglePoint>(c[0], c[1], true));
+        mfeatures.emplace_back(std::make_unique<SinglePoint>());
+        mfeatures.back()->from_json(mf);
       } else if (ftype == "tracer emitter") {
         std::cout << "  found tracer emitter" << std::endl;
-        mfeatures.emplace_back(std::make_unique<TracerEmitter>(c[0], c[1]));
+        mfeatures.emplace_back(std::make_unique<TracerEmitter>());
+        mfeatures.back()->from_json(mf);
       } else if (ftype == "tracer blob") {
         std::cout << "  found tracer blob" << std::endl;
-        const float rad = mf["rad"];
-        mfeatures.emplace_back(std::make_unique<TracerBlob>(c[0], c[1], rad));
+        mfeatures.emplace_back(std::make_unique<TracerBlob>());
+        mfeatures.back()->from_json(mf);
       } else if (ftype == "tracer line") {
         std::cout << "  found tracer line" << std::endl;
-        const std::vector<float> e = mf["end"];
-        mfeatures.emplace_back(std::make_unique<TracerLine>(c[0], c[1], e[0], e[1]));
+        mfeatures.emplace_back(std::make_unique<TracerLine>());
+        mfeatures.back()->from_json(mf);
       } else if (ftype == "measurement line") {
         std::cout << "  found measurement line" << std::endl;
-        const std::vector<float> e = mf["end"];
-        mfeatures.emplace_back(std::make_unique<MeasurementLine>(c[0], c[1], e[0], e[1]));
+        mfeatures.emplace_back(std::make_unique<MeasurementLine>());
+        mfeatures.back()->from_json(mf);
       }
     }
   }
