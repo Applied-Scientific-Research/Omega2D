@@ -253,7 +253,7 @@ std::string Simulation::check_simulation(const size_t _nff, const size_t _nbf) {
 }
 
 //
-// query and get() the future if possible
+// check all bodies for movement
 //
 bool Simulation::do_any_bodies_move() {
   bool some_move = false;
@@ -358,7 +358,6 @@ void Simulation::add_particles(std::vector<float> _xysr) {
   } else {
     // THIS MUST USE A VISITOR
     // HACK - add all particles to first collection
-    //std::visit([&](auto& elem) { elem.add_new(incopy); }, vort2.back());
     auto& coll = vort.back();
     // only proceed if the last collection is Points
     if (std::holds_alternative<Points<float>>(coll)) {

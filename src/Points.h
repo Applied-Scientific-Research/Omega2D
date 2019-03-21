@@ -117,7 +117,9 @@ public:
     // then do local stuff
     if (this->E == inert) {
       // no radius needed
+
     } else {
+      // active points need radius
       r.resize(nold+nnew);
       for (size_t i=0; i<nnew; ++i) {
         r[nold+i] = _in[4*i+3];

@@ -134,6 +134,7 @@ void Diffusion<S,A,I>::step(const double                _time,
   // ensure that it knows to allow or disallow adaptive radii
   //vrm.set_adaptive_radii(adaptive_radii);
 
+  // loop over active vorticity
   for (auto &coll : _vort) {
 
     // if no strength, skip
