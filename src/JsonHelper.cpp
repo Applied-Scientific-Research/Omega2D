@@ -307,12 +307,14 @@ void write_json(Simulation& sim,
                       {"viewScale", rp.vsize},
                       {"windowSize", {rp.width, rp.height} } };
 
-  // assemble a vector of flow features
-  std::vector<json> jflows;
-  for (auto const& ff: ffeatures) {
-    jflows.push_back(ff->to_json());
+  if (ffeatures.size() > 0) {
+    // assemble a vector of flow features
+    std::vector<json> jflows;
+    for (auto const& ff : ffeatures) {
+      jflows.push_back(ff->to_json());
+    }
+    j["flowstructures"] = jflows;
   }
-  j["flowstructures"] = jflows;
 
   // assemble a vector of bodies, each with 0 or more boundary features
   std::vector<json> jbods;
@@ -341,12 +343,14 @@ void write_json(Simulation& sim,
   }
   j["bodies"] = jbods;
 
-  // assemble a vector of measurement features
-  std::vector<json> jmeas;
-  for (auto const& mf: mfeatures) {
-    jmeas.push_back(mf->to_json());
+  if (mfeatures.size() > 0) {
+    // assemble a vector of measurement features
+    std::vector<json> jmeas;
+    for (auto const& mf : mfeatures) {
+      jmeas.push_back(mf->to_json());
+    }
+    j["measurements"] = jmeas;
   }
-  j["measurements"] = jmeas;
 
   // write prettified JSON to the given file
   std::ofstream json_out(filename);
