@@ -382,6 +382,8 @@ void write_json(Simulation& sim,
   std::string viscous = sim.get_diffuse() ? "vrm" : "none";
   j["simparams"] = { {"nominalDt", dt},
                      {"viscous", viscous} };
+  if (sim.using_max_steps()) j["simparams"].push_back( {"maxSteps", sim.get_max_steps()} );
+  if (sim.using_end_time()) j["simparams"].push_back( {"endTime", sim.get_end_time()} );
 
   j["drawparams"] = { {"backgroundColor", {rp.clear_color[0], rp.clear_color[1], rp.clear_color[2], rp.clear_color[3]} },
                       {"featureColor", {rp.default_color[0], rp.default_color[1], rp.default_color[2], rp.default_color[3]} },
