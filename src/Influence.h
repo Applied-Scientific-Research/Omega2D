@@ -25,9 +25,6 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 
-//
-// NOTE: we are not using A here!
-//
 
 
 //
