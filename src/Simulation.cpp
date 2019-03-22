@@ -1,5 +1,5 @@
 /*
- * Simulation.cpp - a class to control a 2d vortex particle sim
+ * Simulation.cpp - a class to control a 2D vortex particle sim
  *
  * (c)2017-9 Applied Scientific Research, Inc.
  *           Written by Mark J Stock <markjstock@gmail.com>
