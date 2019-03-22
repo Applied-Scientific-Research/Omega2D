@@ -337,24 +337,26 @@ void Simulation::step() {
   time += (double)dt;
 }
 
-// add some vortex particles
-void Simulation::add_particles(std::vector<float> _xysr) {
+// set up some vortex particles
+// TODO - accept elem_t and move_t from the caller!
+void Simulation::add_particles(std::vector<float> _invec) {
 
-  if (_xysr.size() == 0) return;
+  if (_invec.size() == 0) return;
 
   // make sure we're getting full particles
-  assert(_xysr.size() % 4 == 0);
+  assert(_invec.size() % 4 == 0);
 
   // add the vdelta to each particle and pass it on
   const float thisvd = get_vdelta();
-  for (size_t i=3; i<_xysr.size(); i+=4) {
-    _xysr[i] = thisvd;
+  for (size_t i=3; i<_invec.size(); i+=4) {
+    _invec[i] = thisvd;
   }
 
   // if no collections exist
   if (vort.size() == 0) {
     // make a new collection
-    vort.push_back(Points<float>(_xysr, active, lagrangian, nullptr));      // vortons
+    vort.push_back(Points<float>(_invec, active, lagrangian, nullptr));      // vortons
+
   } else {
     // THIS MUST USE A VISITOR
     // HACK - add all particles to first collection
@@ -362,18 +364,18 @@ void Simulation::add_particles(std::vector<float> _xysr) {
     // only proceed if the last collection is Points
     if (std::holds_alternative<Points<float>>(coll)) {
       Points<float>& pts = std::get<Points<float>>(coll);
-      pts.add_new(_xysr);
+      pts.add_new(_invec);
     }
   }
 }
 
 // add some tracer particles to new arch
-void Simulation::add_fldpts(std::vector<float> _xy, const bool _moves) {
+void Simulation::add_fldpts(std::vector<float> _invec, const bool _moves) {
 
-  if (_xy.size() == 0) return;
+  if (_invec.size() == 0) return;
 
   // make sure we're getting full points
-  assert(_xy.size() % 2 == 0);
+  assert(_invec.size() % Dimensions == 0);
 
   const move_t move_type = _moves ? lagrangian : fixed;
 
@@ -382,18 +384,18 @@ void Simulation::add_fldpts(std::vector<float> _xy, const bool _moves) {
   // if no collections exist
   if (fldpt.size() == 0) {
     // make a new collection
-    fldpt.push_back(Points<float>(_xy, inert, move_type, nullptr));
+    fldpt.push_back(Points<float>(_invec, inert, move_type, nullptr));
 
   } else {
     // THIS MUST USE A VISITOR
     // HACK - add all particles to first collection
-    //std::visit([&](auto& elem) { elem.add_new(_xy); }, fldpt.back());
+    //std::visit([&](auto& elem) { elem.add_new(_invec); }, fldpt.back());
     auto& coll = fldpt.back();
     // eventually we will want to check every collection for matching element and move types
     // only proceed if the collection is Points
     if (std::holds_alternative<Points<float>>(coll)) {
       Points<float>& pts = std::get<Points<float>>(coll);
-      pts.add_new(_xy);
+      pts.add_new(_invec);
     }
   }
 }
