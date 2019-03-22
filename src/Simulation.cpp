@@ -240,15 +240,6 @@ std::string Simulation::check_simulation(const size_t _nff, const size_t _nbf) {
     }
   }
 
-  // Check for conditions that lead to loss of accuracy
-  // like vorticity-based Courant number
-  //static bool ignore_warning = false;
-  //float max_elong = 0.0;
-  //for (auto &coll: vort) {
-    //std::visit([&](auto& elem) { max_elong = std::max(max_elong, elem.get_max_elong(); }, coll);
-  //}
-  //if (max_elong > 2.0) retstr.append("Elongation threshold exceeded! Reset and reduce the time step size.\n");
-
   return retstr;
 }
 
