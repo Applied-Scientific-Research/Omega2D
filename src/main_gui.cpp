@@ -107,11 +107,11 @@ void mouse_callback(GLFWwindow* /*_thiswin*/,
 // given coords at screen center and a measure of size
 // Also changes overall pixels-to-length scale
 //
-void compute_projection_matrix(GLFWwindow*         _thiswin,
-                               const float         _cx,
-                               const float         _cy,
-                               float*              _size,
-                               std::vector<float>& _projmat) {
+void compute_ortho_proj_mat(GLFWwindow*         _thiswin,
+                            const float         _cx,
+                            const float         _cy,
+                            float*              _size,
+                            std::vector<float>& _projmat) {
 
   // track changes in window!
   static int last_w, last_h = -1;
@@ -251,7 +251,7 @@ int main(int argc, char const *argv[]) {
   // colors and projection matrix for the render view
   RenderParams rparams;
   std::vector<float> gl_projection;
-  compute_projection_matrix(window, rparams.vcx, rparams.vcy, &rparams.vsize, gl_projection);
+  compute_ortho_proj_mat(window, rparams.vcx, rparams.vcy, &rparams.vsize, gl_projection);
 
 
   // Main loop
@@ -1039,7 +1039,7 @@ int main(int argc, char const *argv[]) {
       }
     }
 
-    // done drawing the Omega2D UI window
+    // done drawing the UI window
     ImGui::End();
     }
 
@@ -1076,7 +1076,7 @@ int main(int argc, char const *argv[]) {
     glClear(GL_COLOR_BUFFER_BIT);
 
     // draw the simulation: panels and particles
-    compute_projection_matrix(window, rparams.vcx, rparams.vcy, &rparams.vsize, gl_projection);
+    compute_ortho_proj_mat(window, rparams.vcx, rparams.vcy, &rparams.vsize, gl_projection);
     sim.drawGL(gl_projection, rparams);
 
     // if simulation has not been initted, draw the features instead!
