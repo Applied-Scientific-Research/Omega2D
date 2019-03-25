@@ -94,7 +94,6 @@ Tasks to consider or implement:
 * Convert all angles (except in GUI) to radians
 * How awesome would it be to show the flow as a time-consistent LIC image? See UFLIC (Shen & Kao, IEEE ToVaCG 1999)
 * Add inlet and outlet surfaces to push flow around - the BC is that normal flow must equal some number
-* Consider adding base64 encoding to vtk output files, maybe with [this](https://github.com/tplgy/cppcodec)
 * Add airfoils - read them from a text file or generate them algorithmically - this means enabling Kutta points (reactive Points)
 * Add a "Run to time..." button to allow users to run a sim up to an exact time
 * Add ability to edit features in the GUI, not just remove and re-add them
@@ -131,6 +130,7 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~Consider adding base64 encoding to vtk output files, maybe with [this](https://github.com/tplgy/cppcodec)~~
 * ~~Allow inert Points collections to never allocate space for radius~~
 * ~~Support multiple body rotation by augmenting only the required blocks in the BEM calculation~~
 * ~~Support body rotation by precalculating the surface sheet strengths necessary to account for the motion of the enclosed body~~
@@ -178,5 +178,5 @@ Thanks to [Omar Cornut](http://www.miracleworld.net/) for his [dear imgui](https
 
 VRM code is functional thanks to jlblancoc for [Nanoflann](https://github.com/jlblancoc/nanoflann) (a header-only tree search library), and to all of the developers of [Eigen](http://eigen.tuxfamily.org/) (a C++ matrix/vector library). The BEM code also relies heavily on [Eigen](http://eigen.tuxfamily.org/). We also love [Vc](https://github.com/VcDevel/Vc), an excellent SIMD library by Matthias Kretz.
 
-JSON reading and writing is thanks to [JSON for Modern C++](https://github.com/nlohmann/json) by [Niels Lohmann](http://nlohmann.me). XML output to VTK files is done using [tinyxml2](https://github.com/leethomason/tinyxml2). And mathematical expression parsing came from [Lewis Van Winkle](https://codeplea.com/)'s [tinyexpr](https://github.com/codeplea/tinyexpr).
+JSON reading and writing is thanks to [JSON for Modern C++](https://github.com/nlohmann/json) by [Niels Lohmann](http://nlohmann.me). XML output to VTK files is done using [tinyxml2](https://github.com/leethomason/tinyxml2) and [cppcodec](https://github.com/tplgy/cppcodec) for base64 encoding. And mathematical expression parsing came from [Lewis Van Winkle](https://codeplea.com/)'s [tinyexpr](https://github.com/codeplea/tinyexpr).
 
