@@ -476,8 +476,9 @@ std::shared_ptr<Body> Simulation::get_pointer_to_body(const std::string _name) {
   std::shared_ptr<Body> bp;
 
   for (auto &bptr : bodies) {
-    if (bptr->get_name() == _name) {
+    if (_name.compare(bptr->get_name()) == 0) {
       std::cout << "  found body matching name (" << _name << ")" << std::endl;
+      bp = bptr;
     }
   }
 
