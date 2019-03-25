@@ -51,8 +51,8 @@ void write_DataArray (tinyxml2::XMLPrinter& _p,
     // encode and write the UInt32 length indicator - the length of the base64-encoded blob
     uint32_t encoded_length = encoded.size();
     std::string header = base64::encode((const char*)(&encoded_length), (size_t)(sizeof(uint32_t)));
-    std::cout << "base64 length of header: " << header.size() << std::endl;
-    std::cout << "base64 length of data: " << encoded.size() << std::endl;
+    //std::cout << "base64 length of header: " << header.size() << std::endl;
+    //std::cout << "base64 length of data: " << encoded.size() << std::endl;
 
     _p.PushText( " " );
     _p.PushText( header.c_str() );
@@ -309,5 +309,5 @@ void write_vtu_points(Points<S> const& pts, const size_t file_idx, const size_t 
 
   std::fclose(fp);
 
-  std::cout << "Wrote particle data to " << vtkfn.str() << std::endl;
+  std::cout << "Wrote " << pts.get_n() << " points to " << vtkfn.str() << std::endl;
 }
