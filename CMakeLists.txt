@@ -138,6 +138,7 @@ INCLUDE_DIRECTORIES( "src/glad" )
 FILE(GLOB IMGUISOURCES "src/imgui/*.cpp" )
 INCLUDE_DIRECTORIES( "src/tinyxml2" )
 INCLUDE_DIRECTORIES( "src/tinyexpr" )
+INCLUDE_DIRECTORIES( "src/cppcodec" )
 
 SET_SOURCE_FILES_PROPERTIES("src/imgui/imgui_draw.cpp" PROPERTIES COMPILE_FLAGS -Wno-maybe-uninitialized)
 

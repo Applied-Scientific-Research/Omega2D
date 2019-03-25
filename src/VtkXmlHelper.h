@@ -12,6 +12,7 @@
 #include "Points.h"
 
 #include "tinyxml2.h"
+#include "cppcodec/base64_rfc4648.hpp"
 
 #include <vector>
 #include <cstdint>	// for uint32_t
@@ -19,27 +20,114 @@
 #include <sstream>	// for stringstream
 #include <iomanip>	// for setfill, setw
 
+
 //
 // compress a byte stream
 //
 
 
 //
-// convert an array or interleave arrays to generate a base64 bytestream
+// write vector to the vtk file
 //
 // why would you ever want to use base64 for floats and such? so wasteful.
 //
 template <class S>
-const char* convert_to_base64 (Vector<S> const & v, bool compress = false) {
-  const char* retval = "hi";
+void write_DataArray (tinyxml2::XMLPrinter& _p,
+                      Vector<S> const & _data,
+                      bool _compress = false,
+                      bool _asbase64 = false) {
 
-  if (compress) {
+  using base64 = cppcodec::base64_rfc4648;
+
+  if (_compress) {
+    // not yet implemented
   }
 
-  return retval;
+  if (_asbase64) {
+    _p.PushAttribute( "format", "binary" );
+
+    std::string encoded = base64::encode((const char*)_data.data(), (size_t)(sizeof(_data[0])*_data.size()));
+
+    // encode and write the UInt32 length indicator - the length of the base64-encoded blob
+    uint32_t encoded_length = encoded.size();
+    std::string header = base64::encode((const char*)(&encoded_length), (size_t)(sizeof(uint32_t)));
+    std::cout << "base64 length of header: " << header.size() << std::endl;
+    std::cout << "base64 length of data: " << encoded.size() << std::endl;
+
+    _p.PushText( " " );
+    _p.PushText( header.c_str() );
+    _p.PushText( encoded.c_str() );
+    _p.PushText( " " );
+
+    if (false) {
+      std::vector<uint8_t> decoded = base64::decode(encoded);
+      S* decoded_floats = reinterpret_cast<S*>(decoded.data());
+  
+      std::cout << "Encoding an array of " << _data.size() << " floats to: " << encoded << std::endl;
+      std::cout << "Decoding back into array of floats, starting with: " << decoded_floats[0] << " " << decoded_floats[1] << std::endl;
+      //std::cout << "Decoding back into array of " << decoded.size() << " floats, starting with: " << decoded[0] << std::endl;
+    }
+
+  } else {
+    _p.PushAttribute( "format", "ascii" );
+
+    // write the data
+    _p.PushText( " " );
+    for (size_t i=0; i<_data.size(); ++i) {
+      _p.PushText( _data[i] );
+      _p.PushText( " " );
+    }
+  }
+
+  return;
 }
 
-//const char* interleave_to_base64 (Vector<S>
+
+//
+// interleave arrays and write to the vtk file
+//
+template <class S>
+void write_DataArray (tinyxml2::XMLPrinter& _p,
+                      std::array<Vector<S>,2> const & _data,
+                      bool _compress = false,
+                      bool _asbase64 = false) {
+
+  // interleave the two vectors into a new one
+  Vector<S> newvec;
+  newvec.resize(3 * _data[0].size());
+  for (size_t i=0; i<_data[0].size(); ++i) {
+    newvec[3*i+0] = _data[0][i];
+    newvec[3*i+1] = _data[1][i];
+    newvec[3*i+2] = 0.0;
+  }
+
+  // pass it on to write
+  write_DataArray<S>(_p, newvec, _compress, _asbase64);
+}
+
+
+//
+// interleave arrays and write to the vtk file
+//
+template <class S>
+void write_DataArray (tinyxml2::XMLPrinter& _p,
+                      std::array<Vector<S>,3> const & _data,
+                      bool _compress = false,
+                      bool _asbase64 = false) {
+
+  // interleave the two vectors into a new one
+  Vector<S> newvec;
+  newvec.resize(3 * _data[0].size());
+  for (size_t i=0; i<_data[0].size(); ++i) {
+    newvec[3*i+0] = _data[0][i];
+    newvec[3*i+1] = _data[1][i];
+    newvec[3*i+2] = _data[2][i];
+  }
+
+  // pass it on to write
+  write_DataArray<S>(_p, newvec, _compress, _asbase64);
+}
+
 
 
 //
@@ -47,11 +135,17 @@ const char* convert_to_base64 (Vector<S> const & v, bool compress = false) {
 //
 // should we be using PolyData or UnstructuredGrid for particles?
 //
-// note bad documetation, somewhat corrected here:
+// note bad documentation, somewhat corrected here:
 // https://mathema.tician.de/what-they-dont-tell-you-about-vtk-xml-binary-formats/
+//
+// see the full vtk spec here:
+// https://vtk.org/wp-content/uploads/2015/04/file-formats.pdf
 //
 template <class S>
 void write_vtu_points(Points<S> const& pts, const size_t file_idx, const size_t frameno) {
+
+  const bool compress = false;
+  const bool asbase64 = true;
 
   bool has_radii = true;
   bool has_strengths = true;
@@ -93,25 +187,7 @@ void write_vtu_points(Points<S> const& pts, const size_t file_idx, const size_t 
   printer.PushAttribute( "NumberOfComponents", "3" );
   printer.PushAttribute( "Name", "position" );
   printer.PushAttribute( "type", "Float32" );
-  const std::array<Vector<S>,Dimensions>& x = pts.get_pos();
-  // write ascii version
-  printer.PushAttribute( "format", "ascii" );
-  printer.PushText( " " );
-  for (size_t i=0; i<pts.get_n(); ++i) { std::fprintf(fp, "%g %g 0.0 ", x[0][i], x[1][i]); }
-  // write binary version
-  //printer.PushAttribute( "format", "binary" );
-  //printer.PushText( "\n" );
-  //printer.PrintSpace(5);
-  //std::fwrite(v.data(), sizeof v[0], v.size(), f1);
-  //const float zero = 0.0;
-  //for (size_t i=0; i<pts.get_n(); ++i) {
-  //  std::fwrite(&x[0][i], sizeof(S), 1, fp);
-  //  std::fwrite(&x[1][i], sizeof(S), 1, fp);
-  //  std::fwrite(&zero, sizeof(S), 1, fp);
-  //}
-  //printer.PushText( "\n" );
-  //printer.PrintSpace(5);
-  // close it out
+  write_DataArray (printer, pts.get_pos(), compress, asbase64);
   printer.CloseElement();	// DataArray
   printer.CloseElement();	// Points
 
@@ -119,26 +195,40 @@ void write_vtu_points(Points<S> const& pts, const size_t file_idx, const size_t 
 
   printer.OpenElement( "DataArray" );
   printer.PushAttribute( "Name", "connectivity" );
-  printer.PushAttribute( "type", "UInt32" );
-  printer.PushAttribute( "format", "ascii" );
-  printer.PushText( " " );
-  for (size_t i=0; i<pts.get_n(); ++i) { std::fprintf(fp, "%d ", (int)i); }
+  if (pts.get_n() <= std::numeric_limits<uint16_t>::max()) {
+    printer.PushAttribute( "type", "UInt16" );
+    Vector<uint16_t> v(pts.get_n());
+    std::iota(v.begin(), v.end(), 0);
+    write_DataArray (printer, v, compress, asbase64);
+  } else {
+    printer.PushAttribute( "type", "UInt32" );
+    Vector<uint32_t> v(pts.get_n());
+    std::iota(v.begin(), v.end(), 0);
+    write_DataArray (printer, v, compress, asbase64);
+  }
   printer.CloseElement();	// DataArray
 
   printer.OpenElement( "DataArray" );
   printer.PushAttribute( "Name", "offsets" );
-  printer.PushAttribute( "type", "UInt32" );
-  printer.PushAttribute( "format", "ascii" );
-  printer.PushText( " " );
-  for (size_t i=0; i<pts.get_n(); ++i) { std::fprintf(fp, "%d ", (int)i); }
+  if (pts.get_n() <= std::numeric_limits<uint16_t>::max()) {
+    printer.PushAttribute( "type", "UInt16" );
+    Vector<uint16_t> v(pts.get_n());
+    std::iota(v.begin(), v.end(), 0);
+    write_DataArray (printer, v, compress, asbase64);
+  } else {
+    printer.PushAttribute( "type", "UInt32" );
+    Vector<uint32_t> v(pts.get_n());
+    std::iota(v.begin(), v.end(), 0);
+    write_DataArray (printer, v, compress, asbase64);
+  }
   printer.CloseElement();	// DataArray
 
   printer.OpenElement( "DataArray" );
   printer.PushAttribute( "Name", "types" );
   printer.PushAttribute( "type", "UInt8" );
-  printer.PushAttribute( "format", "ascii" );
-  printer.PushText( " " );
-  for (size_t i=0; i<pts.get_n(); ++i) { std::fprintf(fp, "%d ", (int)1); }
+  Vector<uint8_t> v(pts.get_n());
+  std::fill(v.begin(), v.end(), 1);
+  write_DataArray (printer, v, compress, asbase64);
   printer.CloseElement();	// DataArray
 
   printer.CloseElement();	// Cells
@@ -165,16 +255,7 @@ void write_vtu_points(Points<S> const& pts, const size_t file_idx, const size_t 
     printer.OpenElement( "DataArray" );
     printer.PushAttribute( "Name", "circulation" );
     printer.PushAttribute( "type", "Float32" );
-    printer.PushAttribute( "format", "ascii" );
-    // end the element header and write the data
-    printer.PushText( " " );
-    const Vector<S>& s = pts.get_str();
-    for (size_t i=0; i<pts.get_n(); ++i) {
-      std::fprintf(fp, "%g ", s[i]);
-    }
-    // write binary version
-    //printer.PushAttribute( "format", "appended" );
-    //printer.PushAttribute( "offset", "0" );
+    write_DataArray (printer, pts.get_str(), compress, asbase64);
     printer.CloseElement();	// DataArray
   }
 
@@ -182,13 +263,7 @@ void write_vtu_points(Points<S> const& pts, const size_t file_idx, const size_t 
     printer.OpenElement( "DataArray" );
     printer.PushAttribute( "Name", "radius" );
     printer.PushAttribute( "type", "Float32" );
-    printer.PushAttribute( "format", "ascii" );
-    // end the element header and write the data
-    printer.PushText( " " );
-    const Vector<S>& r = pts.get_rad();
-    for (size_t i=0; i<pts.get_n(); ++i) {
-      std::fprintf(fp, "%g ", r[i]);
-    }
+    write_DataArray (printer, pts.get_rad(), compress, asbase64);
     printer.CloseElement();	// DataArray
   }
 
@@ -196,13 +271,7 @@ void write_vtu_points(Points<S> const& pts, const size_t file_idx, const size_t 
   printer.PushAttribute( "NumberOfComponents", "3" );
   printer.PushAttribute( "Name", "velocity" );
   printer.PushAttribute( "type", "Float32" );
-  printer.PushAttribute( "format", "ascii" );
-  // end the element header and write the data
-  printer.PushText( " " );
-  const std::array<Vector<S>,Dimensions>& u = pts.get_vel();
-  for (size_t i=0; i<pts.get_n(); ++i) {
-    std::fprintf(fp, "%g %g 0.0 ", u[0][i], u[1][i]);
-  }
+  write_DataArray (printer, pts.get_vel(), compress, asbase64);
   printer.CloseElement();	// DataArray
 
   printer.CloseElement();	// PointData
