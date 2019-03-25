@@ -169,7 +169,7 @@ VortexBlob::from_json(const nlohmann::json j) {
   const std::vector<float> c = j["center"];
   m_x = c[0];
   m_y = c[1];
-  m_rad = j["rad"];
+  m_rad = j["radius"];
   m_softness = j["softness"];
   m_str = j["strength"];
 }
