@@ -142,7 +142,6 @@ void compute_ortho_proj_mat(GLFWwindow*         _thiswin,
   last_h = display_h;
 }
 
-
 //
 // resize a window and framebuffer programmatically
 //
@@ -469,13 +468,12 @@ int main(int argc, char const *argv[]) {
     if (ImGui::Button("Or load a json file", ImVec2(160,0))) show_file_input_window = true;
 
     if (show_file_input_window) {
-
       bool try_it = false;
-      std::string infile = "input.json";
+      static std::string infile = "input.json";
 
       if (fileIOWindow( try_it, infile, recent_files, "Open", {"*.json", "*.*"}, true, ImVec2(500,250))) {
-
         show_file_input_window = false;
+
         if (try_it and !infile.empty()) {
           // remember
           recent_files.push_back( infile );
@@ -1004,7 +1002,7 @@ int main(int argc, char const *argv[]) {
 
       if (show_file_output_window) {
         bool try_it = false;
-        std::string outfile = "output.json";
+        static std::string outfile = "output.json";
 
         if (fileIOWindow( try_it, outfile, recent_files, "Save", {"*.json", "*.*"}, false, ImVec2(500,250))) {
           show_file_output_window = false;

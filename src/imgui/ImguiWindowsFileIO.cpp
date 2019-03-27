@@ -438,9 +438,7 @@ bool fileIOWindow(
     if( current_folder == "x" )
         current_folder = MiniPath::getCurrentDir();
 
-    static char current_file[ 256 ] = "myfile.json";
-    //std::strcpy (current_file, file_path.c_str());
-    //current_file = file_path.c_str();
+    static char current_file[ 256 ] = "select_a_file";
     static int  file_type_selected = 0;
     static int  file_selected = 0;
     static int  directory_selected = 0;
