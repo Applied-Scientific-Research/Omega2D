@@ -28,9 +28,10 @@ Simulation::Simulation()
     description(),
     time(0.0),
     output_dt(0.0),
-    end_time(0.0),
+    end_time(100.0),
     use_end_time(false),
-    max_steps(0),
+    nstep(0),
+    max_steps(100),
     use_max_steps(false),
     sim_is_initialized(false),
     step_has_started(false),
@@ -49,6 +50,7 @@ float Simulation::get_vdelta() { return diff.get_particle_overlap() * get_ips();
 float Simulation::get_time() { return (float)time; }
 float Simulation::get_end_time() { return (float)end_time; }
 bool Simulation::using_end_time() { return use_end_time; }
+size_t Simulation::get_nstep() { return nstep; }
 size_t Simulation::get_max_steps() { return max_steps; }
 bool Simulation::using_max_steps() { return use_max_steps; }
 float Simulation::get_output_dt() { return (float)output_dt; }
@@ -57,7 +59,9 @@ std::string Simulation::get_description() { return description; }
 // setters
 void Simulation::set_description(const std::string desc) { description = desc; }
 void Simulation::set_end_time(const double net) { end_time = net; use_end_time = true; }
+void Simulation::unset_end_time() { use_end_time = false; }
 void Simulation::set_max_steps(const size_t nms) { max_steps = nms; use_max_steps = true; }
+void Simulation::unset_max_steps() { use_max_steps = false; }
 void Simulation::set_output_dt(const double nodt) { output_dt = nodt; }
 
 // status
@@ -169,6 +173,7 @@ void Simulation::reset() {
 
   // now reset everything else
   time = 0.0;
+  nstep = 0;
   vort.clear();
   bdry.clear();
   fldpt.clear();
@@ -184,7 +189,8 @@ void Simulation::clear_bodies() {
 
 // Write a set of vtu files for the particles and panels
 void Simulation::write_vtk() {
-  static size_t frameno = 0;
+  // may eventually want to avoid clobbering by maintaining an internal count of the
+  //   number of simulations run from this execution of the GUI
 
   size_t idx = 0;
   for (auto &coll : vort) {
@@ -193,7 +199,7 @@ void Simulation::write_vtk() {
     // only proceed if the collection is Points
     if (std::holds_alternative<Points<float>>(coll)) {
       Points<float>& pts = std::get<Points<float>>(coll);
-      write_vtu_points<float>(pts, idx++, frameno);
+      write_vtu_points<float>(pts, idx++, nstep);
     }
   }
 
@@ -204,11 +210,9 @@ void Simulation::write_vtk() {
     // only proceed if the collection is Points
     if (std::holds_alternative<Points<float>>(coll)) {
       Points<float>& pts = std::get<Points<float>>(coll);
-      write_vtu_points<float>(pts, idx++, frameno);
+      write_vtu_points<float>(pts, idx++, nstep);
     }
   }
-
-  frameno++;
 }
 
 //
@@ -303,7 +307,7 @@ void Simulation::async_step() {
 // here's the vortex method: convection and diffusion with operator splitting
 //
 void Simulation::step() {
-  std::cout << std::endl << "Taking step at t=" << time << " with n=" << get_nparts() << std::endl;
+  std::cout << std::endl << "Taking step " << nstep << " at t=" << time << " with n=" << get_nparts() << std::endl;
 
   // we wind up using this a lot
   std::array<double,2> thisfs = {fs[0], fs[1]};
@@ -326,6 +330,9 @@ void Simulation::step() {
 
   // update dt and return
   time += (double)dt;
+
+  // only increment step here!
+  nstep++;
 }
 
 // set up some vortex particles
@@ -491,5 +498,34 @@ std::shared_ptr<Body> Simulation::get_pointer_to_body(const std::string _name) {
   }
 
   return bp;
+}
+
+// check vs. step and time to see if simulation should pause/stop
+bool Simulation::test_vs_stop() {
+  bool should_stop = false;
+  if (using_max_steps() and get_max_steps() == nstep) {
+    std::cout << "Stopping at step " << get_max_steps() << std::endl;
+    should_stop = true;
+  }
+  if (using_end_time() and get_end_time() <= time+0.5*dt){
+    std::cout << "Stopping at time " << get_end_time() << std::endl;
+    should_stop = true;
+  }
+  return should_stop;
+}
+
+// this is different because we have to trigger when last step is still running
+bool Simulation::test_vs_stop_async() {
+  bool should_stop = false;
+  if (using_max_steps() and get_max_steps() == nstep+1) {
+    std::cout << "Stopping at step " << get_max_steps() << std::endl;
+    should_stop = true;
+  }
+  if (using_end_time() and get_end_time() >= time+0.5*dt
+                       and get_end_time() <= time+1.5*dt) {
+    std::cout << "Stopping at time " << get_end_time() << std::endl;
+    should_stop = true;
+  }
+  return should_stop;
 }
 

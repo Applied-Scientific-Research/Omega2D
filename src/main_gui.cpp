@@ -192,7 +192,7 @@ int main(int argc, char const *argv[]) {
   std::vector< std::unique_ptr<FlowFeature> > ffeatures;
   std::vector< std::unique_ptr<BoundaryFeature> > bfeatures;
   std::vector< std::unique_ptr<MeasureFeature> > mfeatures;
-  size_t nsteps = 0;
+  size_t nframes = 0;
   static bool sim_is_running = false;
   static bool begin_single_step = false;
 
@@ -521,6 +521,29 @@ int main(int argc, char const *argv[]) {
         my_ips = sim.get_ips();
       }
       ImGui::InputFloat2("Freestream speed", sim.addr_fs());
+
+      // set stop/pause conditions
+      bool use_step_pause = sim.using_max_steps();
+      ImGui::Checkbox("Pause at step", &use_step_pause);
+      if (use_step_pause) {
+        int pause_step = sim.get_max_steps();
+        ImGui::SameLine();
+        ImGui::InputInt(" ", &pause_step);
+        sim.set_max_steps((size_t)pause_step);
+      } else {
+        sim.unset_max_steps();
+      }
+      bool use_time_pause = sim.using_end_time();
+      ImGui::Checkbox("Pause at time", &use_time_pause);
+      if (use_time_pause) {
+        float pause_time = sim.get_end_time();
+        ImGui::SameLine();
+        ImGui::InputFloat(" ", &pause_time);
+        //ImGui::InputFloat("Pause at time", float* v, float step = 0.0f, float step_fast = 0.0f, int decimal_precision = -1, ImGuiInputTextFlags extra_flags = 0);
+        sim.set_end_time((double)pause_time);
+      } else {
+        sim.unset_end_time();
+      }
     }
 
     ImGui::Spacing();
@@ -948,21 +971,20 @@ int main(int argc, char const *argv[]) {
     }
     ImGui::Spacing();
 
-    nsteps++;
+    nframes++;
 
-    // check vs. end conditions
-    if (sim.using_max_steps() and sim.get_max_steps() == nsteps) sim_is_running = false;
-    if (sim.using_end_time() and sim.get_end_time() <= sim.get_time()) sim_is_running = false;
+    // check vs. end conditions, if present
+    if (sim.test_vs_stop_async()) sim_is_running = false;
 
     // all the other stuff
     {
       if (sim_is_running) {
-        ImGui::Text("Simulation is running...time = %g", sim.get_time());
+        ImGui::Text("Simulation is running...step = %ld, time = %g", sim.get_nstep(), sim.get_time());
         if (ImGui::Button("PAUSE", ImVec2(200,0))) sim_is_running = false;
         // space bar pauses
         if (ImGui::IsKeyPressed(32)) sim_is_running = false;
       } else {
-        ImGui::Text("Simulation is not running, time = %g", sim.get_time());
+        ImGui::Text("Simulation is not running, step = %ld, time = %g", sim.get_nstep(), sim.get_time());
         if (ImGui::Button("RUN", ImVec2(200,0))) sim_is_running = true;
         ImGui::SameLine();
         if (ImGui::Button("Step", ImVec2(120,0))) begin_single_step = true;

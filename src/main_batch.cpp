@@ -34,7 +34,6 @@ int main(int argc, char const *argv[]) {
   std::vector< std::unique_ptr<FlowFeature> > ffeatures;
   std::vector< std::unique_ptr<BoundaryFeature> > bfeatures;
   std::vector< std::unique_ptr<MeasureFeature> > mfeatures;
-  size_t nsteps = 0;
   RenderParams rparams;
 
   // a string to hold any error messages
@@ -102,14 +101,10 @@ int main(int argc, char const *argv[]) {
       break;
     }
 
-    nsteps++;
-
-    // for testing: always break after a few steps
-    //if (nsteps == 2) break;
+    // export data files at this step?
 
     // check vs. stopping conditions
-    if (sim.using_max_steps() and sim.get_max_steps() == nsteps) break;
-    if (sim.using_end_time() and sim.get_end_time() <= sim.get_time()) break;
+    if (sim.test_vs_stop()) break;
 
   } // end step
 

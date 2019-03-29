@@ -95,7 +95,6 @@ Tasks to consider or implement:
 * How awesome would it be to show the flow as a time-consistent LIC image? See UFLIC (Shen & Kao, IEEE ToVaCG 1999)
 * Add inlet and outlet surfaces to push flow around - the BC is that normal flow must equal some number
 * Add airfoils - read them from a text file or generate them algorithmically - this means enabling Kutta points (reactive Points)
-* Add a "Run to time..." button to allow users to run a sim up to an exact time
 * Add ability to edit features in the GUI, not just remove and re-add them
 * Need to periodically check tracer particles to make sure they do not go inside of objects - like every frame we check 1/10th of all tracers and bump them out
 * When background is white, nothing else shows up! Check blending mode. Need this to change so that we can make more attractive visuals. Like, presets for "technical (red/blue), b/w (white/grey), vibrant (??)
@@ -130,6 +129,7 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~Add a "Run to time..." button to allow users to run a sim up to an exact time~~
 * ~~Consider adding base64 encoding to vtk output files, maybe with [this](https://github.com/tplgy/cppcodec)~~
 * ~~Allow inert Points collections to never allocate space for radius~~
 * ~~Support multiple body rotation by augmenting only the required blocks in the BEM calculation~~

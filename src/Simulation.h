@@ -56,6 +56,7 @@ public:
   float get_time();
   float get_end_time();
   bool using_end_time();
+  size_t get_nstep();
   size_t get_max_steps();
   bool using_max_steps();
   float get_output_dt();
@@ -64,7 +65,9 @@ public:
   // setters
   void set_description(const std::string);
   void set_end_time(const double);
+  void unset_end_time();
   void set_max_steps(const size_t);
+  void unset_max_steps();
   void set_output_dt(const double);
 
   // get runtime status
@@ -101,6 +104,8 @@ public:
   bool do_any_bodies_move();
   bool test_for_new_results();
   void write_vtk();
+  bool test_vs_stop();
+  bool test_vs_stop_async();
 
 #ifdef USE_GL
   // graphics pass-through calls
@@ -151,6 +156,7 @@ private:
   double output_dt;
   double end_time;
   bool use_end_time;
+  size_t nstep;
   size_t max_steps;
   bool use_max_steps;
   bool sim_is_initialized;
