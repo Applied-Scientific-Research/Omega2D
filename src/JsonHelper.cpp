@@ -67,6 +67,11 @@ void read_json (Simulation& sim,
   if (j.count("runtime") == 1) {
     json params = j["runtime"];
     // no runtime parameters used yet
+    if (params.find("statusFile") != params.end()) {
+      std::string sfile = params["statusFile"];
+      sim.set_status_file_name(sfile);
+      std::cout << "  status file name= " << sfile << std::endl;
+    }
   }
 
   // must do this first, as we need to set viscous before reading Re
@@ -285,6 +290,11 @@ void write_json(Simulation& sim,
   }
 
   j["version"] = { {"Omega2D", 1}, {"jsonInput", 1} };
+
+  const std::string sfile = sim.get_status_file_name();
+  if (not sfile.empty()) {
+    j["runtime"] = { {"statusFile", sfile} };
+  }
 
   float re = *(sim.addr_re());
   float* fs = sim.addr_fs();

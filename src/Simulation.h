@@ -13,6 +13,7 @@
 #include "BEM.h"
 #include "Convection.h"
 #include "Diffusion.h"
+#include "StatusFile.h"
 
 #ifdef USE_GL
 #include "RenderParams.h"
@@ -90,6 +91,10 @@ public:
   std::vector<std::shared_ptr<Body>>::iterator bodies_begin() { return bodies.begin(); }
   std::vector<std::shared_ptr<Body>>::iterator bodies_end() { return bodies.end(); }
 
+  // access status file
+  void set_status_file_name(const std::string);
+  std::string get_status_file_name();
+
   // act on stuff
   //void set_amr(const bool);
   void set_diffuse(const bool);
@@ -149,6 +154,9 @@ private:
   //   also copies of the panels, which will be recreated for each step, and solutions to unknowns
   // Note that with Vc, the storage and accumulator classes have to be the same
   Convection<STORE,ACCUM,Int> conv;
+
+  // status file
+  StatusFile sf;
 
   // state
   std::string description;

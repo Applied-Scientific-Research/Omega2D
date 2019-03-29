@@ -25,6 +25,7 @@ Simulation::Simulation()
     bem(),
     diff(),
     conv(),
+    sf(),
     description(),
     time(0.0),
     output_dt(0.0),
@@ -63,6 +64,10 @@ void Simulation::unset_end_time() { use_end_time = false; }
 void Simulation::set_max_steps(const size_t nms) { max_steps = nms; use_max_steps = true; }
 void Simulation::unset_max_steps() { use_max_steps = false; }
 void Simulation::set_output_dt(const double nodt) { output_dt = nodt; }
+
+// access status file
+void Simulation::set_status_file_name(const std::string _fn) { sf.set_filename(_fn); }
+std::string Simulation::get_status_file_name() { return sf.get_filename(); }
 
 // status
 size_t Simulation::get_npanels() {
@@ -178,6 +183,7 @@ void Simulation::reset() {
   bdry.clear();
   fldpt.clear();
   bem.reset();
+  sf.reset_sim();
   sim_is_initialized = false;
   step_has_started = false;
   step_is_finished = false;
@@ -333,6 +339,11 @@ void Simulation::step() {
 
   // only increment step here!
   nstep++;
+
+  // and write status file
+  sf.append_value((float)time);
+  sf.append_value((int)get_nparts());
+  sf.write_line();
 }
 
 // set up some vortex particles
