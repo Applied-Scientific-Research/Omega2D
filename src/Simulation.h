@@ -101,11 +101,14 @@ public:
   const bool get_diffuse();
   void reset();
   void clear_bodies();
+  void async_first_step();
+  void first_step();
   void async_step();
   void step();
   bool is_initialized();
   void set_initialized();
-  std::string check_simulation(const size_t, const size_t);
+  std::string check_initialization();
+  std::string check_simulation();
   bool do_any_bodies_move();
   bool test_for_new_results();
   void write_vtk();

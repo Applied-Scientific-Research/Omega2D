@@ -260,6 +260,48 @@ int main(int argc, char const *argv[]) {
     ImGui_ImplGlfwGL3_NewFrame();
 
     //
+    // Initialize simulation
+    //
+
+    if (not sim.is_initialized() and (sim_is_running || begin_single_step)) {
+
+      std::cout << std::endl << "Initializing simulation" << std::endl;
+
+      // initialize particle distributions
+      for (auto const& ff: ffeatures) {
+        sim.add_particles( ff->init_particles(sim.get_ips()) );
+      }
+
+      // initialize solid objects
+      for (auto const& bf : bfeatures) {
+        sim.add_boundary( bf->get_body(), bf->init_elements(sim.get_ips()) );
+      }
+
+      // initialize measurement features
+      for (auto const& mf: mfeatures) {
+        sim.add_fldpts( mf->init_particles(rparams.tracer_scale*sim.get_ips()), mf->moves() );
+      }
+
+      sim.set_initialized();
+
+      // check setup for obvious errors
+      sim_err_msg = sim.check_initialization();
+
+      if (sim_err_msg.empty()) {
+        // begin the initial calculation at t=0 so we can draw something
+        sim.async_first_step();
+
+      } else {
+        // the last step had some difficulty
+        std::cout << std::endl << "ERROR: " << sim_err_msg;
+        // stop the run
+        sim_is_running = false;
+      }
+
+      begin_single_step = false;
+    }
+
+    //
     // Update simulation
     //
 
@@ -275,30 +317,8 @@ int main(int argc, char const *argv[]) {
     // see if we should start a new step
     if (is_ready and (sim_is_running || begin_single_step)) {
 
-      // if particles are not yet created, make them
-      if (not sim.is_initialized()) {
-        std::cout << std::endl << "Initializing simulation" << std::endl;
-
-        // initialize particle distributions
-        for (auto const& ff: ffeatures) {
-          sim.add_particles( ff->init_particles(sim.get_ips()) );
-        }
-
-        // initialize solid objects
-        for (auto const& bf : bfeatures) {
-          sim.add_boundary( bf->get_body(), bf->init_elements(sim.get_ips()) );
-        }
-
-        // initialize measurement features
-        for (auto const& mf: mfeatures) {
-          sim.add_fldpts( mf->init_particles(rparams.tracer_scale*sim.get_ips()), mf->moves() );
-        }
-
-        sim.set_initialized();
-      }
-
-      // check flow for blow-up or errors
-      sim_err_msg = sim.check_simulation(ffeatures.size(), bfeatures.size());
+      // check flow for blow-up or dynamic errors
+      sim_err_msg = sim.check_simulation();
 
       if (sim_err_msg.empty()) {
         // the last simulation step was fine, OK to continue

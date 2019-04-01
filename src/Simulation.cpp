@@ -222,18 +222,21 @@ void Simulation::write_vtk() {
 }
 
 //
-// Check all aspects of the simulation for conditions that should stop the run
+// Check all aspects of the initialization for conditions that prevent a run from starting
 //
-std::string Simulation::check_simulation(const size_t _nff, const size_t _nbf) {
+std::string Simulation::check_initialization() {
   std::string retstr;
 
+  // are any flow features particle generators? - HOW DO WE DO THIS?
+  const bool are_generators = false;
+
   // Check for no bodies and no particles
-  if (_nbf == 0 and get_nparts() == 0) {
+  if (get_npanels() == 0 and get_nparts() == 0 and not are_generators) {
     retstr.append("No flow features and no bodies. Add one or both, reset, and run.\n");
   }
 
   // Check for a body and no particles
-  if (_nbf > 0 and get_nparts() == 0) {
+  if (get_npanels() > 0 and get_nparts() == 0) {
 
     const bool zero_freestream = (fs[0]*fs[0]+fs[1]*fs[1] < std::numeric_limits<float>::epsilon());
     const bool no_body_movement = not do_any_bodies_move();
@@ -249,6 +252,17 @@ std::string Simulation::check_simulation(const size_t _nff, const size_t _nbf) {
       retstr.append("You have a solid body, but no diffusion. It will not shed vorticity. Turn on viscosity or add a flow feature, reset, and run.\n");
     }
   }
+
+  return retstr;
+}
+
+//
+// Check dynamic aspects of the simulation for conditions that should stop the run
+//
+std::string Simulation::check_simulation() {
+  std::string retstr;
+
+  // Are there any dynamic problems in 2D that could blow a run?
 
   return retstr;
 }
@@ -299,6 +313,34 @@ bool Simulation::test_for_new_results() {
 
   // async call is not finished, do not try calling it again
   return false;
+}
+
+//
+// call this from a real-time GUI - will only start the first step if no other steps are being worked on
+//
+void Simulation::async_first_step() {
+  step_has_started = true;
+  stepfuture = std::async(std::launch::async, [this](){first_step();});
+}
+
+//
+// initialize the system so we can start drawing things
+//
+void Simulation::first_step() {
+  std::cout << std::endl << "Taking step " << nstep << " at t=" << time << std::endl;
+
+  // we wind up using this a lot
+  std::array<double,2> thisfs = {fs[0], fs[1]};
+
+  // this is the first step, just solve BEM and return - it's time=0
+
+  // update BEM and find vels on any particles but DO NOT ADVECT
+  conv.advect_1st(time, 0.0, thisfs, vort, bdry, fldpt, bem);
+
+  // and write status file
+  sf.append_value((float)time);
+  sf.append_value((int)get_nparts());
+  sf.write_line();
 }
 
 //
