@@ -570,15 +570,28 @@ bool Simulation::test_vs_stop() {
 // this is different because we have to trigger when last step is still running
 bool Simulation::test_vs_stop_async() {
   bool should_stop = false;
+  static bool already_reported = false;
+
   if (using_max_steps() and get_max_steps() == nstep+1) {
-    std::cout << "Stopping at step " << get_max_steps() << std::endl;
+    if (not already_reported) {
+      std::cout << std::endl << "Stopping at step " << get_max_steps() << std::endl;
+      already_reported = true;
+    }
     should_stop = true;
   }
+
   if (using_end_time() and get_end_time() >= time+0.5*dt
                        and get_end_time() <= time+1.5*dt) {
-    std::cout << "Stopping at time " << get_end_time() << std::endl;
+    if (not already_reported) {
+      std::cout << std::endl << "Stopping at time " << get_end_time() << std::endl;
+      already_reported = true;
+    }
     should_stop = true;
   }
+
+  // reset the toggle
+  if (not should_stop) already_reported = false;
+
   return should_stop;
 }
 
