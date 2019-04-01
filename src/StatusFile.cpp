@@ -11,6 +11,11 @@
 #include <fstream>
 //#include <cassert>
 
+// are we even using the status file?
+bool
+StatusFile::is_active() {
+  return use_it;
+}
 
 // accept a filename, means that we should use it
 void

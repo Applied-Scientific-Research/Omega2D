@@ -129,6 +129,7 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~Write a status file containing time, particle count, total circulation, maybe lift, drag? Read json for file name.~~
 * ~~Add a "Run to time..." button to allow users to run a sim up to an exact time~~
 * ~~Consider adding base64 encoding to vtk output files, maybe with [this](https://github.com/tplgy/cppcodec)~~
 * ~~Allow inert Points collections to never allocate space for radius~~

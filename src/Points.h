@@ -251,6 +251,24 @@ public:
     }
   }
 
+  // add and return the total impulse of all elements
+  std::array<S,Dimensions> get_total_impulse() {
+
+    // here is the return vector
+    std::array<S,Dimensions> imp;
+    imp.fill(0.0);
+
+    if (this->s) {
+      // accumulate impulse from each particle
+      for (size_t i=0; i<this->n; ++i) {
+        imp[0] -= (*this->s)[i] * this->x[1][i];
+        imp[1] += (*this->s)[i] * this->x[0][i];
+      }
+    }
+
+    return imp;
+  }
+
   void add_body_motion(const S _factor, const double _time) {
     // no need to call base class now
     //ElementBase<S>::add_body_motion(_factor);

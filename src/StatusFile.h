@@ -28,6 +28,7 @@ public:
   {}
 
   // functions
+  bool is_active();
   void set_filename(const std::string);
   std::string get_filename();
   void reset_sim();

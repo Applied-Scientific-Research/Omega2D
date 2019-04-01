@@ -338,9 +338,7 @@ void Simulation::first_step() {
   conv.advect_1st(time, 0.0, thisfs, vort, bdry, fldpt, bem);
 
   // and write status file
-  sf.append_value((float)time);
-  sf.append_value((int)get_nparts());
-  sf.write_line();
+  dump_stats_to_status();
 }
 
 //
@@ -383,9 +381,70 @@ void Simulation::step() {
   nstep++;
 
   // and write status file
-  sf.append_value((float)time);
-  sf.append_value((int)get_nparts());
-  sf.write_line();
+  dump_stats_to_status();
+}
+
+//
+// close out the step with some work and output to the status file
+//
+void Simulation::dump_stats_to_status() {
+  if (sf.is_active()) {
+    // the basics
+    sf.append_value((float)time);
+    sf.append_value((int)get_nparts());
+
+    // more advanced info
+
+    // add up the total circulation
+    float tot_circ = 0.0;
+    for (auto &src : vort) {
+      tot_circ += std::visit([=](auto& elem) { return elem.get_total_circ(time); }, src);
+    }
+    // then add up the circulation in bodies - DO WE NEED TO RE-SOLVE BEM FIRST?
+    for (auto &src : bdry) {
+      tot_circ += std::visit([=](auto& elem) { return elem.get_total_circ(time); }, src);
+    }
+    sf.append_value(tot_circ);
+
+    // now forces
+    std::array<float,Dimensions> impulse = calculate_simple_forces();
+    for (size_t i=0; i<Dimensions; ++i) sf.append_value(impulse[i]);
+
+    // write here
+    sf.write_line();
+  }
+}
+
+// Use impulse method to calculate total forces
+std::array<float,Dimensions>
+Simulation::calculate_simple_forces() {
+
+  static double last_time = 0.0;
+  static std::array<float,Dimensions> last_impulse = {0.0};
+  std::array<float,Dimensions> this_impulse = {0.0};
+
+  // reset the "last" values if time is zero
+  if (time < 0.1*dt) {
+    last_time = -dt;
+    last_impulse.fill(0.0);
+  }
+
+  // calculate impulse from particles
+  for (auto &src : vort) {
+    std::array<float,Dimensions> this_imp = std::visit([=](auto& elem) { return elem.get_total_impulse(); }, src);
+    for (size_t i=0; i<Dimensions; ++i) this_impulse[i] += this_imp[i];
+  }
+  // then add up the impulse from bodies - DO WE NEED TO RE-SOLVE BEM FIRST?
+  for (auto &src : bdry) {
+    std::array<float,Dimensions> this_imp = std::visit([=](auto& elem) { return elem.get_total_impulse(); }, src);
+    for (size_t i=0; i<Dimensions; ++i) this_impulse[i] += this_imp[i];
+  }
+
+  // find the time derivative of the impulses
+  std::array<float,Dimensions> forces;
+  for (size_t i=0; i<Dimensions; ++i) forces[i] = (this_impulse[i] - last_impulse[i]) / (time - last_time);
+
+  return forces;
 }
 
 // set up some vortex particles
