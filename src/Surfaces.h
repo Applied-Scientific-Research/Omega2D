@@ -248,6 +248,8 @@ public:
     // no need to call base class now
     //ElementBase<S>::add_body_motion(_factor);
 
+    if (not this->B) return;
+
     // make sure we've calculated transformed center (we do this when we do area)
     assert(area > 0.0);
     // and we trust that we've transformed utc to tc
@@ -293,15 +295,15 @@ public:
   // AND we don't have the time - assume bodies have been transformed
   void add_rot_strengths(const S _constfac, const S _rotfactor) {
 
-    // make sure we've calculated transformed center (we do this when we do area)
-    assert(area > 0.0);
-    // and we trust that we've transformed utc to tc
-
     // if no rotation, strengths, or no parent Body, then no problem!
     if (not this->B) return;
     if (not this->s) return;
     const S rotvel = (S)this->B->get_rotvel();
     //if (std::abs(rotvel) < std::numeric_limits<float>::epsilon()) return;
+
+    // make sure we've calculated transformed center (we do this when we do area)
+    assert(area > 0.0);
+    // and we trust that we've transformed utc to tc
 
     // have we made ss yet? or is it the right size?
     if (ss) {
@@ -401,15 +403,22 @@ public:
     // must explicitly call the method in the base class
     ElementBase<S>::transform(_time);
 
-    // prepare for the transform
-    std::array<double,Dimensions> thispos = this->B->get_pos();
-    const double theta = this->B->get_orient();
-    const S st = std::sin(theta);
-    const S ct = std::cos(theta);
+    if (this->B) {
+      // prepare for the transform
+      std::array<double,Dimensions> thispos = this->B->get_pos();
+      const double theta = this->B->get_orient();
+      const S st = std::sin(theta);
+      const S ct = std::cos(theta);
 
-    // transform the utc to tc here
-    tc[0] = (S)thispos[0] + utc[0]*ct - utc[1]*st;
-    tc[1] = (S)thispos[1] + utc[0]*st + utc[1]*ct;
+      // transform the utc to tc here
+      tc[0] = (S)thispos[0] + utc[0]*ct - utc[1]*st;
+      tc[1] = (S)thispos[1] + utc[0]*st + utc[1]*ct;
+
+    } else {
+      // transform the utc to tc here
+      tc[0] = utc[0];
+      tc[1] = utc[1];
+    }
   }
 
 

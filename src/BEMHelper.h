@@ -166,7 +166,7 @@ void solve_bem(const double                         _time,
           // test for relative motion between these two blocks (translation only for now)
           std::shared_ptr<Body> tb = std::visit([=](auto& elem) { return elem.get_body_ptr(); }, targ);
           std::shared_ptr<Body> sb = std::visit([=](auto& elem) { return elem.get_body_ptr(); }, src);
-          rebuild_this_block = tb->relative_motion_vs(sb, last_time, _time);
+          if (tb and sb) rebuild_this_block = tb->relative_motion_vs(sb, last_time, _time);
         }
 
         if (rebuild_this_block) {
