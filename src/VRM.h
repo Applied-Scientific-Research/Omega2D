@@ -62,7 +62,7 @@ private:
   // solve VRM to how many moments?
   static const int32_t num_moments = MAXMOM;
   static constexpr int32_t num_rows = (num_moments+1) * (num_moments+2) / 2;
-  // we needed 16 here for static solutions, 20 for dynamic, and 24 for dynamic with adaptivity
+  // we needed 16 here for static solutions, 32 for dynamic, and 64 for dynamic with adaptivity
   static constexpr int32_t max_near = 32 * num_moments;
 
   // h_nu is sqrt(dt*nu) or sqrt(dt/Re)
