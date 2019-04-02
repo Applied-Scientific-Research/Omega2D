@@ -52,19 +52,19 @@ public:
       max_strength(-1.0) {
 
     // make sure input arrays are correctly-sized
-    assert(_x.size() % 2 == 0);
-    assert(_idx.size() % 2 == 0);
-    assert(_idx.size()/2 == _val.size());
-    const size_t nnodes = _x.size() / 2;
-    const size_t nsurfs = _idx.size() / 2;
+    assert(_x.size() % Dimensions == 0);
+    assert(_idx.size() % Dimensions == 0);
+    const size_t nnodes = _x.size() / Dimensions;
+    const size_t nsurfs = _idx.size() / Dimensions;
+    assert(_val.size() % nsurfs == 0);
 
-    std::cout << "  new collection with " << nsurfs << " surface panels..." << std::endl;
+    std::cout << "  new collection with " << nsurfs << " surface panels" << std::endl;
 
     // pull out the node locations
     for (size_t d=0; d<Dimensions; ++d) {
       this->x[d].resize(nnodes);
       for (size_t i=0; i<nnodes; ++i) {
-        this->x[d][i] = _x[2*i+d];
+        this->x[d][i] = _x[Dimensions*i+d];
       }
     }
 
@@ -133,9 +133,9 @@ public:
     }
   }
 
-  size_t get_npanels() const { return idx.size()/2; }
-  const S get_area() const { return area; }
-  const std::array<S,2> get_geom_center() const { return tc; }
+  size_t                         get_npanels()     const { return idx.size()/Dimensions; }
+  const S                        get_area()        const { return area; }
+  const std::array<S,Dimensions> get_geom_center() const { return tc; }
 
   // callers should never have to change this array
   const std::vector<Int>& get_idx() const { return idx; }
@@ -161,11 +161,11 @@ public:
     const size_t neold = get_npanels();
 
     // make sure input arrays are correctly-sized
-    assert(_x.size() % 2 == 0);
-    assert(_idx.size() % 2 == 0);
+    assert(_x.size() % Dimensions == 0);
+    assert(_idx.size() % Dimensions == 0);
     assert(_idx.size()/2 == _val.size());
-    const size_t nnodes = _x.size() / 2;
-    const size_t nsurfs = _idx.size() / 2;
+    const size_t nnodes = _x.size() / Dimensions;
+    const size_t nsurfs = _idx.size() / Dimensions;
 
     std::cout << "  adding " << nsurfs << " new surface panels to collection..." << std::endl;
 
@@ -176,7 +176,7 @@ public:
     for (size_t d=0; d<Dimensions; ++d) {
       this->x[d].resize(nnold+nnodes);
       for (size_t i=0; i<nnodes; ++i) {
-        this->x[d][nnold+i] = _x[2*i+d];
+        this->x[d][nnold+i] = _x[Dimensions*i+d];
       }
     }
 
@@ -361,7 +361,6 @@ public:
     assert(this->ux);
 
     std::cout << "  inside Surfaces::set_geom_center with " << get_npanels() << " panels" << std::endl;
-    // (*this->ux)[d][i]
 
     // iterate over panels, accumulating area and CM
     S asum = 0.0;
@@ -760,8 +759,8 @@ protected:
   std::optional<Vector<S>> ss;
 
   S area;			// area of the body - for augmented BEM solution
-  std::array<S,2> utc;		// untransformed geometric center
-  std::array<S,2>  tc;		// transformed geometric center
+  std::array<S,Dimensions> utc;		// untransformed geometric center
+  std::array<S,Dimensions>  tc;		// transformed geometric center
 
 private:
 #ifdef USE_GL
