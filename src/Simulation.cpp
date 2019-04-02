@@ -444,6 +444,10 @@ Simulation::calculate_simple_forces() {
   std::array<float,Dimensions> forces;
   for (size_t i=0; i<Dimensions; ++i) forces[i] = (this_impulse[i] - last_impulse[i]) / (time - last_time);
 
+  // save the last condition
+  last_time = time;
+  for (size_t i=0; i<Dimensions; ++i) last_impulse[i] = this_impulse[i];
+
   return forces;
 }
 
