@@ -514,7 +514,7 @@ public:
         // upload the current color values
         glUniform4fv(mgl->pos_color_attribute, 1, (const GLfloat *)_rparams.pos_circ_color);
         glUniform4fv(mgl->neg_color_attribute, 1, (const GLfloat *)_rparams.neg_circ_color);
-        glUniform1f (mgl->str_scale_attribute, (const GLfloat)(0.4f/max_strength));
+        glUniform1f (mgl->str_scale_attribute, (const GLfloat)(_rparams.circ_density/max_strength));
 
         // the one draw call here
         glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, mgl->num_uploaded);
