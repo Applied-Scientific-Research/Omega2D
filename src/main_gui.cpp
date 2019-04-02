@@ -32,13 +32,9 @@
 // whatever already works for you.
 #include <GLFW/glfw3.h>
 
-#include <cmath>
 #include <cstdio>
 #include <iostream>
-#include <memory>
 #include <vector>
-#include <sstream> // for stringstream
-#include <iomanip> // for setw
 
 static void error_callback(int error, const char* description) {
   fprintf(stderr, "Error %d: %s\n", error, description);
@@ -230,7 +226,7 @@ int main(int argc, char const *argv[]) {
   // Get and set some IO functions
   ImGuiIO& io = ImGui::GetIO();
   io.IniFilename = ".omega2d.ini";
-  std::vector<std::string> recent_files;
+  std::vector<std::string> recent_json_files;
 
   // a string to hold any error messages
   std::string sim_err_msg;
@@ -242,7 +238,7 @@ int main(int argc, char const *argv[]) {
   bool show_stats_window = false;
   bool show_terminal_window = false;
   bool show_test_window = false;
-  bool show_file_input_window = false;
+  bool show_json_input_window = false;
   bool show_file_output_window = false;
   //static bool show_origin = true;
   static bool is_viscous = false;
@@ -485,18 +481,18 @@ int main(int argc, char const *argv[]) {
 
     // or load a simulation from a JSON file
     ImGui::SameLine();
-    if (ImGui::Button("Or load a json file", ImVec2(160,0))) show_file_input_window = true;
+    if (ImGui::Button("Or load a json file", ImVec2(160,0))) show_json_input_window = true;
 
-    if (show_file_input_window) {
+    if (show_json_input_window) {
       bool try_it = false;
       static std::string infile = "input.json";
 
-      if (fileIOWindow( try_it, infile, recent_files, "Open", {"*.json", "*.*"}, true, ImVec2(500,250))) {
-        show_file_input_window = false;
+      if (fileIOWindow( try_it, infile, recent_json_files, "Open", {"*.json", "*.*"}, true, ImVec2(500,250))) {
+        show_json_input_window = false;
 
         if (try_it and !infile.empty()) {
           // remember
-          recent_files.push_back( infile );
+          recent_json_files.push_back( infile );
 
           // stop and clear before loading
           sim.reset();
@@ -1047,12 +1043,12 @@ int main(int argc, char const *argv[]) {
         bool try_it = false;
         static std::string outfile = "output.json";
 
-        if (fileIOWindow( try_it, outfile, recent_files, "Save", {"*.json", "*.*"}, false, ImVec2(500,250))) {
+        if (fileIOWindow( try_it, outfile, recent_json_files, "Save", {"*.json", "*.*"}, false, ImVec2(500,250))) {
           show_file_output_window = false;
 
           if (try_it) {
             // remember
-            recent_files.push_back( outfile );
+            recent_json_files.push_back( outfile );
 
             // retrieve window sizes
             glfwGetWindowSize(window, &rparams.width, &rparams.height);
