@@ -129,6 +129,7 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~Replace libpng with stb\_image\_write.h to ease Windows builds~~
 * ~~Write a status file containing time, particle count, total circulation, maybe lift, drag? Read json for file name.~~
 * ~~Add a "Run to time..." button to allow users to run a sim up to an exact time~~
 * ~~Consider adding base64 encoding to vtk output files, maybe with [this](https://github.com/tplgy/cppcodec)~~
@@ -175,7 +176,7 @@ Completed tasks:
 ## Thanks
 This project is funded by the [National Institutes of Health (NIH)](https://www.nih.gov/) under grant number 1 R01 EB022180-01A1 ("A Fast High-Order CFD for Turbulent Flow Simulation in Cardio-Devices").
 
-Thanks to [Omar Cornut](http://www.miracleworld.net/) for his [dear imgui](https://github.com/ocornut/imgui) library, file browser dialogs from [Imgui-IGS-Snippets](https://github.com/gileoo/Imgui-IGS-Snippets), sol-prog's [OpenGL Tutorials](https://github.com/sol-prog/OpenGL-101), and Jim Susinno's [OpenGL-Boilerplate](https://github.com/jimbo00000/OpenGL-Boilerplate).
+Thanks to [Omar Cornut](http://www.miracleworld.net/) for his [dear imgui](https://github.com/ocornut/imgui) library, file browser dialogs from [Imgui-IGS-Snippets](https://github.com/gileoo/Imgui-IGS-Snippets), png writing from [stb\_image\_write](https://github.com/nothings/stb/blob/master/stb_image_write.h), sol-prog's [OpenGL Tutorials](https://github.com/sol-prog/OpenGL-101), and Jim Susinno's [OpenGL-Boilerplate](https://github.com/jimbo00000/OpenGL-Boilerplate).
 
 VRM code is functional thanks to jlblancoc for [Nanoflann](https://github.com/jlblancoc/nanoflann) (a header-only tree search library), and to all of the developers of [Eigen](http://eigen.tuxfamily.org/) (a C++ matrix/vector library). The BEM code also relies heavily on [Eigen](http://eigen.tuxfamily.org/). We also love [Vc](https://github.com/VcDevel/Vc), an excellent SIMD library by Matthias Kretz.
 

@@ -22,10 +22,13 @@
 #endif
 #include "glad.h"
 
+// header-only immediate-mode GUI
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw_gl3.h"
 #include "imgui/ImguiWindowsFileIO.hpp"
-#include "imgui/FrameBufferToImage.hpp"
+
+// header-only png writing
+#include "stb/FrameBufferToImage.h"
 
 //#include <GL/gl3w.h>    // This example is using gl3w to access OpenGL
 // functions (because it is small). You may use glew/glad/glLoadGen/etc.
