@@ -22,9 +22,7 @@
 #include <memory>
 #include <optional>
 #include <chrono>
-#define _USE_MATH_DEFINES
 #include <cmath>
-
 
 
 //

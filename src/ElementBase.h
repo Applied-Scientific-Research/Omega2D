@@ -17,7 +17,6 @@
 #include <cassert>
 #include <optional>
 #include <variant>
-#define _USE_MATH_DEFINES
 #include <cmath>
 
 

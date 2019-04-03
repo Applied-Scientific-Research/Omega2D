@@ -14,7 +14,6 @@
 #include <cstdlib>
 #include <limits>
 #include <vector>
-#define _USE_MATH_DEFINES // Required by MSVC to define M_PI,etc. in <cmath>
 #include <cmath>
 
 enum ClosestType { panel, node };

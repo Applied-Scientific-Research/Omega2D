@@ -18,7 +18,6 @@
 #include <cstdint>
 #include <cassert>
 #include <chrono>
-#define _USE_MATH_DEFINES // Required by MSVC to define M_PI,etc. in <cmath>
 #include <cmath>
 #include <vector>
 

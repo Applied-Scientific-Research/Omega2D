@@ -24,7 +24,8 @@ ELSEIF (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   SET (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -ggdb")
   SET (CMAKE_CXX_FLAGS_RELEASE "-O3")
 ELSEIF (MSVC)
-  SET (CMAKE_CXX_FLAGS "/Ox")
+  SET (CMAKE_CXX_FLAGS "/std:c++17 /D_USE_MATH_DEFINES")
+  SET (CMAKE_CXX_FLAGS_RELEASE "/O3")
 ENDIF ()
 
 IF( WIN32 )
@@ -34,8 +35,11 @@ IF( WIN32 )
   LINK_DIRECTORIES   ( "${GLFW3_ROOT}/lib-vc2015" )
   SET( FRAMEWORK_LIBS glfw3.lib )
 
+  INCLUDE_DIRECTORIES ( "${GL_LIBS_HOME}/eigen" )
+
   SET( BASE_LIBS ${CMAKE_THREAD_LIBS_INIT} )
   SET( GUI_LIBS ${FRAMEWORK_LIBS} opengl32 )
+  set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Omega2D)
 
 ELSEIF( APPLE )
   INCLUDE_DIRECTORIES ( /System/Library/Frameworks )
@@ -142,7 +146,9 @@ INCLUDE_DIRECTORIES( "src/cppcodec" )
 
 SET_SOURCE_FILES_PROPERTIES("src/imgui/imgui_draw.cpp" PROPERTIES COMPILE_FLAGS -Wno-maybe-uninitialized)
 
-SET(SOURCES "src/Simulation.cpp"
+FILE(GLOB HEADERS "src/*.h" )
+SET(SOURCES ${HEADERS}
+            "src/Simulation.cpp"
             "src/FlowFeature.cpp"
             "src/CollectionHelper.cpp"
             "src/BoundaryFeature.cpp"

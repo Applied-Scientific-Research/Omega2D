@@ -87,7 +87,7 @@ size_t merge_close_particles(std::array<Vector<ST>,2>& pos,
 
     // tree-based search with nanoflann
     const ST query_pt[2] = { x[i], y[i] };
-    const size_t nMatches = mat_index.index->radiusSearch(query_pt, distsq_thresh, ret_matches, params);
+    size_t nMatches = mat_index.index->radiusSearch(query_pt, distsq_thresh, ret_matches, params);
 
     // one match should be self, but we don't know which one
     // if there are more than one, check the radii

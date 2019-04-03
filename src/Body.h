@@ -16,7 +16,6 @@
 
 #include <string>
 #include <memory>
-#define _USE_MATH_DEFINES // Required by MSVC to define M_PI,etc. in <cmath>
 #include <cmath>
 #include <array>
 
