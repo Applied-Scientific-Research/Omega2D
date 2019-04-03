@@ -30,6 +30,7 @@ void saveFramePNG(std::string file_name) {
   glReadBuffer(GL_BACK);
   glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, buffer);
 
+  stbi_flip_vertically_on_write(1);
   //int stbi_write_png(char const *filename, int w, int h, int comp, const void *data, int stride_in_bytes);
   stbi_write_png(file_name.c_str(), width, height, 3, buffer, 3*width);
 
