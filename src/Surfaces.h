@@ -689,7 +689,8 @@ public:
 
   // OpenGL3 stuff to display points, called once per frame
   void drawGL(std::vector<float>& _projmat,
-              RenderParams&       _rparams) {
+              RenderParams&       _rparams,
+              const float         _vdelta) {
 
     //std::cout << "inside Surfaces.drawGL" << std::endl;
 

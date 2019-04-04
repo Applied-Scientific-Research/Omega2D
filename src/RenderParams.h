@@ -31,13 +31,13 @@ struct RenderParams {
   float vsize = 2.0f;
 
   // colors
-  float pos_circ_color[4] = {207./255.,  47./255.,  47./255., 1.0};
-  float neg_circ_color[4] = { 63./255.,  63./255., 255./255., 1.0};
+  float pos_circ_color[4] = {177./255.,  40./255.,  40./255., 1.0};
+  float neg_circ_color[4] = { 64./255.,  64./255., 255./255., 1.0};
   float default_color[4]  = {204./255., 204./255., 204./255., 1.0};
-  float clear_color[4]    = { 15./255.,  15./255.,  15./255., 1.0};
+  float clear_color[4]    = {  0./255.,   0./255.,   0./255., 1.0};
 
   // other
-  float circ_density = 0.5;	// non-dimensional
+  float circ_density = 0.3;	// non-dimensional
   float tracer_scale = 0.15;	// non-dimensional
   float tracer_size;		// dimensional
 };

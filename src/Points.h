@@ -464,7 +464,8 @@ public:
 
   // OpenGL3 stuff to display points, called once per frame
   void drawGL(std::vector<float>& _projmat,
-              RenderParams&       _rparams) {
+              RenderParams&       _rparams,
+              const float         _vdelta) {
 
     //std::cout << "inside Points.drawGL" << std::endl;
 
@@ -513,7 +514,7 @@ public:
         // upload the current color values
         glUniform4fv(mgl->pos_color_attribute, 1, (const GLfloat *)_rparams.pos_circ_color);
         glUniform4fv(mgl->neg_color_attribute, 1, (const GLfloat *)_rparams.neg_circ_color);
-        glUniform1f (mgl->str_scale_attribute, (const GLfloat)(_rparams.circ_density/max_strength));
+        glUniform1f (mgl->str_scale_attribute, (const GLfloat)(_rparams.circ_density*std::pow(_vdelta,2)/max_strength));
 
         // the one draw call here
         glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, mgl->num_uploaded);
