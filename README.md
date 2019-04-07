@@ -92,8 +92,6 @@ Generate an X.264-encoded video from a series of png images with the following c
 Tasks to consider or implement:
 
 * Consider a zlib implementation for both vtu and png files: [zstr](https://github.com/mateidavid/zstr), [miniz](https://github.com/richgel999/miniz), or [gzip-hpp](https://github.com/mapbox/gzip-hpp)
-* Add the axisymmetrization of a vortex patch simulation to the pull-down
-* Convert all angles (except in GUI) to radians
 * How awesome would it be to show the flow as a time-consistent LIC image? See UFLIC (Shen & Kao, IEEE ToVaCG 1999)
 * Add inlet and outlet surfaces to push flow around - the BC is that normal flow must equal some number
 * Add airfoils - read them from a text file or generate them algorithmically - this means enabling Kutta points (reactive Points)
@@ -131,6 +129,8 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~Convert all angles (except in GUI) to radians - pretty sure this is done~~
+* ~~Add the axisymmetrization of a vortex patch simulation to the pull-down~~
 * ~~Replace libpng with stb\_image\_write.h to ease Windows builds~~
 * ~~Write a status file containing time, particle count, total circulation, maybe lift, drag? Read json for file name.~~
 * ~~Add a "Run to time..." button to allow users to run a sim up to an exact time~~
