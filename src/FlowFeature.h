@@ -99,6 +99,36 @@ protected:
 
 
 //
+// Concrete class for an asymmetric vortex blob
+//
+class AsymmetricBlob : public VortexBlob {
+public:
+  AsymmetricBlob(float _x = 0.0,
+                 float _y = 0.0,
+                 float _str = 1.0,
+                 float _majrad = 0.2,
+                 float _minrad = 0.1,
+                 float _soft = 0.1,
+                 float _theta = 0.0)
+    : VortexBlob(_x, _y, _str, _majrad, _soft),
+      m_minrad(_minrad),
+      m_theta(_theta)
+    {}
+
+  void debug(std::ostream& os) const override;
+  std::string to_string() const override;
+  void from_json(nlohmann::json) override;
+  nlohmann::json to_json() const override;
+  std::vector<float> init_particles(float) const override;
+  std::vector<float> step_particles(float) const override;
+
+protected:
+  float m_minrad;
+  float m_theta;
+};
+
+
+//
 // Concrete class for a rectangle of constant-strength particles
 //
 class UniformBlock : public SingleParticle {

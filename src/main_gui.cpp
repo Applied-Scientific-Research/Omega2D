@@ -385,8 +385,8 @@ int main(int argc, char const *argv[]) {
     // Select pre-populated simulations
     {
       static int sim_item = 0;
-      const char* sim_items[] = { "Select a simulation...", "co-rotating vortices", "traveling vortex pair", "flow over circle", "flow over square" };
-      ImGui::Combo("", &sim_item, sim_items, 5);
+      const char* sim_items[] = { "Select a simulation...", "co-rotating vortices", "traveling vortex pair", "asymmetric vortex patch", "flow over circle", "flow over square" };
+      ImGui::Combo("", &sim_item, sim_items, 6);
 
       float* dt = sim.addr_dt();
       float* fs = sim.addr_fs();
@@ -438,6 +438,26 @@ int main(int argc, char const *argv[]) {
           sim_item = 0;
           break;
         case 3:
+          // axi-symmetrization of an oval vortex patch
+          sim.reset();
+          sim.clear_bodies();
+          bfeatures.clear();
+          ffeatures.clear();
+          mfeatures.clear();
+          *dt = 0.02;
+          fs[0] = 0.0; fs[1] = 0.0;
+          sim.set_re_for_ips(0.015);
+          // generate the vortices
+          ffeatures.emplace_back(std::make_unique<AsymmetricBlob>(0.0, 0.0, 1.0, 1./2., 1./8., 1/32., 90.));
+          is_viscous = true;
+          sim.set_diffuse(true);
+          // start it up
+          sim_is_running = true;
+          rparams.circ_density = 0.6;
+          // and make sure we don't keep re-entering this
+          sim_item = 0;
+          break;
+        case 4:
           // Re=250 flow over a circular cylinder
           sim.reset();
           sim.clear_bodies();
@@ -458,7 +478,7 @@ int main(int argc, char const *argv[]) {
           // and make sure we don't keep re-entering this
           sim_item = 0;
           break;
-        case 4:
+        case 5:
           // Re=500 flow over a square
           sim.reset();
           sim.clear_bodies();
@@ -630,8 +650,8 @@ int main(int argc, char const *argv[]) {
       if (ImGui::BeginPopupModal("New flow structure"))
       {
         static int item = 1;
-        const char* items[] = { "single particle", "round vortex blob", "block of vorticity", "random particles", "particle emitter" };
-        ImGui::Combo("type", &item, items, 5);
+        const char* items[] = { "single particle", "round vortex blob", "asymmetric vortex blob", "block of vorticity", "random particles", "particle emitter" };
+        ImGui::Combo("type", &item, items, 6);
 
         static float xc[2] = {0.0f, 0.0f};
         static float rad = 5.0 * sim.get_ips();
@@ -677,6 +697,24 @@ int main(int argc, char const *argv[]) {
             break;
 
           case 2:
+            // an asymmetric blob of multiple vorticies
+            static float minrad = 2.5 * sim.get_ips();
+            static float rotdeg = 90.0f;
+            ImGui::SliderFloat("strength", &str, -5.0f, 5.0f, "%.4f");
+            ImGui::SliderFloat("major radius", &rad, sim.get_ips(), 1.0f, "%.4f");
+            ImGui::SliderFloat("minor radius", &minrad, sim.get_ips(), 1.0f, "%.4f");
+            ImGui::SliderFloat("softness", &soft, sim.get_ips(), 1.0f, "%.4f");
+            ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 179.0f, "%.0f");
+            ImGui::TextWrapped("This feature will add about %d particles", (int)(0.785398175*std::pow((2*rad+soft)/sim.get_ips(), 2)));
+            if (ImGui::Button("Add asymmetric vortex blob")) {
+              ffeatures.emplace_back(std::make_unique<AsymmetricBlob>(xc[0], xc[1], str, rad, minrad, soft, rotdeg));
+              std::cout << "Added " << (*ffeatures.back()) << std::endl;
+              ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            break;
+
+          case 3:
             // random particles in a rectangle
             ImGui::SliderFloat("strength", &str, -5.0f, 5.0f, "%.4f");
             ImGui::SliderFloat2("box size", xs, 0.01f, 10.0f, "%.4f", 2.0f);
@@ -689,7 +727,7 @@ int main(int argc, char const *argv[]) {
             ImGui::SameLine();
             break;
 
-          case 3:
+          case 4:
             // random particles in a rectangle
             ImGui::SliderInt("number", &npart, 1, 10000);
             ImGui::SliderFloat2("box size", xs, 0.01f, 10.0f, "%.4f", 2.0f);
@@ -703,7 +741,7 @@ int main(int argc, char const *argv[]) {
             ImGui::SameLine();
             break;
 
-          case 4:
+          case 5:
             // create a particle emitter
             static float estr = 0.1f;
             ImGui::SliderFloat("strength", &estr, -0.1f, 0.1f, "%.4f");

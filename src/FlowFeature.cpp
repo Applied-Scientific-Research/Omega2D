@@ -33,6 +33,7 @@ void parse_flow_json(std::vector<std::unique_ptr<FlowFeature>>& _flist,
 
   if      (ftype == "single particle") {  _flist.emplace_back(std::make_unique<SingleParticle>()); }
   else if (ftype == "vortex blob") {      _flist.emplace_back(std::make_unique<VortexBlob>()); }
+  else if (ftype == "asymmetric blob") {  _flist.emplace_back(std::make_unique<AsymmetricBlob>()); }
   else if (ftype == "uniform block") {    _flist.emplace_back(std::make_unique<UniformBlock>()); }
   else if (ftype == "block of random") {  _flist.emplace_back(std::make_unique<BlockOfRandom>()); }
   else if (ftype == "particle emitter") { _flist.emplace_back(std::make_unique<ParticleEmitter>()); }
@@ -106,15 +107,12 @@ VortexBlob::init_particles(float _ips) const {
   // and a counter for the total circulation
   double tot_circ = 0.0;
 
-  // will need this
-  const double pi = std::acos(-1);
-
   // loop over integer indices
   for (int i=-irad; i<=irad; ++i) {
   for (int j=-irad; j<=irad; ++j) {
 
     // how far from the center are we?
-    float dr = sqrt((float)(i*i+j*j)) * _ips;
+    float dr = std::sqrt((float)(i*i+j*j)) * _ips;
     if (dr < m_rad + 0.5*m_softness) {
 
       // create a particle here
@@ -125,7 +123,7 @@ VortexBlob::init_particles(float _ips) const {
       double this_str = 1.0;
       if (dr > m_rad - 0.5*m_softness) {
         // create a weaker particle
-        this_str = 0.5 - 0.5*std::sin(pi * (dr - m_rad) / m_softness);
+        this_str = 0.5 - 0.5*std::sin(M_PI * (dr - m_rad) / m_softness);
       }
       x.emplace_back((float)this_str);
       tot_circ += this_str;
@@ -138,7 +136,7 @@ VortexBlob::init_particles(float _ips) const {
 
   // finally, normalize all particle strengths so that the whole blob
   //   has exactly the right strength
-  std::cout << "blob had " << tot_circ << " initial circulation" << std::endl;
+  std::cout << "  blob had " << tot_circ << " initial circulation" << std::endl;
   double str_scale = (double)m_str / tot_circ;
   for (size_t i=2; i<x.size(); i+=4) {
     x[i] = (float)((double)x[i] * str_scale);
@@ -182,6 +180,109 @@ VortexBlob::to_json() const {
   j["radius"] = m_rad;
   j["softness"] = m_softness;
   j["strength"] = m_str;
+  return j;
+}
+
+
+//
+// make an anymmetric vortex blob with soft transition
+//
+std::vector<float>
+AsymmetricBlob::init_particles(float _ips) const {
+  // create a new vector to pass on
+  std::vector<float> x;
+
+  // what size 2D integer array will we loop over
+  int irad = 1 + (m_rad    + 0.5*m_softness) / _ips;
+  int jrad = 1 + (m_minrad + 0.5*m_softness) / _ips;
+  std::cout << "blob needs " << (-irad) << " to " << irad << " spaces" << std::endl;
+
+  // and a counter for the total circulation
+  double tot_circ = 0.0;
+
+  const float st = std::sin(M_PI * m_theta / 180.0);
+  const float ct = std::cos(M_PI * m_theta / 180.0);
+
+  // loop over integer indices
+  for (int i=-irad; i<=irad; ++i) {
+  for (int j=-jrad; j<=jrad; ++j) {
+
+    const float dx = (float)i * _ips;
+    const float dy = (float)j * _ips;
+
+    // reproject to m_rad circular before calculating the distance to center
+    float dr = std::sqrt(dx*dx + std::pow(dy*m_rad/m_minrad,2));
+    if (dr < m_rad + 0.5*m_softness) {
+
+      // create a particle here
+      x.emplace_back(m_x + dx*ct - dy*st);
+      x.emplace_back(m_y + dx*st + dy*ct);
+
+      // figure out the strength from another check
+      double this_str = 1.0;
+      if (dr > m_rad - 0.5*m_softness) {
+        // create a weaker particle
+        this_str = 0.5 - 0.5*std::sin(M_PI * (dr - m_rad) / m_softness);
+      }
+      x.emplace_back((float)this_str);
+      tot_circ += this_str;
+
+      // this is the radius - still zero for now
+      x.emplace_back(0.0f);
+    }
+  }
+  }
+
+  // finally, normalize all particle strengths so that the whole blob
+  //   has exactly the right strength
+  std::cout << "  asym blob had " << tot_circ << " initial circulation" << std::endl;
+  double str_scale = (double)m_str / tot_circ;
+  for (size_t i=2; i<x.size(); i+=4) {
+    x[i] = (float)((double)x[i] * str_scale);
+  }
+
+  return x;
+}
+
+std::vector<float>
+AsymmetricBlob::step_particles(float _ips) const {
+  return std::vector<float>();
+}
+
+void
+AsymmetricBlob::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+AsymmetricBlob::to_string() const {
+  std::stringstream ss;
+  ss << "asymmetric blob at " << m_x << " " << m_y << ", radii " << m_rad << " " << m_minrad << ", softness " << m_softness << ", and strength " << m_str;
+  return ss.str();
+}
+
+void
+AsymmetricBlob::from_json(const nlohmann::json j) {
+  const std::vector<float> c = j["center"];
+  m_x = c[0];
+  m_y = c[1];
+  m_softness = j["softness"];
+  m_str = j["strength"];
+  const std::vector<float> sc = j["scale"];
+  m_rad = sc[0];
+  m_minrad = sc[1];
+  m_theta = j.value("rotation", 0.0);
+}
+
+nlohmann::json
+AsymmetricBlob::to_json() const {
+  nlohmann::json j;
+  j["type"] = "vortex blob";
+  j["center"] = {m_x, m_y};
+  j["softness"] = m_softness;
+  j["strength"] = m_str;
+  j["scale"] = {m_rad, m_minrad};;
+  j["rotation"] = m_theta;
   return j;
 }
 
