@@ -975,7 +975,7 @@ int main(int argc, char const *argv[]) {
       ImGui::ColorEdit3("feature color",        rparams.default_color);
       ImGui::ColorEdit3("background color",     rparams.clear_color);
       //ImGui::Checkbox("show origin", &show_origin);
-      ImGui::SliderFloat("vorticity density", &(rparams.circ_density), 0.1f, 5.0f, "%.1f", 2.0f);
+      ImGui::SliderFloat("vorticity density", &(rparams.circ_density), 0.1f, 1.0f, "%.2f");
 
       if (ImGui::Button("Recenter")) {
         // put everything back to center
