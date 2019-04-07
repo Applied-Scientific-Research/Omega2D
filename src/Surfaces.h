@@ -672,6 +672,7 @@ public:
       // here is where we split on element type: active/reactive vs. inert
       if (this->E == inert) {
         // just don't upload strengths
+
       } else { // this->E is active or reactive
         // the strengths
         if (this->s) {
@@ -687,7 +688,7 @@ public:
     }
   }
 
-  // OpenGL3 stuff to display points, called once per frame
+  // OpenGL3 stuff to draw segments, called once per frame
   void drawGL(std::vector<float>& _projmat,
               RenderParams&       _rparams,
               const float         _vdelta) {
