@@ -233,7 +233,6 @@ void solve_bem(const double                         _time,
 
     // and send it to the elements
     std::visit([=](auto& elem) { elem.set_str(tstart, new_s.size(), new_s);  }, targ);
-
   }
 
   // save the simulation time to compare to the next call

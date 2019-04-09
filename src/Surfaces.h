@@ -538,14 +538,17 @@ public:
 
   // add and return the total circulation of all elements
   S get_total_circ(const double _time) {
+    S circ = 0.0;
+
     // do not call the parent
     if (this->B) {
       // we're attached to a body - great! what's the rotation rate?
-      return 2.0 * area * (S)this->B->get_rotvel(_time);
+      circ = 2.0 * area * (S)this->B->get_rotvel(_time);
     } else {
       // we are fixed, thus not rotating
-      return 0.0;
     }
+
+    return circ;
   }
 
   // add and return the total impulse of all elements
