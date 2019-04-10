@@ -37,6 +37,7 @@ public:
   VRM(const CT);
   void set_hnu(const ST);
   ST get_hnu();
+  void set_adaptive_radii(const bool);
 
   // all-to-all diffuse; can change array sizes
   void diffuse_all(std::array<Vector<ST>,2>&,
@@ -71,6 +72,13 @@ private:
   static constexpr size_t num_sites = 30 * ((MAXMOM>2) ? 2 : 1);
   std::array<ST,num_sites> xsite,ysite;
   void initialize_sites();
+
+  // for adaptive particle size VRM
+  bool adapt_radii = false;
+  //const ST radius_lapse = 0.3;
+  // only adapt particles if their strength is less than this
+  //   fraction of max particle strength
+  //const ST adapt_thresh = 1.e-2;
 
   // do not perform VRM if source particle strength is less than
   //   this fraction of max particle strength
@@ -151,6 +159,13 @@ void VRM<ST,CT,MAXMOM>::initialize_sites() {
 template <class ST, class CT, uint8_t MAXMOM>
 void VRM<ST,CT,MAXMOM>::set_hnu(const ST _newhnu) {
   h_nu = _newhnu;
+}
+
+template <class ST, class CT, uint8_t MAXMOM>
+void VRM<ST,CT,MAXMOM>::set_adaptive_radii(const bool _doamr) {
+  //if (!adapt_radii and _doamr) std::cout << "Particle radii will adapt to solution" << std::endl;
+  //if (adapt_radii and !_doamr) std::cout << "Particle radii will not adapt to solution" << std::endl;
+  adapt_radii = _doamr;
 }
 
 template <class ST, class CT, uint8_t MAXMOM>
