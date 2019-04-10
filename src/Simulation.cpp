@@ -113,10 +113,10 @@ const bool Simulation::get_diffuse() {
   return diff.get_diffuse();
 }
 
-//void Simulation::set_amr(const bool _do_amr) {
-//  diff.set_amr(_do_amr);
-//  diff.set_diffuse(true);
-//}
+void Simulation::set_amr(const bool _do_amr) {
+  diff.set_amr(_do_amr);
+  diff.set_diffuse(true);
+}
 
 #ifdef USE_GL
 void Simulation::initGL(std::vector<float>& _projmat,
@@ -362,14 +362,14 @@ void Simulation::step() {
   diff.step(time, dt, re, get_vdelta(), thisfs, vort, bdry, bem);
 
   // operator splitting requires one half-step diffuse (use coefficients from previous step, if available)
-  //diff.step(time, 0.5*dt, get_vdelta(), get_ips(), thisfs, vort, bdry);
+  //diff.step(time, 0.5*dt, re, get_vdelta(), thisfs, vort, bdry, bem);
 
   // advect with no diffusion (must update BEM strengths)
   //conv.advect_1st(time, dt, thisfs, vort, bdry, fldpt, bem);
   conv.advect_2nd(time, dt, thisfs, vort, bdry, fldpt, bem);
 
   // operator splitting requires another half-step diffuse (must compute new coefficients)
-  //diff.step(time, 0.5*dt, get_vdelta(), get_ips(), thisfs, vort, bdry);
+  //diff.step(time, 0.5*dt, re, get_vdelta(), thisfs, vort, bdry, bem);
 
   // update strengths for coloring purposes (eventually should be taken care of automatically)
   //vort.update_max_str();

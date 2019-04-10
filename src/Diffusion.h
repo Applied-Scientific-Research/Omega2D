@@ -38,7 +38,7 @@ public:
 
   const bool get_diffuse() { return !is_inviscid; }
   void set_diffuse(const bool _do_diffuse) { is_inviscid = not _do_diffuse; }
-  //void set_amr(const bool _do_amr) { adaptive_radii = _do_amr; }
+  void set_amr(const bool _do_amr) { adaptive_radii = _do_amr; }
   S get_nom_sep_scaled() const { return nom_sep_scaled; }
   S get_particle_overlap() const { return particle_overlap; }
 
@@ -47,8 +47,8 @@ public:
             const S,
             const S,
             const std::array<double,2>&,
-            std::vector<Collection>& _vort,
-            std::vector<Collection>& _bdry,
+            std::vector<Collection>&,
+            std::vector<Collection>&,
             BEM<S,I>& _bem);
 
 private:
@@ -132,7 +132,7 @@ void Diffusion<S,A,I>::step(const double                _time,
   vrm.set_hnu(std::sqrt(_dt/_re));
 
   // ensure that it knows to allow or disallow adaptive radii
-  //vrm.set_adaptive_radii(adaptive_radii);
+  vrm.set_adaptive_radii(adaptive_radii);
 
   // loop over active vorticity
   for (auto &coll : _vort) {
@@ -205,7 +205,7 @@ void Diffusion<S,A,I>::step(const double                _time,
                                       adaptive_radii);
 
       // resize the rest of the arrays
-      pts.resize(pts.get_str().size());
+      pts.resize(pts.get_rad().size());
     }
   }
 
