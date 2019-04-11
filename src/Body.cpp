@@ -78,12 +78,12 @@ void Body::set_parent_name(const std::string _name) { parent = _name; }
 std::string Body::get_name() { return name; }
 
 void Body::set_pos(const size_t _i, const double _val) {
-  assert(_i>=0 and _i<Dimensions);
+  assert(_i>=0 and _i<Dimensions && "Invalid index into array");
   pos[_i] = _val;
 }
 
 void Body::set_pos(const size_t _i, const std::string _val) {
-  assert(_i>=0 and _i<Dimensions);
+  assert(_i>=0 and _i<Dimensions && "Invalid index into array");
   // store the expression locally
   pos_expr[_i] = _val;
   // compile it

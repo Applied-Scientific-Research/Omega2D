@@ -51,7 +51,7 @@ public:
     this->n = _in.size()/nper;
 
     // make sure we have a complete input vector
-    assert(_in.size() % nper == 0);
+    assert(_in.size() % nper == 0 && "Input array size is not a multiple of 2 or 4");
 
     // this initialization specific to Points
     for (size_t d=0; d<Dimensions; ++d) {
@@ -107,6 +107,8 @@ public:
     const size_t nold = this->n;
 
     const size_t nper = (this->E == inert) ? 2 : 4;
+    assert(_in.size() % nper == 0 && "Input array size is not a multiple of 2 or 4");
+
     const size_t nnew = _in.size()/nper;
     std::cout << "  adding " << nnew << " particles to collection..." << std::endl;
 

@@ -86,9 +86,9 @@ std::vector<S> BEM<S,I>::getStrengths() {
 
 template <class S, class I>
 Vector<S> BEM<S,I>::get_str(const size_t cstart, const size_t ncols) {
-  assert(cstart >= 0);
-  assert(ncols >= 0);
-  assert(cstart+ncols <= (size_t)strengths.size());
+  assert(cstart >= 0 && "Start index is negative");
+  assert(ncols >= 0 && "Column count is negative");
+  assert(cstart+ncols <= (size_t)strengths.size() && "Asking for more values than are present in array");
 
   Vector<S> retval(ncols);
   retval.assign(strengths.data()+cstart, strengths.data()+cstart+ncols);
@@ -134,7 +134,7 @@ template <class S, class I>
 void BEM<S,I>::set_rhs(const size_t cstart, const size_t ncols, std::vector<S>& _b) {
   // eventually use cstart and ncols to put the _b vector in a specific place
   std::cout << "    putting data into rhs vector from " << cstart << " to " << (cstart+ncols) << std::endl;
-  assert(_b.size() == ncols);
+  assert(_b.size() == ncols && "Input array size does not match");
   const size_t new_n = std::max((size_t)(b.size()), (size_t)(cstart+ncols));
   b.conservativeResize(new_n);
   // but for now, assume _b is the whole thing

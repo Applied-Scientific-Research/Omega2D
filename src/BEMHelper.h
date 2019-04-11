@@ -94,7 +94,7 @@ void solve_bem(const double                         _time,
 
     // optionally augment with an additional value
     if (rhs.size() < tnum) {
-      assert(tnum-rhs.size()==1);
+      assert(tnum-rhs.size()==1 && "Number of augmented rows is not 1");
       // first, add up the free circulation
       S tot_circ = 0.0;
       for (auto &src : _vort) {
@@ -185,7 +185,7 @@ void solve_bem(const double                         _time,
 
           // solve for the coefficients in this block
           Vector<S> coeffs = std::visit(cvisitor, src, targ);
-          assert(coeffs.size() == tnum*snum);
+          assert(coeffs.size() == tnum*snum && "Number of coefficients does not match predicted");
           // targets are rows, sources are cols
           _bem.set_block(tstart, tnum, sstart, snum, coeffs);
         }

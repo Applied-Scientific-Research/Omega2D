@@ -9,7 +9,7 @@
 
 #include <iostream>
 #include <fstream>
-//#include <cassert>
+#include <cassert>
 
 // are we even using the status file?
 bool
@@ -20,6 +20,7 @@ StatusFile::is_active() {
 // accept a filename, means that we should use it
 void
 StatusFile::set_filename(const std::string _fn) {
+  assert(not _fn.empty() && "Filename is blank");
   use_it = true;
   fn = _fn;
 }
@@ -52,6 +53,7 @@ void
 StatusFile::write_line() {
   if (use_it) {
     std::ofstream outfile;
+    assert(not fn.empty() && "Filename is blank");
     outfile.open(fn, std::ios::app);
 
     // is this a new data set?

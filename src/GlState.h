@@ -19,8 +19,8 @@ class GlState {
 public:
   GlState(const int _nvbo, const int _nspo) {
 
-    assert(_nvbo>=0);
-    assert(_nspo>=0);
+    assert(_nvbo>=0 && "Invalid number of VBOs requested");
+    assert(_nspo>=0 && "Invalid number of shader program objects requested");
     std::cout << "  new GlState with " << _nvbo << " buffers and " << _nspo << " shader programs" << std::endl;
 
     // generate the vao

@@ -49,11 +49,11 @@ public:
       max_strength(-1.0) {
 
     // make sure input arrays are correctly-sized
-    assert(_x.size() % Dimensions == 0);
-    assert(_idx.size() % Dimensions == 0);
+    assert(_x.size() % Dimensions == 0 && "Position array is not an even multiple of dimensions");
+    assert(_idx.size() % Dimensions == 0 && "Index array is not an even multiple of dimensions");
     const size_t nnodes = _x.size() / Dimensions;
     const size_t nsurfs = _idx.size() / Dimensions;
-    assert(_val.size() % nsurfs == 0);
+    assert(_val.size() % nsurfs == 0 && "Value array is not an even multiple of panel count");
 
     std::cout << "  new collection with " << nsurfs << " surface panels" << std::endl;
 
@@ -78,7 +78,7 @@ public:
       if (_idx[i] >= nnodes) idx_are_all_good = false;
       idx[i] = _idx[i];
     }
-    assert(idx_are_all_good);
+    assert(idx_are_all_good && "Some indicies are bad");
 
     // now, depending on the element type, put the value somewhere
     if (this->E == active) {
@@ -158,9 +158,9 @@ public:
     const size_t neold = get_npanels();
 
     // make sure input arrays are correctly-sized
-    assert(_x.size() % Dimensions == 0);
-    assert(_idx.size() % Dimensions == 0);
-    assert(_idx.size()/2 == _val.size());
+    assert(_x.size() % Dimensions == 0 && "Position array is not an even multiple of dimensions");
+    assert(_idx.size() % Dimensions == 0 && "Index array is not an even multiple of dimensions");
+    assert(_idx.size()/2 == _val.size() && "Value array is not an even multiple of panel count");
     const size_t nnodes = _x.size() / Dimensions;
     const size_t nsurfs = _idx.size() / Dimensions;
 
@@ -195,7 +195,7 @@ public:
       if (_idx[i] >= nnold+nnodes) idx_are_all_good = false;
       idx[2*neold+i] = nnold + _idx[i];
     }
-    assert(idx_are_all_good);
+    assert(idx_are_all_good && "Some indicies are bad");
 
     // now, depending on the element type, put the value somewhere
     if (this->E == active) {
@@ -248,7 +248,7 @@ public:
     if (not this->B) return;
 
     // make sure we've calculated transformed center (we do this when we do area)
-    assert(area > 0.0);
+    assert(area > 0.0 && "Have not calculated transformed center");
     // and we trust that we've transformed utc to tc
 
     // apply a factor times the body motion
@@ -299,7 +299,7 @@ public:
     //if (std::abs(rotvel) < std::numeric_limits<float>::epsilon()) return;
 
     // make sure we've calculated transformed center (we do this when we do area)
-    assert(area > 0.0);
+    assert(area > 0.0 && "Have not calculated transformed center");
     // and we trust that we've transformed utc to tc
 
     // have we made ss yet? or is it the right size?
@@ -312,7 +312,7 @@ public:
     }
 
     //std::cout << "Inside add_rot_strengths, sizes are: " << get_npanels() << " " << this->s->size() << " " << ss->size() << std::endl;
-    assert(this->s->size() == get_npanels());
+    assert(this->s->size() == get_npanels() && "Strength array is not the same as panel count");
 
     // what is the actual factor that we will add?
     const S factor = _constfac + rotvel*_rotfactor;
@@ -354,8 +354,8 @@ public:
   void set_geom_center() {
 
     // we must have an attached body and a set of untransformed coordinates
-    assert(this->B);
-    assert(this->ux);
+    assert(this->B && "Body pointer has not been set");
+    assert(this->ux && "Untransformed positions have not been set");
 
     std::cout << "  inside Surfaces::set_geom_center with " << get_npanels() << " panels" << std::endl;
 

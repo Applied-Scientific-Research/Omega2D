@@ -458,7 +458,7 @@ void Simulation::add_particles(std::vector<float> _invec) {
   if (_invec.size() == 0) return;
 
   // make sure we're getting full particles
-  assert(_invec.size() % 4 == 0);
+  assert(_invec.size() % 4 == 0 && "Input vector not a multiple of 4");
 
   // add the vdelta to each particle and pass it on
   const float thisvd = get_vdelta();
@@ -489,7 +489,7 @@ void Simulation::add_fldpts(std::vector<float> _invec, const bool _moves) {
   if (_invec.size() == 0) return;
 
   // make sure we're getting full points
-  assert(_invec.size() % Dimensions == 0);
+  assert(_invec.size() % Dimensions == 0 && "Input vector not a multiple of dimensions");
 
   const move_t move_type = _moves ? lagrangian : fixed;
 

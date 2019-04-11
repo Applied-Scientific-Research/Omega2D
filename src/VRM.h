@@ -223,9 +223,9 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
                                     const ST particle_overlap) {
 
   // make sure all vector sizes are identical
-  assert(pos[0].size()==pos[1].size());
-  assert(pos[0].size()==str.size());
-  assert(str.size()==rad.size());
+  assert(pos[0].size()==pos[1].size() && "Input arrays are not uniform size");
+  assert(pos[0].size()==str.size() && "Input arrays are not uniform size");
+  assert(str.size()==rad.size() && "Input arrays are not uniform size");
   size_t n = str.size();
 
   std::cout << "  Running VRM with n " << n << std::endl;
