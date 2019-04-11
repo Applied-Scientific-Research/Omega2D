@@ -38,6 +38,7 @@
 #include <cstdio>
 #include <iostream>
 #include <vector>
+#include <iomanip>	// for setfill, setw
 
 static void error_callback(int error, const char* description) {
   fprintf(stderr, "Error %d: %s\n", error, description);
