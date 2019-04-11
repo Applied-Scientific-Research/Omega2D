@@ -47,21 +47,11 @@ public:
 
   void set_str(const size_t ioffset, const size_t icnt, Vector<S> _in) {
     assert(s && "Strength array does not exist");
+    assert(_in.size() == (*s).size() && "Set strength array size does not match");
+    assert(ioffset == 0 && "Offset is not zero");
+
+    // copy over the strengths
     *s = _in;
-/*
-    if (s) {
-      std::cout << "  in set_str, s exists" << std::endl;
-      std::cout << "    icnt = " << icnt << std::endl;
-      std::cout << "    _in.size() = " << _in.size() << std::endl;
-      std::cout << "    (*s).size() = " << (*s).size() << std::endl;
-      *s = _in;
-    } else {
-      std::cout << "  in set_str, s does not exist" << std::endl;
-      std::cout << "    icnt = " << icnt << std::endl;
-      std::cout << "    _in.size() = " << _in.size() << std::endl;
-    }
-    //s = std::move(_in);
-*/
   }
 
   void add_new(std::vector<float>& _in) {
@@ -141,9 +131,7 @@ public:
 
   void zero_vels() {
     for (size_t d=0; d<Dimensions; ++d) {
-      for (size_t i=0; i<get_n(); ++i) {
-        u[d][i] = 0.0;
-      }
+      std::fill(u[d].begin(), u[d].end(), 0.0);
     }
   }
 
@@ -162,9 +150,7 @@ public:
 
   void zero_strengths() {
     if (s) {
-      for (size_t i=0; i<s->size(); ++i) {
-        (*s)[i] = 0.0;
-      }
+      std::fill((*s).begin(), (*s).end(), 0.0);
     }
   }
 
@@ -255,15 +241,17 @@ public:
 
   // add and return the total circulation of all elements
   S get_total_circ(const double _time) {
+    S circ = 0.0;
+
     if (s) {
       // we have strengths, add them up
       // this is the c++17 way
       //return std::reduce(std::execution::par, s->begin(), s->end());
       // this is the c++11 way
-      return std::accumulate(s->begin(), s->end(), 0.0);
-    } else {
-      return 0.0;
+      circ = std::accumulate(s->begin(), s->end(), 0.0);
     }
+
+    return circ;
   }
 
   std::string to_string() const {
