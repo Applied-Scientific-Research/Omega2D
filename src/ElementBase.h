@@ -46,7 +46,7 @@ public:
   std::array<Vector<S>,Dimensions>&       get_vel()       { return u; }
 
   void set_str(const size_t ioffset, const size_t icnt, Vector<S> _in) {
-    assert(s);
+    assert(s && "Strength array does not exist");
     *s = _in;
 /*
     if (s) {
@@ -69,7 +69,7 @@ public:
     // check inputs
     if (_in.size() == 0) return;
     const size_t nper = (this->E == inert) ? 2 : 4;
-    assert(_in.size() % nper == 0);
+    assert(_in.size() % nper == 0 && "Input vector not a multiple of 2 or 4");
     const size_t nnew = _in.size()/nper;
 
     // this initialization is specific to Points - so should we do it there?
@@ -146,6 +146,7 @@ public:
       }
     }
   }
+
   void finalize_vels(const std::array<double,Dimensions>& _fs) {
     const double factor = 0.5/M_PI;
     for (size_t d=0; d<Dimensions; ++d) {
