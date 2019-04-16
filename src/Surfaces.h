@@ -537,7 +537,31 @@ public:
   }
 
   // add and return the total circulation of all elements
+  //   specializing the one in ElementBase because we need
+  //   to scale by panel length here
   S get_total_circ(const double _time) {
+    S circ = 0.0;
+
+    if (this->s) {
+      // we have strengths, add them up
+      for (size_t i=0; i<get_npanels(); i++) {
+        const Int id0 = idx[2*i];
+        const Int id1 = idx[2*i+1];
+        // find the panel length
+        const S dx = this->x[0][id1] - this->x[0][id0];
+        const S dy = this->x[1][id1] - this->x[1][id0];
+        // one over the panel length is useful
+        const S oopanlen = std::sqrt(dx*dx+dy*dy);
+        // complete the element with a strength and radius
+        circ += (*this->s)[i] * oopanlen;
+      }
+    }
+
+    return circ;
+  }
+
+  // add and return the total circulation of all elements
+  S get_body_circ(const double _time) {
     S circ = 0.0;
 
     // do not call the parent

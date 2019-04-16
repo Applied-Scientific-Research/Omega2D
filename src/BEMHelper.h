@@ -104,7 +104,7 @@ void solve_bem(const double                         _time,
       for (auto &src : _bdry) {
         // only if this is not the same collection!
         if (&src != &targ) {
-          tot_circ += std::visit([=](auto& elem) { return elem.get_total_circ(_time); }, src);
+          tot_circ += std::visit([=](auto& elem) { return elem.get_body_circ(_time); }, src);
         }
       }
       // negate and append

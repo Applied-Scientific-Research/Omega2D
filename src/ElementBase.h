@@ -253,6 +253,12 @@ public:
     return circ;
   }
 
+  // add and return the total circulation of the rotating body volume
+  //   will be specialized by Surface
+  S get_body_circ(const double _time) {
+    return 0.0;
+  }
+
   std::string to_string() const {
     std::string mystr = " " + std::to_string(n);
     if (E == active) {

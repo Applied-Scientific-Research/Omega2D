@@ -7,6 +7,7 @@
 
 #include "Simulation.h"
 #include "Points.h"
+#include "BEMHelper.h"
 #include "VtkXmlHelper.h"
 
 #include <cassert>
@@ -393,6 +394,10 @@ void Simulation::dump_stats_to_status() {
     sf.append_value((float)time);
     sf.append_value((int)get_nparts());
 
+    // update the BEM solution before we compute these numbers
+    std::array<double,2> thisfs = {fs[0], fs[1]};
+    solve_bem<STORE,ACCUM,Int>(time, thisfs, vort, bdry, bem);
+
     // more advanced info
 
     // add up the total circulation
@@ -403,6 +408,7 @@ void Simulation::dump_stats_to_status() {
     // then add up the circulation in bodies - DO WE NEED TO RE-SOLVE BEM FIRST?
     for (auto &src : bdry) {
       tot_circ += std::visit([=](auto& elem) { return elem.get_total_circ(time); }, src);
+      tot_circ += std::visit([=](auto& elem) { return elem.get_body_circ(time); }, src);
     }
     sf.append_value(tot_circ);
 
