@@ -24,6 +24,6 @@ void main() {
   strength = abs(sx)/(r*r);
 
   // make 4 verts as a single primitive and set texture coords - see other shaders
-  gl_Position = Projection * vec4(px + 3.5f*r*quad_attr.x, py + 3.5f*r*quad_attr.y, 0.f, 1.f);
+  gl_Position = Projection * vec4(px + 2.5f*r*quad_attr.x, py + 2.5f*r*quad_attr.y, 0.f, 1.f);
 }
 )"

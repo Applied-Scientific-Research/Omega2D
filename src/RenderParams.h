@@ -37,7 +37,7 @@ struct RenderParams {
   float clear_color[4]    = {  0./255.,   0./255.,   0./255., 1.0};
 
   // other
-  float circ_density = 0.3;	// non-dimensional
+  float circ_density = 0.35;	// non-dimensional
   float tracer_scale = 0.15;	// non-dimensional
   float tracer_size;		// dimensional
 };
