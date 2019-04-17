@@ -328,7 +328,7 @@ int main(int argc, char const *argv[]) {
           sim.add_particles( ff->step_particles(sim.get_ips()) );
         }
         for (auto const& mf: mfeatures) {
-          sim.add_fldpts( mf->step_particles(rparams.tracer_scale*sim.get_ips()), mf->moves() );
+          sim.add_fldpts( mf->step_particles(rparams.tracer_scale*sim.get_ips()), true );
         }
 
         // begin a new dynamic step: convection and diffusion
