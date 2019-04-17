@@ -10,7 +10,7 @@
 #include <cmath>
 #include <iostream>
 #include <sstream>
-//#include <random>
+#include <random>
 
 // write out any object of parent type MeasureFeature by dispatching to appropriate "debug" method
 std::ostream& operator<<(std::ostream& os, MeasureFeature const& ff) {
@@ -135,6 +135,11 @@ TracerEmitter::to_json() const {
 std::vector<float>
 TracerBlob::init_particles(float _ips) const {
 
+  // set up the random number generator
+  static std::random_device rd;  //Will be used to obtain a seed for the random number engine
+  static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+  static std::uniform_real_distribution<> zmean_dist(-0.5, 0.5);
+
   // create a new vector to pass on
   std::vector<float> x;
 
@@ -150,8 +155,8 @@ TracerBlob::init_particles(float _ips) const {
     float dr = sqrt((float)(i*i+j*j)) * _ips;
     if (dr < m_rad) {
       // create a particle here
-      x.emplace_back(m_x + _ips*(float)i);
-      x.emplace_back(m_y + _ips*(float)j);
+      x.emplace_back(m_x + _ips*((float)i+zmean_dist(gen)));
+      x.emplace_back(m_y + _ips*((float)j+zmean_dist(gen)));
     }
   }
   }
