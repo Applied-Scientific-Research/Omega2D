@@ -260,6 +260,32 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
 
 
 //
+// reflect interior particles to exterior because VRM only works in free space
+//
+template <class S>
+void reflect_interior(std::vector<Collection> const & _bdry,
+                      std::vector<Collection>&        _vort) {
+
+  // may need to do this multiple times to clear out concave zones!
+  // this should only function when _vort is Points and _bdry is Surfaces
+  for (auto &targ : _vort) {
+    if (std::holds_alternative<Points<S>>(targ)) {
+      Points<S>& pts = std::get<Points<S>>(targ);
+
+      for (auto &src : _bdry) {
+        if (std::holds_alternative<Surfaces<S>>(src)) {
+          Surfaces<S> const & surf = std::get<Surfaces<S>>(src);
+
+          // call the specific panels-affect-points routine
+          (void) reflect_panp2<S>(surf, pts);
+        }
+      }
+    }
+  }
+}
+
+
+//
 // generate the cut tables
 //
 template <class S>
@@ -367,7 +393,11 @@ std::pair<S,S> get_cut_entry (std::vector<std::tuple<S,S,S>>& ct, const S _pos) 
 // naive caller for the O(N^2) panel-particle clear-inner-layer kernel
 //
 template <class S>
-void clear_inner_panp2 (Surfaces<S> const & _src, Points<S>& _targ, const S _cutoff) {
+void clear_inner_panp2 (Surfaces<S> const & _src,
+                        Points<S>& _targ,
+                        const S _cutoff_mult,
+                        const S _ips) {
+
   //std::cout << "  inside clear_inner_layer(Surfaces, Points)" << std::endl;
   std::cout << "  Clearing" << _targ.to_string() << " from near" << _src.to_string() << std::endl;
   auto start = std::chrono::system_clock::now();
@@ -384,7 +414,10 @@ void clear_inner_panp2 (Surfaces<S> const & _src, Points<S>& _targ, const S _cut
   std::vector<Int> const&                 si = _src.get_idx();
   std::array<Vector<S>,Dimensions>&       tx = _targ.get_pos();
   Vector<S>&                              ts = _targ.get_str();
+
+  // if called on field points, there is no tr
   Vector<S>&                              tr = _targ.get_rad();
+  const bool are_fldpts = tr.empty();
 
   // pre-compute the node normals
   std::array<Vector<S>,Dimensions> sn;
@@ -503,22 +536,24 @@ void clear_inner_panp2 (Surfaces<S> const & _src, Points<S>& _targ, const S _cut
     //std::cout << "  mean cp is " << cpx << " " << cpy << std::endl;
 
     // compare this mean norm to the vector from the contact point to the particle
-    const S dotp = normx*(tx[0][i]-cpx) + normy*(tx[1][i]-cpy) - _cutoff;
+    const S dotp = normx*(tx[0][i]-cpx) + normy*(tx[1][i]-cpy) - _cutoff_mult*_ips;
     // now dotp is how far this point is above the cutoff layer
     // if dotp == 0.0 then the point is exactly on the cutoff layer, and it loses half of its strength
     // if dotp < -vdelta then the point loses all of its strength
     // if dotp > vdelta then the point passes unmodified
 
-    if (dotp < tr[i]) {
+    const S this_radius = are_fldpts ? _ips : tr[i];
+
+    if (dotp < this_radius) {
       //std::cout << "  CLEARING pt at " << tx[0][i] << " " << tx[1][i] << " because dotp " << dotp << " and norm " << norm[0] << " " << norm[1] << std::endl;
 
       // use precomputed table lookups for new position and remaining strength
-      std::pair<S,S> entry = get_cut_entry(ct, dotp/tr[i]);
-      ts[i] *= std::get<0>(entry);
-      tx[0][i] += std::get<1>(entry) * tr[i] * normx;
-      tx[1][i] += std::get<1>(entry) * tr[i] * normy;
+      std::pair<S,S> entry = get_cut_entry(ct, dotp/this_radius);
+      if (not are_fldpts) ts[i] *= std::get<0>(entry);
+      tx[0][i] += std::get<1>(entry) * this_radius * normx;
+      tx[1][i] += std::get<1>(entry) * this_radius * normy;
 
-      //std::cout << "  SHIFTING dotp/tr " << (dotp/tr[i]) << " str " << sfac << " and shift " << (shiftd/tr[i]) << std::endl;
+      //std::cout << "  SHIFTING dotp/tr " << (dotp/this_radius) << " str " << sfac << " and shift " << (shiftd/this_radius) << std::endl;
       //assert(shiftd > 0.0 && "Shift in clear is less than zero");
       //std::cout << "  PUSHING " << std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]);
 
@@ -526,7 +561,7 @@ void clear_inner_panp2 (Surfaces<S> const & _src, Points<S>& _targ, const S _cut
       // do not change radius yet
       //std::cout << "    TO " << tx[0][i] << " " << tx[1][i] << " and weaken by " << sfac << std::endl;
       //if (std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]) < 0.51) {
-      //  std::cout << "    dotp is " << dotp << " and tr[i] is " << tr[i] << std::endl;
+      //  std::cout << "    dotp is " << dotp << " and tr[i] is " << this_radius << std::endl;
       //  std::cout << "    pt is " << tx[0][i] << " " << tx[1][i] << std::endl;
       //  //std::cout << "    cp is " << cpx << " " << cpy << std::endl;
       //  std::cout << "    norm is " << normx << " " << normy << std::endl;
@@ -551,12 +586,30 @@ void clear_inner_panp2 (Surfaces<S> const & _src, Points<S>& _targ, const S _cut
 }
 
 
-// helper struct for dispatching through a variant - don't need it
-//struct ReflectVisitor {
-  // source collection, target collection
-//  void operator()(Points<float> const& src,   Points<float>& targ)   { points_affect_points<float>(src, targ); }
-//  void operator()(Surfaces<float> const& src, Points<float>& targ)   { panels_affect_points<float>(src, targ); }
-//  void operator()(Points<float> const& src,   Surfaces<float>& targ) { reflect_panp2<float>(src, targ); }
-//  void operator()(Surfaces<float> const& src, Surfaces<float>& targ) { panels_affect_panels<float>(src, targ); }
-//};
+//
+// clean up by removing the innermost layer - the one that will be represented by boundary strengths
+//
+template <class S>
+void clear_inner_layer(std::vector<Collection> const & _bdry,
+                       std::vector<Collection>&        _vort,
+                       const S                         _cutoff_factor,
+                       const S                         _ips) {
+
+  // may need to do this multiple times to clear out concave zones!
+  // this should only function when _vort is Points and _bdry is Surfaces
+  for (auto &targ : _vort) {
+    if (std::holds_alternative<Points<S>>(targ)) {
+      Points<S>& pts = std::get<Points<S>>(targ);
+
+      for (auto &src : _bdry) {
+        if (std::holds_alternative<Surfaces<S>>(src)) {
+          Surfaces<S> const & surf = std::get<Surfaces<S>>(src);
+
+          // call the specific panels-affect-points routine
+          (void) clear_inner_panp2<S>(surf, pts, _cutoff_factor, _ips);
+        }
+      }
+    }
+  }
+}
 

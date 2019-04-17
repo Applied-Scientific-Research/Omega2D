@@ -372,6 +372,9 @@ void Simulation::step() {
   // operator splitting requires another half-step diffuse (must compute new coefficients)
   //diff.step(time, 0.5*dt, re, get_vdelta(), thisfs, vort, bdry, bem);
 
+  // push field points out of objects every few steps
+  if (nstep%5 == 0) clear_inner_layer<STORE>(bdry, fldpt, 0.0, 0.5*get_ips());
+
   // update strengths for coloring purposes (eventually should be taken care of automatically)
   //vort.update_max_str();
 

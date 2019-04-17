@@ -91,13 +91,13 @@ Generate an X.264-encoded video from a series of png images with the following c
 ## To do
 Tasks to consider or implement:
 
+* Would be nice to have an option to have solid bodies randomly shed tracers
 * Write out panels to vtk also
 * Consider a zlib implementation for both vtu and png files: [zstr](https://github.com/mateidavid/zstr), [miniz](https://github.com/richgel999/miniz), or [gzip-hpp](https://github.com/mapbox/gzip-hpp)
 * How awesome would it be to show the flow as a time-consistent LIC image? See UFLIC (Shen & Kao, IEEE ToVaCG 1999)
 * Add inlet and outlet surfaces to push flow around - the BC is that normal flow must equal some number
 * Add airfoils - read them from a text file or generate them algorithmically - this means enabling Kutta points (reactive Points)
 * Add ability to edit features in the GUI, not just remove and re-add them
-* Need to periodically check tracer particles to make sure they do not go inside of objects - like every frame we check 1/10th of all tracers and bump them out
 * When background is white, nothing else shows up! Check blending mode. Need this to change so that we can make more attractive visuals. Like, presets for "technical (red/blue), b/w (white/grey), vibrant (??)
 * If I add a measurement structure in the middle of a simulation, it doesn't init - should it?
 * Allow Points to be able to draw not only blobs but dots at the middles, too, using same arrays but different draw programs (turn either on or off?)
@@ -130,6 +130,7 @@ Tasks to consider or implement:
 
 Completed tasks:
 
+* ~~Need to periodically check tracer particles to make sure they do not go inside of objects - like every frame we check 1/10th of all tracers and bump them out~~
 * ~~Convert all angles (except in GUI) to radians - pretty sure this is done~~
 * ~~Add the axisymmetrization of a vortex patch simulation to the pull-down~~
 * ~~Replace libpng with stb\_image\_write.h to ease Windows builds~~

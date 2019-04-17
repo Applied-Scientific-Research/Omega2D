@@ -160,26 +160,12 @@ void Diffusion<S,A,I>::step(const double                _time,
     }
   }
 
+
   //
   // reflect interior particles to exterior because VRM only works in free space
   //
+  (void) reflect_interior<S>(_bdry, _vort);
 
-  //ReflectVisitor<S> rvisitor;
-  // this should only function when _vort is Points and _bdry is Surfaces
-  for (auto &targ : _vort) {
-    if (std::holds_alternative<Points<S>>(targ)) {
-      Points<S>& pts = std::get<Points<S>>(targ);
-
-      for (auto &src : _bdry) {
-        if (std::holds_alternative<Surfaces<S>>(src)) {
-          Surfaces<S>& surf = std::get<Surfaces<S>>(src);
-
-          // call the specific panels-affect-points routine
-          (void) reflect_panp2<S>(surf, pts);
-        }
-      }
-    }
-  }
 
   //
   // merge any close particles to clean up potentially-dense areas
@@ -210,26 +196,12 @@ void Diffusion<S,A,I>::step(const double                _time,
     }
   }
 
+
   //
   // clean up by removing the innermost layer - the one that will be represented by boundary strengths
   //
+  (void) clear_inner_layer<S>(_bdry, _vort, 0.0, _vdelta/particle_overlap);
 
-  // may need to do this multiple times to clear out concave zones!
-  // this should only function when _vort is Points and _bdry is Surfaces
-  for (auto &targ : _vort) {
-    if (std::holds_alternative<Points<S>>(targ)) {
-      Points<S>& pts = std::get<Points<S>>(targ);
-
-      for (auto &src : _bdry) {
-        if (std::holds_alternative<Surfaces<S>>(src)) {
-          Surfaces<S>& surf = std::get<Surfaces<S>>(src);
-
-          // call the specific panels-affect-points routine
-          (void) clear_inner_panp2<S>(surf, pts, 0.0*_vdelta/particle_overlap);
-        }
-      }
-    }
-  }
 
   // now is a fine time to reset the max active/particle strength
   for (auto &coll : _vort) {
