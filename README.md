@@ -91,8 +91,10 @@ Generate an X.264-encoded video from a series of png images with the following c
 ## To do
 Tasks to consider or implement:
 
-* Would be nice to have an option to have solid bodies randomly shed tracers
-* Write out panels to vtk also
+* Add support for NACA wings, whether from a library or by reading geometry files in standard formats
+* Have method to tell batch and gui to dump vtu files periodically
+* Would be nice to have an option to have solid bodies randomly shed tracers (small chance per step per panel)
+* Write out panels to vtu files
 * Consider a zlib implementation for both vtu and png files: [zstr](https://github.com/mateidavid/zstr), [miniz](https://github.com/richgel999/miniz), or [gzip-hpp](https://github.com/mapbox/gzip-hpp)
 * How awesome would it be to show the flow as a time-consistent LIC image? See UFLIC (Shen & Kao, IEEE ToVaCG 1999)
 * Add inlet and outlet surfaces to push flow around - the BC is that normal flow must equal some number
