@@ -240,11 +240,11 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
       tx[1][i] = cpy + dist*normy;
       //std::cout << " to " << std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]) << std::endl;
       //std::cout << "    TYPE 2 TO " << tx[0][i] << " " << tx[1][i] << std::endl;
-      if (std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]) < 0.49) {
-        std::cout << "    cp is " << cpx << " " << cpy << std::endl;
-        std::cout << "    norm is " << normx << " " << normy << std::endl;
-        assert(false && "Die");
-      }
+      //if (std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]) < 0.49) {
+      //  std::cout << "    cp is " << cpx << " " << cpy << std::endl;
+      //  std::cout << "    norm is " << normx << " " << normy << std::endl;
+      //  assert(false && "Die");
+      //}
       num_reflected++;
     }
   }
@@ -260,13 +260,124 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
 
 
 //
-// naive caller for the O(N^2) panel-particle reflection kernel
+// generate the cut tables
+//
+template <class S>
+std::vector<std::tuple<S,S,S>> init_cut_tables (const S _dx) {
+  // get the vector ready
+  std::vector<std::tuple<S,S,S>> ct;
+
+  // all distances are normalized to default vdelta (not nominal separation)
+  // going out to 3 vdeltas catches all but 1e-4 of the strength
+  const S max_rad = 3.0;
+  // how many entries?
+  const int nx = (int)(0.5 + max_rad / _dx);
+  const S dx = max_rad / (float)nx;
+  //std::cout << "Making cut tables with nx " << nx << " and dx " << dx << std::endl;
+
+  // add the first entry (remove all strength, set dshift later)
+  ct.push_back(std::make_tuple((S)(-nx-0.5)*dx, 0.0, 0.0));
+
+  // generate the entries
+  S twgt = 0.0;
+  S tmom = 0.0;
+  for (int i=-nx; i<nx+1; ++i) {
+    const S distxs = std::pow((S)i * dx, 2);
+
+    // compute the weight of this row
+    S rwgt = 0.0;
+    for (int j=-nx; j<nx+1; ++j) {
+      const S distxys = distxs + std::pow((S)j * dx, 2);
+      // this is a pure 2D Gaussian
+      rwgt += std::exp(-distxys);
+      // this is for a 2D compact Gaussian
+      //rwgt += std::exp(-std::pow(distxys, 1.5));
+    }
+    // scale by the cell size
+    rwgt *= std::pow(dx, 2);
+    // this is a pure 2D Gaussian
+    rwgt *= 1.0/M_PI;
+    // this is for a 2D compact Gaussian
+    //rwgt *= 0.3526021;
+
+    //std::cout << "  row " << i << " at " << ((S)i*dx) << " has weight " << rwgt << std::endl;
+
+    // total weight accumulated is the fraction of strength to keep
+    twgt += rwgt;
+
+    // total moment is the amount to shift
+    tmom += ((S)i*dx) * rwgt;
+
+    // add an entry
+    ct.push_back(std::make_tuple(((S)i+0.5)*dx, twgt, -tmom/twgt));
+  }
+  //std::cout << "  total weight " << twgt << std::endl;
+
+  // add the last entry (keep all strength, set dshift to zero)
+  ct.push_back(std::make_tuple((S)(nx+1.5)*dx, 1.0, 0.0));
+
+  std::cout << "Cut table is" << std::endl;
+  for (auto &entry : ct) {
+    std::cout << "  " << std::get<0>(entry) << " " << std::get<1>(entry) << " " << std::get<2>(entry) << std::endl;
+  }
+
+  return ct;
+}
+
+//
+// use the cut tables - assume _pos is normalized by vdelta
+//
+template <class S>
+std::pair<S,S> get_cut_entry (std::vector<std::tuple<S,S,S>>& ct, const S _pos) {
+  // set defaults (change nothing)
+  S smult = 1.0;
+  S dshift = 0.0;
+
+  const size_t inum = ct.size();
+  assert(inum > 0 && "Cut tables not initialized");
+
+  // check vs. low and high bounds
+  if (_pos < std::get<0>(ct[0])) {
+    // particle is too far inside to survive
+    smult = 0.0;
+    dshift = 1.0 - _pos;
+  } else if (_pos > std::get<0>(ct[inum-1])) {
+    // particle is too far outside to be affected
+    smult = 1.0;
+    dshift = 0.0;
+  } else {
+    // linearly interpolate between two values
+    for (size_t i=1; i<inum; ++i) {
+      if (_pos < std::get<0>(ct[i])) {
+        // point lies between this and the previous entry
+        const S frac = (_pos - std::get<0>(ct[i-1])) / (std::get<0>(ct[i]) - std::get<0>(ct[i-1]));
+        smult = frac*std::get<1>(ct[i]) + (1.0-frac)*std::get<1>(ct[i-1]);
+        dshift = frac*std::get<2>(ct[i]) + (1.0-frac)*std::get<2>(ct[i-1]);
+        //std::cout << "new dist " << _pos << " found smult " << smult << " and dshift " << dshift << std::endl;
+        break;
+      }
+    }
+  }
+
+  return std::pair<S,S>(smult,dshift);
+}
+
+
+//
+// naive caller for the O(N^2) panel-particle clear-inner-layer kernel
 //
 template <class S>
 void clear_inner_panp2 (Surfaces<S> const & _src, Points<S>& _targ, const S _cutoff) {
   //std::cout << "  inside clear_inner_layer(Surfaces, Points)" << std::endl;
   std::cout << "  Clearing" << _targ.to_string() << " from near" << _src.to_string() << std::endl;
   auto start = std::chrono::system_clock::now();
+
+  static bool made_cut_tables = false;
+  static std::vector<std::tuple<S,S,S>> ct;
+  if (not made_cut_tables) {
+    ct = init_cut_tables<S>(0.1);
+    made_cut_tables = true;
+  }
 
   // get handles for the vectors
   std::array<Vector<S>,Dimensions> const& sx = _src.get_pos();
@@ -401,28 +512,26 @@ void clear_inner_panp2 (Surfaces<S> const & _src, Points<S>& _targ, const S _cut
     if (dotp < tr[i]) {
       //std::cout << "  CLEARING pt at " << tx[0][i] << " " << tx[1][i] << " because dotp " << dotp << " and norm " << norm[0] << " " << norm[1] << std::endl;
 
-      // smoothly vary the strength scaling factor from 0..1 over range dotp/vdelta = -1..1
-      // eventually precompute table lookups for new position and remaining strength
-      const S sfac = 0.5 * (1.0 + sin(0.5*M_PI*std::max((S)(-1.0), dotp/tr[i])));
-      ts[i] *= sfac;
+      // use precomputed table lookups for new position and remaining strength
+      std::pair<S,S> entry = get_cut_entry(ct, dotp/tr[i]);
+      ts[i] *= std::get<0>(entry);
+      tx[0][i] += std::get<1>(entry) * tr[i] * normx;
+      tx[1][i] += std::get<1>(entry) * tr[i] * normy;
 
-      // move particle up to above the cutoff
-      const S shiftd = tr[i] * (-dotp/tr[i] + 1.1/(2.0-dotp/tr[i]));
       //std::cout << "  SHIFTING dotp/tr " << (dotp/tr[i]) << " str " << sfac << " and shift " << (shiftd/tr[i]) << std::endl;
-      assert(shiftd > 0.0 && "Shift in clear is less than zero");
+      //assert(shiftd > 0.0 && "Shift in clear is less than zero");
       //std::cout << "  PUSHING " << std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]);
-      tx[0][i] = cpx + normx * (_cutoff + shiftd);
-      tx[1][i] = cpy + normy * (_cutoff + shiftd);
+
       //std::cout << "    to " << std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]) << " and scale str by " << sfac << std::endl;
       // do not change radius yet
       //std::cout << "    TO " << tx[0][i] << " " << tx[1][i] << " and weaken by " << sfac << std::endl;
-      if (std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]) < 0.51) {
-        std::cout << "    dotp is " << dotp << " and tr[i] is " << tr[i] << std::endl;
-        std::cout << "    pt is " << tx[0][i] << " " << tx[1][i] << std::endl;
-        //std::cout << "    cp is " << cpx << " " << cpy << std::endl;
-        std::cout << "    norm is " << normx << " " << normy << std::endl;
-        assert(false && "Die");
-      }
+      //if (std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]) < 0.51) {
+      //  std::cout << "    dotp is " << dotp << " and tr[i] is " << tr[i] << std::endl;
+      //  std::cout << "    pt is " << tx[0][i] << " " << tx[1][i] << std::endl;
+      //  //std::cout << "    cp is " << cpx << " " << cpy << std::endl;
+      //  std::cout << "    norm is " << normx << " " << normy << std::endl;
+      //  assert(false && "Die");
+      //}
 
       num_cropped++;
     }
@@ -451,10 +560,3 @@ void clear_inner_panp2 (Surfaces<S> const & _src, Points<S>& _targ, const S _cut
 //  void operator()(Surfaces<float> const& src, Surfaces<float>& targ) { panels_affect_panels<float>(src, targ); }
 //};
 
-
-//
-// prepare the cut tables
-//
-//template <class S>
-//void init_cut_tables () {
-//}

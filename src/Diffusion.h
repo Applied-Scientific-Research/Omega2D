@@ -183,6 +183,7 @@ void Diffusion<S,A,I>::step(const double                _time,
 
   //
   // merge any close particles to clean up potentially-dense areas
+  // when this step runs after clear_inner_panp2, drag drops a little bit
   //
 
   for (auto &coll : _vort) {
@@ -224,7 +225,7 @@ void Diffusion<S,A,I>::step(const double                _time,
           Surfaces<S>& surf = std::get<Surfaces<S>>(src);
 
           // call the specific panels-affect-points routine
-          (void) clear_inner_panp2<S>(surf, pts, _vdelta/particle_overlap);
+          (void) clear_inner_panp2<S>(surf, pts, 0.0*_vdelta/particle_overlap);
         }
       }
     }
