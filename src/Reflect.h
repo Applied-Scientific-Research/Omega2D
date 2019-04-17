@@ -504,7 +504,7 @@ void clear_inner_panp2 (Surfaces<S> const & _src,
 
     //std::cout << "  CLEARING pt at " << tx[0][i] << " " << tx[1][i] << std::endl;
 
-    // no matter how many hits, find the mean norm and mean contact point
+    // init the mean normal and the mean contact point
     S normx = 0.0;
     S normy = 0.0;
     S cpx = 0.0;
@@ -513,6 +513,7 @@ void clear_inner_panp2 (Surfaces<S> const & _src,
     // accumulate mean normal and the mean contact point
     for (size_t k=0; k<hits.size(); ++k) {
       //std::cout << "    cp at " << hits[k].cpx << " " << hits[k].cpy << std::endl;
+
       const size_t j = hits[k].jidx;
       if (hits[k].disttype == panel) {
         // hit a panel, use the norm
