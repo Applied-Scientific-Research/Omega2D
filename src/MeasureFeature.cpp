@@ -100,7 +100,7 @@ TracerEmitter::step_particles(float _ips) const {
   // set up the random number generator
   static std::random_device rd;  //Will be used to obtain a seed for the random number engine
   static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
-  static std::uniform_real_distribution<> zmean_dist(-0.5, 0.5);
+  static std::uniform_real_distribution<float> zmean_dist(-0.5, 0.5);
 
   // emits one per step, jittered slightly
   return std::vector<float>({m_x + _ips*zmean_dist(gen),
@@ -144,7 +144,7 @@ TracerBlob::init_particles(float _ips) const {
   // set up the random number generator
   static std::random_device rd;  //Will be used to obtain a seed for the random number engine
   static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
-  static std::uniform_real_distribution<> zmean_dist(-0.5, 0.5);
+  static std::uniform_real_distribution<float> zmean_dist(-0.5, 0.5);
 
   // create a new vector to pass on
   std::vector<float> x;

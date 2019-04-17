@@ -12,6 +12,7 @@ enum CoreType { gaussian, compactg };
 //
 // non-class templated functions (on real type)
 //
+
 // this is the per-axis second moment of a unit-volume core
 template <class RT>
 RT get_core_second_mom(const CoreType thiscore) {

@@ -20,6 +20,7 @@
 
 // velocity influence functions
 
+// thick-cored particle on thick-cored point, no gradients
 template <class S, class A>
 static inline void kernel_0v_0v (const S sx, const S sy, const S sr, const S ss,
                                  const S tx, const S ty, const S tr,
@@ -37,7 +38,7 @@ static inline void kernel_0v_0v (const S sx, const S sy, const S sr, const S ss,
   *tv += r2 * dx;
 }
 
-
+// thick-cored particle on singular point, no gradients
 template <class S, class A>
 static inline void kernel_0v_0p (const S sx, const S sy, const S sr, const S ss,
                                  const S tx, const S ty,

@@ -55,7 +55,7 @@ public:
     const size_t nsurfs = _idx.size() / Dimensions;
     assert(_val.size() % nsurfs == 0 && "Value array is not an even multiple of panel count");
 
-    std::cout << "  new collection with " << nsurfs << " surface panels" << std::endl;
+    std::cout << "  new collection with " << nsurfs << " panels and " << nnodes << " nodes" << std::endl;
 
     // pull out the node locations
     for (size_t d=0; d<Dimensions; ++d) {
@@ -488,7 +488,10 @@ public:
   }
 */
 
+  //
   // return a particle version of the panels (useful during Diffusion)
+  // offset is scaled by vdelta
+  //
   std::vector<S> represent_as_particles(const S _offset, const S _vdelta) {
 
     // how many panels?

@@ -135,6 +135,10 @@ template <class S>
 Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
   std::cout << "    1_1 compute coefficients of" << src.to_string() << " on" << targ.to_string() << std::endl;
 
+  // use floats to prevent overruns
+  float flops = 0.0;
+  //auto start = std::chrono::system_clock::now();
+
   // how large of a problem do we have?
   const size_t nsrc  = src.get_npanels();
   const size_t ntarg = targ.get_npanels();
@@ -241,11 +245,13 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
     // special case: self-influence
     if (&src == &targ) coeffs[j*ntarg+j] = M_PI;
   }
+  flops += (float)nsrc*(float)ntarg*0.0;
 
   // scale all influences by the constant
   const S fac = 1.0 / (2.0 * M_PI);
   std::transform(coeffs.begin(), coeffs.end(), coeffs.begin(),
                  [fac](S elem) { return elem * fac; });
+  flops += 2.0 + (float)coeffs.size();
 
   //
   // now we augment this "matrix" with an optional new row and column
@@ -350,6 +356,11 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
       std::cout << std::endl;
     }
   }
+
+  //auto end = std::chrono::system_clock::now();
+  //std::chrono::duration<double> elapsed_seconds = end-start;
+  //const float gflops = 1.e-9 * flops / (float)elapsed_seconds.count();
+  //printf("    matrix block:\t[%.4f] cpu seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);
 
   return augcoeff;
 }

@@ -191,6 +191,7 @@ void solve_bem(const double                         _time,
         }
       }
     }
+
     _bem.just_made_A();
 
     auto end = std::chrono::system_clock::now();

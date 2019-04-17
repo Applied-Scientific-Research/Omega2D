@@ -327,7 +327,7 @@ int main(int argc, char const *argv[]) {
         for (auto const& ff : ffeatures) {
           sim.add_particles( ff->step_particles(sim.get_ips()) );
         }
-        for (auto const& mf: mfeatures) {
+        for (auto const& mf : mfeatures) {
           sim.add_fldpts( mf->step_particles(rparams.tracer_scale*sim.get_ips()), true );
         }
 

@@ -367,6 +367,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
       //std::cout << "  inear is";
       //for (int32_t j=0; j<inear.size(); ++j) std::cout << " " << inear[j];
       //std::cout << std::endl;
+      //std::cout << "    fill neib with new part at " << newpt[0] << " " << newpt[1] << std::endl;
     }
 
     bool haveSolution = false;
@@ -374,6 +375,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
 
     // assemble the underdetermined system
     while (not haveSolution and ++numNewParts < maxNewParts) {
+      //std::cout << "  attempt solution with " << inear.size() << " close particles" << std::endl;
 
       // this does the heavy lifting - assemble and solve the VRM equations for the 
       //   diffusion from particle i to particles in inear
@@ -394,6 +396,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
         s.push_back(0.0);
         ds.push_back(0.0);
         n++;
+        //std::cout << "    no solution, added part at " << newpt[0] << " " << newpt[1] << " " << newpt[2] << std::endl;
       }
     }
 
@@ -468,6 +471,12 @@ bool VRM<ST,CT,MAXMOM>::attempt_solution(const int32_t idiff, std::vector<int32_
   // the Ixxxx and Iyyyy moments of these core functions is 3/8th of the 4th radial moment
   //static const CT core_fourth_mom = get_core_fourth_mom<CT>(core_func);
 
+  // for non-adaptive method and floats, 1e-6 fails immediately, 1e-5 fails quickly, 3e-5 seems to work
+  // for doubles, can use 1e-6, will increase accuracy for slight performance hit (see vrm3d)
+  static const CT nnls_eps = 1.e-6;
+  // default to 1e-6, but drop to 1e-4 for adaptive with high overlap?
+  static const CT nnls_thresh = 1.e-6;
+
   // reset the arrays
   //std::cout << "\nSetting up Ax=b least-squares problem" << std::endl;
   b.setZero();
@@ -523,12 +532,6 @@ bool VRM<ST,CT,MAXMOM>::attempt_solution(const int32_t idiff, std::vector<int32_
   //std::cout << "  Here is the solution vector:\n\t" << fractions.transpose() << std::endl;
 
   // solve with non-negative least-squares
-
-  // for non-adaptive method, can use 1e-5
-  static const CT nnls_eps = 1.e-6;
-  // default to 1e-6, but drop to 1e-4 for adaptive with high overlap?
-  static const CT nnls_thresh = 1.e-6;
-
   Eigen::NNLS<Eigen::Matrix<CT,Eigen::Dynamic,Eigen::Dynamic> > nnls_solver(A, 100, nnls_eps);
 
   //std::cout << "A is" << std::endl << A << std::endl;

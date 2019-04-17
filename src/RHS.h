@@ -42,11 +42,6 @@ template <class S>
 std::vector<S> vels_to_rhs_panels (Surfaces<S> const& targ) {
   std::cout << "    convert vels to RHS vector for" << targ.to_string() << std::endl;
 
-  // this assumes one unknown per panel - not generally true!!!
-  const size_t ntarg  = targ.get_npanels();
-  std::vector<S> rhs;
-  rhs.resize(ntarg);
-
   // pull references to the element arrays
   const std::array<Vector<S>,Dimensions>& tx = targ.get_pos();
   const std::vector<Int>&                 ti = targ.get_idx();
@@ -56,6 +51,14 @@ std::vector<S> vels_to_rhs_panels (Surfaces<S> const& targ) {
   assert(2*tx[0].size() == ti.size() && "Input array sizes do not match");
   assert(tx[0].size() == tu[0].size() && "Input array sizes do not match");
   assert(tx[0].size() == tb.size() && "Input array sizes do not match");
+
+  // find array sizes
+  // this assumes one unknown per panel - not generally true!!!
+  const size_t ntarg  = targ.get_npanels();
+
+  // prepare the rhs vector
+  std::vector<S> rhs;
+  rhs.resize(ntarg);
 
   // convert velocity and boundary condition to RHS values
   for (size_t i=0; i<ntarg; i++) {

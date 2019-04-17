@@ -13,7 +13,6 @@
 #include <variant>
 
 // alias for any type of collection of elements
-//using Collection = std::variant<Points<float>>;
 // eventually will have Volumes<float> here and in 3D
 //                  and Lines<float> in 3D only
 

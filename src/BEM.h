@@ -132,7 +132,7 @@ void BEM<S,I>::set_rhs(std::vector<S>& _b) {
 
 template <class S, class I>
 void BEM<S,I>::set_rhs(const size_t cstart, const size_t ncols, std::vector<S>& _b) {
-  // eventually use cstart and ncols to put the _b vector in a specific place
+  // use cstart and ncols to put the _b vector in a specific place
   std::cout << "    putting data into rhs vector from " << cstart << " to " << (cstart+ncols) << std::endl;
   assert(_b.size() == ncols && "Input array size does not match");
   const size_t new_n = std::max((size_t)(b.size()), (size_t)(cstart+ncols));
@@ -190,8 +190,8 @@ void BEM<S,I>::solve() {
   printf("    solver.solve:\t[%.6f] cpu seconds\n", (float)elapsed_seconds.count());
 
   if (false) {
-    //const size_t nr = 50;
-    const size_t nr = b.size();
+    const size_t nr = 20;
+    //const size_t nr = b.size();
     std::cout << "Matrix equation is" << std::endl;
     std::cout << A.block(0,0,nr,8) << std::endl;
     std::cout << "RHS vector is" << std::endl;
