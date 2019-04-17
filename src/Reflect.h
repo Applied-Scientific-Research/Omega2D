@@ -20,7 +20,7 @@ enum ClosestType { panel, node };
 
 //
 // on output of this routine, jidx is:
-//   -1 is a panel is the closest
+//   -1 if a panel is the closest
 //    0 if node 0 is closest
 //    1 if node 1 is closest
 // but then jidx will be changed to the actual panel or node index
@@ -145,9 +145,11 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
 
     // iterate and search for closest panel
     for (size_t j=0; j<_src.get_npanels(); ++j) {
-      ClosestReturn<S> result = panel_point_distance<S>(sx[0][si[2*j]],   sx[1][si[2*j]],
-                                                        sx[0][si[2*j+1]], sx[1][si[2*j+1]],
-                                                        tx[0][i],         tx[1][i]);
+      const Int jp0 = si[2*j+0];
+      const Int jp1 = si[2*j+1];
+      ClosestReturn<S> result = panel_point_distance<S>(sx[0][jp0], sx[1][jp0],
+                                                        sx[0][jp1], sx[1][jp1],
+                                                        tx[0][i],   tx[1][i]);
 
       if (result.distsq < mindist - eps) {
         // we blew the old one away
@@ -199,6 +201,7 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
     // accumulate mean normal and the mean contact point
     for (size_t k=0; k<hits.size(); ++k) {
       //std::cout << "    cp at " << hits[k].cpx << " " << hits[k].cpy << std::endl;
+
       const size_t j = hits[k].jidx;
       if (hits[k].disttype == panel) {
         // hit a panel, use the norm
@@ -231,6 +234,7 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
 
     // compare this mean norm to the vector from the contact point to the particle
     const S dotp = normx*(tx[0][i]-cpx) + normy*(tx[1][i]-cpy);
+
     if (dotp < 0.0) {
       // this point is under the panel - reflect it off entry 0
       // this is reasonable for most cases, except very sharp angles between adjacent panels
@@ -412,9 +416,9 @@ void clear_inner_panp2 (Surfaces<S> const & _src,
   // get handles for the vectors
   std::array<Vector<S>,Dimensions> const& sx = _src.get_pos();
   std::vector<Int> const&                 si = _src.get_idx();
+
   std::array<Vector<S>,Dimensions>&       tx = _targ.get_pos();
   Vector<S>&                              ts = _targ.get_str();
-
   // if called on field points, there is no tr
   Vector<S>&                              tr = _targ.get_rad();
   const bool are_fldpts = tr.empty();
@@ -447,6 +451,7 @@ void clear_inner_panp2 (Surfaces<S> const & _src,
 
   #pragma omp parallel for reduction(+:num_cropped)
   for (size_t i=0; i<_targ.get_n(); ++i) {
+
     S mindist = std::numeric_limits<S>::max();
     std::vector<ClosestReturn<S>> hits;
 
@@ -556,7 +561,6 @@ void clear_inner_panp2 (Surfaces<S> const & _src,
       //std::cout << "  SHIFTING dotp/tr " << (dotp/this_radius) << " str " << sfac << " and shift " << (shiftd/this_radius) << std::endl;
       //assert(shiftd > 0.0 && "Shift in clear is less than zero");
       //std::cout << "  PUSHING " << std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]);
-
       //std::cout << "    to " << std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]) << " and scale str by " << sfac << std::endl;
       // do not change radius yet
       //std::cout << "    TO " << tx[0][i] << " " << tx[1][i] << " and weaken by " << sfac << std::endl;
