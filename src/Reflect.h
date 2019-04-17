@@ -342,10 +342,10 @@ std::vector<std::tuple<S,S,S>> init_cut_tables (const S _dx) {
   // add the last entry (keep all strength, set dshift to zero)
   ct.push_back(std::make_tuple((S)(nx+1.5)*dx, 1.0, 0.0));
 
-  std::cout << "Cut table is" << std::endl;
-  for (auto &entry : ct) {
-    std::cout << "  " << std::get<0>(entry) << " " << std::get<1>(entry) << " " << std::get<2>(entry) << std::endl;
-  }
+  //std::cout << "Cut table is" << std::endl;
+  //for (auto &entry : ct) {
+    //std::cout << "  " << std::get<0>(entry) << " " << std::get<1>(entry) << " " << std::get<2>(entry) << std::endl;
+  //}
 
   return ct;
 }
