@@ -97,8 +97,14 @@ TracerEmitter::init_particles(float _ips) const {
 
 std::vector<float>
 TracerEmitter::step_particles(float _ips) const {
-  // emits one per step
-  return std::vector<float>({m_x, m_y});
+  // set up the random number generator
+  static std::random_device rd;  //Will be used to obtain a seed for the random number engine
+  static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+  static std::uniform_real_distribution<> zmean_dist(-0.5, 0.5);
+
+  // emits one per step, jittered slightly
+  return std::vector<float>({m_x + _ips*zmean_dist(gen),
+                             m_y + _ips*zmean_dist(gen)});
 }
 
 void
