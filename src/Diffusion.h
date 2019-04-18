@@ -171,36 +171,19 @@ void Diffusion<S,A,I>::step(const double                _time,
   // merge any close particles to clean up potentially-dense areas
   // when this step runs after clear_inner_panp2, drag drops a little bit
   //
-
-  for (auto &coll : _vort) {
-
-    // if inert, no need to merge (keep all tracer particles)
-    if (std::visit([=](auto& elem) { return elem.is_inert(); }, coll)) continue;
-
-    // run this step if the collection is Points
-    if (std::holds_alternative<Points<S>>(coll)) {
-
-      Points<S>& pts = std::get<Points<S>>(coll);
-
-      //std::cout << "    merging among " << pts.get_n() << " particles" << std::endl;
-      // last two arguments are: relative distance, allow variable core radii
-      (void) merge_close_particles<S>(pts.get_pos(),
-                                      pts.get_str(),
-                                      pts.get_rad(),
-                                      particle_overlap,
-                                      0.3,
-                                      adaptive_radii);
-
-      // resize the rest of the arrays
-      pts.resize(pts.get_rad().size());
-    }
-  }
+  (void) merge_operation<S>(_vort, particle_overlap, 0.3, adaptive_radii);
 
 
   //
   // clean up by removing the innermost layer - the one that will be represented by boundary strengths
   //
   (void) clear_inner_layer<S>(_bdry, _vort, 0.0, _vdelta/particle_overlap);
+
+
+  //
+  // merge again
+  //
+  (void) merge_operation<S>(_vort, particle_overlap, 0.3, adaptive_radii);
 
 
   // now is a fine time to reset the max active/particle strength

@@ -90,7 +90,7 @@ size_t merge_close_particles(std::array<Vector<S>,2>& pos,
     const S query_pt[Dimensions] = { x[i], y[i] };
     const size_t nMatches = mat_index.index->radiusSearch(query_pt, distsq_thresh, ret_matches, params);
 
-    // one match should be self, but we don't know which one
+    // match 0 should be self, match 1 is closest
     // if there are more than one, check the radii
     if (nMatches > 1) {
       for (size_t j=0; j<ret_matches.size(); ++j) {
@@ -164,3 +164,44 @@ size_t merge_close_particles(std::array<Vector<S>,2>& pos,
   return num_removed;
 }
 
+
+//
+// run some number of merge ops on each collection of Point vorts
+//
+template <class S>
+void merge_operation(std::vector<Collection>& _vort,
+                     const S                  _overlap,
+                     const S                  _thresh,
+                     const bool               _isadapt) {
+
+  const size_t maxiters = 1;
+
+  for (auto &coll : _vort) {
+
+    // if inert, no need to merge (keep all tracer particles)
+    if (std::visit([=](auto& elem) { return elem.is_inert(); }, coll)) continue;
+
+    // run this step if the collection is Points
+    if (std::holds_alternative<Points<S>>(coll)) {
+
+      Points<S>& pts = std::get<Points<S>>(coll);
+
+      //std::cout << "    merging among " << pts.get_n() << " particles" << std::endl;
+
+      // perform possibly multiple iterations
+      for (size_t iter=0; iter<maxiters; ++iter) {
+
+        // last two arguments are: relative distance, allow variable core radii
+        (void) merge_close_particles(pts.get_pos(),
+                                     pts.get_str(),
+                                     pts.get_rad(),
+                                     _overlap,
+                                     _thresh,
+                                     _isadapt);
+
+        // resize the rest of the arrays
+        pts.resize(pts.get_rad().size());
+      }
+    }
+  }
+}
