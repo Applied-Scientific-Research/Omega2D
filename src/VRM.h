@@ -1,7 +1,7 @@
 /*
- * VRM.h - Library code for a two-dimensional particle redistribution scheme
+ * VRM.h - the Vorticity Redistribution Method for 2D vortex particles
  *
- * (c)2017-8 Applied Scientific Research, Inc.
+ * (c)2017-9 Applied Scientific Research, Inc.
  *           Written by Mark J Stock <markjstock@gmail.com>
  */
 
@@ -48,13 +48,19 @@ public:
 
 protected:
   // search for new target location
-  std::pair<ST,ST> fill_neighborhood_search(const int32_t, const Vector<ST>&, const Vector<ST>&,
-                                            const std::vector<int32_t>&, const ST);
+  std::pair<ST,ST> fill_neighborhood_search(const int32_t,
+                                            const Vector<ST>&,
+                                            const Vector<ST>&,
+                                            const std::vector<int32_t>&,
+                                            const ST);
 
   // set up and call the solver
-  bool attempt_solution(const int32_t, std::vector<int32_t>&,
-                        Vector<ST>&, Vector<ST>&,
-                        Vector<ST>&, Vector<ST>&,
+  bool attempt_solution(const int32_t,
+                        std::vector<int32_t>&,
+                        Vector<ST>&,
+                        Vector<ST>&,
+                        Vector<ST>&,
+                        Vector<ST>&,
                         const CoreType,
                         Eigen::Matrix<CT, Eigen::Dynamic, 1>&);
 
@@ -178,8 +184,10 @@ ST VRM<ST,CT,MAXMOM>::get_hnu() {
 //
 template <class ST, class CT, uint8_t MAXMOM>
 std::pair<ST,ST> VRM<ST,CT,MAXMOM>::fill_neighborhood_search(const int32_t idx,
-                                                             const Vector<ST>& x, const Vector<ST>& y,
-                                                             const std::vector<int32_t>& inear, const ST nom_sep) {
+                                                             const Vector<ST>& x,
+                                                             const Vector<ST>& y,
+                                                             const std::vector<int32_t>& inear,
+                                                             const ST nom_sep) {
 
   // create array of potential sites
   std::array<ST,num_sites> tx,ty,nearest;
@@ -238,6 +246,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
   Vector<ST>& y = pos[1];
   Vector<ST>& r = rad;
   Vector<ST>& s = str;
+
   Vector<ST> newr, ds;
   newr.resize(n);
   ds.resize(n);
@@ -253,9 +262,6 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
 
   const int32_t minNearby = 7;
   const int32_t maxNewParts = num_moments*8 - 4;
-
-  // the Ixx and Iyy moments of these core functions is half of the 2nd radial moment
-  //const CT core_second_mom = get_core_second_mom<CT>(core_func);
 
   // what is maximum strength of all particles?
   const ST maxStr = s[std::max_element(s.begin(), s.end()) - s.begin()];
@@ -285,7 +291,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
   const size_t initial_n = n;
   size_t nsolved = 0;
   size_t nneibs = 0;
-  //int32_t ntooclose = 0;
+  //size_t ntooclose = 0;
   size_t minneibs = 999999;
   size_t maxneibs = 0;
   for (size_t i=0; i<initial_n; ++i) {
@@ -295,7 +301,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
     //std::cout << "  part " << i << " with strength " << s[i] << std::endl;
 
     // if current particle strength is very small, skip out
-    //   (this particle still core-spreads somewhat)
+    //   (this particle could still core-spread if adaptive particle size is on)
     if ((thresholds_are_relative && (std::abs(s[i]) < maxAbsStr * ignore_thresh)) or
         (!thresholds_are_relative && (std::abs(s[i]) < ignore_thresh))) continue;
 
@@ -316,7 +322,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
       const ST distsq_thresh = std::pow(search_rad, 2);
       const ST query_pt[2] = { x[i], y[i] };
       (void) mat_index.index->radiusSearch(query_pt, distsq_thresh, ret_matches, params);
-      //std::cout << "radiusSearch(): radius " << search_rad << " found " << nMatches;
+      //if (ret_matches.size() > 20) std::cout << "part " << i << " at " << x[i] << " " << y[i] << " " << z[i] << " has " << ret_matches.size() << " matches" << std::endl;
 
       // copy the indexes into my vector
       for (size_t j=0; j<ret_matches.size(); ++j) inear.push_back(ret_matches[j].first);
@@ -333,7 +339,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
 
       //std::cout << "radiusSearch(): radius " << search_rad << " found " << inear.size();
       //std::cout << std::endl;
-      //for (int32_t j=0; j<ret_matches.size(); ++j) std::cout << "   " << ret_matches[j].first << "\t" << ret_matches[j].second << std::endl;
+      //for (size_t j=0; j<ret_matches.size(); ++j) std::cout << "   " << ret_matches[j].first << "\t" << ret_matches[j].second << std::endl;
     } else {
       // direct search: look for all neighboring particles, include newly-created ones
       //   ideally this would be a tree search
@@ -347,7 +353,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
     }
     //std::cout << "  found " << inear.size() << " particles close to particle " << i << std::endl;
     //std::cout << " :";
-    //for (int32_t j=0; j<inear.size(); ++j) std::cout << " " << inear[j];
+    //for (size_t j=0; j<inear.size(); ++j) std::cout << " " << inear[j];
     //std::cout << std::endl;
 
     // if there are less than, say, 6, we should just add some now
@@ -371,7 +377,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
     }
 
     bool haveSolution = false;
-    int32_t numNewParts = 0;
+    size_t numNewParts = 0;
 
     // assemble the underdetermined system
     while (not haveSolution and ++numNewParts < maxNewParts) {
@@ -439,16 +445,19 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
   // finish timer and report
   auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
-  printf("    vrm.diffuse_all:\t[%.6f] cpu seconds\n", (float)elapsed_seconds.count());
+  printf("    vrm.diffuse_all:\t[%.4f] seconds\n", (float)elapsed_seconds.count());
 }
 
 //
 // Set up and solve the VRM equations
 //
 template <class ST, class CT, uint8_t MAXMOM>
-bool VRM<ST,CT,MAXMOM>::attempt_solution(const int32_t idiff, std::vector<int32_t>& inear,
-                                         Vector<ST>& x, Vector<ST>& y,
-                                         Vector<ST>& r, Vector<ST>& newr,
+bool VRM<ST,CT,MAXMOM>::attempt_solution(const int32_t idiff,
+                                         std::vector<int32_t>& inear,
+                                         Vector<ST>& x,
+                                         Vector<ST>& y,
+                                         Vector<ST>& r,
+                                         Vector<ST>& newr,
                                          const CoreType core_func,
                                          Eigen::Matrix<CT, Eigen::Dynamic, 1>& fracout) {
 
