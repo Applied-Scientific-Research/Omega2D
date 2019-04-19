@@ -156,7 +156,7 @@ void Diffusion<S,A,I>::step(const double                _time,
                       particle_overlap);
 
       // resize the rest of the arrays
-      pts.resize(pts.get_str().size());
+      pts.resize(pts.get_rad().size());
     }
   }
 

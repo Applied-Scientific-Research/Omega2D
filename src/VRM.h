@@ -234,7 +234,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
   assert(pos[0].size()==pos[1].size() && "Input arrays are not uniform size");
   assert(pos[0].size()==str.size() && "Input arrays are not uniform size");
   assert(str.size()==rad.size() && "Input arrays are not uniform size");
-  size_t n = str.size();
+  size_t n = rad.size();
 
   std::cout << "  Running VRM with n " << n << std::endl;
 
@@ -270,8 +270,8 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
   //std::cout << "maxAbsStr " << maxAbsStr << std::endl;
 
   // convert particle positions into something nanoflann can understand
-  Eigen::Matrix<ST, Eigen::Dynamic, 2> xp;
-  xp.resize(n,2);
+  Eigen::Matrix<ST, Eigen::Dynamic, Dimensions> xp;
+  xp.resize(n,Dimensions);
   xp.col(0) = Eigen::Map<Eigen::Matrix<ST, Eigen::Dynamic, 1> >(x.data(), n);
   xp.col(1) = Eigen::Map<Eigen::Matrix<ST, Eigen::Dynamic, 1> >(y.data(), n);
   
