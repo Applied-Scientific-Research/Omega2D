@@ -437,6 +437,8 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
   std::cout << "    after VRM, n is " << n << std::endl;
 
   // apply the changes to the master vectors
+  assert(n==s.size() and ds.size()==s.size() && "Array size mismatch in VRM");
+  assert(n==r.size() and newr.size()==r.size() && "Array size mismatch in VRM");
   for (size_t i=0; i<n; ++i) {
     s[i] += ds[i];
     r[i] = newr[i];
