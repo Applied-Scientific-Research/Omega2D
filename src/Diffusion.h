@@ -181,9 +181,9 @@ void Diffusion<S,A,I>::step(const double                _time,
 
 
   //
-  // merge again
+  // merge again if clear did any work
   //
-  (void) merge_operation<S>(_vort, particle_overlap, 0.3, adaptive_radii);
+  if (_bdry.size() > 0) merge_operation<S>(_vort, particle_overlap, 0.3, adaptive_radii);
 
 
   // now is a fine time to reset the max active/particle strength
