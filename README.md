@@ -14,9 +14,9 @@ This open-source code is aimed at users interested in understanding vortex metho
 This code uses some C++17 features, so should compile on GCC 7, Clang 4, and MSVC 19.10 compilers.
 
 #### Prerequisites
-Users will also need CMake and GLFW version 3 on their machines to build this, other requirements are included in this distribution. Get these on Fedora with
+Users will also need CMake, Eigen, and GLFW version 3 on their machines to build this, other requirements are included in this distribution. Get these on Fedora with
 
-    sudo yum install cmake glfw3-devel eigen3-devel
+    sudo dnf install cmake glfw3-devel eigen3-devel
 
 or on Ubuntu with
 
@@ -50,7 +50,7 @@ Upon installation of the prerequisites, the following commands should build Omeg
 
 If you were able to build and install Vc, then you should set `-DUSE_VC=ON` in the above `cmake` command.
 
-On OSX, to get OpenMP parallization of the solver, you may need to use Clang, or install and use GCC with brew, and use a special `cmake` command:
+On OSX, to get OpenMP paralellization of the solver, you may need to use Clang, or install and use GCC with brew, and use a special `cmake` command:
 
     brew install gcc
     cmake -DCMAKE_C_COMPILER=/usr/local/bin/gcc-7 -DCMAKE_CXX_COMPILER=/usr/local/bin/g++-7 ..
