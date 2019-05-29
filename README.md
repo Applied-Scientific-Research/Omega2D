@@ -50,7 +50,7 @@ Upon installation of the prerequisites, the following commands should build Omeg
 
 If you were able to build and install Vc, then you should set `-DUSE_VC=ON` in the above `cmake` command.
 
-On OSX, to get OpenMP paralellization of the solver, you may need to use Clang, or install and use GCC with brew, and use a special `cmake` command:
+On OSX, to get OpenMP parallelization of the solver, you may need to use Clang, or install and use GCC with brew, and use a special `cmake` command:
 
     brew install gcc
     cmake -DCMAKE_C_COMPILER=/usr/local/bin/gcc-7 -DCMAKE_CXX_COMPILER=/usr/local/bin/g++-7 ..
