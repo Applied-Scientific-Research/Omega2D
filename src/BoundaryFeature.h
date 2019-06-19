@@ -73,7 +73,7 @@ protected:
 */
 
 //
-// Concrete class for a circle (fluid is outside circle)
+// Concrete class for a circle
 //
 class SolidCircle : public BoundaryFeature {
 public:
@@ -98,7 +98,7 @@ protected:
 
 
 //
-// Concrete class for an oval (fluid is outside)
+// Concrete class for an oval
 //
 class SolidOval : public SolidCircle {
 public:
@@ -127,7 +127,7 @@ protected:
 
 
 //
-// Concrete class for a square (fluid is outside)
+// Concrete class for a square
 //
 class SolidSquare : public BoundaryFeature {
 public:
@@ -151,6 +151,33 @@ public:
 protected:
   float m_side;
   float m_theta;
+};
+
+
+//
+// Concrete class for a rectangle
+//
+class SolidRect : public SolidSquare {
+public:
+  SolidRect(std::shared_ptr<Body> _bp = nullptr,
+            bool _ext = true,
+            float _x = 0.0,
+            float _y = 0.0,
+            float _sidex = 1.0,
+            float _sidey = 0.5,
+            float _theta = 0.0)
+    : SolidSquare(_bp, _ext, _x, _y, _sidex, _theta),
+      m_sidey(_sidey)
+    {}
+
+  void debug(std::ostream& os) const override;
+  std::string to_string() const override;
+  void from_json(const nlohmann::json) override;
+  nlohmann::json to_json() const override;
+  ElementPacket<float> init_elements(const float) const override;
+
+protected:
+  float m_sidey;
 };
 
 

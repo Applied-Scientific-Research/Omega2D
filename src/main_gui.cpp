@@ -775,6 +775,7 @@ int main(int argc, char const *argv[]) {
         ImGui::Combo("movement", &mitem, mitems, 3);
         static char strx[512] = "0.0*t";
         static char stry[512] = "0.0*t";
+        //static char strrad[512] = "0.0*t";
 
         // show different inputs based on what is selected
         switch(mitem) {
@@ -792,14 +793,17 @@ int main(int argc, char const *argv[]) {
             ImGui::InputText("y position", stry, 512);
             ImGui::SameLine();
             ShowHelpMarker("Use C-style expressions, t is time\n+ - / * \% ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
+            //ImGui::InputText("angular position", strrad, 512);
+            //ImGui::SameLine();
+            //ShowHelpMarker("In radians, use C-style expressions, t is time\n+ - / * \% ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
             break;
         }
 
         // define geometry second
         static int item = 0;
         //const char* items[] = { "solid circle", "solid square", "solid object from file", "draw outline in UI" };
-        const char* items[] = { "solid circle", "solid square", "solid oval" };
-        ImGui::Combo("type", &item, items, 3);
+        const char* items[] = { "circle", "square", "oval", "rectangle" };
+        ImGui::Combo("type", &item, items, 4);
 
         static bool external_flow = true;
         ImGui::Checkbox("Object is in flow", &external_flow);
@@ -809,6 +813,7 @@ int main(int argc, char const *argv[]) {
         static float xc[2] = {0.0f, 0.0f};
         static float rotdeg = 0.0f;
         static float circdiam = 1.0;
+        static float sqside = 1.0;
 
         // always ask for center
         ImGui::InputFloat2("center", xc);
@@ -835,6 +840,7 @@ int main(int argc, char const *argv[]) {
                   bp = std::make_shared<Body>();
                   bp->set_pos(0, std::string(strx));
                   bp->set_pos(1, std::string(stry));
+                  //bp->set_rot(std::string(strrad));
                   bp->set_name("circular cylinder");
                   sim.add_body(bp);
                   break;
@@ -847,7 +853,6 @@ int main(int argc, char const *argv[]) {
             break;
           case 1:
             // create a square/rectangle boundary
-            static float sqside = 1.0;
             ImGui::SliderFloat("side length", &sqside, 0.1f, 10.0f, "%.4f");
             ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 89.0f, "%.0f");
             //ImGui::SliderAngle("orientation", &rotdeg);
@@ -868,6 +873,7 @@ int main(int argc, char const *argv[]) {
                   bp = std::make_shared<Body>();
                   bp->set_pos(0, std::string(strx));
                   bp->set_pos(1, std::string(stry));
+                  //bp->set_rot(std::string(strrad));
                   bp->set_name("square cylinder");
                   sim.add_body(bp);
                   break;
@@ -901,11 +907,47 @@ int main(int argc, char const *argv[]) {
                   bp = std::make_shared<Body>();
                   bp->set_pos(0, std::string(strx));
                   bp->set_pos(1, std::string(stry));
+                  //bp->set_rot(std::string(strrad));
                   bp->set_name("oval cylinder");
                   sim.add_body(bp);
                   break;
               }
               bfeatures.emplace_back(std::make_unique<SolidOval>(bp, external_flow, xc[0], xc[1], circdiam, minordiam, rotdeg));
+              std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            break;
+          case 3:
+            // create a rectangle boundary
+            static float rectside = 0.5;
+            ImGui::SliderFloat("horizontal size", &sqside, 0.1f, 10.0f, "%.4f");
+            ImGui::SliderFloat("vertical size", &rectside, 0.1f, 10.0f, "%.4f");
+            ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 89.0f, "%.0f");
+            //ImGui::SliderAngle("orientation", &rotdeg);
+            ImGui::TextWrapped("This feature will add a solid rectangular body centered at the given coordinates");
+            if (ImGui::Button("Add rectangular body")) {
+              std::shared_ptr<Body> bp;
+              switch(mitem) {
+                case 0:
+                  // this geometry is fixed (attached to inertial)
+                  bp = sim.get_pointer_to_body("ground");
+                  break;
+                case 1:
+                  // this geometry is attached to the previous geometry (or ground)
+                  bp = sim.get_last_body();
+                  break;
+                case 2:
+                  // this geometry is attached to a new moving body
+                  bp = std::make_shared<Body>();
+                  bp->set_pos(0, std::string(strx));
+                  bp->set_pos(1, std::string(stry));
+                  //bp->set_rot(std::string(strrad));
+                  bp->set_name("rectangular cylinder");
+                  sim.add_body(bp);
+                  break;
+              }
+              bfeatures.emplace_back(std::make_unique<SolidRect>(bp, external_flow, xc[0], xc[1], sqside, rectside, rotdeg));
               std::cout << "Added " << (*bfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
