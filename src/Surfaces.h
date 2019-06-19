@@ -138,10 +138,28 @@ public:
   const std::vector<Int>& get_idx() const { return idx; }
   const Vector<S>&        get_bcs() const { return bc; }
 
+  // a little logic to see if we should augment the BEM equations for this object
+  const bool is_augmented() const {
+    bool augment = true;
+    if (this->B) {
+      // is the body pointer ground?
+      if (std::string("ground").compare(this->B->get_name()) == 0) {
+        // now, does the object bound internal flow?
+        if (area < 0.0) augment = false;
+      }
+    } else {
+      // nullptr for Body? no augment (old way of turning it off)
+      augment = false;
+    }
+    //if (FORCE_NO_AUGMENTATION) augment = false;
+    //augment = false;
+    return augment;
+  }
+
   // find out the next row index in the BEM after this collection
   void set_first_row(const Int _i) { istart = _i; }
   const Int get_first_row() const { return istart; }
-  const Int get_num_rows()  const { return bc.size() + (this->B ? 1 : 0); }
+  const Int get_num_rows()  const { return bc.size() + (is_augmented() ? 1 : 0); }
   const Int get_next_row()  const { return istart+get_num_rows(); }
 
   // source strengths
@@ -245,10 +263,12 @@ public:
     // no need to call base class now
     //ElementBase<S>::add_body_motion(_factor);
 
+    // if no body pointer, or attached to ground, return
     if (not this->B) return;
+    if (std::string("ground").compare(this->B->get_name()) == 0) return;
 
     // make sure we've calculated transformed center (we do this when we do area)
-    assert(area > 0.0 && "Have not calculated transformed center");
+    assert(area > 0.0 && "Have not calculated transformed center, or area is negative");
     // and we trust that we've transformed utc to tc
 
     // apply a factor times the body motion
@@ -292,14 +312,16 @@ public:
   // AND we don't have the time - assume bodies have been transformed
   void add_rot_strengths(const S _constfac, const S _rotfactor) {
 
-    // if no rotation, strengths, or no parent Body, then no problem!
+    // if no rotation, strengths, or no parent Body, or attached to ground, then no problem!
     if (not this->B) return;
     if (not this->s) return;
+    if (std::string("ground").compare(this->B->get_name()) == 0) return;
+
     const S rotvel = (S)this->B->get_rotvel();
     //if (std::abs(rotvel) < std::numeric_limits<float>::epsilon()) return;
 
     // make sure we've calculated transformed center (we do this when we do area)
-    assert(area > 0.0 && "Have not calculated transformed center");
+    assert(area > 0.0 && "Have not calculated transformed center, or area is negative");
     // and we trust that we've transformed utc to tc
 
     // have we made ss yet? or is it the right size?

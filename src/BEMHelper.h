@@ -225,9 +225,9 @@ void solve_bem(const double                         _time,
       }
     }
 
-    // peel off the last entry - the rotation rate - if there is a body pointer
-    const std::shared_ptr<Body> bptr = std::visit([=](auto& elem) { return elem.get_body_ptr(); }, targ);
-    if (bptr) {
+    // peel off the last entry - the rotation rate - if the equations were augmented
+    const bool is_aug = std::visit([=](auto& elem) { return elem.is_augmented(); }, targ);
+    if (is_aug) {
       std::cout << "    solved rotation rate is " << new_s.back() << std::endl;
       new_s.pop_back();
     }

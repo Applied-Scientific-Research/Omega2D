@@ -257,8 +257,8 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
   // now we augment this "matrix" with an optional new row and column
   //
 
-  const size_t nrows = ntarg + (targ.get_body_ptr() ? 1 : 0);
-  const size_t ncols = nsrc  + ( src.get_body_ptr() ? 1 : 0);
+  const size_t nrows = ntarg + (targ.is_augmented() ? 1 : 0);
+  const size_t ncols = nsrc  + ( src.is_augmented() ? 1 : 0);
   //std::cout << "    augmenting the " << ntarg << " x " << nsrc << " block to " << nrows << " x " << ncols << std::endl;
 
   // make a new 1-D vector to contain the coefficients
@@ -278,7 +278,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
     std::copy(c_iter, c_iter+ntarg, a_iter);
 
     // and add the bottom value to this column
-    if (src.get_body_ptr()) {
+    if (src.is_augmented()) {
       // always include the panel lengths of the source body
       a_iter += nsrc;
       // then write the last value in this column - the length of this panel
@@ -297,7 +297,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
   coeffs.clear();
 
   // then add the last column, if necessary, if target rotates
-  if (targ.get_body_ptr()) {
+  if (targ.is_augmented()) {
     auto a_iter = augcoeff.begin() + nsrc*nrows;
 
     // this is the velocity influence from the source body with unit rotational rate on these target panels
