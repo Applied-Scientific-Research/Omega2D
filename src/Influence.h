@@ -181,10 +181,11 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
     //std::cout << "  src panel " << j << " has " << vsx1[j] << " " << vsy1[j] << " and str " << vsvs[j] << std::endl;
   }
   for (size_t j=src.get_npanels(); j<vsvs.vectorsCount()*StoreVec::size(); ++j) {
-    vsx0[j] = 0.0;
-    vsy0[j] = 0.0;
-    vsx1[j] = 1.0;
-    vsy1[j] = 0.0;
+    // set this to an impossible place
+    vsx0[j] = -9999.0;
+    vsy0[j] = -9999.0;
+    vsx1[j] = 9999.0;
+    vsy1[j] = -9999.0;
     vsvs[j] = 0.0;
     //std::cout << "  src panel " << j << " has " << vsx1[j] << " " << vsy1[j] << " and str " << vsvs[j] << std::endl;
   }
@@ -375,6 +376,7 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
     tu[0][i] -= plen*accumu.sum();
     tu[1][i] -= plen*accumv.sum();
     //std::cout << "    new 0_1 vel on " << i << " is " << (-plen*accumu.sum()) << " " << (-plen*accumv.sum()) << std::endl;
+    //if (std::isnan(tu[0][i])) exit(1);
 
 #else
     A accumu  = 0.0;
