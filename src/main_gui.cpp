@@ -775,7 +775,7 @@ int main(int argc, char const *argv[]) {
         ImGui::Combo("movement", &mitem, mitems, 3);
         static char strx[512] = "0.0*t";
         static char stry[512] = "0.0*t";
-        //static char strrad[512] = "0.0*t";
+        static char strrad[512] = "0.0*t";
 
         // show different inputs based on what is selected
         switch(mitem) {
@@ -793,9 +793,9 @@ int main(int argc, char const *argv[]) {
             ImGui::InputText("y position", stry, 512);
             ImGui::SameLine();
             ShowHelpMarker("Use C-style expressions, t is time\n+ - / * \% ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
-            //ImGui::InputText("angular position", strrad, 512);
-            //ImGui::SameLine();
-            //ShowHelpMarker("In radians, use C-style expressions, t is time\n+ - / * \% ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
+            ImGui::InputText("angular position", strrad, 512);
+            ImGui::SameLine();
+            ShowHelpMarker("In radians, use C-style expressions, t is time\n+ - / * \% ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
             break;
         }
 
@@ -823,8 +823,8 @@ int main(int argc, char const *argv[]) {
           case 0:
             // create a circular boundary
             ImGui::SliderFloat("diameter", &circdiam, 0.01f, 10.0f, "%.4f", 2.0);
-            ImGui::TextWrapped("This feature will add a solid circular body centered at the given coordinates");
-            if (ImGui::Button("Add circular body")) {
+            ImGui::TextWrapped("This feature will add a solid circular boundary centered at the given coordinates");
+            if (ImGui::Button("Add circular boundary")) {
               std::shared_ptr<Body> bp;
               switch(mitem) {
                 case 0:
@@ -840,7 +840,7 @@ int main(int argc, char const *argv[]) {
                   bp = std::make_shared<Body>();
                   bp->set_pos(0, std::string(strx));
                   bp->set_pos(1, std::string(stry));
-                  //bp->set_rot(std::string(strrad));
+                  bp->set_rot(std::string(strrad));
                   bp->set_name("circular cylinder");
                   sim.add_body(bp);
                   break;
@@ -856,8 +856,8 @@ int main(int argc, char const *argv[]) {
             ImGui::SliderFloat("side length", &sqside, 0.1f, 10.0f, "%.4f");
             ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 89.0f, "%.0f");
             //ImGui::SliderAngle("orientation", &rotdeg);
-            ImGui::TextWrapped("This feature will add a solid square body centered at the given coordinates");
-            if (ImGui::Button("Add square body")) {
+            ImGui::TextWrapped("This feature will add a solid square boundary centered at the given coordinates");
+            if (ImGui::Button("Add square boundary")) {
               std::shared_ptr<Body> bp;
               switch(mitem) {
                 case 0:
@@ -873,7 +873,7 @@ int main(int argc, char const *argv[]) {
                   bp = std::make_shared<Body>();
                   bp->set_pos(0, std::string(strx));
                   bp->set_pos(1, std::string(stry));
-                  //bp->set_rot(std::string(strrad));
+                  bp->set_rot(std::string(strrad));
                   bp->set_name("square cylinder");
                   sim.add_body(bp);
                   break;
@@ -890,8 +890,8 @@ int main(int argc, char const *argv[]) {
             ImGui::SliderFloat("major diameter", &circdiam, 0.01f, 10.0f, "%.4f", 2.0);
             ImGui::SliderFloat("minor diameter", &minordiam, 0.01f, 10.0f, "%.4f", 2.0);
             ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 179.0f, "%.0f");
-            ImGui::TextWrapped("This feature will add a solid oval body centered at the given coordinates");
-            if (ImGui::Button("Add oval body")) {
+            ImGui::TextWrapped("This feature will add a solid oval boundary centered at the given coordinates");
+            if (ImGui::Button("Add oval boundary")) {
               std::shared_ptr<Body> bp;
               switch(mitem) {
                 case 0:
@@ -907,7 +907,7 @@ int main(int argc, char const *argv[]) {
                   bp = std::make_shared<Body>();
                   bp->set_pos(0, std::string(strx));
                   bp->set_pos(1, std::string(stry));
-                  //bp->set_rot(std::string(strrad));
+                  bp->set_rot(std::string(strrad));
                   bp->set_name("oval cylinder");
                   sim.add_body(bp);
                   break;
@@ -925,8 +925,8 @@ int main(int argc, char const *argv[]) {
             ImGui::SliderFloat("vertical size", &rectside, 0.1f, 10.0f, "%.4f");
             ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 89.0f, "%.0f");
             //ImGui::SliderAngle("orientation", &rotdeg);
-            ImGui::TextWrapped("This feature will add a solid rectangular body centered at the given coordinates");
-            if (ImGui::Button("Add rectangular body")) {
+            ImGui::TextWrapped("This feature will add a solid rectangular boundary centered at the given coordinates");
+            if (ImGui::Button("Add rectangular boundary")) {
               std::shared_ptr<Body> bp;
               switch(mitem) {
                 case 0:
@@ -942,7 +942,7 @@ int main(int argc, char const *argv[]) {
                   bp = std::make_shared<Body>();
                   bp->set_pos(0, std::string(strx));
                   bp->set_pos(1, std::string(stry));
-                  //bp->set_rot(std::string(strrad));
+                  bp->set_rot(std::string(strrad));
                   bp->set_name("rectangular cylinder");
                   sim.add_body(bp);
                   break;
