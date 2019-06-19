@@ -8,6 +8,7 @@
 #include "BoundaryFeature.h"
 
 #include <cmath>
+#include <algorithm>
 #include <iostream>
 #include <sstream>
 
@@ -58,6 +59,7 @@ SolidCircle::init_elements(const float _ips) const {
 
   // outside is to the left walking from one point to the next
   // so go CW around the circle starting at theta=0 (+x axis)
+  // internal flow needs the opposite
   for (size_t i=0; i<num_panels; i++) {
     x[2*i]     = m_x + 0.5*m_diam * std::cos(2.0 * M_PI * (float)i / (float)num_panels);
     x[2*i+1]   = m_y - 0.5*m_diam * std::sin(2.0 * M_PI * (float)i / (float)num_panels);
@@ -68,6 +70,13 @@ SolidCircle::init_elements(const float _ips) const {
 
   // correct the final index
   idx[2*num_panels-1] = 0;
+
+  // flip the orientation of the panels
+  if (not m_external) {
+    for (size_t i=0; i<num_panels; i++) {
+      std::swap(idx[2*i], idx[2*i+1]);
+    }
+  }
 
   return ElementPacket<float>({x, idx, val});
 }
@@ -80,7 +89,12 @@ SolidCircle::debug(std::ostream& os) const {
 std::string
 SolidCircle::to_string() const {
   std::stringstream ss;
-  ss << "solid circle at " << m_x << " " << m_y << " with diameter " << m_diam;
+  if (m_external) {
+    ss << "solid circle";
+  } else {
+    ss << "circular hole";
+  }
+  ss << " at " << m_x << " " << m_y << " with diameter " << m_diam;
   return ss.str();
 }
 
@@ -90,6 +104,7 @@ SolidCircle::from_json(const nlohmann::json j) {
   m_x = tr[0];
   m_y = tr[1];
   m_diam = j["scale"];
+  m_external = j.value("external", true);
 }
 
 nlohmann::json
@@ -99,6 +114,7 @@ SolidCircle::to_json() const {
   mesh["geometry"] = "circle";
   mesh["translation"] = {m_x, m_y};
   mesh["scale"] = m_diam;
+  mesh["external"] = m_external;
   return mesh;
 }
 
@@ -138,6 +154,13 @@ SolidOval::init_elements(const float _ips) const {
   // correct the final index
   idx[2*num_panels-1] = 0;
 
+  // flip the orientation of the panels
+  if (not m_external) {
+    for (size_t i=0; i<num_panels; i++) {
+      std::swap(idx[2*i], idx[2*i+1]);
+    }
+  }
+
   return ElementPacket<float>({x, idx, val});
 }
 
@@ -149,7 +172,12 @@ SolidOval::debug(std::ostream& os) const {
 std::string
 SolidOval::to_string() const {
   std::stringstream ss;
-  ss << "solid oval at " << m_x << " " << m_y << " with diameters " << m_diam << " " << m_dmin << " rotated " << m_theta << " deg";
+  if (m_external) {
+    ss << "solid oval";
+  } else {
+    ss << "oval hole";
+  }
+  ss << " at " << m_x << " " << m_y << " with diameters " << m_diam << " " << m_dmin << " rotated " << m_theta << " deg";
   return ss.str();
 }
 
@@ -162,6 +190,7 @@ SolidOval::from_json(const nlohmann::json j) {
   m_diam = sc[0];
   m_dmin = sc[1];
   m_theta = j.value("rotation", 0.0);
+  m_external = j.value("external", true);
 }
 
 nlohmann::json
@@ -172,6 +201,7 @@ SolidOval::to_json() const {
   mesh["translation"] = {m_x, m_y};
   mesh["scale"] = {m_diam, m_dmin};;
   mesh["rotation"] = m_theta;
+  mesh["external"] = m_external;
   return mesh;
 }
 
@@ -233,6 +263,13 @@ SolidSquare::init_elements(const float _ips) const {
   // correct the final index
   idx[2*num_panels-1] = 0;
 
+  // flip the orientation of the panels
+  if (not m_external) {
+    for (size_t i=0; i<num_panels; i++) {
+      std::swap(idx[2*i], idx[2*i+1]);
+    }
+  }
+
   return ElementPacket<float>({x, idx, val});
 }
 
@@ -244,7 +281,12 @@ SolidSquare::debug(std::ostream& os) const {
 std::string
 SolidSquare::to_string() const {
   std::stringstream ss;
-  ss << "solid square at " << m_x << " " << m_y << " with side " << m_side << " rotated " << m_theta << " deg";
+  if (m_external) {
+    ss << "solid square";
+  } else {
+    ss << "square hole";
+  }
+  ss << " at " << m_x << " " << m_y << " with side " << m_side << " rotated " << m_theta << " deg";
   return ss.str();
 }
 
@@ -255,6 +297,7 @@ SolidSquare::from_json(const nlohmann::json j) {
   m_y = tr[1];
   m_side = j["scale"];
   m_theta = j.value("rotation", 0.0);
+  m_external = j.value("external", true);
 }
 
 nlohmann::json
@@ -265,6 +308,7 @@ SolidSquare::to_json() const {
   mesh["translation"] = {m_x, m_y};
   mesh["scale"] = m_side;
   mesh["rotation"] = m_theta;
+  mesh["external"] = m_external;
   return mesh;
 }
 

@@ -23,9 +23,11 @@ class BoundaryFeature {
 public:
   explicit
   BoundaryFeature(std::shared_ptr<Body> _bp,
+                  bool _ext,
                   float _x,
                   float _y)
     : m_bp(_bp),
+      m_external(_ext),
       m_x(_x),
       m_y(_y)
     {}
@@ -41,6 +43,7 @@ public:
 
 protected:
   std::shared_ptr<Body> m_bp;
+  bool m_external;
   float m_x;
   float m_y;
 };
@@ -75,10 +78,11 @@ protected:
 class SolidCircle : public BoundaryFeature {
 public:
   SolidCircle(std::shared_ptr<Body> _bp = nullptr,
+              bool _ext = true,
               float _x = 0.0,
               float _y = 0.0,
               float _diam = 1.0)
-    : BoundaryFeature(_bp, _x, _y),
+    : BoundaryFeature(_bp, _ext, _x, _y),
       m_diam(_diam)
     {}
 
@@ -99,12 +103,13 @@ protected:
 class SolidOval : public SolidCircle {
 public:
   SolidOval(std::shared_ptr<Body> _bp = nullptr,
+            bool _ext = true,
             float _x = 0.0,
             float _y = 0.0,
             float _diam = 1.0,
             float _dmin = 0.5,
             float _theta = 0.0)
-    : SolidCircle(_bp, _x, _y, _diam),
+    : SolidCircle(_bp, _ext, _x, _y, _diam),
       m_dmin(_dmin),
       m_theta(_theta)
     {}
@@ -127,11 +132,12 @@ protected:
 class SolidSquare : public BoundaryFeature {
 public:
   SolidSquare(std::shared_ptr<Body> _bp = nullptr,
+              bool _ext = true,
               float _x = 0.0,
               float _y = 0.0,
               float _side = 1.0,
               float _theta = 0.0)
-    : BoundaryFeature(_bp, _x, _y),
+    : BoundaryFeature(_bp, _ext, _x, _y),
       m_side(_side),
       m_theta(_theta)
     {}

@@ -471,7 +471,7 @@ int main(int argc, char const *argv[]) {
           // generate the boundary
           bp = std::make_shared<Body>();
           bp->set_name("ground");
-          bfeatures.emplace_back(std::make_unique<SolidCircle>(bp, 0.0, 0.0, 1.0));
+          bfeatures.emplace_back(std::make_unique<SolidCircle>(bp, true, 0.0, 0.0, 1.0));
           is_viscous = true;
           sim.set_diffuse(true);
           // start it up
@@ -492,7 +492,7 @@ int main(int argc, char const *argv[]) {
           // generate the boundary
           bp = std::make_shared<Body>();
           bp->set_name("ground");
-          bfeatures.emplace_back(std::make_unique<SolidSquare>(bp, 0.0, 0.0, 1.0, 0.0));
+          bfeatures.emplace_back(std::make_unique<SolidSquare>(bp, true, 0.0, 0.0, 1.0, 0.0));
           is_viscous = true;
           sim.set_diffuse(true);
           // start it up
@@ -542,7 +542,7 @@ int main(int argc, char const *argv[]) {
     //if (ImGui::CollapsingHeader("Simulation globals", ImGuiTreeNodeFlags_DefaultOpen)) {
     if (ImGui::CollapsingHeader("Simulation globals")) {
 
-      ImGui::SliderFloat("Time step", sim.addr_dt(), 0.001f, 0.1f, "%.4f", 2.0f);
+      ImGui::SliderFloat("Time step", sim.addr_dt(), 0.0001f, 0.1f, "%.4f", 2.0f);
       ImGui::Checkbox("Fluid is viscous (diffuses)", &is_viscous);
       if (is_viscous) {
         // show the toggle for AMR
@@ -770,7 +770,7 @@ int main(int argc, char const *argv[]) {
       {
         // define movement first
         static int mitem = 0;
-        const char* mitems[] = { "fixed", "attached to previous", "according to formula" };
+        const char* mitems[] = { "fixed to ground", "attached to previous", "according to formula" };
         //const char* mitems[] = { "fixed", "attached to previous", "according to formula", "dynamic" };
         ImGui::Combo("movement", &mitem, mitems, 3);
         static char strx[512] = "0.0*t";
@@ -800,6 +800,11 @@ int main(int argc, char const *argv[]) {
         //const char* items[] = { "solid circle", "solid square", "solid object from file", "draw outline in UI" };
         const char* items[] = { "solid circle", "solid square", "solid oval" };
         ImGui::Combo("type", &item, items, 3);
+
+        static bool external_flow = true;
+        ImGui::Checkbox("Object is in flow", &external_flow);
+        ImGui::SameLine();
+        ShowHelpMarker("Keep checked if object is immersed in flow,\nuncheck if flow is inside of object");
 
         static float xc[2] = {0.0f, 0.0f};
         static float rotdeg = 0.0f;
@@ -834,7 +839,7 @@ int main(int argc, char const *argv[]) {
                   sim.add_body(bp);
                   break;
               }
-              bfeatures.emplace_back(std::make_unique<SolidCircle>(bp, xc[0], xc[1], circdiam));
+              bfeatures.emplace_back(std::make_unique<SolidCircle>(bp, external_flow, xc[0], xc[1], circdiam));
               std::cout << "Added " << (*bfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
@@ -867,7 +872,7 @@ int main(int argc, char const *argv[]) {
                   sim.add_body(bp);
                   break;
               }
-              bfeatures.emplace_back(std::make_unique<SolidSquare>(bp, xc[0], xc[1], sqside, rotdeg));
+              bfeatures.emplace_back(std::make_unique<SolidSquare>(bp, external_flow, xc[0], xc[1], sqside, rotdeg));
               std::cout << "Added " << (*bfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
@@ -900,7 +905,7 @@ int main(int argc, char const *argv[]) {
                   sim.add_body(bp);
                   break;
               }
-              bfeatures.emplace_back(std::make_unique<SolidOval>(bp, xc[0], xc[1], circdiam, minordiam, rotdeg));
+              bfeatures.emplace_back(std::make_unique<SolidOval>(bp, external_flow, xc[0], xc[1], circdiam, minordiam, rotdeg));
               std::cout << "Added " << (*bfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
