@@ -196,6 +196,9 @@ int main(int argc, char const *argv[]) {
   static bool sim_is_running = false;
   static bool begin_single_step = false;
 
+  // placeholder for command-line input file
+  std::string command_line_input;
+
   // Set up primary OpenGL window
   glfwSetErrorCallback(error_callback);
   if (!glfwInit())
@@ -522,14 +525,20 @@ int main(int argc, char const *argv[]) {
           sim.reset();
           bfeatures.clear();
           ffeatures.clear();
+          mfeatures.clear();
 
           // load and report
           read_json(sim, ffeatures, bfeatures, mfeatures, rparams, infile);
 
           // we have to manually set this variable
           is_viscous = sim.get_diffuse();
-          // run one step so we know what we have
-          begin_single_step = true;
+
+          // run one step so we know what we have, or autostart
+          if (sim.autostart()) {
+            sim_is_running = true;
+          } else {
+            begin_single_step = true;
+          }
 
           // check and possibly resize the window to match the saved resolution
           resize_to_resolution(window, rparams.width, rparams.height);
@@ -537,6 +546,33 @@ int main(int argc, char const *argv[]) {
       }
     }
     ImGui::Spacing();
+
+    // or load the sim from the command-line (do this once)
+    if (argc == 2 and command_line_input.empty()) {
+
+      // stop and clear before loading
+      sim.reset();
+      bfeatures.clear();
+      ffeatures.clear();
+      mfeatures.clear();
+
+      command_line_input = argv[1];
+      read_json(sim, ffeatures, bfeatures, mfeatures, rparams, command_line_input);
+      std::cout << std::endl << "Loaded simulation from " << command_line_input << std::endl;
+
+      // we have to manually set this variable
+      is_viscous = sim.get_diffuse();
+
+      // run one step so we know what we have, or autostart
+      if (sim.autostart()) {
+        sim_is_running = true;
+      } else {
+        begin_single_step = true;
+      }
+
+      // check and possibly resize the window to match the saved resolution
+      resize_to_resolution(window, rparams.width, rparams.height);
+    }
 
 
     //if (ImGui::CollapsingHeader("Simulation globals", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -1080,7 +1116,21 @@ int main(int argc, char const *argv[]) {
     nframes++;
 
     // check vs. end conditions, if present
-    if (sim.test_vs_stop_async()) sim_is_running = false;
+    if (sim.test_vs_stop_async()) {
+      // just pause sim
+      sim_is_running = false;
+
+      // fully quit if asked
+      if (sim.quitonstop()) {
+        if (is_ready) {
+          // this simulation step has finished, write png and exit
+          draw_this_frame = true;
+
+          // tell glfw to close the window next time around
+          glfwSetWindowShouldClose(window, GLFW_TRUE);
+        }
+      }
+    }
 
     // all the other stuff
     {

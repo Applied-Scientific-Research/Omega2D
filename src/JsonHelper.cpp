@@ -72,6 +72,16 @@ void read_json (Simulation& sim,
       sim.set_status_file_name(sfile);
       std::cout << "  status file name= " << sfile << std::endl;
     }
+    if (params.find("autoStart") != params.end()) {
+      bool autostart = params["autoStart"];
+      sim.set_auto_start(autostart);
+      std::cout << "  autostart? " << autostart << std::endl;
+    }
+    if (params.find("quitOnStop") != params.end()) {
+      bool qos = params["quitOnStop"];
+      sim.set_quit_on_stop(qos);
+      std::cout << "  quit on stop? " << qos << std::endl;
+    }
   }
 
   // must do this first, as we need to set viscous before reading Re

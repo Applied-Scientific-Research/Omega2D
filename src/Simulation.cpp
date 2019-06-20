@@ -35,6 +35,8 @@ Simulation::Simulation()
     nstep(0),
     max_steps(100),
     use_max_steps(false),
+    auto_start(false),
+    quit_on_stop(false),
     sim_is_initialized(false),
     step_has_started(false),
     step_is_finished(false)
@@ -57,6 +59,8 @@ size_t Simulation::get_max_steps() { return max_steps; }
 bool Simulation::using_max_steps() { return use_max_steps; }
 float Simulation::get_output_dt() { return (float)output_dt; }
 std::string Simulation::get_description() { return description; }
+bool Simulation::autostart() { return auto_start; }
+bool Simulation::quitonstop() { return quit_on_stop; }
 
 // setters
 void Simulation::set_description(const std::string desc) { description = desc; }
@@ -65,6 +69,8 @@ void Simulation::unset_end_time() { use_end_time = false; }
 void Simulation::set_max_steps(const size_t nms) { max_steps = nms; use_max_steps = true; }
 void Simulation::unset_max_steps() { use_max_steps = false; }
 void Simulation::set_output_dt(const double nodt) { output_dt = nodt; }
+void Simulation::set_auto_start(const bool autos) { auto_start = autos; }
+void Simulation::set_quit_on_stop(const bool qos) { quit_on_stop = qos; }
 
 // access status file
 void Simulation::set_status_file_name(const std::string _fn) { sf.set_filename(_fn); }

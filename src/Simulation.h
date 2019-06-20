@@ -62,6 +62,8 @@ public:
   bool using_max_steps();
   float get_output_dt();
   std::string get_description();
+  bool autostart();
+  bool quitonstop();
 
   // setters
   void set_description(const std::string);
@@ -70,6 +72,8 @@ public:
   void set_max_steps(const size_t);
   void unset_max_steps();
   void set_output_dt(const double);
+  void set_auto_start(const bool);
+  void set_quit_on_stop(const bool);
 
   // get runtime status
   size_t get_npanels();
@@ -171,6 +175,8 @@ private:
   bool use_end_time;
   size_t nstep;
   size_t max_steps;
+  bool auto_start;
+  bool quit_on_stop;
   bool use_max_steps;
   bool sim_is_initialized;
   bool step_has_started;
