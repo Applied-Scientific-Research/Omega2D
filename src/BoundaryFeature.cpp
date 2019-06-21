@@ -36,6 +36,7 @@ void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
   else if (ftype == "oval") {   _flist.emplace_back(std::make_unique<SolidOval>(_bp)); }
   else if (ftype == "square") { _flist.emplace_back(std::make_unique<SolidSquare>(_bp)); }
   else if (ftype == "rectangle") { _flist.emplace_back(std::make_unique<SolidRect>(_bp)); }
+  else if (ftype == "segment") { _flist.emplace_back(std::make_unique<BoundarySegment>(_bp)); }
 
   // and pass the json object to the specific parser
   _flist.back()->from_json(_jin);
@@ -423,4 +424,87 @@ SolidRect::to_json() const {
   mesh["external"] = m_external;
   return mesh;
 }
+
+
+//
+// Create a segment of a solid boundary
+//
+ElementPacket<float>
+BoundarySegment::init_elements(const float _ips) const {
+
+  // how many panels?
+  const float seg_length = std::sqrt(std::pow(m_xe-m_x, 2) + std::pow(m_ye-m_x, 2));
+  const size_t num_panels = std::min(10000, std::max(1, (int)(seg_length / _ips)));
+
+  std::cout << "Creating segment with " << num_panels << " panels" << std::endl;
+
+  // created once
+  std::vector<float>   x((num_panels+1)*2);
+  std::vector<Int>   idx(num_panels*2);
+  std::vector<float> val(num_panels);
+
+  // outside is to the left walking from one point to the next
+  // so go CW around the body
+  size_t icnt = 0;
+  for (size_t i=0; i<num_panels+1; i++) {
+    const float s = (float)i / (float)num_panels;
+    x[icnt++] = (1.0-s)*m_x + s*m_xe;
+    x[icnt++] = (1.0-s)*m_y + s*m_ye;
+  }
+
+  // outside is to the left walking from one point to the next
+  for (size_t i=0; i<num_panels; i++) {
+    idx[2*i]   = i;
+    idx[2*i+1] = i+1;
+    val[i]     = 0.0;
+  }
+
+  // flip the orientation of the panels
+  if (not m_external) {
+    for (size_t i=0; i<num_panels; i++) {
+      std::swap(idx[2*i], idx[2*i+1]);
+    }
+  }
+
+  return ElementPacket<float>({x, idx, val});
+}
+
+void
+BoundarySegment::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+BoundarySegment::to_string() const {
+  std::stringstream ss;
+  ss << "segment from " << m_x << " " << m_y << " to " << m_xe << " " << m_ye;
+  return ss.str();
+}
+
+void
+BoundarySegment::from_json(const nlohmann::json j) {
+  const std::vector<float> tr = j["translation"];
+  m_x = tr[0];
+  m_y = tr[1];
+  const std::vector<float> ep = j["endpt"];
+  m_xe = ep[0];
+  m_ye = ep[1];
+  m_normflow = j.value("normalVel", 0.0);
+  m_tangflow = j.value("tengentialVel", 0.0);
+  m_external = j.value("external", true);
+}
+
+nlohmann::json
+BoundarySegment::to_json() const {
+  // make an object for the mesh
+  nlohmann::json mesh = nlohmann::json::object();
+  mesh["geometry"] = "segment";
+  mesh["translation"] = {m_x, m_y};
+  mesh["endpt"] = {m_xe, m_ye};
+  mesh["normalVel"] = m_normflow;
+  mesh["tangentialVel"] = m_tangflow;
+  mesh["external"] = m_external;
+  return mesh;
+}
+
 
