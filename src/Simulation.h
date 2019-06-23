@@ -116,6 +116,7 @@ public:
   std::string check_initialization();
   std::string check_simulation();
   bool do_any_bodies_move();
+  bool any_nonzero_bcs();
   bool test_for_new_results();
   void write_vtk();
   bool test_vs_stop();

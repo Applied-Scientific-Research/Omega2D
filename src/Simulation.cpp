@@ -247,10 +247,11 @@ std::string Simulation::check_initialization() {
 
     const bool zero_freestream = (fs[0]*fs[0]+fs[1]*fs[1] < std::numeric_limits<float>::epsilon());
     const bool no_body_movement = not do_any_bodies_move();
+    const bool all_zero_bcs = not any_nonzero_bcs();
 
     // AND no freestream
-    if (zero_freestream and no_body_movement) {
-      retstr.append("No flow features and zero freestream speed - try adding one or both.\n");
+    if (zero_freestream and no_body_movement and all_zero_bcs) {
+      retstr.append("No flow features, zero freestream speed, no movement, and no driven boundaries - try adding one of these.\n");
       return retstr;
     }
 
@@ -291,6 +292,19 @@ bool Simulation::do_any_bodies_move() {
     }
   }
   return some_move;
+}
+
+//
+// check all bodies for non-zero BCs
+//
+bool Simulation::any_nonzero_bcs() {
+  bool all_are_zero = true;
+  // loop over bdry Collections
+  for (auto &src : bdry) {
+    float max_bc = std::visit([=](auto& elem) { return elem.get_max_bc_value(); }, src);
+    if (std::abs(max_bc) > std::numeric_limits<float>::epsilon()) all_are_zero = false;
+  }
+  return not all_are_zero;
 }
 
 //

@@ -166,6 +166,12 @@ public:
   const bool have_src_str() const { return (bool)ss; }
   const Vector<S>& get_src_str() const { return *ss; }
 
+  const bool get_max_bc_value() const {
+    const S this_max = *std::max_element(std::begin(bc), std::end(bc));
+    const S this_min = *std::min_element(std::begin(bc), std::end(bc));
+    return std::max(this_max, -this_min);
+  }
+
   // add more nodes and panels to this collection
   void add_new(const std::vector<S>&   _x,
                const std::vector<Int>& _idx,
@@ -305,6 +311,29 @@ public:
       }
     }
   }
+
+
+  // testing - add BCs post-BEM and NOT in the RHS
+  void set_str(const size_t ioffset, const size_t icnt, Vector<S> _in) {
+    // call base class first
+    ElementBase<S>::set_str(ioffset, icnt, _in);
+
+    assert((this->s->size() == bc.size()) && "Strength array is not the same size as BC array");
+
+    // now add BCs directly to the strengths
+    for (size_t i=0; i<bc.size(); ++i) {
+      const Int id0 = idx[2*i];
+      const Int id1 = idx[2*i+1];
+      // find the panel vectors
+      const S dx = this->x[0][id1] - this->x[0][id0];
+      const S dy = this->x[1][id1] - this->x[1][id0];
+      // the panel length
+      const S panlen = std::sqrt(dx*dx+dy*dy);
+
+      (*this->s)[i] += bc[i];
+    }
+  }
+
 
   // augment the strengths with a value equal to that which accounts for
   //   the solid-body rotation of the object

@@ -105,6 +105,8 @@ public:
   const Int get_num_rows()  const { return 0; }
   const Int get_next_row()  const { return 0; }
 
+  const bool get_max_bc_value() const { return 0.0; }
+
   void add_new(std::vector<float>& _in) {
     // remember old size and incoming size
     const size_t nold = this->n;
