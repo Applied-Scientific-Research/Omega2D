@@ -144,6 +144,8 @@ void write_DataArray (tinyxml2::XMLPrinter& _p,
 template <class S>
 void write_vtu_points(Points<S> const& pts, const size_t file_idx, const size_t frameno) {
 
+  if (pts.get_n() == 0) return;
+
   const bool compress = false;
   const bool asbase64 = true;
 

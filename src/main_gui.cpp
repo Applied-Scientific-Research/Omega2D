@@ -312,7 +312,7 @@ int main(int argc, char const *argv[]) {
     bool is_ready = sim.test_for_new_results();
 
     // before we start again, write the vtu output
-    if (sim.get_nparts() > 0 and export_vtk_this_frame) {
+    if (export_vtk_this_frame) {
       sim.write_vtk();
       export_vtk_this_frame = false;
     }
