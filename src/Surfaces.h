@@ -312,29 +312,6 @@ public:
     }
   }
 
-
-  // testing - add BCs post-BEM and NOT in the RHS
-  void set_str(const size_t ioffset, const size_t icnt, Vector<S> _in) {
-    // call base class first
-    ElementBase<S>::set_str(ioffset, icnt, _in);
-
-    assert((this->s->size() == bc.size()) && "Strength array is not the same size as BC array");
-
-    // now add BCs directly to the strengths
-    for (size_t i=0; i<bc.size(); ++i) {
-      const Int id0 = idx[2*i];
-      const Int id1 = idx[2*i+1];
-      // find the panel vectors
-      const S dx = this->x[0][id1] - this->x[0][id0];
-      const S dy = this->x[1][id1] - this->x[1][id0];
-      // the panel length
-      const S panlen = std::sqrt(dx*dx+dy*dy);
-
-      (*this->s)[i] += bc[i];
-    }
-  }
-
-
   // augment the strengths with a value equal to that which accounts for
   //   the solid-body rotation of the object
   // NOTE: this needs to provide both the vortex AND source strengths!
@@ -551,8 +528,8 @@ public:
     // init the output vector
     std::vector<S> px(num_pts*4);
 
-    // outside is to the left walking from one point to the next
-    // so go CW around the circle starting at theta=0 (+x axis)
+    // the fluid is to the left walking from one point to the next
+    // so go CW around an external boundary starting at theta=0 (+x axis)
     S oopanlen, along[2];
 
     for (size_t i=0; i<num_pts; i++) {
@@ -569,8 +546,10 @@ public:
       // this assumes properly resolved, vdelta and dt
       px[4*i+0] += _offset * -along[1] * oopanlen;
       px[4*i+1] += _offset *  along[0] * oopanlen;
+      // the panel strength is the solved strength plus the boundary condition
+      const float this_str = (*this->s)[i] + bc[i];
       // complete the element with a strength and radius
-      px[4*i+2] = (*this->s)[i] / oopanlen;
+      px[4*i+2] = this_str / oopanlen;
       px[4*i+3] = _vdelta;
       //std::cout << "  new part is " << px[4*i+0] << " " << px[4*i+1] << " " << px[4*i+2] << " " << px[4*i+3] << std::endl;
     }

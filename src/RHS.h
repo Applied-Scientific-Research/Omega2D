@@ -46,11 +46,11 @@ std::vector<S> vels_to_rhs_panels (Surfaces<S> const& targ) {
   const std::array<Vector<S>,Dimensions>& tx = targ.get_pos();
   const std::vector<Int>&                 ti = targ.get_idx();
   const std::array<Vector<S>,Dimensions>& tu = targ.get_vel();
-  const Vector<S>&                        tb = targ.get_bcs();
+  //const Vector<S>&                        tb = targ.get_bcs();
 
   assert(2*tx[0].size() == ti.size() && "Input array sizes do not match");
   assert(tx[0].size() == tu[0].size() && "Input array sizes do not match");
-  assert(tx[0].size() == tb.size() && "Input array sizes do not match");
+  //assert(tx[0].size() == tb.size() && "Input array sizes do not match");
 
   // find array sizes
   // this assumes one unknown per panel - not generally true!!!
@@ -79,8 +79,10 @@ std::vector<S> vels_to_rhs_panels (Surfaces<S> const& targ) {
     // new way
     // dot product of tangent with local velocity, applying normalization
     rhs[i] = -(tu[0][i]*panelx + tu[1][i]*panely) / panell;
-    // include the influence of the boundary condition (normally zero)
-    rhs[i] -= tb[i];
+
+    // DO NOT include the influence of the boundary condition here, do it before shedding
+    //rhs[i] -= tb[i];
+
     //std::cout << "  elem " << i << " vel is " << tu[0][i] << " " << tu[1][i] << std::endl;
     //std::cout << "  elem " << i << " rhs is " << rhs[i] << std::endl;
   }
