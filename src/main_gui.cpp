@@ -838,26 +838,25 @@ int main(int argc, char const *argv[]) {
         // define geometry second
         static int item = 0;
         //const char* items[] = { "solid circle", "solid square", "solid object from file", "draw outline in UI" };
-        const char* items[] = { "circle", "square", "oval", "rectangle" };
-        ImGui::Combo("type", &item, items, 4);
+        const char* items[] = { "circle", "square", "oval", "rectangle", "segment" };
+        ImGui::Combo("type", &item, items, 5);
 
         static bool external_flow = true;
-        ImGui::Checkbox("Object is in flow", &external_flow);
-        ImGui::SameLine();
-        ShowHelpMarker("Keep checked if object is immersed in flow,\nuncheck if flow is inside of object");
 
         static float xc[2] = {0.0f, 0.0f};
         static float rotdeg = 0.0f;
         static float circdiam = 1.0;
         static float sqside = 1.0;
 
-        // always ask for center
-        ImGui::InputFloat2("center", xc);
 
         // show different inputs based on what is selected
         switch(item) {
           case 0:
             // create a circular boundary
+            ImGui::Checkbox("Object is in flow", &external_flow);
+            ImGui::SameLine();
+            ShowHelpMarker("Keep checked if object is immersed in flow,\nuncheck if flow is inside of object");
+            ImGui::InputFloat2("center", xc);
             ImGui::SliderFloat("diameter", &circdiam, 0.01f, 10.0f, "%.4f", 2.0);
             ImGui::TextWrapped("This feature will add a solid circular boundary centered at the given coordinates");
             if (ImGui::Button("Add circular boundary")) {
@@ -889,6 +888,10 @@ int main(int argc, char const *argv[]) {
             break;
           case 1:
             // create a square/rectangle boundary
+            ImGui::Checkbox("Object is in flow", &external_flow);
+            ImGui::SameLine();
+            ShowHelpMarker("Keep checked if object is immersed in flow,\nuncheck if flow is inside of object");
+            ImGui::InputFloat2("center", xc);
             ImGui::SliderFloat("side length", &sqside, 0.1f, 10.0f, "%.4f");
             ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 89.0f, "%.0f");
             //ImGui::SliderAngle("orientation", &rotdeg);
@@ -922,6 +925,10 @@ int main(int argc, char const *argv[]) {
             break;
           case 2:
             // create an oval boundary
+            ImGui::Checkbox("Object is in flow", &external_flow);
+            ImGui::SameLine();
+            ShowHelpMarker("Keep checked if object is immersed in flow,\nuncheck if flow is inside of object");
+            ImGui::InputFloat2("center", xc);
             static float minordiam = 0.5;
             ImGui::SliderFloat("major diameter", &circdiam, 0.01f, 10.0f, "%.4f", 2.0);
             ImGui::SliderFloat("minor diameter", &minordiam, 0.01f, 10.0f, "%.4f", 2.0);
@@ -956,6 +963,10 @@ int main(int argc, char const *argv[]) {
             break;
           case 3:
             // create a rectangle boundary
+            ImGui::Checkbox("Object is in flow", &external_flow);
+            ImGui::SameLine();
+            ShowHelpMarker("Keep checked if object is immersed in flow,\nuncheck if flow is inside of object");
+            ImGui::InputFloat2("center", xc);
             static float rectside = 0.5;
             ImGui::SliderFloat("horizontal size", &sqside, 0.1f, 10.0f, "%.4f");
             ImGui::SliderFloat("vertical size", &rectside, 0.1f, 10.0f, "%.4f");
@@ -984,6 +995,41 @@ int main(int argc, char const *argv[]) {
                   break;
               }
               bfeatures.emplace_back(std::make_unique<SolidRect>(bp, external_flow, xc[0], xc[1], sqside, rectside, rotdeg));
+              std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            break;
+          case 4:
+            // create a straight boundary segment
+            static float xe[2] = {1.0f, 0.0f};
+            static float tangbc = 0.0;
+            ImGui::InputFloat2("start", xc);
+            ImGui::InputFloat2("end", xe);
+            ImGui::SliderFloat("force tangential flow", &tangbc, -2.0f, 2.0f, "%.1f");
+            ImGui::TextWrapped("This feature will add a solid boundary segment from start to end, where fluid is on the left when marching from start to end, and positive tangential flow is as if segment is moving along vector from start to end. Make sure enough segments are created to fully enclose a volume.");
+            if (ImGui::Button("Add boundary segment")) {
+              std::shared_ptr<Body> bp;
+              switch(mitem) {
+                case 0:
+                  // this geometry is fixed (attached to inertial)
+                  bp = sim.get_pointer_to_body("ground");
+                  break;
+                case 1:
+                  // this geometry is attached to the previous geometry (or ground)
+                  bp = sim.get_last_body();
+                  break;
+                case 2:
+                  // this geometry is attached to a new moving body
+                  bp = std::make_shared<Body>();
+                  bp->set_pos(0, std::string(strx));
+                  bp->set_pos(1, std::string(stry));
+                  bp->set_rot(std::string(strrad));
+                  bp->set_name("segmented boundary");
+                  sim.add_body(bp);
+                  break;
+              }
+              bfeatures.emplace_back(std::make_unique<BoundarySegment>(bp, true, xc[0], xc[1], xe[0], xe[1], 0.0, tangbc));
               std::cout << "Added " << (*bfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }

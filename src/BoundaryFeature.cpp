@@ -433,10 +433,11 @@ ElementPacket<float>
 BoundarySegment::init_elements(const float _ips) const {
 
   // how many panels?
-  const float seg_length = std::sqrt(std::pow(m_xe-m_x, 2) + std::pow(m_ye-m_x, 2));
+  const float seg_length = std::sqrt(std::pow(m_xe-m_x, 2) + std::pow(m_ye-m_y, 2));
   const size_t num_panels = std::min(10000, std::max(1, (int)(seg_length / _ips)));
 
   std::cout << "Creating segment with " << num_panels << " panels" << std::endl;
+  std::cout << "  " << to_string() << std::endl;
 
   // created once
   std::vector<float>   x((num_panels+1)*2);
@@ -456,7 +457,7 @@ BoundarySegment::init_elements(const float _ips) const {
   for (size_t i=0; i<num_panels; i++) {
     idx[2*i]   = i;
     idx[2*i+1] = i+1;
-    val[i]     = 0.0;
+    val[i]     = m_tangflow;
   }
 
   // flip the orientation of the panels
@@ -478,20 +479,24 @@ std::string
 BoundarySegment::to_string() const {
   std::stringstream ss;
   ss << "segment from " << m_x << " " << m_y << " to " << m_xe << " " << m_ye;
+  if (std::abs(m_tangflow) > std::numeric_limits<float>::epsilon()) {
+    ss << " with boundary vel " << m_tangflow;
+  }
   return ss.str();
 }
 
 void
 BoundarySegment::from_json(const nlohmann::json j) {
-  const std::vector<float> tr = j["translation"];
+  const std::vector<float> tr = j["startpt"];
   m_x = tr[0];
   m_y = tr[1];
   const std::vector<float> ep = j["endpt"];
   m_xe = ep[0];
   m_ye = ep[1];
   m_normflow = j.value("normalVel", 0.0);
-  m_tangflow = j.value("tengentialVel", 0.0);
-  m_external = j.value("external", true);
+  m_tangflow = j.value("tangentialVel", 0.0);
+  m_external = true;//j.value("external", true);
+  std::cout << "    this " << to_string() << std::endl;
 }
 
 nlohmann::json
@@ -499,11 +504,11 @@ BoundarySegment::to_json() const {
   // make an object for the mesh
   nlohmann::json mesh = nlohmann::json::object();
   mesh["geometry"] = "segment";
-  mesh["translation"] = {m_x, m_y};
+  mesh["startpt"] = {m_x, m_y};
   mesh["endpt"] = {m_xe, m_ye};
   mesh["normalVel"] = m_normflow;
   mesh["tangentialVel"] = m_tangflow;
-  mesh["external"] = m_external;
+  //mesh["external"] = m_external;
   return mesh;
 }
 
