@@ -64,7 +64,7 @@ size_t merge_close_particles(std::array<Vector<S>,2>& pos,
   typedef nanoflann::KDTreeEigenMatrixAdaptor< Eigen::Matrix<S, Eigen::Dynamic, Dimensions> >  my_kd_tree_t;
   my_kd_tree_t mat_index(xp, 20);
   mat_index.index->buildIndex();
-  std::vector<std::pair<long int,S> > ret_matches;
+  std::vector<std::pair<int32_t,S> > ret_matches;
   ret_matches.reserve(16);
   nanoflann::SearchParams params;
   params.sorted = true;

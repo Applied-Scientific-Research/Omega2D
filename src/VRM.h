@@ -279,7 +279,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
   typedef nanoflann::KDTreeEigenMatrixAdaptor< Eigen::Matrix<ST, Eigen::Dynamic, 2> >  my_kd_tree_t;
   my_kd_tree_t mat_index(xp, 20);
   if (use_tree) mat_index.index->buildIndex();
-  std::vector<std::pair<long int,ST> > ret_matches;
+  std::vector<std::pair<int32_t,ST> > ret_matches;
   ret_matches.reserve(max_near);
   nanoflann::SearchParams params;
   params.sorted = true;
