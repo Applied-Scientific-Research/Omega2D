@@ -51,7 +51,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <cstdio>  // for fwrite()
-#define _USE_MATH_DEFINES // Required by MSVC to define M_PI,etc. in <cmath>
+//#define _USE_MATH_DEFINES // Required by MSVC to define M_PI,etc. in <cmath>
 #include <cmath>   // for abs()
 #include <cstdlib> // for abs()
 #include <limits>

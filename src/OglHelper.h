@@ -8,9 +8,15 @@
 #pragma once
 
 // for glad
-#ifdef _WIN32
-  #define APIENTRY __stdcall
-#endif
+#ifndef APIENTRY
+  #ifdef _WIN32
+    #define APIENTRY __stdcall
+  #else
+    #define APIENTRY
+  #endif
+  #define GL_APIENTRY_DEFINED
+#endif // APIENTRY
+
 #include "glad.h"
 
 #include <cstdint>

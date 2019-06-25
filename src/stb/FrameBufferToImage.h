@@ -10,7 +10,9 @@
 //#include "GL/glew.h"
 #ifdef _WIN32
   // for glad
-  #define APIENTRY __stdcall
+  #ifndef APIENTRY
+    #define APIENTRY __stdcall
+  #endif
   // for C++11 stuff
   #include <ciso646>
 #endif

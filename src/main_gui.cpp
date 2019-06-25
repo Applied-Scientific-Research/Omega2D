@@ -16,8 +16,10 @@
 
 #ifdef _WIN32
   // for glad
-  #define APIENTRY __stdcall
-  // for C++11 stuff
+  #ifndef APIENTRY
+    #define APIENTRY __stdcall
+  #endif
+  // for C++11 stuff that Windows can't get right
   #include <ciso646>
 #endif
 #include "glad.h"
@@ -704,7 +706,7 @@ int main(int argc, char const *argv[]) {
 
         // show different inputs based on what is selected
         switch(item) {
-          case 0:
+          case 0: {
             // a single vortex particle
             ImGui::SliderFloat("strength", &str, -1.0f, 1.0f, "%.4f");
             ImGui::TextWrapped("This feature will add 1 particle");
@@ -717,23 +719,23 @@ int main(int argc, char const *argv[]) {
             ImGui::SameLine();
             // it would be nice to be able to put this all in
             //SingleParticle::draw_creation_gui();
-            break;
+            } break;
 
-          case 1:
+         case 1: {
             // a blob of multiple vorticies
             ImGui::SliderFloat("strength", &str, -5.0f, 5.0f, "%.4f");
             ImGui::SliderFloat("radius", &rad, sim.get_ips(), 1.0f, "%.4f");
             ImGui::SliderFloat("softness", &soft, sim.get_ips(), 1.0f, "%.4f");
-            ImGui::TextWrapped("This feature will add about %d particles", (int)(0.785398175*std::pow((2*rad+soft)/sim.get_ips(), 2)));
+            ImGui::TextWrapped("This feature will add about %d particles", (int)(0.785398175*std::pow((2 * rad + soft) / sim.get_ips(), 2)));
             if (ImGui::Button("Add vortex blob")) {
               ffeatures.emplace_back(std::make_unique<VortexBlob>(xc[0], xc[1], str, rad, soft));
               std::cout << "Added " << (*ffeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
-            break;
+            } break;
 
-          case 2:
+          case 2: {
             // an asymmetric blob of multiple vorticies
             static float minrad = 2.5 * sim.get_ips();
             static float rotdeg = 90.0f;
@@ -749,9 +751,9 @@ int main(int argc, char const *argv[]) {
               ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
-            break;
+            } break;
 
-          case 3:
+          case 3: {
             // random particles in a rectangle
             ImGui::SliderFloat("strength", &str, -5.0f, 5.0f, "%.4f");
             ImGui::SliderFloat2("box size", xs, 0.01f, 10.0f, "%.4f", 2.0f);
@@ -762,9 +764,9 @@ int main(int argc, char const *argv[]) {
               ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
-            break;
+            } break;
 
-          case 4:
+          case 4: {
             // random particles in a rectangle
             ImGui::SliderInt("number", &npart, 1, 10000);
             ImGui::SliderFloat2("box size", xs, 0.01f, 10.0f, "%.4f", 2.0f);
@@ -776,9 +778,9 @@ int main(int argc, char const *argv[]) {
               ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
-            break;
+            } break;
 
-          case 5:
+          case 5: {
             // create a particle emitter
             static float estr = 0.1f;
             ImGui::SliderFloat("strength", &estr, -0.1f, 0.1f, "%.4f");
@@ -790,7 +792,7 @@ int main(int argc, char const *argv[]) {
               ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
-            break;
+            } break;
         }
 
         if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
@@ -825,13 +827,13 @@ int main(int argc, char const *argv[]) {
             // this geometry is attached to a new moving body
             ImGui::InputText("x position", strx, 512);
             ImGui::SameLine();
-            ShowHelpMarker("Use C-style expressions, t is time\n+ - / * \% ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
+            ShowHelpMarker("Use C-style expressions, t is time\n+ - / * % ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
             ImGui::InputText("y position", stry, 512);
             ImGui::SameLine();
-            ShowHelpMarker("Use C-style expressions, t is time\n+ - / * \% ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
+            ShowHelpMarker("Use C-style expressions, t is time\n+ - / * % ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
             ImGui::InputText("angular position", strrad, 512);
             ImGui::SameLine();
-            ShowHelpMarker("In radians, use C-style expressions, t is time\n+ - / * \% ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
+            ShowHelpMarker("In radians, use C-style expressions, t is time\n+ - / * % ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
             break;
         }
 
@@ -851,7 +853,7 @@ int main(int argc, char const *argv[]) {
 
         // show different inputs based on what is selected
         switch(item) {
-          case 0:
+          case 0: {
             // create a circular boundary
             ImGui::Checkbox("Object is in flow", &external_flow);
             ImGui::SameLine();
@@ -885,8 +887,9 @@ int main(int argc, char const *argv[]) {
               ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
-            break;
-          case 1:
+            } break;
+
+          case 1: {
             // create a square/rectangle boundary
             ImGui::Checkbox("Object is in flow", &external_flow);
             ImGui::SameLine();
@@ -922,8 +925,9 @@ int main(int argc, char const *argv[]) {
               ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
-            break;
-          case 2:
+            } break;
+
+          case 2: {
             // create an oval boundary
             ImGui::Checkbox("Object is in flow", &external_flow);
             ImGui::SameLine();
@@ -960,8 +964,9 @@ int main(int argc, char const *argv[]) {
               ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
-            break;
-          case 3:
+            } break;
+
+          case 3: {
             // create a rectangle boundary
             ImGui::Checkbox("Object is in flow", &external_flow);
             ImGui::SameLine();
@@ -999,8 +1004,9 @@ int main(int argc, char const *argv[]) {
               ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
-            break;
-          case 4:
+            } break;
+
+          case 4: {
             // create a straight boundary segment
             static float xe[2] = {1.0f, 0.0f};
             static float tangbc = 0.0;
@@ -1034,7 +1040,7 @@ int main(int argc, char const *argv[]) {
               ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
-            break;
+            } break;
 /*
           case 2:
             // load a solid object as an outline

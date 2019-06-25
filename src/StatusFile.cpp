@@ -7,6 +7,10 @@
 
 #include "StatusFile.h"
 
+#ifdef _WIN32
+  #include <ciso646>
+#endif
+
 #include <iostream>
 #include <fstream>
 #include <cassert>
