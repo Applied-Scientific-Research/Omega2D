@@ -33,7 +33,7 @@ ENDIF ()
 
 IF( WIN32 )
   SET( GL_LIBS_HOME "C:/Lib" CACHE PATH "Location of support libraries" )
-  SET( GLFW3_ROOT "${GL_LIBS_HOME}/glfw-3.3.bin.WIN64" CACHE STRING "GLFW3 root" )
+  SET( GLFW3_ROOT "${GL_LIBS_HOME}/glfw-3.3.bin.WIN32" CACHE STRING "GLFW3 root" )
   INCLUDE_DIRECTORIES( "${GLFW3_ROOT}/include" )
   LINK_DIRECTORIES   ( "${GLFW3_ROOT}/lib-vc2017" )
   SET( FRAMEWORK_LIBS glfw3.lib )
@@ -129,7 +129,9 @@ INCLUDE_DIRECTORIES( "src/tinyexpr" )
 INCLUDE_DIRECTORIES( "src/cppcodec" )
 INCLUDE_DIRECTORIES( "src/stb" )
 
-SET_SOURCE_FILES_PROPERTIES("src/imgui/imgui_draw.cpp" PROPERTIES COMPILE_FLAGS -Wno-maybe-uninitialized)
+IF (CMAKE_COMPILER_IS_GNUCXX)
+  SET_SOURCE_FILES_PROPERTIES("src/imgui/imgui_draw.cpp" PROPERTIES COMPILE_FLAGS -Wno-maybe-uninitialized)
+ENDIF()
 
 FILE(GLOB HEADERS "src/*.h" )
 SET(SOURCES ${HEADERS}
