@@ -35,3 +35,5 @@
 *.tmp
 *.swp
 build
+Release
+Debug
