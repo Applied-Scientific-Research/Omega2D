@@ -58,7 +58,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
     // targets are field points
 
     #pragma omp parallel for
-    for (int32_t i=0; i<targ.get_n(); ++i) {
+    for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
 #ifdef USE_VC
       const Vc::Vector<S> txv = tx[0][i];
       const Vc::Vector<S> tyv = tx[1][i];
@@ -93,7 +93,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
     const Vector<S>&				tr = targ.get_rad();
 
     #pragma omp parallel for
-    for (int32_t i=0; i<targ.get_n(); ++i) {
+    for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
 #ifdef USE_VC
       const Vc::Vector<S> txv = tx[0][i];
       const Vc::Vector<S> tyv = tx[1][i];
@@ -206,7 +206,7 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
   }
 
   #pragma omp parallel for
-  for (int32_t i=0; i<targ.get_n(); ++i) {
+  for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
 
     // spread the target points out over a vector
     const StoreVec vtx = tx[0][i];
@@ -251,7 +251,7 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
 #else
 
   #pragma omp parallel for
-  for (int32_t i=0; i<targ.get_n(); ++i) {
+  for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
 
     A accumu  = 0.0;
     A accumv  = 0.0;
@@ -340,7 +340,7 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
   float flops = (float)targ.get_npanels();
 
   #pragma omp parallel for
-  for (int32_t i=0; i<targ.get_npanels(); ++i) {
+  for (int32_t i=0; i<(int32_t)targ.get_npanels(); ++i) {
 
     const size_t ip0 = ti[2*i];
     const size_t ip1 = ti[2*i+1];
