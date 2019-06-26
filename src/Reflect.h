@@ -139,7 +139,7 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
   const S eps = 10.0*std::numeric_limits<S>::epsilon();
 
   #pragma omp parallel for reduction(+:num_reflected)
-  for (size_t i=0; i<_targ.get_n(); ++i) {
+  for (int32_t i=0; i<_targ.get_n(); ++i) {
     S mindist = std::numeric_limits<S>::max();
     std::vector<ClosestReturn<S>> hits;
 
@@ -450,13 +450,13 @@ void clear_inner_panp2 (Surfaces<S> const & _src,
   const S eps = 10.0*std::numeric_limits<S>::epsilon();
 
   #pragma omp parallel for reduction(+:num_cropped)
-  for (size_t i=0; i<_targ.get_n(); ++i) {
+  for (int32_t i=0; i<_targ.get_n(); ++i) {
 
     S mindist = std::numeric_limits<S>::max();
     std::vector<ClosestReturn<S>> hits;
 
     // iterate and search for closest panel/node
-    for (size_t j=0; j<_src.get_npanels(); ++j) {
+    for (int32_t j=0; j<_src.get_npanels(); ++j) {
       ClosestReturn<S> result = panel_point_distance<S>(sx[0][si[2*j]],   sx[1][si[2*j]],
                                                         sx[0][si[2*j+1]], sx[1][si[2*j+1]],
                                                         tx[0][i],         tx[1][i]);

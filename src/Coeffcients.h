@@ -140,8 +140,8 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
   //auto start = std::chrono::system_clock::now();
 
   // how large of a problem do we have?
-  const size_t nsrc  = src.get_npanels();
-  const size_t ntarg = targ.get_npanels();
+  const int32_t nsrc  = src.get_npanels();
+  const int32_t ntarg = targ.get_npanels();
 
   // pull references to the element arrays
   const std::array<Vector<S>,Dimensions>& sx = src.get_pos();
@@ -160,7 +160,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
 
   // run a panels-on-points algorithm - THIS CAN BE MORE EFFICIENT
   #pragma omp parallel for
-  for (size_t j=0; j<nsrc; j++) {
+  for (int32_t j=0; j<nsrc; j++) {
     size_t iptr = ntarg * j;
     const Int sfirst  = si[2*j];
     const Int ssecond = si[2*j+1];
