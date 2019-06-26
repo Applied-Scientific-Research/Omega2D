@@ -276,10 +276,12 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
   xp.col(1) = Eigen::Map<Eigen::Matrix<ST, Eigen::Dynamic, 1> >(y.data(), n);
   
   // generate the searchable data structure
-  typedef nanoflann::KDTreeEigenMatrixAdaptor< Eigen::Matrix<ST, Eigen::Dynamic, 2> >  my_kd_tree_t;
+  typedef typename Eigen::Matrix<ST, Eigen::Dynamic, 2> EigenMatType;
+  typedef typename EigenMatType::Index EigenIndexType;
+  typedef nanoflann::KDTreeEigenMatrixAdaptor< EigenMatType >  my_kd_tree_t;
   my_kd_tree_t mat_index(xp, 20);
   if (use_tree) mat_index.index->buildIndex();
-  std::vector<std::pair<int32_t,ST> > ret_matches;
+  std::vector<std::pair<EigenIndexType,ST> > ret_matches;
   ret_matches.reserve(max_near);
   nanoflann::SearchParams params;
   params.sorted = true;
@@ -325,12 +327,12 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
       //if (ret_matches.size() > 20) std::cout << "part " << i << " at " << x[i] << " " << y[i] << " " << z[i] << " has " << ret_matches.size() << " matches" << std::endl;
 
       // copy the indexes into my vector
-      for (size_t j=0; j<ret_matches.size(); ++j) inear.push_back(ret_matches[j].first);
+      for (size_t j=0; j<ret_matches.size(); ++j) inear.push_back((int32_t)ret_matches[j].first);
 
       // now direct search over all newer particles
       for (size_t j=initial_n; j<n; ++j) {
         ST distsq = std::pow(x[i]-x[j], 2) + std::pow(y[i]-y[j], 2);
-        if (distsq < distsq_thresh) inear.push_back(j);
+        if (distsq < distsq_thresh) inear.push_back((int32_t)j);
       }
       //std::cout << " and " << (inear.size()-nMatches) << " matches";
 
@@ -346,7 +348,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
       const ST distsq_thresh = std::pow(search_rad, 2);
       for (size_t j=0; j<n; ++j) {
         ST distsq = std::pow(x[i]-x[j], 2) + std::pow(y[i]-y[j], 2);
-        if (distsq < distsq_thresh) inear.push_back(j);
+        if (distsq < distsq_thresh) inear.push_back((int32_t)j);
       }
       //std::cout << "radiusSearch(): radius " << search_rad << " found " << inear.size() << " matches";
 
