@@ -306,7 +306,7 @@ std::vector<std::tuple<S,S,S>> init_cut_tables (const S _dx) {
   //std::cout << "Making cut tables with nx " << nx << " and dx " << dx << std::endl;
 
   // add the first entry (remove all strength, set dshift later)
-  ct.push_back(std::make_tuple((S)(-nx-0.5)*dx, 0.0, 0.0));
+  ct.push_back(std::make_tuple((S)(-nx-0.5)*dx, (S)0.0, (S)0.0));
 
   // generate the entries
   S twgt = 0.0;
@@ -339,12 +339,12 @@ std::vector<std::tuple<S,S,S>> init_cut_tables (const S _dx) {
     tmom += ((S)i*dx) * rwgt;
 
     // add an entry
-    ct.push_back(std::make_tuple(((S)i+0.5)*dx, twgt, -tmom/twgt));
+    ct.push_back(std::make_tuple((S)(i+0.5)*dx, twgt, -tmom/twgt));
   }
   //std::cout << "  total weight " << twgt << std::endl;
 
   // add the last entry (keep all strength, set dshift to zero)
-  ct.push_back(std::make_tuple((S)(nx+1.5)*dx, 1.0, 0.0));
+  ct.push_back(std::make_tuple((S)(nx+1.5)*dx, (S)1.0, (S)0.0));
 
   //std::cout << "Cut table is" << std::endl;
   //for (auto &entry : ct) {
@@ -409,7 +409,7 @@ void clear_inner_panp2 (Surfaces<S> const & _src,
   static bool made_cut_tables = false;
   static std::vector<std::tuple<S,S,S>> ct;
   if (not made_cut_tables) {
-    ct = init_cut_tables<S>(0.1);
+    ct = init_cut_tables<S>((S)0.1);
     made_cut_tables = true;
   }
 
