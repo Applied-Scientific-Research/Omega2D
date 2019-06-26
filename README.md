@@ -11,7 +11,7 @@ This open-source code is aimed at users interested in understanding vortex metho
 
 
 ## Build the software
-This code uses some C++17 features, so should compile on GCC 7, Clang 4, and MSVC 19.10 compilers.
+This code uses some C++17 features, so should compile on GCC 7, Clang 4, and MSVC 19.10 (Visual Studio 15 2017) compilers.
 
 #### Prerequisites
 Users will also need CMake, Eigen, and GLFW version 3 on their machines to build this, other requirements are included in this distribution. Get these on Fedora with
