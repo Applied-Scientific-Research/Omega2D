@@ -175,10 +175,10 @@ private:
   double end_time;
   bool use_end_time;
   size_t nstep;
+  bool use_max_steps;
   size_t max_steps;
   bool auto_start;
   bool quit_on_stop;
-  bool use_max_steps;
   bool sim_is_initialized;
   bool step_has_started;
   bool step_is_finished;
