@@ -43,7 +43,6 @@ int main(int argc, char const *argv[]) {
   if (argc == 2) {
     std::string infile = argv[1];
     read_json(sim, ffeatures, bfeatures, mfeatures, rparams, infile);
-    std::cout << std::endl << "Loaded simulation from " << infile << std::endl;
   } else {
     std::cout << std::endl << "Usage:" << std::endl;
     std::cout << "  " << argv[0] << " filename.json" << std::endl << std::endl;

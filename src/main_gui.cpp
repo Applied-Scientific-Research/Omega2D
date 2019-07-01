@@ -474,8 +474,7 @@ int main(int argc, char const *argv[]) {
           fs[0] = 1.0; fs[1] = 0.0;
           *re = 250.0;
           // generate the boundary
-          bp = std::make_shared<Body>();
-          bp->set_name("ground");
+          bp = sim.get_pointer_to_body("ground");
           bfeatures.emplace_back(std::make_unique<SolidCircle>(bp, true, 0.0, 0.0, 1.0));
           is_viscous = true;
           sim.set_diffuse(true);
@@ -495,8 +494,7 @@ int main(int argc, char const *argv[]) {
           fs[0] = 1.0; fs[1] = 0.0;
           *re = 500.0;
           // generate the boundary
-          bp = std::make_shared<Body>();
-          bp->set_name("ground");
+          bp = sim.get_pointer_to_body("ground");
           bfeatures.emplace_back(std::make_unique<SolidSquare>(bp, true, 0.0, 0.0, 1.0, 0.0));
           is_viscous = true;
           sim.set_diffuse(true);
@@ -505,6 +503,9 @@ int main(int argc, char const *argv[]) {
           // and make sure we don't keep re-entering this
           sim_item = 0;
           break;
+        //case 6:
+          // driven cavity
+          //break;
       } // end switch
     }
 
@@ -560,7 +561,6 @@ int main(int argc, char const *argv[]) {
 
       command_line_input = argv[1];
       read_json(sim, ffeatures, bfeatures, mfeatures, rparams, command_line_input);
-      std::cout << std::endl << "Loaded simulation from " << command_line_input << std::endl;
 
       // we have to manually set this variable
       is_viscous = sim.get_diffuse();
