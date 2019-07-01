@@ -17,6 +17,7 @@
 #include <cassert>
 #include <optional>
 #include <variant>
+#include <algorithm>
 #include <cmath>
 
 
@@ -227,12 +228,9 @@ public:
   S get_max_str() {
     if (s) {
       // we have strengths, go through and check them
-      S thismax = 0.0;
-      for (size_t i=0; i<(*s).size(); ++i) {
-        S thisstr = std::abs((*s)[i]);
-        if (thisstr > thismax) thismax = thisstr;
-      }
-      return thismax;
+      const S this_max = *std::max_element(std::begin(*s), std::end(*s));
+      const S this_min = *std::min_element(std::begin(*s), std::end(*s));
+      return std::max(this_max, -this_min);
     } else {
       return 1.0;
     }
@@ -260,7 +258,7 @@ public:
   }
 
   std::string to_string() const {
-    std::string mystr = " " + std::to_string(n);
+    std::string mystr;
     if (E == active) {
       mystr += " Active";
     } else if (E == reactive) {
@@ -289,17 +287,17 @@ protected:
   std::shared_ptr<Body> B;
 
   // common arrays for all derived types
-  size_t n;
+  size_t n;						// number of nodes
 
   // state vector
-  std::array<Vector<S>,Dimensions> x;                   // position
-  std::optional<Vector<S>> s;                           // strength
+  std::array<Vector<S>,Dimensions> x;                   // position of nodes
+  std::optional<Vector<S>> s;                           // strength at nodes
 
   // time derivative of state vector
-  std::array<Vector<S>,Dimensions> u;                   // velocity
+  std::array<Vector<S>,Dimensions> u;                   // velocity at nodes
   //std::optional<std::array<Vector<S>,Dimensions>> dsdt; // strength change
 
   // for objects moving with a body
-  std::optional<std::array<Vector<S>,Dimensions>> ux;   // untransformed position
+  std::optional<std::array<Vector<S>,Dimensions>> ux;   // untransformed position of nodes
 };
 

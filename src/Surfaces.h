@@ -22,8 +22,8 @@
 #include <iostream>
 #include <vector>
 #include <array>
-//#include <memory>
-//#include <optional>
+#include <algorithm>
+#include <optional>
 //#include <random>
 #include <cassert>
 
@@ -33,11 +33,10 @@ template <class S>
 class Surfaces: public ElementBase<S> {
 public:
   // constructor - accepts vector of vectors of (x,y,s) pairs
-  //               makes one closed body for each outer vector
+  //               makes one boundary for each outer vector
   //               each inner vector must have even number of floats
-  //               and first pair must equal last pair to close the shape
-  //               last parameter (s) is either fixed strength or boundary
-  //               condition for next segment
+  //               last parameter (_val) is either fixed strength or boundary
+  //               condition for each panel
   Surfaces(const std::vector<S>&   _x,
            const std::vector<Int>& _idx,
            const std::vector<S>&   _val,
@@ -57,7 +56,7 @@ public:
 
     std::cout << "  new collection with " << nsurfs << " panels and " << nnodes << " nodes" << std::endl;
 
-    // pull out the node locations
+    // pull out the node locations, they go in the base class
     for (size_t d=0; d<Dimensions; ++d) {
       this->x[d].resize(nnodes);
       for (size_t i=0; i<nnodes; ++i) {
@@ -80,33 +79,36 @@ public:
     }
     assert(idx_are_all_good && "Some indicies are bad");
 
+    // are strengths/values on a per-node or per-panel basis? - per panel now
+
     // now, depending on the element type, put the value somewhere
     if (this->E == active) {
       // value is a fixed strength for the segment
       Vector<S> new_s(_val.size());
       std::copy(_val.begin(), _val.end(), new_s.begin());
       //new_s.resize(nsurfs);
-      this->s = std::move(new_s);
+      vs = std::move(new_s);
 
     } else if (this->E == reactive) {
       // value is a boundary condition
       bc.resize(_val.size());
       std::copy(_val.begin(), _val.end(), bc.begin());
-      //bc.resize(nsurfs);
-      //for (size_t i=0; i<nsurfs; ++i) {
-      //  bc[i] = _val[i];
-      //}
-      // we still need strengths
+      // we still need storage for the unknown strengths
       Vector<S> new_s(_val.size());
-      this->s = std::move(new_s);
+      vs = std::move(new_s);
 
     } else if (this->E == inert) {
       // value is ignored (probably zero)
     }
 
-    // velocity is in the base class - just resize it here
+    // velocity is per node, in the base class - just resize it here
     for (size_t d=0; d<Dimensions; ++d) {
       this->u[d].resize(nnodes);
+    }
+
+    // but panel velocity is per panel
+    for (size_t d=0; d<Dimensions; ++d) {
+      pu[d].resize(nsurfs);
     }
 
     // debug print
@@ -121,8 +123,9 @@ public:
       }
     }
 
-    // need to reset the base class n
+    // need to reset the base class n and the local np
     this->n = nnodes;
+    np = nsurfs;
 
     // find geometric center
     if (this->M == bodybound) {
@@ -130,13 +133,28 @@ public:
     }
   }
 
-  size_t                         get_npanels()     const { return idx.size()/Dimensions; }
+  size_t                         get_npanels()     const { return np; }
   const S                        get_area()        const { return area; }
   const std::array<S,Dimensions> get_geom_center() const { return tc; }
 
   // callers should never have to change this array
   const std::vector<Int>& get_idx() const { return idx; }
   const Vector<S>&        get_bcs() const { return bc; }
+
+  // overrides
+  const Vector<S>&                        get_str() const { return *vs; }
+  Vector<S>&                              get_str()       { return *vs; }
+  const std::array<Vector<S>,Dimensions>& get_vel() const { return pu; }
+  std::array<Vector<S>,Dimensions>&       get_vel()       { return pu; }
+
+  // assign the new strengths from BEM - do not let base class do this
+  void set_str(const size_t ioffset, const size_t icnt, Vector<S> _in) {
+    assert(vs && "Strength array does not exist");
+    assert(_in.size() == (*vs).size() && "Set strength array size does not match");
+
+    // copy over the strengths
+    *vs = _in;
+  }
 
   // a little logic to see if we should augment the BEM equations for this object
   const bool is_augmented() const {
@@ -188,12 +206,12 @@ public:
     const size_t nnodes = _x.size() / Dimensions;
     const size_t nsurfs = _idx.size() / Dimensions;
 
-    std::cout << "  adding " << nsurfs << " new surface panels to collection..." << std::endl;
+    std::cout << "  adding " << nsurfs << " new surface panels and " << nnodes << " new points to collection..." << std::endl;
 
     // DON'T call the method in the base class, because we do things differently here
     //ElementBase<S>::add_new(_in);
 
-    // pull out the node locations
+    // pull out the node locations, they are base class
     for (size_t d=0; d<Dimensions; ++d) {
       this->x[d].resize(nnold+nnodes);
       for (size_t i=0; i<nnodes; ++i) {
@@ -221,19 +239,17 @@ public:
     }
     assert(idx_are_all_good && "Some indicies are bad");
 
-    // now, depending on the element type, put the value somewhere
+    // now, depending on the element type, put the value somewhere - but panel-wise, so here
     if (this->E == active) {
       // value is a fixed strength for the element
-      //*(this->s).resize(neold+nsurfs);
-      //(*this->s)[i]
-      this->s->resize(neold+nsurfs); 
+      vs->resize(neold+nsurfs); 
 
     } else if (this->E == reactive) {
       // value is a boundary condition
       bc.reserve(neold+nsurfs); 
       bc.insert(bc.end(), _val.begin(), _val.end());
       // and we still need strengths
-      this->s->resize(neold+nsurfs); 
+      vs->resize(neold+nsurfs); 
 
     } else if (this->E == inert) {
       // value is ignored (probably zero)
@@ -242,6 +258,11 @@ public:
     // velocity is in the base class - just resize it here
     for (size_t d=0; d<Dimensions; ++d) {
       this->u[d].resize(nnold+nnodes);
+    }
+
+    // panel velocity is here
+    for (size_t d=0; d<Dimensions; ++d) {
+      pu[d].resize(neold+nsurfs);
     }
 
     // debug print
@@ -258,6 +279,7 @@ public:
 
     // need to reset the base class n
     this->n += nnodes;
+    np += nsurfs;
 
     // re-find geometric center
     if (this->M == bodybound) {
@@ -277,7 +299,7 @@ public:
     assert(area > 0.0 && "Have not calculated transformed center, or area is negative");
     // and we trust that we've transformed utc to tc
 
-    // apply a factor times the body motion
+    // do this for all nodes - what about panels?
     for (size_t i=0; i<this->get_n(); ++i) {
 
       // apply the translational velocity
@@ -304,11 +326,17 @@ public:
     // call base class first
     ElementBase<S>::zero_strengths();
 
+    // and reset any panel strengths
+    if (vs) {
+      std::fill(vs->begin(), vs->end(), 0.0);
+    }
+
     // and reset the source strengths here
     if (ss) {
-      for (size_t i=0; i<ss->size(); ++i) {
-        (*ss)[i] = 0.0;
-      }
+      std::fill(ss->begin(), ss->end(), 0.0);
+      //for (size_t i=0; i<ss->size(); ++i) {
+      //  (*ss)[i] = 0.0;
+      //}
     }
   }
 
@@ -320,6 +348,7 @@ public:
 
     // if no rotation, strengths, or no parent Body, or attached to ground, then no problem!
     if (not this->B) return;
+    if (not vs) return;
     if (not this->s) return;
     if (std::string("ground").compare(this->B->get_name()) == 0) return;
 
@@ -332,15 +361,15 @@ public:
 
     // have we made ss yet? or is it the right size?
     if (ss) {
-      ss->resize(this->s->size());
+      ss->resize(vs->size());
     } else {
       // value is a fixed strength for the segment
-      Vector<S> new_ss(this->s->size());
+      Vector<S> new_ss(vs->size());
       ss = std::move(new_ss);
     }
 
     //std::cout << "Inside add_rot_strengths, sizes are: " << get_npanels() << " " << this->s->size() << " " << ss->size() << std::endl;
-    assert(this->s->size() == get_npanels() && "Strength array is not the same as panel count");
+    assert(vs->size() == get_npanels() && "Strength array is not the same as panel count");
 
     // what is the actual factor that we will add?
     const S factor = _constfac + rotvel*_rotfactor;
@@ -364,7 +393,7 @@ public:
       panely *= panell;
 
       // the vortex strength - we ADD to the existing
-      (*this->s)[i] += -1.0 * (ui*panelx + vi*panely);
+      (*vs)[i] += -1.0 * (ui*panelx + vi*panely);
 
       // the source strength
       (*ss)[i] += -1.0 * (ui*panely - vi*panelx);
@@ -446,6 +475,27 @@ public:
   }
 
 
+  void zero_vels() {
+    // zero the local vels
+    for (size_t d=0; d<Dimensions; ++d) {
+      std::fill(pu[d].begin(), pu[d].end(), 0.0);
+    }
+    // then explicitly call the method in the base class to zero theirs
+    ElementBase<S>::zero_vels();
+  }
+
+  void finalize_vels(const std::array<double,Dimensions>& _fs) {
+    // finalize local vels first
+    const double factor = 0.5/M_PI;
+    for (size_t d=0; d<Dimensions; ++d) {
+      for (size_t i=0; i<get_npanels(); ++i) {
+        pu[d][i] = _fs[d] + pu[d][i] * factor;
+      }
+    }
+    // must explicitly call the method in the base class, too
+    ElementBase<S>::finalize_vels(_fs);
+  }
+
 /*
   // up-size all arrays to the new size, filling with sane values
   void resize(const size_t _nnew) {
@@ -463,16 +513,6 @@ public:
     for (size_t i=thisn; i<_nnew; ++i) {
       r[i] = 1.0;
     }
-  }
-
-  void zero_vels() {
-    // must explicitly call the method in the base class to zero the vels
-    ElementBase<S>::zero_vels();
-  }
-
-  void finalize_vels(const std::array<double,Dimensions>& _fs) {
-    // must explicitly call the method in the base class, too
-    ElementBase<S>::finalize_vels(_fs);
   }
 
   //
@@ -547,7 +587,7 @@ public:
       px[4*i+0] += _offset * -along[1] * oopanlen;
       px[4*i+1] += _offset *  along[0] * oopanlen;
       // the panel strength is the solved strength plus the boundary condition
-      const float this_str = (*this->s)[i] + bc[i];
+      const float this_str = (*vs)[i] + bc[i];
       // complete the element with a strength and radius
       px[4*i+2] = this_str / oopanlen;
       px[4*i+3] = _vdelta;
@@ -558,8 +598,19 @@ public:
   }
 
   // find the new peak strength magnitude
+  S get_max_str() {
+    if (vs) {
+      const S this_max = *std::max_element(std::begin(*vs), std::end(*vs));
+      const S this_min = *std::min_element(std::begin(*vs), std::end(*vs));
+      return std::max(this_max, -this_min);
+    } else {
+      return 1.0;
+    }
+  }
+
+  // smooth the peak strength magnitude
   void update_max_str() {
-    S thismax = ElementBase<S>::get_max_str();
+    S thismax = get_max_str();
 
     // and slowly update the current saved value
     if (max_strength < 0.0) {
@@ -575,7 +626,7 @@ public:
   S get_total_circ(const double _time) {
     S circ = 0.0;
 
-    if (this->s) {
+    if (vs) {
       // we have strengths, add them up
       for (size_t i=0; i<get_npanels(); i++) {
         const Int id0 = idx[2*i];
@@ -586,7 +637,7 @@ public:
         // one over the panel length is useful
         const S oopanlen = std::sqrt(dx*dx+dy*dy);
         // complete the element with a strength and radius
-        circ += (*this->s)[i] * oopanlen;
+        circ += (*vs)[i] * oopanlen;
       }
     }
 
@@ -615,8 +666,8 @@ public:
     std::array<S,Dimensions> imp;
     imp.fill(0.0);
 
-    if (this->s) {
-      // make this easy - represent as particles
+    if (vs) {
+      // make this easy - represent as particles - do we count BCs here?!?
       std::vector<S> pts = represent_as_particles(0.0, 1.0);
 
       // now compute impulse of those
@@ -669,7 +720,7 @@ public:
 
     if (this->s) {
       glBindBuffer(GL_ARRAY_BUFFER, mgl->vbo[3]);
-      glBufferData(GL_ARRAY_BUFFER, 0, (*this->s).data(), GL_STATIC_DRAW);
+      glBufferData(GL_ARRAY_BUFFER, 0, (*vs).data(), GL_STATIC_DRAW);
     }
 
     // Load and create the blob-drawing shader program
@@ -735,9 +786,10 @@ public:
 
       } else { // this->E is active or reactive
         // the strengths
-        if (this->s) {
+        if (vs) {
+          const size_t slen = vs->size()*sizeof(S);
           glBindBuffer(GL_ARRAY_BUFFER, mgl->vbo[3]);
-          glBufferData(GL_ARRAY_BUFFER, vlen, (*this->s).data(), GL_DYNAMIC_DRAW);
+          glBufferData(GL_ARRAY_BUFFER, slen, (*vs).data(), GL_DYNAMIC_DRAW);
         }
       }
 
@@ -801,25 +853,30 @@ public:
 #endif
 
   std::string to_string() const {
-    std::string retstr = ElementBase<S>::to_string() + " Panels";
+    std::string retstr = " " + std::to_string(np) + ElementBase<S>::to_string() + " Panels";
     return retstr;
   }
 
 protected:
-  // ElementBase.h has x, s, u
-  std::vector<Int>	idx;	// indexes into the x array
-  Vector<S>		bc;	// boundary condition for the elements
+  // ElementBase.h has x, s, u, ux on the *nodes*
+
+  size_t np;				// number of panels
+
+  std::vector<Int>                 idx;	// indexes into the x array
+  std::array<Vector<S>,Dimensions>  pu; // velocities on panel centers - this needs to NOT be called "u"
+  std::optional<Vector<S>>          vs; // panel-wise vortex strengths
+  Vector<S>                         bc;	// boundary condition for the elements
 
   //std::vector<std::pair<Int,Int>> body_idx;	// n, offset of rows in the BEM?
   Int istart;	// index of first entry in RHS vector and A matrix
 
   // the source strengths per unit length which represent the velocity
   //   influence of the volume vorticity of the parent body
-  std::optional<Vector<S>> ss;
+  std::optional<Vector<S>>          ss;
 
-  S area;			// area of the body - for augmented BEM solution
-  std::array<S,Dimensions> utc;		// untransformed geometric center
-  std::array<S,Dimensions>  tc;		// transformed geometric center
+  S area;				// area of the body - for augmented BEM solution
+  std::array<S,Dimensions>         utc;	// untransformed geometric center
+  std::array<S,Dimensions>          tc;	// transformed geometric center
 
 private:
 #ifdef USE_GL
