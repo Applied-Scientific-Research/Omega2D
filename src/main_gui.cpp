@@ -244,7 +244,7 @@ int main(int argc, char const *argv[]) {
   bool export_vtk_this_frame = false;	// write a vtk with the current data
   bool draw_this_frame = false;		// draw the frame immediately
   bool record_all_frames = false;	// save a frame when a new one is ready
-  bool show_stats_window = false;
+  bool show_stats_window = true;
   bool show_terminal_window = false;
   bool show_test_window = false;
   bool show_json_input_window = false;
@@ -1230,12 +1230,12 @@ int main(int argc, char const *argv[]) {
     // all the other stuff
     {
       if (sim_is_running) {
-        ImGui::Text("Simulation is running...step = %ld, time = %g", sim.get_nstep(), sim.get_time());
+        //ImGui::Text("Simulation is running...step = %ld, time = %g", sim.get_nstep(), sim.get_time());
         if (ImGui::Button("PAUSE", ImVec2(200,0))) sim_is_running = false;
         // space bar pauses
         if (ImGui::IsKeyPressed(32)) sim_is_running = false;
       } else {
-        ImGui::Text("Simulation is not running, step = %ld, time = %g", sim.get_nstep(), sim.get_time());
+        //ImGui::Text("Simulation is not running, step = %ld, time = %g", sim.get_nstep(), sim.get_time());
         if (ImGui::Button("RUN", ImVec2(200,0))) sim_is_running = true;
         ImGui::SameLine();
         if (ImGui::Button("Step", ImVec2(120,0))) begin_single_step = true;
@@ -1261,8 +1261,8 @@ int main(int argc, char const *argv[]) {
       */
       //if (ImGui::Button("ImGui Samples")) show_test_window ^= 1;
 
-      ImGui::Text("Draw frame rate: %.2f ms/frame (%.1f FPS)",
-                  1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+      //ImGui::Text("Draw frame rate: %.2f ms/frame (%.1f FPS)",
+      //            1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
       ImGui::Text("Number of panels: %ld  particles: %ld  field points: %ld",
                   sim.get_npanels(), sim.get_nparts(), sim.get_nfldpts());
@@ -1314,12 +1314,23 @@ int main(int argc, char const *argv[]) {
     ImGui::End();
     }
 
+    // Rendering
+    int display_w, display_h;
+    glfwGetFramebufferSize(window, &display_w, &display_h);
+    glViewport(0, 0, display_w, display_h);
+    glClearColor(rparams.clear_color[0], rparams.clear_color[1], rparams.clear_color[2], rparams.clear_color[3]);
+    glClear(GL_COLOR_BUFFER_BIT);
+
     // Show the simulation stats as 2D plots
     if (show_stats_window)
     {
-      ImGui::SetNextWindowSize(ImVec2(200,100), ImGuiSetCond_FirstUseEver);
-      ImGui::Begin("Statistics", &show_stats_window);
-      ImGui::Text("Hello");
+      ImGui::SetNextWindowSize(ImVec2(300,100));
+      ImGui::SetNextWindowPos(ImVec2(20, display_h-100));
+      ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+      ImGui::Begin("Statistics", &show_stats_window, window_flags);
+      ImGui::Text("Step %13ld", sim.get_nstep());
+      ImGui::Text("Time %13.4f", sim.get_time());
+      ImGui::Text("Particles %8ld", sim.get_nparts());
       ImGui::End();
     }
 
@@ -1338,13 +1349,6 @@ int main(int argc, char const *argv[]) {
       ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
       ImGui::ShowTestWindow(&show_test_window);
     }
-
-    // Rendering
-    int display_w, display_h;
-    glfwGetFramebufferSize(window, &display_w, &display_h);
-    glViewport(0, 0, display_w, display_h);
-    glClearColor(rparams.clear_color[0], rparams.clear_color[1], rparams.clear_color[2], rparams.clear_color[3]);
-    glClear(GL_COLOR_BUFFER_BIT);
 
     // draw the simulation: panels and particles
     compute_ortho_proj_mat(window, rparams.vcx, rparams.vcy, &rparams.vsize, gl_projection);
