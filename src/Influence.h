@@ -332,8 +332,8 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
   typedef Vc::Vector<S> StoreVec;
   typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
 
-  const Vc::Memory<StoreVec> sxv = stdvec_to_vcvec<S>(sx[0], 0.0);
-  const Vc::Memory<StoreVec> syv = stdvec_to_vcvec<S>(sx[1], 0.0);
+  const Vc::Memory<StoreVec> sxv = stdvec_to_vcvec<S>(sx[0], 999.999f);
+  const Vc::Memory<StoreVec> syv = stdvec_to_vcvec<S>(sx[1], 999.999f);
   const Vc::Memory<StoreVec> vsv = stdvec_to_vcvec<S>(vs,    0.0);
 #endif
 
