@@ -79,19 +79,20 @@ static inline void kernel_1_0v (const S sx0, const S sy0,
   const S rij2  = dx0*dx0 + dy0*dy0;
   const S rij12 = dx1*dx1 + dy1*dy1;
 #ifdef USE_VC
-  const S vstar = S(0.5) * Vc::log(rij2/rij12);
+  const S vstar = S(0.5f) * Vc::log(rij2/rij12);
   S ustar = Vc::atan2(dx1, dy1) - Vc::atan2(dx0, dy0);
+  //Vc::where(Vc::isnan(ustar)) | ustar = S(0.0f);
 #else
-  const S vstar = 0.5 * std::log(rij2/rij12);
+  const S vstar = 0.5f * std::log(rij2/rij12);
   S ustar = std::atan2(dx1, dy1) - std::atan2(dx0, dy0);
 #endif
   //std::cout << "ustar started off as " << ustar << std::endl;
 #ifdef USE_VC
-  Vc::where(ustar < S(-M_PI)) | ustar += S(2.*M_PI);
-  Vc::where(ustar > S(M_PI)) | ustar -= S(2.*M_PI);
+  Vc::where(ustar < S(-M_PI)) | ustar += S(2.0f*M_PI);
+  Vc::where(ustar > S(M_PI)) | ustar -= S(2.0f*M_PI);
 #else
-  if (ustar < -M_PI) ustar += 2.*M_PI;
-  if (ustar > M_PI) ustar -= 2.*M_PI;
+  if (ustar < -M_PI) ustar += 2.0f*M_PI;
+  if (ustar > M_PI) ustar -= 2.0f*M_PI;
 #endif
   //std::cout << "ustar is " << ustar << " and vstar is " << vstar << std::endl;
 
@@ -138,19 +139,19 @@ static inline void kernel_1_0vs (const S sx0, const S sy0,
   const S rij2  = dx0*dx0 + dy0*dy0;
   const S rij12 = dx1*dx1 + dy1*dy1;
 #ifdef USE_VC
-  const S vstar = S(0.5) * Vc::log(rij2/rij12);
+  const S vstar = S(0.5f) * Vc::log(rij2/rij12);
   S ustar = Vc::atan2(dx1, dy1) - Vc::atan2(dx0, dy0);
 #else
-  const S vstar = 0.5 * std::log(rij2/rij12);
+  const S vstar = 0.5f * std::log(rij2/rij12);
   S ustar = std::atan2(dx1, dy1) - std::atan2(dx0, dy0);
 #endif
   //std::cout << "ustar started off as " << ustar << std::endl;
 #ifdef USE_VC
-  Vc::where(ustar < S(-M_PI)) | ustar += S(2.*M_PI);
-  Vc::where(ustar > S(M_PI)) | ustar -= S(2.*M_PI);
+  Vc::where(ustar < S(-M_PI)) | ustar += S(2.0f*M_PI);
+  Vc::where(ustar > S(M_PI)) | ustar -= S(2.0f*M_PI);
 #else
-  if (ustar < -M_PI) ustar += 2.*M_PI;
-  if (ustar > M_PI) ustar -= 2.*M_PI;
+  if (ustar < -M_PI) ustar += 2.0f*M_PI;
+  if (ustar > M_PI) ustar -= 2.0f*M_PI;
 #endif
   //std::cout << "ustar is " << ustar << " and vstar is " << vstar << std::endl;
 
@@ -160,7 +161,7 @@ static inline void kernel_1_0vs (const S sx0, const S sy0,
 #ifdef USE_VC
   const S mult  = Vc::rsqrt(px*px + py*py);
 #else
-  const S mult  = 1.0 / std::sqrt(px*px + py*py);
+  const S mult  = 1.0f / std::sqrt(px*px + py*py);
 #endif
   px *= mult;
   py *= mult;
