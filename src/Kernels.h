@@ -80,10 +80,11 @@ static inline void kernel_1_0v (const S sx0, const S sy0,
   const S rij12 = dx1*dx1 + dy1*dy1;
 #ifdef USE_VC
   const S vstar = S(0.5) * Vc::log(rij2/rij12);
+  S ustar = Vc::atan2(dx1, dy1) - Vc::atan2(dx0, dy0);
 #else
   const S vstar = 0.5 * std::log(rij2/rij12);
-#endif
   S ustar = std::atan2(dx1, dy1) - std::atan2(dx0, dy0);
+#endif
   //std::cout << "ustar started off as " << ustar << std::endl;
 #ifdef USE_VC
   Vc::where(ustar < S(-M_PI)) | ustar += S(2.*M_PI);
@@ -138,10 +139,11 @@ static inline void kernel_1_0vs (const S sx0, const S sy0,
   const S rij12 = dx1*dx1 + dy1*dy1;
 #ifdef USE_VC
   const S vstar = S(0.5) * Vc::log(rij2/rij12);
+  S ustar = Vc::atan2(dx1, dy1) - Vc::atan2(dx0, dy0);
 #else
   const S vstar = 0.5 * std::log(rij2/rij12);
-#endif
   S ustar = std::atan2(dx1, dy1) - std::atan2(dx0, dy0);
+#endif
   //std::cout << "ustar started off as " << ustar << std::endl;
 #ifdef USE_VC
   Vc::where(ustar < S(-M_PI)) | ustar += S(2.*M_PI);
