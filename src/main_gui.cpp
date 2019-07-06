@@ -229,13 +229,32 @@ int main(int argc, char const *argv[]) {
 
   //glfwSetWindowCloseCallback(window, window_close_callback);
 
-  // Load Fonts
-  // (there is a default font, this is only if you want to change it. see extra_fonts/README.txt for more details)
-
   // Get and set some IO functions
   ImGuiIO& io = ImGui::GetIO();
   io.IniFilename = ".omega2d.ini";
   std::vector<std::string> recent_json_files;
+
+  // Load Fonts
+  // (there is a default font, this is only if you want to change it. see extra_fonts/README.txt for more details)
+
+  // increase the font size
+  //ImFontConfig config;
+  //config.PixelSnapH = true;
+  //strcpy(config.Name, "ProggyClean.ttf, 16px");
+  //io.Fonts->AddFontDefault(&config);
+
+  // try using my own font
+  //io.Fonts->LoadFromFileTTF("Roboto-Regular.ttf", 16);
+  //io.Fonts->AddFontFromFileTTF("Roboto-Regular.ttf", 16);
+  //io.Fonts->AddFontFromFileTTF("DroidSansMono.ttf", 20);
+
+  // same for both
+  {
+    //unsigned char* pixels;
+    //int width, height;
+    //io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+  }
+
 
   // a string to hold any error messages
   std::string sim_err_msg;
@@ -245,6 +264,7 @@ int main(int argc, char const *argv[]) {
   bool draw_this_frame = false;		// draw the frame immediately
   bool record_all_frames = false;	// save a frame when a new one is ready
   bool show_stats_window = true;
+  bool show_welcome_window = true;
   bool show_terminal_window = false;
   bool show_test_window = false;
   bool show_json_input_window = false;
@@ -384,8 +404,9 @@ int main(int argc, char const *argv[]) {
     //
     {
 
+    ImGui::SetNextWindowSize(ImVec2(540,400), ImGuiSetCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(20,20), ImGuiSetCond_FirstUseEver);
     ImGui::Begin("Omega2D");
-    ImGui::TextWrapped("Welcome to Omega2D. Select a simulation from the drop-down, load from a file, or manually set your simulation global properites and add one or more flow, boundary, or measurement structures. Space bar starts and stops the run. Have fun!");
     ImGui::Spacing();
 
     // Select pre-populated simulations
@@ -1185,6 +1206,8 @@ int main(int argc, char const *argv[]) {
 
     } // end structure entry
 
+
+    // Rendering parameters, under a header
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Rendering parameters")) {
       ImGui::ColorEdit3("positive circulation", rparams.pos_circ_color);
@@ -1206,72 +1229,17 @@ int main(int argc, char const *argv[]) {
       // help separate this from the final info
       ImGui::Separator();
     }
+
+
+    // Output buttons, under a header
     ImGui::Spacing();
-
-    nframes++;
-
-    // check vs. end conditions, if present
-    if (sim.test_vs_stop_async()) {
-      // just pause sim
-      sim_is_running = false;
-
-      // fully quit if asked
-      if (sim.quitonstop()) {
-        if (is_ready) {
-          // this simulation step has finished, write png and exit
-          draw_this_frame = true;
-
-          // tell glfw to close the window next time around
-          glfwSetWindowShouldClose(window, GLFW_TRUE);
-        }
-      }
-    }
-
-    // all the other stuff
-    {
-      if (sim_is_running) {
-        //ImGui::Text("Simulation is running...step = %ld, time = %g", sim.get_nstep(), sim.get_time());
-        if (ImGui::Button("PAUSE", ImVec2(200,0))) sim_is_running = false;
-        // space bar pauses
-        if (ImGui::IsKeyPressed(32)) sim_is_running = false;
-      } else {
-        //ImGui::Text("Simulation is not running, step = %ld, time = %g", sim.get_nstep(), sim.get_time());
-        if (ImGui::Button("RUN", ImVec2(200,0))) sim_is_running = true;
-        ImGui::SameLine();
-        if (ImGui::Button("Step", ImVec2(120,0))) begin_single_step = true;
-        // and space bar resumes
-        if (ImGui::IsKeyPressed(32)) sim_is_running = true;
-      }
-      ImGui::SameLine();
-      if (ImGui::Button("Reset", ImVec2(120,0))) {
-        std::cout << std::endl << "Reset requested" << std::endl;
-        // remove all particles and reset timer
-        sim.reset();
-        std::cout << "Reset complete" << std::endl;
-      }
-
-      ImGui::Spacing();
-      //ImGui::Separator();
-      /*
-      ImGui::Text("Open additional windows");
-      if (ImGui::Button("Plot statistics")) show_stats_window ^= 1;
-      ImGui::SameLine();
-      if (ImGui::Button("Show terminal output")) show_terminal_window ^= 1;
-      ImGui::SameLine();
-      */
-      //if (ImGui::Button("ImGui Samples")) show_test_window ^= 1;
-
-      //ImGui::Text("Draw frame rate: %.2f ms/frame (%.1f FPS)",
-      //            1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-
-      ImGui::Text("Number of panels: %ld  particles: %ld  field points: %ld",
-                  sim.get_npanels(), sim.get_nparts(), sim.get_nfldpts());
+    if (ImGui::CollapsingHeader("Save output")) {
 
       // save the simulation to a JSON or VTK file
       ImGui::Spacing();
       if (ImGui::Button("Save setup to json", ImVec2(180,0))) show_file_output_window = true;
       ImGui::SameLine();
-      if (ImGui::Button("Save parts to vtk", ImVec2(170,0))) export_vtk_this_frame = true;
+      if (ImGui::Button("Save parts to vtu", ImVec2(170,0))) export_vtk_this_frame = true;
 
       if (show_file_output_window) {
         bool try_it = false;
@@ -1298,7 +1266,7 @@ int main(int argc, char const *argv[]) {
       if (ImGui::Button("Save screenshot to png", ImVec2(180,0))) draw_this_frame = true;
       ImGui::SameLine();
       if (record_all_frames) {
-        if (ImGui::Button("STOP", ImVec2(80,0))) {
+        if (ImGui::Button("STOP RECORDING", ImVec2(140,0))) {
           record_all_frames = false;
           sim_is_running = false;
         }
@@ -1309,6 +1277,72 @@ int main(int argc, char const *argv[]) {
         }
       }
     }
+
+
+    nframes++;
+
+    // check vs. end conditions, if present
+    if (sim.test_vs_stop_async()) {
+      // just pause sim
+      sim_is_running = false;
+
+      // fully quit if asked
+      if (sim.quitonstop()) {
+        if (is_ready) {
+          // this simulation step has finished, write png and exit
+          draw_this_frame = true;
+
+          // tell glfw to close the window next time around
+          glfwSetWindowShouldClose(window, GLFW_TRUE);
+        }
+      }
+    }
+
+    // all the other stuff
+    {
+      ImGui::Spacing();
+      ImGui::Separator();
+      ImGui::Spacing();
+
+      if (sim_is_running) {
+        //ImGui::Text("Simulation is running...step = %ld, time = %g", sim.get_nstep(), sim.get_time());
+        if (ImGui::Button("PAUSE", ImVec2(200,0))) sim_is_running = false;
+        // space bar pauses
+        if (ImGui::IsKeyPressed(32)) sim_is_running = false;
+      } else {
+        //ImGui::Text("Simulation is not running, step = %ld, time = %g", sim.get_nstep(), sim.get_time());
+        if (ImGui::Button("RUN", ImVec2(200,0))) sim_is_running = true;
+        ImGui::SameLine();
+        if (ImGui::Button("Step", ImVec2(120,0))) begin_single_step = true;
+        // and space bar resumes
+        if (ImGui::IsKeyPressed(32)) sim_is_running = true;
+      }
+      ImGui::SameLine();
+      if (ImGui::Button("Reset", ImVec2(120,0))) {
+        std::cout << std::endl << "Reset requested" << std::endl;
+        // remove all particles and reset timer
+        sim.reset();
+        std::cout << "Reset complete" << std::endl;
+      }
+
+      //ImGui::Spacing();
+      //ImGui::Separator();
+      /*
+      ImGui::Text("Open additional windows");
+      if (ImGui::Button("Plot statistics")) show_stats_window ^= 1;
+      ImGui::SameLine();
+      if (ImGui::Button("Show terminal output")) show_terminal_window ^= 1;
+      ImGui::SameLine();
+      */
+      //if (ImGui::Button("ImGui Samples")) show_test_window ^= 1;
+
+      //ImGui::Text("Draw frame rate: %.2f ms/frame (%.1f FPS)",
+      //            1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+      //ImGui::Text("Number of panels: %ld  particles: %ld  field points: %ld",
+      //            sim.get_npanels(), sim.get_nparts(), sim.get_nfldpts());
+    }
+
 
     // done drawing the UI window
     ImGui::End();
@@ -1321,11 +1355,29 @@ int main(int argc, char const *argv[]) {
     glClearColor(rparams.clear_color[0], rparams.clear_color[1], rparams.clear_color[2], rparams.clear_color[3]);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // Show the simulation stats as 2D plots
-    if (show_stats_window)
-    {
+    // Show the welcome window
+    if (show_welcome_window) {
+      ImGui::OpenPopup("Welcome!");
+      ImGui::SetNextWindowSize(ImVec2(500,300));
+      ImGui::SetNextWindowPosCenter();
+      ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+      if (ImGui::BeginPopupModal("Welcome!", NULL, window_flags)) {
+        //ImGui::Begin("Welcome", &show_welcome_window);
+        ImGui::TextWrapped("Welcome to Omega2D! Select a simulation from the drop-down, load from a file, or manually set your simulation global properites and add one or more flow, boundary, or measurement structures. Space bar starts and stops the run, Reset clears and loads new simulation properties. Left mouse button drags the frame around, mouse scroll wheel zooms. Save your flow set-up to json or your flow image to png or vtu. Have fun!");
+        ImGui::Spacing();
+        //if (ImGui::Button("Got it.", ImVec2(120,0))) { show_welcome_window = false; }
+        //ImGui::End();
+        // const float xwid = ImGui::GetWindowContentRegionWidth();
+        if (ImGui::Button("Got it", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); show_welcome_window = false; }
+        ImGui::EndPopup();
+      }
+    }
+
+    // Show the simulation stats in the corner
+    if (show_stats_window) {
+      // there's no way to have this appear in the output png without the rest of the GUI
       ImGui::SetNextWindowSize(ImVec2(300,100));
-      ImGui::SetNextWindowPos(ImVec2(20, display_h-100));
+      ImGui::SetNextWindowPos(ImVec2(20, display_h-90));
       ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
       ImGui::Begin("Statistics", &show_stats_window, window_flags);
       ImGui::Text("Step %13ld", sim.get_nstep());
@@ -1335,8 +1387,7 @@ int main(int argc, char const *argv[]) {
     }
 
     // Show the terminal output of the program
-    if (show_terminal_window)
-    {
+    if (show_terminal_window) {
       ImGui::SetNextWindowSize(ImVec2(200,100), ImGuiSetCond_FirstUseEver);
       ImGui::Begin("Terminal", &show_terminal_window);
       ImGui::Text("Hello");
@@ -1344,8 +1395,7 @@ int main(int argc, char const *argv[]) {
     }
 
     // Show the ImGui test window. Most of the sample code is in ImGui::ShowTestWindow()
-    if (show_test_window)
-    {
+    if (show_test_window) {
       ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
       ImGui::ShowTestWindow(&show_test_window);
     }
