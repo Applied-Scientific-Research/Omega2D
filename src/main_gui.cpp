@@ -408,7 +408,7 @@ int main(int argc, char const *argv[]) {
     //
     {
 
-    ImGui::SetNextWindowSize(ImVec2(540,400), ImGuiSetCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(140+fontSize*24,100+fontSize*12), ImGuiSetCond_FirstUseEver);
     ImGui::SetNextWindowPos(ImVec2(20,20), ImGuiSetCond_FirstUseEver);
     ImGui::Begin("Omega2D");
     ImGui::Spacing();
@@ -579,7 +579,7 @@ int main(int argc, char const *argv[]) {
 
     // or load a simulation from a JSON file
     ImGui::SameLine();
-    if (ImGui::Button("Or load a json file", ImVec2(160,0))) show_json_input_window = true;
+    if (ImGui::Button("Load from json", ImVec2(10+fontSize*8,0))) show_json_input_window = true;
 
     if (show_json_input_window) {
       bool try_it = false;
@@ -1241,9 +1241,9 @@ int main(int argc, char const *argv[]) {
 
       // save the simulation to a JSON or VTK file
       ImGui::Spacing();
-      if (ImGui::Button("Save setup to json", ImVec2(180,0))) show_file_output_window = true;
+      if (ImGui::Button("Save setup to JSON", ImVec2(20+12*fontSize,0))) show_file_output_window = true;
       ImGui::SameLine();
-      if (ImGui::Button("Save parts to vtu", ImVec2(170,0))) export_vtk_this_frame = true;
+      if (ImGui::Button("Save parts to VTU", ImVec2(20+12*fontSize,0))) export_vtk_this_frame = true;
 
       if (show_file_output_window) {
         bool try_it = false;
@@ -1267,15 +1267,15 @@ int main(int argc, char const *argv[]) {
       }
 
       // PNG output of the render frame
-      if (ImGui::Button("Save screenshot to png", ImVec2(180,0))) draw_this_frame = true;
+      if (ImGui::Button("Save screenshot to PNG", ImVec2(20+12*fontSize,0))) draw_this_frame = true;
       ImGui::SameLine();
       if (record_all_frames) {
-        if (ImGui::Button("STOP RECORDING", ImVec2(140,0))) {
+        if (ImGui::Button("STOP RECORDING", ImVec2(20+12*fontSize,0))) {
           record_all_frames = false;
           sim_is_running = false;
         }
       } else {
-        if (ImGui::Button("RECORD to png", ImVec2(120,0))) {
+        if (ImGui::Button("RECORD to PNG", ImVec2(20+12*fontSize,0))) {
           record_all_frames = true;
           sim_is_running = true;
         }
@@ -1310,12 +1310,12 @@ int main(int argc, char const *argv[]) {
 
       if (sim_is_running) {
         //ImGui::Text("Simulation is running...step = %ld, time = %g", sim.get_nstep(), sim.get_time());
-        if (ImGui::Button("PAUSE", ImVec2(200,0))) sim_is_running = false;
+        if (ImGui::Button("PAUSE", ImVec2(200,20+fontSize))) sim_is_running = false;
         // space bar pauses
         if (ImGui::IsKeyPressed(32)) sim_is_running = false;
       } else {
         //ImGui::Text("Simulation is not running, step = %ld, time = %g", sim.get_nstep(), sim.get_time());
-        if (ImGui::Button("RUN", ImVec2(200,0))) sim_is_running = true;
+        if (ImGui::Button("RUN", ImVec2(200,20+fontSize))) sim_is_running = true;
         ImGui::SameLine();
         if (ImGui::Button("Step", ImVec2(120,0))) begin_single_step = true;
         // and space bar resumes
@@ -1380,8 +1380,8 @@ int main(int argc, char const *argv[]) {
     // Show the simulation stats in the corner
     if (show_stats_window) {
       // there's no way to have this appear in the output png without the rest of the GUI
-      ImGui::SetNextWindowSize(ImVec2(300,100));
-      ImGui::SetNextWindowPos(ImVec2(20, display_h-90));
+      ImGui::SetNextWindowSize(ImVec2(10+fontSize*11, 10+fontSize*4));
+      ImGui::SetNextWindowPos(ImVec2(20, display_h-fontSize*5));
       ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
       ImGui::Begin("Statistics", &show_stats_window, window_flags);
       ImGui::Text("Step %13ld", sim.get_nstep());
