@@ -237,24 +237,28 @@ int main(int argc, char const *argv[]) {
   // Load Fonts
   // (there is a default font, this is only if you want to change it. see extra_fonts/README.txt for more details)
 
+  //  1. (Optional) Call AddFont*** functions. If you don't call any, the default font will be loaded for you.
+  //  2. Call GetTexDataAsAlpha8() or GetTexDataAsRGBA32() to build and retrieve pixels data.
+  //  3. Upload the pixels data into a texture within your graphics system.
+  //  4. Call SetTexID(my_tex_id); and pass the pointer/identifier to your texture. This value will be passed back to you during rendering to identify the texture.
+
   // increase the font size
-  //ImFontConfig config;
+  float fontSize = 20.0f;
+  ImFontConfig config;
   //config.PixelSnapH = true;
-  //strcpy(config.Name, "ProggyClean.ttf, 16px");
-  //io.Fonts->AddFontDefault(&config);
+  config.GlyphOffset = ImVec2(0.0f, 1.0f);
+  config.SizePixels = fontSize;
+  io.Fonts->AddFontDefault(&config);
 
   // try using my own font
-  //io.Fonts->LoadFromFileTTF("Roboto-Regular.ttf", 16);
-  //io.Fonts->AddFontFromFileTTF("Roboto-Regular.ttf", 16);
+  //io.Fonts->AddFontFromFileTTF("Roboto-Regular.ttf", 22);
   //io.Fonts->AddFontFromFileTTF("DroidSansMono.ttf", 20);
-
-  // same for both
-  {
+  //{
     //unsigned char* pixels;
     //int width, height;
     //io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-  }
-
+    //std::cout << "New font rasterized as " << width << " by " << height << std::endl;
+  //}
 
   // a string to hold any error messages
   std::string sim_err_msg;
