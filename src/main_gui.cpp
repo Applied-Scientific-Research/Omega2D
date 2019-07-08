@@ -585,7 +585,7 @@ int main(int argc, char const *argv[]) {
       bool try_it = false;
       static std::string infile = "input.json";
 
-      if (fileIOWindow( try_it, infile, recent_json_files, "Open", {"*.json", "*.*"}, true, ImVec2(500,250))) {
+      if (fileIOWindow( try_it, infile, recent_json_files, "Open", {"*.json", "*.*"}, true, ImVec2(200+26*fontSize,300))) {
         show_json_input_window = false;
 
         if (try_it and !infile.empty()) {
@@ -1249,7 +1249,7 @@ int main(int argc, char const *argv[]) {
         bool try_it = false;
         static std::string outfile = "output.json";
 
-        if (fileIOWindow( try_it, outfile, recent_json_files, "Save", {"*.json", "*.*"}, false, ImVec2(500,250))) {
+        if (fileIOWindow( try_it, outfile, recent_json_files, "Save", {"*.json", "*.*"}, false, ImVec2(200+26*fontSize,300))) {
           show_file_output_window = false;
 
           if (try_it) {

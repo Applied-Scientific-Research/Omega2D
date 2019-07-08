@@ -481,7 +481,9 @@ bool fileIOWindow(
         size.y += std::min( size_t( 8 ), std::max( dir_list.size(), file_list.size() ) ) *  GetFontSize();
 
     SetNextWindowSize( size );
-    Begin( "FileIO" );
+    // I have no idea why I can't resize this window!?!
+    ImGuiWindowFlags window_flags = !ImGuiWindowFlags_AlwaysAutoResize;
+    Begin( "FileIO", NULL, window_flags );
 
     Text("Directory: "); SameLine();
     PushItemWidth( GetWindowWidth() - 145 );
@@ -568,7 +570,7 @@ bool fileIOWindow(
 #endif
         SameLine();
 
-        PushItemWidth( GetWindowWidth()/2 - 60 );
+        PushItemWidth( (GetWindowWidth()-60)*0.4 );
         if( ListBox( " ", &directory_selected, dir_list.data(), dir_list.size() ) )
         {
             string new_path;
@@ -592,7 +594,7 @@ bool fileIOWindow(
         }
 
         SameLine();
-        PushItemWidth( GetWindowWidth()/2 - 60 );
+        PushItemWidth( (GetWindowWidth()-60)*0.6 );
         if( ListBox( "", &file_selected, file_list.data(), file_list.size() ) )
         {
             strcpy( current_file, file_list[file_selected] );
