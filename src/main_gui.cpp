@@ -266,7 +266,8 @@ int main(int argc, char const *argv[]) {
   // GUI and drawing parameters
   bool export_vtk_this_frame = false;	// write a vtk with the current data
   std::vector<std::string> vtk_out_files; // list of just-output files
-  bool draw_this_frame = false;		// draw the frame immediately
+  bool draw_this_frame = false;		// draw the frame as soon as its done
+  std::string png_out_file;		// the name of the recently-written png
   bool record_all_frames = false;	// save a frame when a new one is ready
   bool show_stats_window = true;
   bool show_welcome_window = true;
@@ -344,8 +345,8 @@ int main(int argc, char const *argv[]) {
       export_vtk_this_frame = false;
     }
 
+    // draw a notification box
     if (not vtk_out_files.empty()) {
-      // draw a notification box for 30 frames
       static int32_t vtkframect = 0;
       ++vtkframect;
 
@@ -1440,10 +1441,31 @@ int main(int argc, char const *argv[]) {
       static int frameno = 0;
       std::stringstream pngfn;
       pngfn << "img_" << std::setfill('0') << std::setw(5) << frameno << ".png";
-      (void) saveFramePNG(pngfn.str());
-      std::cout << "Wrote screenshot to " << pngfn.str() << std::endl;
+      png_out_file = pngfn.str();
+      (void) saveFramePNG(png_out_file);
+      std::cout << "Wrote screenshot to " << png_out_file << std::endl;
       frameno++;
       draw_this_frame = false;
+    }
+
+    // if we're just drawing this one frame, then announce that we wrote it
+    if (not png_out_file.empty()) {
+      static int32_t pngframect = 0;
+      ++pngframect;
+
+      // draw the notification
+      ImGui::SetNextWindowSize(ImVec2(10+fontSize*12, 10+fontSize*2));
+      ImGui::SetNextWindowPosCenter();
+      ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize;
+      ImGui::Begin("Png written", NULL, window_flags);
+      ImGui::Text("Wrote %s", png_out_file.c_str());
+      ImGui::End();
+
+      // make sure this isn't up for too long
+      if (pngframect == 90) {
+        pngframect = 0;
+        png_out_file.clear();
+      }
     }
 
     // draw the GUI
