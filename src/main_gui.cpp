@@ -350,8 +350,7 @@ int main(int argc, char const *argv[]) {
       ++vtkframect;
 
       // draw the notification
-      std::cout << "WROTE " << vtk_out_files.size() << " VTK FILES" << std::endl;
-      ImGui::SetNextWindowSize(ImVec2(10+fontSize*12, 10+fontSize*4));
+      ImGui::SetNextWindowSize(ImVec2(10+fontSize*12, 10+fontSize*(2+vtk_out_files.size())));
       ImGui::SetNextWindowPosCenter();
       ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize;
       ImGui::Begin("Vtk written", NULL, window_flags);
