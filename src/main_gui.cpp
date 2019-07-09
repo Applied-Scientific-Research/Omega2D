@@ -804,7 +804,6 @@ int main(int argc, char const *argv[]) {
             ImGui::SliderFloat("strength", &str, -1.0f, 1.0f, "%.4f");
             ImGui::TextWrapped("This feature will add 1 particle");
             if (ImGui::Button("Add single particle")) {
-              // this is C++14
               ffeatures.emplace_back(std::make_unique<SingleParticle>(xc[0], xc[1], str));
               std::cout << "Added " << (*ffeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
@@ -1165,7 +1164,7 @@ int main(int argc, char const *argv[]) {
 
         // show different inputs based on what is selected
         switch(item) {
-          case 0:
+          case 0: {
             // a single measurement point
             ImGui::InputFloat2("position", xc);
             ImGui::Checkbox("Point follows flow", &is_lagrangian);
@@ -1176,8 +1175,8 @@ int main(int argc, char const *argv[]) {
               ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
-            break;
-          case 1:
+            } break;
+          case 1: {
             // a tracer emitter
             ImGui::InputFloat2("position", xc);
             ImGui::TextWrapped("This feature will add 1 tracer emitter");
@@ -1187,8 +1186,8 @@ int main(int argc, char const *argv[]) {
               ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
-            break;
-          case 2:
+            } break;
+          case 2: {
             // a tracer circle
             ImGui::InputFloat2("center", xc);
             ImGui::SliderFloat("radius", &rad, sim.get_ips(), 1.0f, "%.4f");
@@ -1200,8 +1199,8 @@ int main(int argc, char const *argv[]) {
               ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
-            break;
-          case 3:
+            } break;
+          case 3: {
             // a tracer line
             ImGui::InputFloat2("start", xc);
             ImGui::InputFloat2("finish", xf);
@@ -1213,8 +1212,8 @@ int main(int argc, char const *argv[]) {
               ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
-            break;
-          case 4:
+            } break;
+          case 4: {
             // a static, measurement line
             ImGui::InputFloat2("start", xc);
             ImGui::InputFloat2("finish", xf);
@@ -1226,7 +1225,7 @@ int main(int argc, char const *argv[]) {
               ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
-            break;
+            } break;
         }
 
         if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }

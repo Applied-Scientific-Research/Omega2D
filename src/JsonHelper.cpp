@@ -189,7 +189,7 @@ void read_json (Simulation& sim,
     const std::vector<json> ff_json = j["flowstructures"];
 
     // iterate through vector of flow features
-    for (auto const& ff: ff_json) {
+    for (auto const& ff : ff_json) {
       // pass ff into a function in FlowFeature to generate the object
       parse_flow_json(ffeatures, ff);
     }
@@ -201,7 +201,7 @@ void read_json (Simulation& sim,
     std::vector<json> bdy_json = j["bodies"];
 
     // iterate through vector of bodies and generate boundary features
-    for (auto const& bdy: bdy_json) {
+    for (auto const& bdy : bdy_json) {
       // make a new Body (later) and attach these geometries to it
       //std::cout << "  for this body" << std::endl;
       auto bp = std::make_shared<Body>();
@@ -225,7 +225,7 @@ void read_json (Simulation& sim,
         // look for an array of possibly dissimilar terms
         const std::vector<json> trans_json = bdy["translation"];
         size_t idx = 0;
-        for (auto const& term: trans_json) {
+        for (auto const& term : trans_json) {
           // each entry can be a float or a string
           if (term.is_number()) {
             const double val = term.get<double>();
@@ -256,7 +256,7 @@ void read_json (Simulation& sim,
         std::vector<json> bf_json = bdy["meshes"];
 
         // iterate through vector of meshes, all on this body
-        for (auto const& bf: bf_json) {
+        for (auto const& bf : bf_json) {
           // pass bf into a function in BoundaryFeature to generate the object
           parse_boundary_json(bfeatures, bp, bf);
 
@@ -276,7 +276,7 @@ void read_json (Simulation& sim,
     const std::vector<json> mf_json = j["measurements"];
 
     // iterate through vector of measurement features
-    for (auto const& mf: mf_json) {
+    for (auto const& mf : mf_json) {
       // pass mf into a function in MeasureFeature to generate the object
       parse_measure_json(mfeatures, mf);
     }
@@ -356,7 +356,7 @@ void write_json(Simulation& sim,
     // meshes has to be an array
     nlohmann::json meshes = nlohmann::json::array();
     // now add all accompanying geometries (if any)
-    for (auto const& bf: bfeatures) {
+    for (auto const& bf : bfeatures) {
       //std::cout << "  BDRY FEATURE (" << (&bf) << ")";
       if (bf->get_body() == bp) {
         //std::cout << " MATCHES" << std::endl;
