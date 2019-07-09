@@ -17,6 +17,7 @@
 #include <vector>
 #include <cstdint>	// for uint32_t
 #include <cstdio>	// for FILE
+#include <string>	// for string
 #include <sstream>	// for stringstream
 #include <iomanip>	// for setfill, setw
 
@@ -142,9 +143,9 @@ void write_DataArray (tinyxml2::XMLPrinter& _p,
 // https://vtk.org/wp-content/uploads/2015/04/file-formats.pdf
 //
 template <class S>
-void write_vtu_points(Points<S> const& pts, const size_t file_idx, const size_t frameno) {
+std::string write_vtu_points(Points<S> const& pts, const size_t file_idx, const size_t frameno) {
 
-  if (pts.get_n() == 0) return;
+  assert(pts.get_n() > 0 && "Inside write_vtu_points with no points");
 
   const bool compress = false;
   const bool asbase64 = true;
@@ -312,4 +313,5 @@ void write_vtu_points(Points<S> const& pts, const size_t file_idx, const size_t 
   std::fclose(fp);
 
   std::cout << "Wrote " << pts.get_n() << " points to " << vtkfn.str() << std::endl;
+  return vtkfn.str();
 }

@@ -265,6 +265,7 @@ int main(int argc, char const *argv[]) {
 
   // GUI and drawing parameters
   bool export_vtk_this_frame = false;	// write a vtk with the current data
+  std::vector<std::string> vtk_out_files; // list of just-output files
   bool draw_this_frame = false;		// draw the frame immediately
   bool record_all_frames = false;	// save a frame when a new one is ready
   bool show_stats_window = true;
@@ -339,8 +340,32 @@ int main(int argc, char const *argv[]) {
 
     // before we start again, write the vtu output
     if (export_vtk_this_frame) {
-      sim.write_vtk();
+      vtk_out_files = sim.write_vtk();
       export_vtk_this_frame = false;
+    }
+
+    if (not vtk_out_files.empty()) {
+      // draw a notification box for 30 frames
+      static int32_t vtkframect = 0;
+      ++vtkframect;
+
+      // draw the notification
+      std::cout << "WROTE " << vtk_out_files.size() << " VTK FILES" << std::endl;
+      ImGui::SetNextWindowSize(ImVec2(10+fontSize*12, 10+fontSize*4));
+      ImGui::SetNextWindowPosCenter();
+      ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize;
+      ImGui::Begin("Vtk written", NULL, window_flags);
+      ImGui::Text("Wrote %ld file(s):", vtk_out_files.size());
+      for (auto &thisfile : vtk_out_files) {
+        ImGui::Text("  %s", thisfile.c_str());
+      }
+      ImGui::End();
+
+      // make sure this isn't up for too long
+      if (vtkframect == 90) {
+        vtkframect = 0;
+        vtk_out_files.clear();
+      }
     }
 
     // see if we should start a new step

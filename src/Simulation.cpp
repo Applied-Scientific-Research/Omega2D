@@ -202,9 +202,10 @@ void Simulation::clear_bodies() {
 }
 
 // Write a set of vtu files for the particles and panels
-void Simulation::write_vtk() {
+std::vector<std::string> Simulation::write_vtk() {
   // may eventually want to avoid clobbering by maintaining an internal count of the
   //   number of simulations run from this execution of the GUI
+  std::vector<std::string> files;
 
   size_t idx = 0;
   for (auto &coll : vort) {
@@ -213,7 +214,9 @@ void Simulation::write_vtk() {
     // only proceed if the collection is Points
     if (std::holds_alternative<Points<float>>(coll)) {
       Points<float>& pts = std::get<Points<float>>(coll);
-      write_vtu_points<float>(pts, idx++, nstep);
+      if (pts.get_n() > 0) {
+        files.emplace_back(write_vtu_points<float>(pts, idx++, nstep));
+      }
     }
   }
 
@@ -224,9 +227,13 @@ void Simulation::write_vtk() {
     // only proceed if the collection is Points
     if (std::holds_alternative<Points<float>>(coll)) {
       Points<float>& pts = std::get<Points<float>>(coll);
-      write_vtu_points<float>(pts, idx++, nstep);
+      if (pts.get_n() > 0) {
+        files.emplace_back(write_vtu_points<float>(pts, idx++, nstep));
+      }
     }
   }
+
+  return files;
 }
 
 //
