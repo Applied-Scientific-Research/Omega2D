@@ -12,7 +12,6 @@
 #include "Points.h"
 #include "Surfaces.h"
 
-//#include <algorithm>	// for std::transform
 #include <iostream>
 #include <vector>
 #include <cassert>

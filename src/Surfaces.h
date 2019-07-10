@@ -22,9 +22,8 @@
 #include <iostream>
 #include <vector>
 #include <array>
-#include <algorithm>
+#include <algorithm> // for max_element
 #include <optional>
-//#include <random>
 #include <cassert>
 
 
@@ -713,7 +712,7 @@ public:
       glBufferData(GL_ARRAY_BUFFER, 0, this->x[i].data(), GL_STATIC_DRAW);
     }
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mgl->vbo[2]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mgl->vbo[Dimensions]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, 0, idx.data(), GL_STATIC_DRAW);
 
     if (this->s) {
@@ -775,7 +774,7 @@ public:
         glBufferData(GL_ARRAY_BUFFER, vlen, this->x[i].data(), GL_DYNAMIC_DRAW);
       }
 
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mgl->vbo[2]);
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mgl->vbo[Dimensions]);
       glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Int)*idx.size(), idx.data(), GL_DYNAMIC_DRAW);
 
       // here is where we split on element type: active/reactive vs. inert
@@ -851,7 +850,7 @@ public:
 #endif
 
   std::string to_string() const {
-    std::string retstr = " " + std::to_string(np) + ElementBase<S>::to_string() + " Panels";
+    std::string retstr = " " + std::to_string(get_npanels()) + ElementBase<S>::to_string() + " Panels";
     return retstr;
   }
 
@@ -860,21 +859,20 @@ protected:
 
   size_t np;				// number of panels
 
+  // element-wise variables special to triangular panels
   std::vector<Int>                 idx;	// indexes into the x array
   std::array<Vector<S>,Dimensions>  pu; // velocities on panel centers - this needs to NOT be called "u"
   std::optional<Vector<S>>          vs; // panel-wise vortex strengths
-  Vector<S>                         bc;	// boundary condition for the elements
+  Vector<S>                         bc; // boundary condition for the elements
+  std::optional<Vector<S>>          ss; // the source strengths per unit length which represent the vel
+                                        //   influence of the volume vorticity of the parent body
 
+  // parameters for the encompassing body
   //std::vector<std::pair<Int,Int>> body_idx;	// n, offset of rows in the BEM?
-  Int istart;	// index of first entry in RHS vector and A matrix
-
-  // the source strengths per unit length which represent the velocity
-  //   influence of the volume vorticity of the parent body
-  std::optional<Vector<S>>          ss;
-
-  S area;				// area of the body - for augmented BEM solution
-  std::array<S,Dimensions>         utc;	// untransformed geometric center
-  std::array<S,Dimensions>          tc;	// transformed geometric center
+  Int                           istart; // index of first entry in RHS vector and A matrix
+  S                               area; // area of the body - for augmented BEM solution
+  std::array<S,Dimensions>         utc; // untransformed geometric center
+  std::array<S,Dimensions>          tc; // transformed geometric center
 
 private:
 #ifdef USE_GL
