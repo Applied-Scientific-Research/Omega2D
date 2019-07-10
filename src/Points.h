@@ -157,9 +157,9 @@ public:
     if (this->E == inert) {
       // no radii
     } else {
-      const size_t thisn = r.size();
+      const size_t thisrn = r.size();
       r.resize(_nnew);
-      for (size_t i=thisn; i<_nnew; ++i) {
+      for (size_t i=thisrn; i<_nnew; ++i) {
         r[i] = 1.0;
       }
     }

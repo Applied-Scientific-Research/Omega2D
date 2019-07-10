@@ -182,7 +182,7 @@ public:
     }
   }
 
-  // time is the starting time, time_dt is the ending time
+  // time is the starting time, time+dt is the ending time
   void move(const double _time, const double _dt) {
     if (M == lagrangian) {
       std::cout << "  Moving" << to_string() << std::endl;
@@ -201,7 +201,7 @@ public:
     }
   }
 
-  // time is the starting time, time_dt is the ending time
+  // time is the starting time, time+dt is the ending time
   void move(const double _time, const double _dt,
             const double _wt1, ElementBase<S> const & _u1,
             const double _wt2, ElementBase<S> const & _u2) {
