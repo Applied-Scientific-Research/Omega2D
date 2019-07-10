@@ -6,6 +6,8 @@
  *           Written by Mark J Stock <markjstock@gmail.com>
  */
 
+#define PROGNAME Omega2D
+
 #include "FlowFeature.h"
 #include "BoundaryFeature.h"
 #include "MeasureFeature.h"
@@ -187,7 +189,7 @@ static void ShowHelpMarker(const char* desc)
 // execution starts here
 
 int main(int argc, char const *argv[]) {
-  std::cout << std::endl << "Omega2D GUI" << std::endl;
+  std::cout << std::endl << "PROGNAME GUI" << std::endl;
 
   // Set up vortex particle simulation
   Simulation sim;
@@ -429,13 +431,13 @@ int main(int argc, char const *argv[]) {
     //}
 
     //
-    // The main Omega2D window
+    // The main window
     //
     {
 
     ImGui::SetNextWindowSize(ImVec2(140+fontSize*24,100+fontSize*12), ImGuiSetCond_FirstUseEver);
     ImGui::SetNextWindowPos(ImVec2(20,20), ImGuiSetCond_FirstUseEver);
-    ImGui::Begin("Omega2D");
+    ImGui::Begin("PROGNAME");
     ImGui::Spacing();
 
     // Select pre-populated simulations
