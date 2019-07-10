@@ -213,7 +213,7 @@ int main(int argc, char const *argv[]) {
 #if __APPLE__
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
-  GLFWwindow* window = glfwCreateWindow(1280, 720, "Omega2D GUI", nullptr, nullptr);
+  GLFWwindow* window = glfwCreateWindow(1280, 720, "PROGNAME GUI", nullptr, nullptr);
   glfwMakeContextCurrent(window);
   glfwSwapInterval(1); // Enable vsync
 
@@ -1135,13 +1135,6 @@ int main(int argc, char const *argv[]) {
             }
             ImGui::SameLine();
             } break;
-/*
-          case 2:
-            // load a solid object as an outline
-            ImGui::TextWrapped("This feature is currently unsupported. Sorry!");
-            ImGui::SameLine();
-            break;
-*/
         }
 
         if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
