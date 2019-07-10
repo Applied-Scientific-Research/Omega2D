@@ -161,6 +161,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
   // run a panels-on-points algorithm - THIS CAN BE MORE EFFICIENT
   #pragma omp parallel for
   for (int32_t j=0; j<(int32_t)nsrc; j++) {
+
     size_t iptr = ntarg * j;
     const Int sfirst  = si[2*j];
     const Int ssecond = si[2*j+1];
@@ -243,7 +244,9 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
 #endif
 
     // special case: self-influence
-    if (&src == &targ) coeffs[j*ntarg+j] = M_PI;
+    if (&src == &targ) {
+      coeffs[j*ntarg+j] = M_PI;
+    }
   }
   flops += (float)nsrc*(float)ntarg*0.0;
 

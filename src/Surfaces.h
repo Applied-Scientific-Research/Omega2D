@@ -147,6 +147,16 @@ public:
   const std::array<Vector<S>,Dimensions>& get_vel() const { return pu; }
   std::array<Vector<S>,Dimensions>&       get_vel()       { return pu; }
 
+  // source strengths
+  const bool have_src_str() const { return (bool)ss; }
+  const Vector<S>& get_src_str() const { return *ss; }
+
+  // find out the next row index in the BEM after this collection
+  void set_first_row(const Int _i) { istart = _i; }
+  const Int get_first_row() const { return istart; }
+  const Int get_num_rows()  const { return bc.size() + (is_augmented() ? 1 : 0); }
+  const Int get_next_row()  const { return istart+get_num_rows(); }
+
   // assign the new strengths from BEM - do not let base class do this
   void set_str(const size_t ioffset, const size_t icnt, Vector<S> _in) {
     assert(vs && "Strength array does not exist");
@@ -173,16 +183,6 @@ public:
     //augment = false;
     return augment;
   }
-
-  // find out the next row index in the BEM after this collection
-  void set_first_row(const Int _i) { istart = _i; }
-  const Int get_first_row() const { return istart; }
-  const Int get_num_rows()  const { return bc.size() + (is_augmented() ? 1 : 0); }
-  const Int get_next_row()  const { return istart+get_num_rows(); }
-
-  // source strengths
-  const bool have_src_str() const { return (bool)ss; }
-  const Vector<S>& get_src_str() const { return *ss; }
 
   const bool get_max_bc_value() const {
     const S this_max = *std::max_element(std::begin(bc), std::end(bc));
@@ -334,9 +334,6 @@ public:
     // and reset the source strengths here
     if (ss) {
       std::fill(ss->begin(), ss->end(), 0.0);
-      //for (size_t i=0; i<ss->size(); ++i) {
-      //  (*ss)[i] = 0.0;
-      //}
     }
   }
 
@@ -795,7 +792,7 @@ public:
 
       glBindVertexArray(0);
 
-      // must tell draw call how many elements are there
+      // must tell draw call how many elements are there - or, really, how many indices
       mgl->num_uploaded = idx.size();
     }
   }
