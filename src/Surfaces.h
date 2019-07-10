@@ -92,7 +92,8 @@ public:
       // value is a boundary condition
       bc.resize(_val.size());
       std::copy(_val.begin(), _val.end(), bc.begin());
-      // we still need storage for the unknown strengths
+
+      // make space for the unknown, panel-centric strengths
       Vector<S> new_s(_val.size());
       vs = std::move(new_s);
 
@@ -140,6 +141,7 @@ public:
   const std::vector<Int>&        get_idx() const { return idx; }
   const Vector<S>&               get_bcs() const { return bc; }
 
+  // override the ElementBase versions and send the panel-center vels
   const std::array<Vector<S>,Dimensions>& get_vel() const { return pu; }
   std::array<Vector<S>,Dimensions>&       get_vel()       { return pu; }
 
@@ -473,7 +475,7 @@ public:
 
 
   void zero_vels() {
-    // zero the local vels
+    // zero the local, panel-center vels
     for (size_t d=0; d<Dimensions; ++d) {
       std::fill(pu[d].begin(), pu[d].end(), 0.0);
     }
@@ -482,7 +484,7 @@ public:
   }
 
   void finalize_vels(const std::array<double,Dimensions>& _fs) {
-    // finalize local vels first
+    // finalize panel-center vels first
     const double factor = 0.5/M_PI;
     for (size_t d=0; d<Dimensions; ++d) {
       for (size_t i=0; i<get_npanels(); ++i) {
@@ -562,7 +564,7 @@ public:
     // how many panels?
     const size_t num_pts = get_npanels();
 
-    // init the output vector
+    // init the output vector (x, y, s, r)
     std::vector<S> px(num_pts*4);
 
     // the fluid is to the left walking from one point to the next
