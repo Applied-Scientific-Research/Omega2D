@@ -327,6 +327,8 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
   const std::vector<Int>&                 ti = targ.get_idx();
   std::array<Vector<S>,Dimensions>&       tu = targ.get_vel();
 
+  float flops = (float)targ.get_npanels();
+
 #ifdef USE_VC
   // define vector types for Vc (still only S==A supported here)
   typedef Vc::Vector<S> StoreVec;
@@ -336,8 +338,6 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
   const Vc::Memory<StoreVec> syv = stdvec_to_vcvec<S>(sx[1], 999.999f);
   const Vc::Memory<StoreVec> vsv = stdvec_to_vcvec<S>(vs,    0.0);
 #endif
-
-  float flops = (float)targ.get_npanels();
 
   #pragma omp parallel for
   for (int32_t i=0; i<(int32_t)targ.get_npanels(); ++i) {
@@ -402,6 +402,7 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
     //std::cout << "    new 0_1 vel on " << i << " is " << (-plen*accumu) << " " << (-plen*accumv) << std::endl;
 #endif
   }
+
   flops *= 11.0 + 37.0*(float)src.get_n();
 
   auto end = std::chrono::system_clock::now();
