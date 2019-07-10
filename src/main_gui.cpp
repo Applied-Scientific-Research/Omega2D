@@ -777,7 +777,7 @@ int main(int argc, char const *argv[]) {
       }
 
       // button and modal window for adding new flow structures
-      if (ImGui::Button("Add flow structure")) ImGui::OpenPopup("New flow structure");
+      if (ImGui::Button("Add flow")) ImGui::OpenPopup("New flow structure");
       ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiSetCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New flow structure"))
       {
@@ -894,7 +894,7 @@ int main(int argc, char const *argv[]) {
 
       // button and modal window for adding new boundary objects
       ImGui::SameLine();
-      if (ImGui::Button("Add boundary structure")) ImGui::OpenPopup("New boundary structure");
+      if (ImGui::Button("Add boundary")) ImGui::OpenPopup("New boundary structure");
       ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiSetCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New boundary structure"))
       {
@@ -1142,7 +1142,7 @@ int main(int argc, char const *argv[]) {
 
       // button and modal window for adding new measurement objects
       ImGui::SameLine();
-      if (ImGui::Button("Add measurement structure")) ImGui::OpenPopup("New measurement structure");
+      if (ImGui::Button("Add measurement")) ImGui::OpenPopup("New measurement structure");
       ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiSetCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New measurement structure"))
       {
