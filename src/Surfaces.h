@@ -138,18 +138,19 @@ public:
   const std::array<S,Dimensions> get_geom_center() const { return tc; }
 
   // callers should never have to change this array
-  const std::vector<Int>& get_idx() const { return idx; }
-  const Vector<S>&        get_bcs() const { return bc; }
+  const std::vector<Int>&        get_idx() const { return idx; }
+  const Vector<S>&               get_bcs() const { return bc; }
 
-  // overrides
-  const Vector<S>&                        get_str() const { return *vs; }
-  Vector<S>&                              get_str()       { return *vs; }
   const std::array<Vector<S>,Dimensions>& get_vel() const { return pu; }
   std::array<Vector<S>,Dimensions>&       get_vel()       { return pu; }
 
+  // vortex strengths
+  const Vector<S>&                        get_str() const { return *vs; }
+  Vector<S>&                              get_str()       { return *vs; }
+
   // source strengths
-  const bool have_src_str() const { return (bool)ss; }
-  const Vector<S>& get_src_str() const { return *ss; }
+  const bool                      have_src_str() const { return (bool)ss; }
+  const Vector<S>&                get_src_str()  const { return *ss; }
 
   // find out the next row index in the BEM after this collection
   void set_first_row(const Int _i) { istart = _i; }
@@ -184,10 +185,10 @@ public:
     return augment;
   }
 
-  const bool get_max_bc_value() const {
+  const float get_max_bc_value() const {
     const S this_max = *std::max_element(std::begin(bc), std::end(bc));
     const S this_min = *std::min_element(std::begin(bc), std::end(bc));
-    return std::max(this_max, -this_min);
+    return (float)std::max(this_max, -this_min);
   }
 
   // add more nodes and panels to this collection
