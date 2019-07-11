@@ -194,6 +194,8 @@ void BEM<S,I>::solve() {
     //const size_t nr = b.size();
     std::cout << "Matrix equation is" << std::endl;
     std::cout << A.block(0,0,nr,8) << std::endl;
+    std::cout << " bottom right is" << std::endl;
+    std::cout << A.block(b.size()-nr,b.size()-8,nr,8) << std::endl;
     std::cout << "RHS vector is" << std::endl;
     std::cout << b.head(nr) << std::endl;
     std::cout << "Solution vector is" << std::endl;
