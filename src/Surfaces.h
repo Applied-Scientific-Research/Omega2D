@@ -302,12 +302,12 @@ public:
     // and we trust that we've transformed utc to tc
 
     // do this for all nodes - what about panels?
-    for (size_t i=0; i<this->get_n(); ++i) {
+    for (size_t i=0; i<get_npanels(); ++i) {
 
       // apply the translational velocity
       std::array<double,Dimensions> thisvel = this->B->get_vel(_time);
       for (size_t d=0; d<Dimensions; ++d) {
-        this->u[d][i] += _factor * (float)thisvel[d];
+        pu[d][i] += _factor * (float)thisvel[d];
       }
 
       // now compute the rotational velocity with respect to the geometric center
@@ -319,8 +319,8 @@ public:
       const S xc = 0.5 * (this->x[0][id1] + this->x[0][id0]);
       const S yc = 0.5 * (this->x[1][id1] + this->x[1][id0]);
       // add rotational velocity
-      this->u[0][i] -= _factor * (float)thisrotvel * (yc - tc[1]);
-      this->u[1][i] += _factor * (float)thisrotvel * (xc - tc[0]);
+      pu[0][i] -= _factor * (float)thisrotvel * (yc - tc[1]);
+      pu[1][i] += _factor * (float)thisrotvel * (xc - tc[0]);
     }
   }
  
@@ -348,7 +348,6 @@ public:
     // if no rotation, strengths, or no parent Body, or attached to ground, then no problem!
     if (not this->B) return;
     if (not vs) return;
-    if (not this->s) return;
     if (std::string("ground").compare(this->B->get_name()) == 0) return;
 
     const S rotvel = (S)this->B->get_rotvel();
