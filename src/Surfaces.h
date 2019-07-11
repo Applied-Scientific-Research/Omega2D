@@ -43,7 +43,7 @@ public:
            const move_t _m,
            std::shared_ptr<Body> _bp)
     : ElementBase<S>(0, _e, _m, _bp),
-      area(-1.0),
+      vol(-1.0),
       max_strength(-1.0) {
 
     // make sure input arrays are correctly-sized
@@ -134,7 +134,7 @@ public:
   }
 
   size_t                         get_npanels()     const { return np; }
-  const S                        get_area()        const { return area; }
+  const S                        get_vol()         const { return vol; }
   const std::array<S,Dimensions> get_geom_center() const { return tc; }
 
   // callers should never have to change this array
@@ -175,7 +175,7 @@ public:
       // is the body pointer ground?
       if (std::string("ground").compare(this->B->get_name()) == 0) {
         // now, does the object bound internal flow?
-        if (area < 0.0) augment = false;
+        if (vol < 0.0) augment = false;
       }
     } else {
       // nullptr for Body? no augment (old way of turning it off)
@@ -297,8 +297,8 @@ public:
     if (not this->B) return;
     if (std::string("ground").compare(this->B->get_name()) == 0) return;
 
-    // make sure we've calculated transformed center (we do this when we do area)
-    assert(area > 0.0 && "Have not calculated transformed center, or area is negative");
+    // make sure we've calculated transformed center (we do this when we do volume)
+    assert(vol > 0.0 && "Have not calculated transformed center, or volume is negative");
     // and we trust that we've transformed utc to tc
 
     // do this for all nodes - what about panels?
@@ -354,8 +354,8 @@ public:
     const S rotvel = (S)this->B->get_rotvel();
     //if (std::abs(rotvel) < std::numeric_limits<float>::epsilon()) return;
 
-    // make sure we've calculated transformed center (we do this when we do area)
-    assert(area > 0.0 && "Have not calculated transformed center, or area is negative");
+    // make sure we've calculated transformed center (we do this when we do volume)
+    assert(vol > 0.0 && "Have not calculated transformed center, or volume is negative");
     // and we trust that we've transformed utc to tc
 
     // have we made ss yet? or is it the right size?
@@ -443,11 +443,11 @@ public:
       xsum += xc*thisarea;
       ysum += yc*thisarea;
     }
-    area = asum;
-    utc[0] = xsum/area;
-    utc[1] = ysum/area;
+    vol = asum;
+    utc[0] = xsum/vol;
+    utc[1] = ysum/vol;
 
-    std::cout << "    geom center is " << utc[0] << " " << utc[1] << " and area is " << area << std::endl;
+    std::cout << "    geom center is " << utc[0] << " " << utc[1] << " and area is " << vol << std::endl;
   }
 
   // when transforming a body-bound object to a new time, we must also transform the geometric center
@@ -650,7 +650,7 @@ public:
     // do not call the parent
     if (this->B) {
       // we're attached to a body - great! what's the rotation rate?
-      circ = 2.0 * area * (S)this->B->get_rotvel(_time);
+      circ = 2.0 * vol * (S)this->B->get_rotvel(_time);
     } else {
       // we are fixed, thus not rotating
     }
@@ -872,7 +872,7 @@ protected:
   // parameters for the encompassing body
   //std::vector<std::pair<Int,Int>> body_idx;	// n, offset of rows in the BEM?
   Int                           istart; // index of first entry in RHS vector and A matrix
-  S                               area; // area of the body - for augmented BEM solution
+  S                                vol; // volume of the body - for augmented BEM solution
   std::array<S,Dimensions>         utc; // untransformed geometric center
   std::array<S,Dimensions>          tc; // transformed geometric center
 

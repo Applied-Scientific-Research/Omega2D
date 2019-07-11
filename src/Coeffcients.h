@@ -327,7 +327,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
 
     // finally, the bottom corner is the circulation at unit rotation of the body
     if (&src == &targ) {
-      *a_iter = 2.0 * src.get_area();
+      *a_iter = 2.0 * src.get_vol();
     } else {
       *a_iter = 0.0;
     }
