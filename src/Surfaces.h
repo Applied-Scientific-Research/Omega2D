@@ -96,6 +96,7 @@ public:
       // make space for the unknown, panel-centric strengths
       Vector<S> new_s(_val.size());
       vs = std::move(new_s);
+      std::fill(vs->begin(), vs->end(), 0.0);
 
     } else if (this->E == inert) {
       // value is ignored (probably zero)
@@ -163,6 +164,7 @@ public:
   void set_str(const size_t ioffset, const size_t icnt, Vector<S> _in) {
     assert(vs && "Strength array does not exist");
     assert(_in.size() == (*vs).size() && "Set strength array size does not match");
+    assert(ioffset == 0 && "Offset is not zero");
 
     // copy over the strengths
     *vs = _in;
@@ -204,9 +206,9 @@ public:
     // make sure input arrays are correctly-sized
     assert(_x.size() % Dimensions == 0 && "Position array is not an even multiple of dimensions");
     assert(_idx.size() % Dimensions == 0 && "Index array is not an even multiple of dimensions");
-    assert(_idx.size()/2 == _val.size() && "Value array is not an even multiple of panel count");
     const size_t nnodes = _x.size() / Dimensions;
     const size_t nsurfs = _idx.size() / Dimensions;
+    assert(_val.size() % nsurfs == 0 && "Value array is not an even multiple of panel count");
 
     std::cout << "  adding " << nsurfs << " new surface panels and " << nnodes << " new points to collection..." << std::endl;
 
@@ -359,10 +361,10 @@ public:
 
     // have we made ss yet? or is it the right size?
     if (ss) {
-      ss->resize(vs->size());
+      ss->resize(get_npanels());
     } else {
       // value is a fixed strength for the segment
-      Vector<S> new_ss(vs->size());
+      Vector<S> new_ss(get_npanels());
       ss = std::move(new_ss);
     }
 
@@ -867,9 +869,10 @@ protected:
   Vector<S>                         bc; // boundary condition for the elements
   std::optional<Vector<S>>          ss; // the source strengths per unit length which represent the vel
                                         //   influence of the volume vorticity of the parent body
+  //Vector<S>                     area; // panel areas
+  //std::array<std::array<Vector<S>,2>,2> b;  // transformed basis vectors: tangent is b[0], normal is b[1], normal x is b[1][0]
 
   // parameters for the encompassing body
-  //std::vector<std::pair<Int,Int>> body_idx;	// n, offset of rows in the BEM?
   Int                           istart; // index of first entry in RHS vector and A matrix
   S                                vol; // volume of the body - for augmented BEM solution
   std::array<S,Dimensions>         utc; // untransformed geometric center
