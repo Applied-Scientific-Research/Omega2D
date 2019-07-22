@@ -1273,31 +1273,11 @@ int main(int argc, char const *argv[]) {
       ImGui::Spacing();
       if (ImGui::Button("Save setup to JSON", ImVec2(20+12*fontSize,0))) show_file_output_window = true;
       ImGui::SameLine();
-      if (ImGui::Button("Save parts to VTU", ImVec2(20+12*fontSize,0))) export_vtk_this_frame = true;
-
-      if (show_file_output_window) {
-        bool try_it = false;
-        static std::string outfile = "output.json";
-
-        if (fileIOWindow( try_it, outfile, recent_json_files, "Save", {"*.json", "*.*"}, false, ImVec2(200+26*fontSize,300))) {
-          show_file_output_window = false;
-
-          if (try_it) {
-            // remember
-            recent_json_files.push_back( outfile );
-
-            // retrieve window sizes
-            glfwGetWindowSize(window, &rparams.width, &rparams.height);
-
-            // write and echo
-            write_json(sim, ffeatures, bfeatures, mfeatures, rparams, outfile);
-            std::cout << std::endl << "Wrote simulation to " << outfile << std::endl;
-          }
-        }
-      }
-
       // PNG output of the render frame
       if (ImGui::Button("Save screenshot to PNG", ImVec2(20+12*fontSize,0))) draw_this_frame = true;
+
+      // next line: VTK output and record
+      if (ImGui::Button("Save parts to VTU", ImVec2(20+12*fontSize,0))) export_vtk_this_frame = true;
       ImGui::SameLine();
       if (record_all_frames) {
         if (ImGui::Button("STOP RECORDING", ImVec2(20+12*fontSize,0))) {
@@ -1311,6 +1291,28 @@ int main(int argc, char const *argv[]) {
         }
       }
     }
+
+    if (show_file_output_window) {
+      bool try_it = false;
+      static std::string outfile = "output.json";
+
+      if (fileIOWindow( try_it, outfile, recent_json_files, "Save", {"*.json", "*.*"}, false, ImVec2(200+26*fontSize,300))) {
+        show_file_output_window = false;
+
+        if (try_it) {
+          // remember
+          recent_json_files.push_back( outfile );
+
+          // retrieve window sizes
+          glfwGetWindowSize(window, &rparams.width, &rparams.height);
+
+          // write and echo
+          write_json(sim, ffeatures, bfeatures, mfeatures, rparams, outfile);
+          std::cout << std::endl << "Wrote simulation to " << outfile << std::endl;
+        }
+      }
+    }
+
 
 
     nframes++;
