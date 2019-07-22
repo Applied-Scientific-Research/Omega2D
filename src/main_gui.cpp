@@ -673,13 +673,21 @@ int main(int argc, char const *argv[]) {
     //if (ImGui::CollapsingHeader("Simulation globals", ImGuiTreeNodeFlags_DefaultOpen)) {
     if (ImGui::CollapsingHeader("Simulation globals")) {
 
-      ImGui::SliderFloat("Time step", sim.addr_dt(), 0.0001f, 0.1f, "%.4f", 2.0f);
-      ImGui::SameLine();
-      ShowHelpMarker("Adjust how far into the future each step must simulate. Smaller means better accuracy, larger is faster.");
+      // save current versions, so we know which changed
+      const float current_re = sim.get_re();
+      const float current_dt = sim.get_dt();
 
       ImGui::Checkbox("Fluid is viscous (diffuses)", &is_viscous);
       ImGui::SameLine();
       ShowHelpMarker("If checked, simulation will add particles to solve diffusion equation; if unchecked, simulation will run fast, but quickly lose accuracy.");
+
+      if (sim.is_initialized() and is_viscous) {
+        ImGui::Text("** While running, Time step and Reynolds number move together **");
+      }
+
+      ImGui::SliderFloat("Time step", sim.addr_dt(), 0.0001f, 0.1f, "%.4f", 2.0f);
+      ImGui::SameLine();
+      ShowHelpMarker("Adjust how far into the future each step must simulate. Smaller means better accuracy, larger is faster.");
 
       if (is_viscous) {
         // show the toggle for AMR
@@ -687,12 +695,25 @@ int main(int argc, char const *argv[]) {
         //ImGui::Checkbox("Allow adaptive resolution", &use_amr);
         //sim.set_amr(use_amr);
         sim.set_diffuse(true);
+
         // and let user choose Reynolds number
         ImGui::SliderFloat("Reynolds number", sim.addr_re(), 10.0f, 10000.0f, "%.1f", 2.0f);
         ImGui::SameLine();
         ShowHelpMarker("Reynolds number is the inverse of viscosity; so larger means less viscosity, smaller particles, and longer run time, but more detail.");
 
+        // if Reynolds number or time step change during a run, adjust the other to keep particle spacing constant
+        if (sim.is_initialized()) {
+          if (current_re != sim.get_re()) {
+            // change dt
+            *(sim.addr_dt()) = current_dt * sim.get_re() / current_re;
+          } else if (current_dt != sim.get_dt()) {
+            // change Re
+            *(sim.addr_re()) = current_re * sim.get_dt() / current_dt;
+          }
+        }
+
         ImGui::Text("Particle spacing %g", sim.get_ips());
+
       } else {
         static float my_ips = 0.03141;
         ImGui::SliderFloat("Particle spacing", &my_ips, 0.001f, 0.1f, "%.3f", 2.0f);
