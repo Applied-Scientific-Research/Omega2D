@@ -49,6 +49,8 @@ float* Simulation::addr_dt() { return &dt; }
 float* Simulation::addr_fs() { return fs; }
 
 // getters
+float Simulation::get_re() { return re; }
+float Simulation::get_dt() { return dt; }
 float Simulation::get_hnu() { return std::sqrt(dt/re); }
 float Simulation::get_ips() { return diff.get_nom_sep_scaled() * get_hnu(); }
 float Simulation::get_vdelta() { return diff.get_particle_overlap() * get_ips(); }

@@ -51,6 +51,8 @@ public:
   float* addr_fs();
 
   // get the derived parameters
+  float get_re();
+  float get_dt();
   float get_ips();
   float get_hnu();
   float get_vdelta();
