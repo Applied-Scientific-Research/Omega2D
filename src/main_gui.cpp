@@ -674,7 +674,13 @@ int main(int argc, char const *argv[]) {
     if (ImGui::CollapsingHeader("Simulation globals")) {
 
       ImGui::SliderFloat("Time step", sim.addr_dt(), 0.0001f, 0.1f, "%.4f", 2.0f);
+      ImGui::SameLine();
+      ShowHelpMarker("Adjust how far into the future each step must simulate. Smaller means better accuracy, larger is faster.");
+
       ImGui::Checkbox("Fluid is viscous (diffuses)", &is_viscous);
+      ImGui::SameLine();
+      ShowHelpMarker("If checked, simulation will add particles to solve diffusion equation; if unchecked, simulation will run fast, but quickly lose accuracy.");
+
       if (is_viscous) {
         // show the toggle for AMR
         //static bool use_amr = false;
@@ -683,15 +689,22 @@ int main(int argc, char const *argv[]) {
         sim.set_diffuse(true);
         // and let user choose Reynolds number
         ImGui::SliderFloat("Reynolds number", sim.addr_re(), 10.0f, 10000.0f, "%.1f", 2.0f);
+        ImGui::SameLine();
+        ShowHelpMarker("Reynolds number is the inverse of viscosity; so larger means less viscosity, smaller particles, and longer run time, but more detail.");
+
         ImGui::Text("Particle spacing %g", sim.get_ips());
       } else {
         static float my_ips = 0.03141;
         ImGui::SliderFloat("Particle spacing", &my_ips, 0.001f, 0.1f, "%.3f", 2.0f);
+        ImGui::SameLine();
+        ShowHelpMarker("Sets the average size and distance between particles.");
         // change underlying Re when this changes
         sim.set_re_for_ips(my_ips);
         my_ips = sim.get_ips();
       }
       ImGui::InputFloat2("Freestream speed", sim.addr_fs());
+      ImGui::SameLine();
+      ShowHelpMarker("Freestream is a uniform wind blowing everything along this vector.");
 
       // set stop/pause conditions
       bool use_step_pause = sim.using_max_steps();
