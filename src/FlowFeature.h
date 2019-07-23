@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "Feature.h"
+
 #include "json/json.hpp"
 
 #include <iostream>
@@ -15,12 +17,13 @@
 //
 // Abstract class for any flow feature present initially
 //
-class FlowFeature {
+class FlowFeature : public Feature {
 public:
   explicit
   FlowFeature(float _x,
               float _y)
-    : m_x(_x),
+    : Feature(true),
+      m_x(_x),
       m_y(_y)
     {}
 

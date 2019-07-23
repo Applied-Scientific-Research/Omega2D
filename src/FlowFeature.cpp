@@ -54,7 +54,8 @@ void parse_flow_json(std::vector<std::unique_ptr<FlowFeature>>& _flist,
 //
 std::vector<float>
 SingleParticle::init_particles(float _ips) const {
-  return std::vector<float>({m_x, m_y, m_str, 0.0});
+  if (this->is_enabled()) return std::vector<float>({m_x, m_y, m_str, 0.0});
+  else return std::vector<float>();
 }
 
 std::vector<float>
@@ -99,6 +100,8 @@ std::vector<float>
 VortexBlob::init_particles(float _ips) const {
   // create a new vector to pass on
   std::vector<float> x;
+
+  if (not this->is_enabled()) return x;
 
   // what size 2D integer array will we loop over
   int irad = 1 + (m_rad + 0.5*m_softness) / _ips;
@@ -191,6 +194,8 @@ std::vector<float>
 AsymmetricBlob::init_particles(float _ips) const {
   // create a new vector to pass on
   std::vector<float> x;
+
+  if (not this->is_enabled()) return x;
 
   // what size 2D integer array will we loop over
   int irad = 1 + (m_rad    + 0.5*m_softness) / _ips;
@@ -293,6 +298,8 @@ AsymmetricBlob::to_json() const {
 std::vector<float>
 UniformBlock::init_particles(float _ips) const {
 
+  if (not this->is_enabled()) return std::vector<float>();
+
   // what size 2D integer array will we loop over
   int isize = 1 + m_xsize / _ips;
   int jsize = 1 + m_ysize / _ips;
@@ -362,6 +369,9 @@ UniformBlock::to_json() const {
 //
 std::vector<float>
 BlockOfRandom::init_particles(float _ips) const {
+
+  if (not this->is_enabled()) return std::vector<float>();
+
   // set up the random number generator
   static std::random_device rd;  //Will be used to obtain a seed for the random number engine
   static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
@@ -435,7 +445,8 @@ ParticleEmitter::init_particles(float _ips) const {
 
 std::vector<float>
 ParticleEmitter::step_particles(float _ips) const {
-  return std::vector<float>({m_x, m_y, m_str, 0.0});
+  if (this->is_enabled()) return std::vector<float>({m_x, m_y, m_str, 0.0});
+  else return std::vector<float>();
 }
 
 void
