@@ -1439,7 +1439,6 @@ int main(int argc, char const *argv[]) {
       // use ASCII table for number: http://www.asciitable.com/
       // but use CAPITAL letter for a letter, jesus, really?!?
       if (ImGui::IsKeyPressed(84)) show_test_window ^= 1;
-      if (ImGui::IsKeyPressed(84)) std::cout << "Pressed \'t\'" << std::endl;
 
       //ImGui::Text("Draw frame rate: %.2f ms/frame (%.1f FPS)",
       //            1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);

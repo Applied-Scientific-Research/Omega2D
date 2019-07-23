@@ -218,10 +218,10 @@ TracerBlob::to_json() const {
 std::vector<float>
 TracerLine::init_particles(float _ips) const {
 
-  if (not this->is_enabled()) return std::vector<float>();
-
   // create a new vector to pass on
   std::vector<float> x;
+
+  if (not this->is_enabled()) return x;
 
   // how many points do we need?
   float llen = std::sqrt( std::pow(m_xf-m_x, 2) + std::pow(m_yf-m_y, 2) );
