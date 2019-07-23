@@ -73,7 +73,6 @@ There are several collapsible headers which you can open to modify this simulati
 
 Pictured above is a simulation of viscous flow over a circular cylinder at Reynolds number 250 after 76 steps. The blue and red fields represent negative and positive vorticity (rotation). Vorticity is created when flow moves over a solid boundary, but must stick to the boundary surface. Because this flow solver uses vortex methods, we only require computational elements (vortex particles) where there is vorticity - nowhere else.
 
-
 ### Run a batch job
 If you already have an input file in JSON format, or you exported one from the GUI, you can run a batch (no GUI) simulation with
 
@@ -87,6 +86,7 @@ The GUI has an option to `RECORD to png`. When you press this button, the simula
 Generate an X.264-encoded video from a series of png images with the following command. Make sure to use the actual resolution of the images. The reason for all the extra options is to ensure that the resulting video will play on Linux, Windows, and Mac - Quicktime is very picky about which video files it will play.
 
     mencoder "mf://img*png" -mf w=1280:h=720:type=png:fps=30 -o video.mp4 -sws 9 -of lavf -lavfopts format=mp4 -nosub -vf softskip,harddup -nosound -ovc x264 -x264encopts bitrate=4000:vbv_maxrate=6000:vbv_bufsize=2000:nointerlaced:force_cfr:frameref=3:mixed_refs:bframes=1:b_adapt=2:weightp=1:direct_pred=auto:aq_mode=1:me=umh:me_range=16:subq=6:mbtree:psy_rd=0.8,0.2:chroma_me:trellis=1:nocabac:deblock:partitions=p8x8,b8x8,i8x8,i4x4:nofast_pskip:nodct_decimate:threads=auto:ssim:psnr:keyint=300:keyint_min=30:level_idc=30:global_header
+
 
 ## To do
 Tasks to consider or implement:
@@ -130,54 +130,6 @@ Tasks to consider or implement:
 * Consider reducing the number of virtual methods; the `variant` path NBL
 * Recommend all private variables be prefixed with `m_` or suffixed with `_` to avoid name collisions with method parameters, etc, improve reading. NBL
 
-Completed tasks:
-
-* ~~Need to periodically check tracer particles to make sure they do not go inside of objects - like every frame we check 1/10th of all tracers and bump them out~~
-* ~~Convert all angles (except in GUI) to radians - pretty sure this is done~~
-* ~~Add the axisymmetrization of a vortex patch simulation to the pull-down~~
-* ~~Replace libpng with stb\_image\_write.h to ease Windows builds~~
-* ~~Write a status file containing time, particle count, total circulation, maybe lift, drag? Read json for file name.~~
-* ~~Add a "Run to time..." button to allow users to run a sim up to an exact time~~
-* ~~Consider adding base64 encoding to vtk output files, maybe with [this](https://github.com/tplgy/cppcodec)~~
-* ~~Allow inert Points collections to never allocate space for radius~~
-* ~~Support multiple body rotation by augmenting only the required blocks in the BEM calculation~~
-* ~~Support body rotation by precalculating the surface sheet strengths necessary to account for the motion of the enclosed body~~
-* ~~Allow geometries with different Body pointers to be different collections~~
-* ~~Add "Save setup", "Save flow", and "Save image" buttons~~ - Good enough
-* ~~Get motion expressions to write to JSON file correctly - including collecting separate geometries into one body~~
-* ~~User can enter an equation in the rotation field~~
-* ~~Use a mathematical equation parser, I like [exprtk](http://www.partow.net/programming/exprtk/), to define rotation and tranlation of bodies; muparser and tinyexpr are also options - Wound up using tinyexpr~~
-* ~~Output particles and grid values to VTK-XML format, consider [tinyvtkxml](https://github.com/lighttransport/tinyvtkxml), [tinyxml2](https://github.com/leethomason/tinyxml2), or [AEXML](https://github.com/tadija/AEXML)~~
-* ~~Save, load, and resize window programmatically~~
-* ~~If we're adding png output, might as well add a "Record" button!~~
-* ~~Be able to write out a png file of the render window~~
-* ~~Add rendering parameters to the json file read and write, this includes window size and projection! (view point, size)~~
-* ~~Add batch job params to the json format: end time, output time step, etc.~~
-* ~~Add file selector dialog, like [this one](https://github.com/gileoo/Imgui-IGS-Snippets) or [this one](https://github.com/Flix01/imgui/tree/imgui_with_addons/addons/imguifilesystem)~~
-* ~~Add Read Setup, Read State, Write Setup, Write State buttons, which call a JSON library, like [nlohmann/json](https://github.com/nlohmann/json), to perform those actions~~
-* ~~Add a batch mode also - once you get json reading and png writing working - do we really need this? yes.~~
-* ~~Support multiple Lagrangian element collections under an Elements structure - new arch will allow this~~
-* ~~Generalize bodies to allow squares and circles in the GUI~~
-* ~~Add json reading and writing to allow batch modes - just like 3D code~~
-* ~~Replace core architecture (using std::variant and Collection)~~
-* ~~Get Vc into the influence calculations for the new arch~~
-* ~~For new BEM: get particles to create correct RHS, then panels to create correct A matrix, then Points to generate correct particles, finally for Surfaces to remove Points beneath them~~
-* ~~Get the Panels into the new arch - includes creation, BEM, vel-finding, drawing~~
-* ~~Upgrade Merge to the new arch, then particle-only diffusion will be complete~~
-* ~~Get new arch to perform VRM~~
-* ~~Get new arch to create a line or a blob of inert particles, compute their motion, and draw them~~
-* ~~Set tracer points to be a constant fraction of the minimum particle size~~
-* ~~Echo correct number of particles and points in the GUI~~
-* ~~Make alternative path for drawing points - do not pass strength or radius, just color and position~~
-* ~~Make a second copy of all particles in Points and compute their motion, also - compare to Particles~~
-* ~~Move radius from ElementBase to Points~~
-* ~~Space bar pauses and resumes simulation (need to capture keyboard inputs)~~
-* ~~Add warning when there are no flow structures or boundary structures~~
-* ~~Add warning when there are bodies, but no freestream and no flow structures and no particles (because nothing will happen)~~
-* ~~Make the sections of the GUI collapsable~~
-* ~~Limit the upper level for dt to 0.1, lower level for Re at 10, limit circle radius between 0.01 and 10.0 but use logarithmic slider!~~
-* ~~Find code that computes influence of thick-"cored" panels on a point - see Pate's dissertation - nope.~~
-* ~~Move code to public repository~~
 
 ## Thanks
 This project is funded by the [National Institutes of Health (NIH)](https://www.nih.gov/) under grant number 1 R01 EB022180-01A1 ("A Fast High-Order CFD for Turbulent Flow Simulation in Cardio-Devices").
