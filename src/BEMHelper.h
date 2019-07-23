@@ -78,7 +78,7 @@ void solve_bem(const double                         _time,
       std::visit(ivisitor, src, targ);
     }
 
-    // divide by 2pi and add freestream
+    // divide by factor and add freestream
     std::visit([=](auto& elem) { elem.finalize_vels(_fs); }, targ);
 
     // include the effects of the motion of the parent body

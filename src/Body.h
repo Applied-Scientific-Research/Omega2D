@@ -11,7 +11,6 @@
 
 #define TE_NAT_LOG
 #include "tinyexpr.h"
-
 #include "json/json.hpp"
 
 #include <string>
