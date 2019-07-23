@@ -300,17 +300,17 @@ int main(int argc, char const *argv[]) {
 
       // initialize particle distributions
       for (auto const& ff: ffeatures) {
-        sim.add_particles( ff->init_particles(sim.get_ips()) );
+        if (ff->is_enabled()) sim.add_particles( ff->init_particles(sim.get_ips()) );
       }
 
       // initialize solid objects
       for (auto const& bf : bfeatures) {
-        sim.add_boundary( bf->get_body(), bf->init_elements(sim.get_ips()) );
+        if (bf->is_enabled()) sim.add_boundary( bf->get_body(), bf->init_elements(sim.get_ips()) );
       }
 
       // initialize measurement features
       for (auto const& mf: mfeatures) {
-        sim.add_fldpts( mf->init_particles(rparams.tracer_scale*sim.get_ips()), mf->moves() );
+        if (mf->is_enabled()) sim.add_fldpts( mf->init_particles(rparams.tracer_scale*sim.get_ips()), mf->moves() );
       }
 
       sim.set_initialized();
@@ -379,10 +379,10 @@ int main(int argc, char const *argv[]) {
 
         // generate new particles from emitters
         for (auto const& ff : ffeatures) {
-          sim.add_particles( ff->step_particles(sim.get_ips()) );
+          if (ff->is_enabled()) sim.add_particles( ff->step_particles(sim.get_ips()) );
         }
         for (auto const& mf : mfeatures) {
-          sim.add_fldpts( mf->step_particles(rparams.tracer_scale*sim.get_ips()), true );
+          if (mf->is_enabled()) sim.add_fldpts( mf->step_particles(rparams.tracer_scale*sim.get_ips()), true );
         }
 
         // begin a new dynamic step: convection and diffusion
