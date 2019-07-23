@@ -43,15 +43,28 @@ public:
            const move_t _m,
            std::shared_ptr<Body> _bp)
     : ElementBase<S>(0, _e, _m, _bp),
+      np(0),
       vol(-1.0),
       max_strength(-1.0) {
 
     // make sure input arrays are correctly-sized
-    assert(_x.size() % Dimensions == 0 && "Position array is not an even multiple of dimensions");
     assert(_idx.size() % Dimensions == 0 && "Index array is not an even multiple of dimensions");
-    const size_t nnodes = _x.size() / Dimensions;
     const size_t nsurfs = _idx.size() / Dimensions;
+    // if no surfs, quit out now
+    if (nsurfs == 0) {
+      // but still initialize ux before we go (in case first bfeature is not enabled)
+      if (_bp) this->ux = this->x;
+      // and init vs also
+      if (this->E != inert) {
+        Vector<S> new_s;
+        vs = std::move(new_s);
+      }
+      return;
+    }
+
     assert(_val.size() % nsurfs == 0 && "Value array is not an even multiple of panel count");
+    assert(_x.size() % Dimensions == 0 && "Position array is not an even multiple of dimensions");
+    const size_t nnodes = _x.size() / Dimensions;
 
     std::cout << "  new collection with " << nsurfs << " panels and " << nnodes << " nodes" << std::endl;
 
@@ -204,11 +217,14 @@ public:
     const size_t neold = get_npanels();
 
     // make sure input arrays are correctly-sized
-    assert(_x.size() % Dimensions == 0 && "Position array is not an even multiple of dimensions");
     assert(_idx.size() % Dimensions == 0 && "Index array is not an even multiple of dimensions");
-    const size_t nnodes = _x.size() / Dimensions;
     const size_t nsurfs = _idx.size() / Dimensions;
+    // if no surfs, quit out now
+    if (nsurfs == 0) return;
+
     assert(_val.size() % nsurfs == 0 && "Value array is not an even multiple of panel count");
+    assert(_x.size() % Dimensions == 0 && "Position array is not an even multiple of dimensions");
+    const size_t nnodes = _x.size() / Dimensions;
 
     std::cout << "  adding " << nsurfs << " new surface panels and " << nnodes << " new points to collection..." << std::endl;
 

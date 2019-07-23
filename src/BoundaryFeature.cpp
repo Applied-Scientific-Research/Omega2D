@@ -49,6 +49,8 @@ void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
 ElementPacket<float>
 SolidCircle::init_elements(const float _ips) const {
 
+  if (not this->is_enabled()) return ElementPacket<float>();
+
   // how many panels?
   const size_t num_panels = std::min(40000, std::max(5, (int)(m_diam * M_PI / _ips)));
 
@@ -126,6 +128,8 @@ SolidCircle::to_json() const {
 //
 ElementPacket<float>
 SolidOval::init_elements(const float _ips) const {
+
+  if (not this->is_enabled()) return ElementPacket<float>();
 
   // how many panels?
   const size_t num_panels = std::min(40000, std::max(5, (int)(m_diam * M_PI / _ips)));
@@ -213,6 +217,8 @@ SolidOval::to_json() const {
 //
 ElementPacket<float>
 SolidSquare::init_elements(const float _ips) const {
+
+  if (not this->is_enabled()) return ElementPacket<float>();
 
   // how many panels?
   const size_t num_panels = 4 * std::min(10000, std::max(1, (int)(m_side / _ips)));
@@ -320,6 +326,8 @@ SolidSquare::to_json() const {
 //
 ElementPacket<float>
 SolidRect::init_elements(const float _ips) const {
+
+  if (not this->is_enabled()) return ElementPacket<float>();
 
   // how many panels?
   const size_t np_x = std::min(10000, std::max(1, (int)(m_side / _ips)));
@@ -431,6 +439,8 @@ SolidRect::to_json() const {
 //
 ElementPacket<float>
 BoundarySegment::init_elements(const float _ips) const {
+
+  if (not this->is_enabled()) return ElementPacket<float>();
 
   // how many panels?
   const float seg_length = std::sqrt(std::pow(m_xe-m_x, 2) + std::pow(m_ye-m_y, 2));

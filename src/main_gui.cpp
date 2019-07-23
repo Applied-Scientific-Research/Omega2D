@@ -794,11 +794,22 @@ int main(int argc, char const *argv[]) {
       // list existing boundary features here
       int del_this_bdry = -1;
       for (int i=0; i<(int)bfeatures.size(); ++i) {
-        //ImGui::Checkbox("enable", &external_flow);
-        //ImGui::SameLine();
-        ImGui::Text("%s", bfeatures[i]->to_string().c_str());
 
-        // add a "remove" button here somehow
+        if (bfeatures[i]->is_enabled()) {
+          ImGui::PushID(++buttonIDs);
+          if (ImGui::SmallButton("deactivate")) bfeatures[i]->disable();
+          ImGui::PopID();
+          ImGui::SameLine();
+          ImGui::Text("%s", bfeatures[i]->to_string().c_str());
+        } else {
+          ImGui::PushID(++buttonIDs);
+          if (ImGui::SmallButton("activate")) bfeatures[i]->enable();
+          ImGui::PopID();
+          ImGui::SameLine();
+          ImGui::TextColored(ImVec4(0.5f,0.5f,0.5f,1.0f), "%s", bfeatures[i]->to_string().c_str());
+        }
+
+        // add a "remove" button at the end of the line (so it's not easy to accidentally hit)
         ImGui::SameLine();
         ImGui::PushID(++buttonIDs);
         if (ImGui::SmallButton("remove")) del_this_bdry = i;

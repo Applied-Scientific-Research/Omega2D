@@ -9,6 +9,7 @@
 
 #include "Omega2D.h"
 #include "Body.h"
+#include "Feature.h"
 
 #include "json/json.hpp"
 
@@ -19,14 +20,15 @@
 //
 // Abstract class for any boundary feature present initially
 //
-class BoundaryFeature {
+class BoundaryFeature : public Feature {
 public:
   explicit
   BoundaryFeature(std::shared_ptr<Body> _bp,
                   bool _ext,
                   float _x,
                   float _y)
-    : m_bp(_bp),
+    : Feature(true),
+      m_bp(_bp),
       m_external(_ext),
       m_x(_x),
       m_y(_y)
