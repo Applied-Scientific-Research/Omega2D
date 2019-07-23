@@ -763,19 +763,13 @@ int main(int argc, char const *argv[]) {
 
         if (ffeatures[i]->is_enabled()) {
           ImGui::PushID(++buttonIDs);
-          if (ImGui::SmallButton("deactivate")) {
-            ffeatures[i]->disable();
-            std::cout << "Disabled ffeature " << i << std::endl;
-          }
+          if (ImGui::SmallButton("deactivate")) ffeatures[i]->disable();
           ImGui::PopID();
           ImGui::SameLine();
           ImGui::Text("%s", ffeatures[i]->to_string().c_str());
         } else {
           ImGui::PushID(++buttonIDs);
-          if (ImGui::SmallButton("activate")) {
-            ffeatures[i]->enable();
-            std::cout << "Enabled ffeature " << i << std::endl;
-          }
+          if (ImGui::SmallButton("activate")) ffeatures[i]->enable();
           ImGui::PopID();
           ImGui::SameLine();
           ImGui::TextColored(ImVec4(0.5f,0.5f,0.5f,1.0f), "%s", ffeatures[i]->to_string().c_str());
@@ -818,10 +812,22 @@ int main(int argc, char const *argv[]) {
       // list existing measurement features here
       int del_this_measure = -1;
       for (int i=0; i<(int)mfeatures.size(); ++i) {
-        //ImGui::SameLine();
-        ImGui::Text("%s", mfeatures[i]->to_string().c_str());
 
-        // add a "remove" button here somehow
+        if (mfeatures[i]->is_enabled()) {
+          ImGui::PushID(++buttonIDs);
+          if (ImGui::SmallButton("deactivate")) mfeatures[i]->disable();
+          ImGui::PopID();
+          ImGui::SameLine();
+          ImGui::Text("%s", mfeatures[i]->to_string().c_str());
+        } else {
+          ImGui::PushID(++buttonIDs);
+          if (ImGui::SmallButton("activate")) mfeatures[i]->enable();
+          ImGui::PopID();
+          ImGui::SameLine();
+          ImGui::TextColored(ImVec4(0.5f,0.5f,0.5f,1.0f), "%s", mfeatures[i]->to_string().c_str());
+        }
+
+        // add a "remove" button at the end of the line (so it's not easy to accidentally hit)
         ImGui::SameLine();
         ImGui::PushID(++buttonIDs);
         if (ImGui::SmallButton("remove")) del_this_measure = i;

@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "Feature.h"
+
 #include "json/json.hpp"
 
 #include <iostream>
@@ -15,13 +17,14 @@
 //
 // Abstract class for any measurement feature (streamlines, rakes, tracers, etc.) present initially
 //
-class MeasureFeature {
+class MeasureFeature : public Feature {
 public:
   explicit
   MeasureFeature(float _x,
                  float _y,
                  bool _moves)
-    : m_x(_x),
+    : Feature(true),
+      m_x(_x),
       m_y(_y),
       m_is_lagrangian(_moves)
     {}

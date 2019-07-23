@@ -48,7 +48,8 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
 std::vector<float>
 SinglePoint::init_particles(float _ips) const {
   // created once
-  return std::vector<float>({m_x, m_y});
+  if (this->is_enabled()) return std::vector<float>({m_x, m_y});
+  else return std::vector<float>();
 }
 
 std::vector<float>
@@ -97,6 +98,9 @@ TracerEmitter::init_particles(float _ips) const {
 
 std::vector<float>
 TracerEmitter::step_particles(float _ips) const {
+
+  if (not this->is_enabled()) return std::vector<float>();
+
   // set up the random number generator
   static std::random_device rd;  //Will be used to obtain a seed for the random number engine
   static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
@@ -140,6 +144,8 @@ TracerEmitter::to_json() const {
 //
 std::vector<float>
 TracerBlob::init_particles(float _ips) const {
+
+  if (not this->is_enabled()) return std::vector<float>();
 
   // set up the random number generator
   static std::random_device rd;  //Will be used to obtain a seed for the random number engine
@@ -212,6 +218,8 @@ TracerBlob::to_json() const {
 std::vector<float>
 TracerLine::init_particles(float _ips) const {
 
+  if (not this->is_enabled()) return std::vector<float>();
+
   // create a new vector to pass on
   std::vector<float> x;
 
@@ -279,6 +287,8 @@ MeasurementLine::init_particles(float _ips) const {
 
   // create a new vector to pass on
   std::vector<float> x;
+
+  if (not this->is_enabled()) return x;
 
   // how many points do we need?
   float llen = std::sqrt( std::pow(m_xf-m_x, 2) + std::pow(m_yf-m_y, 2) );
