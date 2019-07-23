@@ -556,6 +556,9 @@ void Simulation::add_fldpts(std::vector<float> _invec, const bool _moves) {
 // add geometry
 void Simulation::add_boundary(std::shared_ptr<Body> _bptr, ElementPacket<float> _geom) {
 
+  // this would be zero if the bfeature was disabled
+  if (_geom.idx.size() == 0) return;
+
   // incoming collections types
   const elem_t this_elem_type = reactive;
   const move_t this_move_type = (_bptr ? bodybound : fixed);
