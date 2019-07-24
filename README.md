@@ -92,20 +92,20 @@ Generate an X.264-encoded video from a series of png images with the following c
 Tasks to consider or implement:
 
 * Add support for NACA wings, whether from a library or by reading geometry files in standard formats
+* Add airfoils - read them from a text file or generate them algorithmically - this might mean enabling Kutta points (reactive Points)
+* Add a "grid" measurement feature, which inits particles on a grid over the current view
 * Have method to tell batch and gui to dump vtu files periodically
 * Would be nice to have an option to have solid bodies randomly shed tracers (small chance per step per panel)
 * Write out panels to vtu files
 * Consider a zlib implementation for both vtu and png files: [zstr](https://github.com/mateidavid/zstr), [miniz](https://github.com/richgel999/miniz), or [gzip-hpp](https://github.com/mapbox/gzip-hpp)
 * How awesome would it be to show the flow as a time-consistent LIC image? See UFLIC (Shen & Kao, IEEE ToVaCG 1999)
 * Add inlet and outlet surfaces to push flow around - the BC is that normal flow must equal some number
-* Add airfoils - read them from a text file or generate them algorithmically - this means enabling Kutta points (reactive Points)
 * Add ability to edit features in the GUI, not just remove and re-add them
 * When background is white, nothing else shows up! Check blending mode. Need this to change so that we can make more attractive visuals. Like, presets for "technical (red/blue), b/w (white/grey), vibrant (??)
 * If I add a measurement structure in the middle of a simulation, it doesn't init - should it?
 * Allow Points to be able to draw not only blobs but dots at the middles, too, using same arrays but different draw programs (turn either on or off?)
 * Move some initialization back into ElementBase - like positions and such, keep radius in Points, then ElementBase can draw points?
 * Move the GUI parts of the various Features classes into their own class/file and out of main.cpp and Features.cpp
-* When running, grey out the dt and Re fields - those are the only things you can't change
 * Add a "ms/frame" and "FPS" for the simulation component also
 * Add "got it" button to first section (the welcome section) to make it go away (forever?)
 * Ideal initial interface: lots of stuff hidden, just a graphical menu with circles, squares, vortex patches, etc. Each has handles that you can drag to resize and reposition the element; all sizes/locations quantized to 0.1 or 0.05. "Expert" box lets you change Re, dt, etc.
