@@ -283,6 +283,12 @@ int main(int argc, char const *argv[]) {
   std::vector<float> gl_projection;
   compute_ortho_proj_mat(window, rparams.vcx, rparams.vcy, &rparams.vsize, gl_projection);
 
+  // adjust some UI settings
+  ImGuiStyle& style = ImGui::GetStyle();
+  style.Colors[ImGuiCol_WindowBg]              = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
+  style.Colors[ImGuiCol_TitleBg]               = ImVec4(0.27f, 0.27f, 0.54f, 1.00f);
+  style.Colors[ImGuiCol_TitleBgActive]         = ImVec4(0.32f, 0.32f, 0.63f, 1.00f);
+
 
   // Main loop
   while (!glfwWindowShouldClose(window))
