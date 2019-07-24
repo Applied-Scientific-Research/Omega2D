@@ -685,6 +685,9 @@ int main(int argc, char const *argv[]) {
         ImGui::Text("** While running, Time step and Reynolds number move together **");
       }
 
+      // set input widget width for this and the next few
+      ImGui::PushItemWidth(-240);
+
       ImGui::SliderFloat("Time step", sim.addr_dt(), 0.0001f, 0.1f, "%.4f", 2.0f);
       ImGui::SameLine();
       ShowHelpMarker("Adjust how far into the future each step must simulate. Smaller means better accuracy, larger is faster.");
@@ -727,6 +730,8 @@ int main(int argc, char const *argv[]) {
       ImGui::SameLine();
       ShowHelpMarker("Freestream is a uniform wind blowing everything along this vector.");
 
+      ImGui::PopItemWidth();
+
       // set stop/pause conditions
       bool use_step_pause = sim.using_max_steps();
       ImGui::Checkbox("Pause at step", &use_step_pause);
@@ -755,6 +760,7 @@ int main(int argc, char const *argv[]) {
     //if (ImGui::CollapsingHeader("Flow structures", ImGuiTreeNodeFlags_DefaultOpen)) {
     if (ImGui::CollapsingHeader("Flow structures")) {
 
+      ImGui::Spacing();
       int buttonIDs = 10;
 
       // list existing flow features here
@@ -852,6 +858,8 @@ int main(int argc, char const *argv[]) {
       if (ffeatures.size() + bfeatures.size() + mfeatures.size() == 0) {
         ImGui::Text("none");
       }
+
+      ImGui::Spacing();
 
       // button and modal window for adding new flow structures
       if (ImGui::Button("Add flow")) ImGui::OpenPopup("New flow structure");
@@ -1008,9 +1016,9 @@ int main(int argc, char const *argv[]) {
 
         // define geometry second
         static int item = 0;
-        //const char* items[] = { "solid circle", "solid square", "solid object from file", "draw outline in UI" };
         const char* items[] = { "circle", "square", "oval", "rectangle", "segment" };
-        ImGui::Combo("type", &item, items, 5);
+        ImGui::Spacing();
+        ImGui::Combo("geometry type", &item, items, 5);
 
         static bool external_flow = true;
 
