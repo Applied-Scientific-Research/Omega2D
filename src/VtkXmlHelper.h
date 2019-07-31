@@ -216,12 +216,12 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx, const 
   if (pts.get_n() <= std::numeric_limits<uint16_t>::max()) {
     printer.PushAttribute( "type", "UInt16" );
     Vector<uint16_t> v(pts.get_n());
-    std::iota(v.begin(), v.end(), 0);
+    std::iota(v.begin(), v.end(), 1);
     write_DataArray (printer, v, compress, asbase64);
   } else {
     printer.PushAttribute( "type", "UInt32" );
     Vector<uint32_t> v(pts.get_n());
-    std::iota(v.begin(), v.end(), 0);
+    std::iota(v.begin(), v.end(), 1);
     write_DataArray (printer, v, compress, asbase64);
   }
   printer.CloseElement();	// DataArray
