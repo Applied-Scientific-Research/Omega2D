@@ -10,6 +10,7 @@
 #include "Omega2D.h"
 #include "VectorHelper.h"
 #include "Points.h"
+#include "Surfaces.h"
 
 #include "tinyxml2.h"
 #include "cppcodec/base64_rfc4648.hpp"
@@ -315,3 +316,142 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx, const 
   std::cout << "Wrote " << pts.get_n() << " points to " << vtkfn.str() << std::endl;
   return vtkfn.str();
 }
+
+
+//
+// write surface/panel data to a .vtu file
+//
+template <class S>
+std::string write_vtu_panels(Surfaces<S> const& surf, const size_t file_idx, const size_t frameno) {
+
+  assert(surf.get_npanels() > 0 && "Inside write_vtu_panels with no panels");
+
+  const bool compress = false;
+  const bool asbase64 = true;
+
+  bool has_strengths = true;
+  std::string prefix = "panel_";
+  if (surf.is_inert()) {
+    has_strengths = false;
+  }
+
+  // generate file name
+  std::stringstream vtkfn;
+  vtkfn << prefix << std::setfill('0') << std::setw(2) << file_idx << "_" << std::setw(5) << frameno << ".vtu";
+
+  // prepare file pointer and printer
+  std::FILE* fp = std::fopen(vtkfn.str().c_str(), "wb");
+  tinyxml2::XMLPrinter printer( fp );
+
+  // write <?xml version="1.0"?>
+  printer.PushHeader(false, true);
+
+  printer.OpenElement( "VTKFile" );
+  printer.PushAttribute( "type", "UnstructuredGrid" );
+  //printer.PushAttribute( "type", "PolyData" );
+  printer.PushAttribute( "version", "0.1" );
+  printer.PushAttribute( "byte_order", "LittleEndian" );
+  printer.PushAttribute( "header_type", "UInt32" );
+
+  // push comment with sim time?
+
+  printer.OpenElement( "UnstructuredGrid" );
+  //printer.OpenElement( "PolyData" );
+  printer.OpenElement( "Piece" );
+  printer.PushAttribute( "NumberOfPoints", std::to_string(surf.get_n()).c_str() );
+  printer.PushAttribute( "NumberOfCells", std::to_string(surf.get_npanels()).c_str() );
+
+  printer.OpenElement( "Points" );
+  printer.OpenElement( "DataArray" );
+  printer.PushAttribute( "NumberOfComponents", "3" );	// SEE THIS 3?!?!? It needs to be there.
+  printer.PushAttribute( "Name", "position" );
+  printer.PushAttribute( "type", "Float32" );
+  write_DataArray (printer, surf.get_pos(), compress, asbase64);
+  printer.CloseElement();	// DataArray
+  printer.CloseElement();	// Points
+
+  printer.OpenElement( "Cells" );
+
+  printer.OpenElement( "DataArray" );
+  printer.PushAttribute( "Name", "connectivity" );
+  if (surf.get_n() <= std::numeric_limits<uint16_t>::max()) {
+    printer.PushAttribute( "type", "UInt16" );
+    std::vector<Int> const & idx = surf.get_idx();
+    Vector<uint16_t> v(std::begin(idx), std::end(idx));
+    write_DataArray (printer, v, compress, asbase64);
+  } else {
+    printer.PushAttribute( "type", "UInt32" );
+    std::vector<Int> const & idx = surf.get_idx();
+    Vector<uint32_t> v(std::begin(idx), std::end(idx));
+    write_DataArray (printer, v, compress, asbase64);
+  }
+  printer.CloseElement();	// DataArray
+
+  printer.OpenElement( "DataArray" );
+  printer.PushAttribute( "Name", "offsets" );
+  if (surf.get_n() <= std::numeric_limits<uint16_t>::max()) {
+    printer.PushAttribute( "type", "UInt16" );
+    Vector<uint16_t> v(surf.get_npanels());
+    std::iota(v.begin(), v.end(), 1);
+    std::transform(v.begin(), v.end(), v.begin(),
+                   std::bind(std::multiplies<uint16_t>(), std::placeholders::_1, 2));
+    write_DataArray (printer, v, compress, asbase64);
+  } else {
+    printer.PushAttribute( "type", "UInt32" );
+    Vector<uint32_t> v(surf.get_npanels());
+    std::iota(v.begin(), v.end(), 1);
+    std::transform(v.begin(), v.end(), v.begin(),
+                   std::bind(std::multiplies<uint32_t>(), std::placeholders::_1, 2));
+    write_DataArray (printer, v, compress, asbase64);
+  }
+  printer.CloseElement();	// DataArray
+
+  printer.OpenElement( "DataArray" );
+  printer.PushAttribute( "Name", "types" );
+  printer.PushAttribute( "type", "UInt8" );
+  Vector<uint8_t> v(surf.get_npanels());
+  std::fill(v.begin(), v.end(), 3);
+  write_DataArray (printer, v, compress, asbase64);
+  printer.CloseElement();	// DataArray
+
+  printer.CloseElement();	// Cells
+
+
+  printer.OpenElement( "CellData" );
+  std::string vector_list;
+  std::string scalar_list;
+
+  if (has_strengths) scalar_list.append("vortex sheet strength,");
+  //if (has_radii) scalar_list.append("area,");
+
+  if (vector_list.size()>1) {
+    vector_list.pop_back();
+    printer.PushAttribute( "Vectors", vector_list.c_str() );
+  }
+  if (scalar_list.size()>1) {
+    scalar_list.pop_back();
+    printer.PushAttribute( "Scalars", scalar_list.c_str() );
+  }
+
+  if (has_strengths) {
+    // put sheet strengths in here
+    printer.OpenElement( "DataArray" );
+    printer.PushAttribute( "Name", "vortex sheet strength" );
+    printer.PushAttribute( "type", "Float32" );
+    write_DataArray (printer, surf.get_str(), compress, asbase64);
+    printer.CloseElement();	// DataArray
+  }
+
+  printer.CloseElement();	// CellData
+
+
+  printer.CloseElement();	// Piece
+  printer.CloseElement();	// PolyData or UnstructuredGrid
+  printer.CloseElement();	// VTKFile
+
+  std::fclose(fp);
+
+  std::cout << "Wrote " << surf.get_npanels() << " panels to " << vtkfn.str() << std::endl;
+  return vtkfn.str();
+}
+

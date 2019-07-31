@@ -235,6 +235,19 @@ std::vector<std::string> Simulation::write_vtk() {
     }
   }
 
+  idx = 0;
+  for (auto &coll : bdry) {
+    // eventually all collections will support vtk output
+    //std::visit([=](auto& elem) { elem.write_vtk(); }, coll);
+    // only proceed if the collection is Points
+    if (std::holds_alternative<Surfaces<float>>(coll)) {
+      Surfaces<float>& surf = std::get<Surfaces<float>>(coll);
+      if (surf.get_npanels() > 0) {
+        files.emplace_back(write_vtu_panels<float>(surf, idx++, nstep));
+      }
+    }
+  }
+
   return files;
 }
 

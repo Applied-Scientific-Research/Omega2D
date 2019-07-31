@@ -96,7 +96,6 @@ Tasks to consider or implement:
 * Add a "grid" measurement feature, which inits particles on a grid over the current view
 * Have method to tell batch and gui to dump vtu files periodically
 * Would be nice to have an option to have solid bodies randomly shed tracers (small chance per step per panel)
-* Write out panels to vtu files
 * Consider a zlib implementation for both vtu and png files: [zstr](https://github.com/mateidavid/zstr), [miniz](https://github.com/richgel999/miniz), or [gzip-hpp](https://github.com/mapbox/gzip-hpp)
 * How awesome would it be to show the flow as a time-consistent LIC image? See UFLIC (Shen & Kao, IEEE ToVaCG 1999)
 * Add inlet and outlet surfaces to push flow around - the BC is that normal flow must equal some number
