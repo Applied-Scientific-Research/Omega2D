@@ -117,8 +117,6 @@ Tasks to consider or implement:
 * Draw something when you add a feature (so we know it's doing something) - means that the \*Feature objects need draw calls
 * Create an OpenGL compute shader routine for the particle-particle influence
 * Add option to draw particles as thin white dots/lines "Draw elements"
-* Add to Core.h a routine to precalculate and save the "trim tables" to be used when pushing particles away from boundaries
-* Use these correct trim tables to push particles away from the boundary
 * Re-orient the VRM insertion points to align to the nearest boundary - should smooth out the shedding
 * Draw a freestream arrow in the LR corner
 * Let the user grab the fs arrow to dynamically change the freestream
