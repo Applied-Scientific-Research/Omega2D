@@ -47,6 +47,10 @@ std::vector<S> vels_to_rhs_panels (Surfaces<S> const& targ) {
   const std::array<Vector<S>,Dimensions>& tu = targ.get_vel();
   //const Vector<S>&                        tb = targ.get_bcs();
 
+  //std::cout << "tu[0].size() is " << tu[0].size() << std::endl;
+  //std::cout << "tx[0].size() is " << tx[0].size() << std::endl;
+  //std::cout << "ti.size() is " << ti.size() << std::endl;
+
   assert(2*tu[0].size() == ti.size() && "Input array sizes do not match");
   //assert(tx[0].size() == tb.size() && "Input array sizes do not match");
 
