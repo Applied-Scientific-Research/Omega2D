@@ -177,7 +177,7 @@ public:
   void set_str(const size_t ioffset, const size_t icnt, Vector<S> _in) {
     assert(vs && "Strength array does not exist");
     assert(_in.size() == (*vs).size() && "Set strength array size does not match");
-    assert(ioffset == 0 && "Offset is not zero");
+    //assert(ioffset == 0 && "Offset is not zero");
 
     // copy over the strengths
     *vs = _in;
