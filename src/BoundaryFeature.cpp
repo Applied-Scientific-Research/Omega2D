@@ -30,7 +30,6 @@ void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
   if (_jin.count("geometry") != 1) return;
 
   const std::string ftype = _jin["geometry"];
-  std::cout << "  found " << ftype << std::endl;
 
   if      (ftype == "circle") { _flist.emplace_back(std::make_unique<SolidCircle>(_bp)); }
   else if (ftype == "oval") {   _flist.emplace_back(std::make_unique<SolidOval>(_bp)); }
@@ -40,6 +39,8 @@ void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
 
   // and pass the json object to the specific parser
   _flist.back()->from_json(_jin);
+
+  std::cout << "  found " << _flist.back()->to_string() << std::endl;
 }
 
 
@@ -506,7 +507,6 @@ BoundarySegment::from_json(const nlohmann::json j) {
   m_normflow = j.value("normalVel", 0.0);
   m_tangflow = j.value("tangentialVel", 0.0);
   m_external = true;//j.value("external", true);
-  std::cout << "    this " << to_string() << std::endl;
 }
 
 nlohmann::json
