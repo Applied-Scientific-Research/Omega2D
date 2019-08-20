@@ -91,6 +91,8 @@ Generate an X.264-encoded video from a series of png images with the following c
 ## To do
 Tasks to consider or implement:
 
+* Change BEM augmentation code to consider the *change* in circulation per step per body
+* Implement the merging procedure from Spalart (if we don't already) - prefer to merge weak particles, avoid merging opposite-signed circulations (really?)
 * Compute vel grad at each point (vortex or field pt) and write it to the vtu file
 * If we have velgrad, we can compute the elongation of any point - use this to determine when a field point has stretched too far, and replace it with two child field points, of half-brightness, in the correct places; this should be a toggleable behavior, as it would demand ever-increasing numbers of field points
 * Add support for NACA wings, whether from a library or by reading geometry files in standard formats
