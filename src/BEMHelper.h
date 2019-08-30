@@ -11,7 +11,7 @@
 #include "Collection.h"
 #include "CollectionHelper.h"
 #include "Influence.h"
-#include "Coeffcients.h"
+#include "Coefficients.h"
 #include "RHS.h"
 #include "BEM.h"
 
