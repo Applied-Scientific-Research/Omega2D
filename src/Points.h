@@ -290,9 +290,9 @@ public:
 
   // augment the strengths with a value equal to that which accounts for
   //   the solid-body rotation of the object
-  void add_rot_strengths(const S _constfac, const S _rotfactor) {
-    // do nothing here, but when we get Kutta points, we may need to
-  }
+  // do nothing here, but when we get Kutta points, we may need to
+  void add_unit_rot_strengths() {}
+  void add_solved_rot_strengths(const S _factor) {}
 
 #ifdef USE_GL
   //

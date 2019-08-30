@@ -1,7 +1,7 @@
 /*
  * Convection.h - a class for forward integration of elements and their strengths
  *
- * (c)2017-8 Applied Scientific Research, Inc.
+ * (c)2017-9 Applied Scientific Research, Inc.
  *           Written by Mark J Stock <markjstock@gmail.com>
  */
 
@@ -72,7 +72,7 @@ void Convection<S,A,I>::find_vels(const std::array<double,Dimensions>& _fs,
 
   // add vortex and source strengths to account for rotating bodies
   for (auto &src : _bdry) {
-    std::visit([=](auto& elem) { elem.add_rot_strengths(0.0, 1.0); }, src);
+    std::visit([=](auto& elem) { elem.add_solved_rot_strengths(1.0); }, src);
   }
 
   // find the influence on every field point/tracer element
@@ -99,7 +99,7 @@ void Convection<S,A,I>::find_vels(const std::array<double,Dimensions>& _fs,
 
   // remove vortex and source strengths due to rotation
   for (auto &src : _bdry) {
-    std::visit([=](auto& elem) { elem.add_rot_strengths(0.0, -1.0); }, src);
+    std::visit([=](auto& elem) { elem.add_solved_rot_strengths(-1.0); }, src);
   }
 }
 

@@ -262,7 +262,23 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
 
   const size_t nrows = ntarg + (targ.is_augmented() ? 1 : 0);
   const size_t ncols = nsrc  + ( src.is_augmented() ? 1 : 0);
-  //std::cout << "    augmenting the " << ntarg << " x " << nsrc << " block to " << nrows << " x " << ncols << std::endl;
+  if (targ.is_augmented() or src.is_augmented()) {
+    std::cout << "    augmenting the " << ntarg << " x " << nsrc << " block to " << nrows << " x " << ncols << std::endl;
+  }
+
+  bool debug = false;
+  //if (targ.is_augmented() or src.is_augmented()) debug = true;
+
+  // debug print the bottom-right corner
+  if (debug) {
+    std::cout << "Bottom-right corner of influence matrix:" << std::endl;
+    for (size_t i=ntarg-6; i<ntarg; ++i) {
+      for (size_t j=nsrc-6; j<nsrc; ++j) {
+        std::cout << " \t" << coeffs[ntarg*j+i];
+      }
+      std::cout << std::endl;
+    }
+  }
 
   // make a new 1-D vector to contain the coefficients
   Vector<S> augcoeff;
@@ -277,11 +293,11 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
     auto c_iter = coeffs.begin() + j*ntarg;
     auto a_iter = augcoeff.begin() + j*nrows;
 
-    // copy the next nsrc numbers into the new vector
+    // copy the next ntarg numbers into the new vector
     std::copy(c_iter, c_iter+ntarg, a_iter);
 
     // and add the bottom value to this column
-    if (src.is_augmented()) {
+    if (targ.is_augmented()) {
       // always include the panel lengths of the source body
       a_iter += nsrc;
       // then write the last value in this column - the length of this panel
@@ -292,15 +308,31 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
       const S panely = tx[1][tsecond] - tx[1][tfirst];
       const S panell = std::sqrt(panelx*panelx + panely*panely);
       // coefficient in matrix is the panel length
-      *a_iter = panell;
+      //*a_iter = panell;
+      if (&src == &targ) {
+        *a_iter = panell;
+      } else {
+        *a_iter = 0.0;
+      }
     }
   }
 
   // no longer need coeffs
   coeffs.clear();
 
+  // debug print the bottom-right corner
+  if (debug) {
+    std::cout << "Bottom-right corner of influence matrix:" << std::endl;
+    for (size_t i=nrows-6; i<nrows; ++i) {
+      for (size_t j=ncols-6; j<ncols; ++j) {
+        std::cout << " \t" << augcoeff[nrows*j+i];
+      }
+      std::cout << std::endl;
+    }
+  }
+
   // then add the last column, if necessary, if target rotates
-  if (targ.is_augmented()) {
+  if (src.is_augmented()) {
     auto a_iter = augcoeff.begin() + nsrc*nrows;
 
     // this is the velocity influence from the source body with unit rotational rate on these target panels
@@ -336,7 +368,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
   }
 
   // debug print the top-left and bottom-right corners
-  if (false) {
+  if (debug) {
     //std::cout << "Top-left corner of influence matrix:" << std::endl;
     //for (size_t i=0; i<6; ++i) {
     //  for (size_t j=0; j<6; ++j) {
@@ -344,13 +376,13 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
     //  }
     //  std::cout << std::endl;
     //}
-    std::cout << "Top-right corner of influence matrix:" << std::endl;
-    for (size_t i=0; i<6; ++i) {
-      for (size_t j=ncols-6; j<ncols; ++j) {
-        std::cout << " \t" << augcoeff[nrows*j+i];
-      }
-      std::cout << std::endl;
-    }
+    //std::cout << "Top-right corner of influence matrix:" << std::endl;
+    //for (size_t i=0; i<6; ++i) {
+    //  for (size_t j=ncols-6; j<ncols; ++j) {
+    //    std::cout << " \t" << augcoeff[nrows*j+i];
+    //  }
+    //  std::cout << std::endl;
+    //}
     std::cout << "Bottom-right corner of influence matrix:" << std::endl;
     for (size_t i=nrows-6; i<nrows; ++i) {
       for (size_t j=ncols-6; j<ncols; ++j) {

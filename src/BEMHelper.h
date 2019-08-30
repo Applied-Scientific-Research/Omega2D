@@ -48,9 +48,9 @@ void solve_bem(const double                         _time,
     }
   }
 
-  // add vortex and source strengths to account for rotating bodies
+  // add vortex and source strengths to account for rotating bodies - unless we augment!
   //for (auto &src : _bdry) {
-  //  std::visit([=](auto& elem) { elem.add_rot_strengths(1.0, 0.0); }, src);
+  //  std::visit([=](auto& elem) { elem.add_unit_rot_strengths(); }, src);
   //}
 
   // need this for dispatching velocity influence calls, template param is accumulator type
@@ -95,20 +95,24 @@ void solve_bem(const double                         _time,
     // optionally augment with an additional value
     if (rhs.size() < tnum) {
       assert(tnum-rhs.size()==1 && "Number of augmented rows is not 1");
-      // first, add up the free circulation
-      S tot_circ = 0.0;
-      for (auto &src : _vort) {
-        tot_circ += std::visit([=](auto& elem) { return elem.get_total_circ(_time); }, src);
-      }
-      // then add up the circulation in bodies other than this one
-      for (auto &src : _bdry) {
-        // only if this is not the same collection!
-        if (&src != &targ) {
-          tot_circ += std::visit([=](auto& elem) { return elem.get_body_circ(_time); }, src);
-        }
-      }
-      // negate and append
-      rhs.push_back(-1.0*tot_circ);
+      assert(std::holds_alternative<Surfaces<S>>(targ) && "Augmented boundary is not Surface!");
+
+      // make this easier
+      Surfaces<S>& surf = std::get<Surfaces<S>>(targ);
+
+      // first, account for the circulation change due to the change in rotational speed
+      const S self_circ = surf.get_last_body_circ();
+
+      // and include the error from the previous solve
+      const S last_error = surf.get_last_body_circ_error();
+
+      // finally, find the amount of circulation re-absorbed by the body
+      const S absorbed_circ = surf.get_reabsorbed();
+
+      // combine and append
+      std::cout << "    components of rhs: " << self_circ << " " << absorbed_circ << " " << last_error << std::endl;
+      const S tot_circ = self_circ + absorbed_circ + last_error;
+      rhs.push_back(tot_circ);
       std::cout << "    augmenting rhs with tot_circ= " << tot_circ << std::endl;
     }
 
@@ -176,12 +180,14 @@ void solve_bem(const double                         _time,
           std::cout << "  Computing A matrix block [" << tstart << ":" << (tstart+tnum) << "] x [" << sstart << ":" << (sstart+snum) << "]" << std::endl;
 
           // for augmentation, find the induced velocity from the source on the target
-          std::visit([=](auto& elem) { elem.zero_vels(); }, targ);
-          std::visit([=](auto& elem) { elem.zero_strengths(); }, src);
-          std::visit([=](auto& elem) { elem.add_rot_strengths(1.0, 0.0); }, src);
-          std::visit(ivisitor, src, targ);
-          std::visit([=](auto& elem) { elem.zero_strengths(); }, src);
-          std::visit([=](auto& elem) { elem.finalize_vels(std::array<double,Dimensions>({0.0,0.0})); }, targ);
+          if (std::visit([=](auto& elem) { return elem.is_augmented(); }, src)) {
+            std::visit([=](auto& elem) { elem.zero_vels(); }, targ);
+            std::visit([=](auto& elem) { elem.zero_strengths(); }, src);
+            std::visit([=](auto& elem) { elem.add_unit_rot_strengths(); }, src);
+            std::visit(ivisitor, src, targ);
+            std::visit([=](auto& elem) { elem.zero_strengths(); }, src);
+            std::visit([=](auto& elem) { elem.finalize_vels(std::array<double,Dimensions>({0.0,0.0})); }, targ);
+          }
 
           // solve for the coefficients in this block
           Vector<S> coeffs = std::visit(cvisitor, src, targ);
@@ -225,14 +231,7 @@ void solve_bem(const double                         _time,
       }
     }
 
-    // peel off the last entry - the rotation rate - if the equations were augmented
-    const bool is_aug = std::visit([=](auto& elem) { return elem.is_augmented(); }, targ);
-    if (is_aug) {
-      std::cout << "    solved rotation rate is " << new_s.back() << std::endl;
-      new_s.pop_back();
-    }
-
-    // and send it to the elements
+    // send it to the elements, including the augmented entry
     std::visit([=](auto& elem) { elem.set_str(tstart, new_s.size(), new_s);  }, targ);
   }
 

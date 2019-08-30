@@ -396,13 +396,14 @@ std::pair<S,S> get_cut_entry (std::vector<std::tuple<S,S,S>>& ct, const S _pos) 
 //
 // naive caller for the O(N^2) panel-particle clear-inner-layer kernel
 //
+// return value is the amount of circulation removed
+//
 template <class S>
-void clear_inner_panp2 (Surfaces<S> const & _src,
-                        Points<S>& _targ,
-                        const S _cutoff_mult,
-                        const S _ips) {
+S clear_inner_panp2 (Surfaces<S> const & _src,
+                     Points<S>& _targ,
+                     const S _cutoff_mult,
+                     const S _ips) {
 
-  //std::cout << "  inside clear_inner_layer(Surfaces, Points)" << std::endl;
   std::cout << "  Clearing" << _targ.to_string() << " from near" << _src.to_string() << std::endl;
   auto start = std::chrono::system_clock::now();
 
@@ -446,10 +447,17 @@ void clear_inner_panp2 (Surfaces<S> const & _src,
     sn[1][ip1] += normy;
   }
 
+  if (not are_fldpts) {
+    S this_circ = 0.0;
+    for (int32_t i=0; i<(int32_t)_targ.get_n(); ++i) this_circ += ts[i];
+    std::cout << "    circulation before: " << this_circ << std::endl;
+  }
+
   size_t num_cropped = 0;
+  S circ_removed = 0.0;
   const S eps = 10.0*std::numeric_limits<S>::epsilon();
 
-  #pragma omp parallel for reduction(+:num_cropped)
+  #pragma omp parallel for reduction(+:num_cropped,circ_removed)
   for (int32_t i=0; i<(int32_t)_targ.get_n(); ++i) {
 
     S mindist = std::numeric_limits<S>::max();
@@ -554,10 +562,17 @@ void clear_inner_panp2 (Surfaces<S> const & _src,
       //std::cout << "  CLEARING pt at " << tx[0][i] << " " << tx[1][i] << " because dotp " << dotp << " and norm " << norm[0] << " " << norm[1] << std::endl;
 
       // use precomputed table lookups for new position and remaining strength
-      std::pair<S,S> entry = get_cut_entry(ct, dotp/this_radius);
-      if (not are_fldpts) ts[i] *= std::get<0>(entry);
-      tx[0][i] += std::get<1>(entry) * this_radius * normx;
-      tx[1][i] += std::get<1>(entry) * this_radius * normy;
+      if (not are_fldpts) {
+        const std::pair<S,S> entry = get_cut_entry(ct, dotp/this_radius);
+
+        // ensure that this "reabsorbed" circulation is accounted for in BEM
+        circ_removed += ts[i] * (1.0-std::get<0>(entry));
+
+        // modify the particle in question
+        ts[i] *= std::get<0>(entry);
+        tx[0][i] += std::get<1>(entry) * this_radius * normx;
+        tx[1][i] += std::get<1>(entry) * this_radius * normy;
+      }
 
       //std::cout << "  SHIFTING dotp/tr " << (dotp/this_radius) << " str " << sfac << " and shift " << (shiftd/this_radius) << std::endl;
       //assert(shiftd > 0.0 && "Shift in clear is less than zero");
@@ -581,6 +596,14 @@ void clear_inner_panp2 (Surfaces<S> const & _src,
   // we did not resize the x array, so we don't need to touch the u array
 
   std::cout << "    cropped " << num_cropped << " particles" << std::endl;
+
+  if (not are_fldpts) {
+    S this_circ = 0.0;
+    for (int32_t i=0; i<(int32_t)_targ.get_n(); ++i) this_circ += ts[i];
+    std::cout << "    circulation after: " << this_circ << std::endl;
+    std::cout << "    removed: " << circ_removed << std::endl;
+  }
+
   // flops count here is taken from reflect - might be different here
   const S flops = _targ.get_n() * (62.0 + 27.0*_src.get_npanels());
 
@@ -588,6 +611,8 @@ void clear_inner_panp2 (Surfaces<S> const & _src,
   std::chrono::duration<double> elapsed_seconds = end-start;
   const float gflops = 1.e-9 * flops / (float)elapsed_seconds.count();
   printf("    clear_inner_panp2:\t[%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);
+
+  return circ_removed;
 }
 
 
@@ -595,10 +620,10 @@ void clear_inner_panp2 (Surfaces<S> const & _src,
 // clean up by removing the innermost layer - the one that will be represented by boundary strengths
 //
 template <class S>
-void clear_inner_layer(std::vector<Collection> const & _bdry,
-                       std::vector<Collection>&        _vort,
-                       const S                         _cutoff_factor,
-                       const S                         _ips) {
+void clear_inner_layer(std::vector<Collection>& _bdry,
+                       std::vector<Collection>& _vort,
+                       const S                  _cutoff_factor,
+                       const S                  _ips) {
 
   // may need to do this multiple times to clear out concave zones!
   // this should only function when _vort is Points and _bdry is Surfaces
@@ -608,10 +633,13 @@ void clear_inner_layer(std::vector<Collection> const & _bdry,
 
       for (auto &src : _bdry) {
         if (std::holds_alternative<Surfaces<S>>(src)) {
-          Surfaces<S> const & surf = std::get<Surfaces<S>>(src);
+          Surfaces<S>& surf = std::get<Surfaces<S>>(src);
 
           // call the specific panels-affect-points routine
-          (void) clear_inner_panp2<S>(surf, pts, _cutoff_factor, _ips);
+          const S lost_circ = clear_inner_panp2<S>(surf, pts, _cutoff_factor, _ips);
+
+          // and tell the boundary collection that it reabsorbed that much
+          surf.add_to_reabsorbed(lost_circ);
         }
       }
     }

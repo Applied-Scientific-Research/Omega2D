@@ -45,11 +45,16 @@ public:
     : ElementBase<S>(0, _e, _m, _bp),
       np(0),
       vol(-1.0),
+      solved_omega(0.0),
+      omega_error(0.0),
+      this_omega(0.0),
+      reabsorbed_gamma(0.0),
       max_strength(-1.0) {
 
     // make sure input arrays are correctly-sized
     assert(_idx.size() % Dimensions == 0 && "Index array is not an even multiple of dimensions");
     const size_t nsurfs = _idx.size() / Dimensions;
+
     // if no surfs, quit out now
     if (nsurfs == 0) {
       // but still initialize ux before we go (in case first bfeature is not enabled)
@@ -176,6 +181,16 @@ public:
   // assign the new strengths from BEM - do not let base class do this
   void set_str(const size_t ioffset, const size_t icnt, Vector<S> _in) {
     assert(vs && "Strength array does not exist");
+
+    // pop off the "unknown" rotation rate and save it
+    if (is_augmented()) {
+      solved_omega = _in.back();
+      std::cout << "    solved rotation rate is " << solved_omega << std::endl;
+      omega_error = solved_omega - this->B->get_rotvel();
+      std::cout << "    error in rotation rate is " << omega_error << std::endl;
+      _in.pop_back();
+    }
+
     assert(_in.size() == (*vs).size() && "Set strength array size does not match");
     //assert(ioffset == 0 && "Offset is not zero");
 
@@ -186,6 +201,8 @@ public:
   // a little logic to see if we should augment the BEM equations for this object
   const bool is_augmented() const {
     bool augment = true;
+
+    // don't augment the ground body, or the boundary to an internal flow
     if (this->B) {
       // is the body pointer ground?
       if (std::string("ground").compare(this->B->get_name()) == 0) {
@@ -196,8 +213,12 @@ public:
       // nullptr for Body? no augment (old way of turning it off)
       augment = false;
     }
-    //if (FORCE_NO_AUGMENTATION) augment = false;
+    // and only need to augment reactive surfaces (ones participating in BEM)
+    if (this->E != reactive) augment = false;
+
+    // force no augmentation at all
     //augment = false;
+
     return augment;
   }
 
@@ -357,19 +378,45 @@ public:
     }
   }
 
+  // three ways to add source and vortex rotational strengths to the surface
+  // first: as a multiple of the current, defined rotation rate
+  void add_rot_strengths(const S _factor) {
+    // if no parent Body, forget it
+    if (not this->B) return;
+    // get current rotation rate
+    const S rotvel = (S)this->B->get_rotvel();
+    // call parent
+    add_rot_strengths_base(_factor * rotvel);
+  }
+
+  // second: assuming unit rotation rate (for finding the BEM influence matrix)
+  void add_unit_rot_strengths() {
+    add_rot_strengths_base(1.0);
+  }
+
+  // third: as a multiple of the rotation rate
+  void add_solved_rot_strengths(const S _factor) {
+    if (is_augmented()) {
+      // use the augmented-BEM result for rotation rate
+      add_rot_strengths_base(_factor * solved_omega);
+    } else {
+      // use the predefined rotationrate
+      add_rot_strengths(_factor);
+    }
+  }
+
   // augment the strengths with a value equal to that which accounts for
   //   the solid-body rotation of the object
   // NOTE: this needs to provide both the vortex AND source strengths!
   // AND we don't have the time - assume bodies have been transformed
-  void add_rot_strengths(const S _constfac, const S _rotfactor) {
+  void add_rot_strengths_base(const S _factor) {
 
     // if no rotation, strengths, or no parent Body, or attached to ground, then no problem!
     if (not this->B) return;
     if (not vs) return;
     if (std::string("ground").compare(this->B->get_name()) == 0) return;
 
-    const S rotvel = (S)this->B->get_rotvel();
-    //if (std::abs(rotvel) < std::numeric_limits<float>::epsilon()) return;
+    //if (std::abs(_factor) < std::numeric_limits<float>::epsilon()) return;
 
     // make sure we've calculated transformed center (we do this when we do volume)
     assert(vol > 0.0 && "Have not calculated transformed center, or volume is negative");
@@ -387,9 +434,6 @@ public:
     //std::cout << "Inside add_rot_strengths, sizes are: " << get_npanels() << " " << this->s->size() << " " << ss->size() << std::endl;
     assert(vs->size() == get_npanels() && "Strength array is not the same as panel count");
 
-    // what is the actual factor that we will add?
-    const S factor = _constfac + rotvel*_rotfactor;
-
     // still here? let's do it. use the untransformed coordinates
     for (size_t i=0; i<get_npanels(); i++) {
       const size_t j   = idx[2*i];
@@ -398,8 +442,8 @@ public:
       const S dx = 0.5 * ((*this->ux)[0][j] + (*this->ux)[0][jp1]) - utc[0];
       const S dy = 0.5 * ((*this->ux)[1][j] + (*this->ux)[1][jp1]) - utc[1];
       // velocity of the panel center
-      const S ui = -factor * dy;
-      const S vi =  factor * dx;
+      const S ui = -_factor * dy;
+      const S vi =  _factor * dx;
 
       // panel tangential vector, fluid to the left, body to the right
       S panelx = (*this->ux)[0][jp1] - (*this->ux)[0][j];
@@ -415,7 +459,7 @@ public:
       (*ss)[i] += -1.0 * (ui*panely - vi*panelx);
 
       // debug print
-      if (_rotfactor > 0.0 and false) {
+      if (_factor > 0.0 and false) {
         std::cout << "  panel " << i << " at " << dx << " " << dy
                   << " adds to vortex str " << (-1.0 * (ui*panelx + vi*panely))
                   << " and source str " << (-1.0 * (ui*panely - vi*panelx)) << std::endl;
@@ -675,6 +719,27 @@ public:
     return circ;
   }
 
+  // return the rotational speed from the previous step
+  S get_last_body_circ() { return 2.0 * vol * (S)this_omega; }
+
+  // compute the change in circulation of the rotating body since the last shedding event
+/*
+  S get_body_circ_change(const double _time) {
+    const S old_circ = 2.0 * vol * (S)this_omega;
+    S new_circ = 0.0;
+
+    // do not call the parent
+    if (this->B) {
+      // we're attached to a body - great! what's the rotation rate?
+      new_circ = 2.0 * vol * (S)this->B->get_rotvel(_time);
+    } else {
+      // we are fixed, thus not rotating
+    }
+
+    return (new_circ - old_circ);
+  }
+*/
+
   // add and return the total impulse of all elements
   std::array<S,Dimensions> get_total_impulse() {
 
@@ -695,6 +760,26 @@ public:
     }
 
     return imp;
+  }
+
+  // reset the circulation counter and saved rotation rate - useful for augmented BEM
+  void reset_augmentation_vars() {
+    this_omega = this->B->get_rotvel();
+    reabsorbed_gamma = 0.0;
+  }
+
+  S get_last_body_circ_error() {
+    return (S)(2.0 * vol * omega_error);
+  }
+
+  // *add* the given circulation to the reabsorbed accumulator
+  void add_to_reabsorbed(const S _circ) {
+    reabsorbed_gamma += _circ;
+  }
+
+  // return that amount of reabsorbed circulation
+  S get_reabsorbed() {
+    return reabsorbed_gamma;
   }
 
 
@@ -893,6 +978,12 @@ protected:
   S                                vol; // volume of the body - for augmented BEM solution
   std::array<S,Dimensions>         utc; // untransformed geometric center
   std::array<S,Dimensions>          tc; // transformed geometric center
+
+  // augmented-BEM-related
+  double                  solved_omega; // rotation rate returned from augmented row in BEM
+  double                   omega_error; // error in rotation rate from last BEM
+  double                    this_omega; // rotation rate at most recent Diffusion step
+  S                   reabsorbed_gamma; // amount of circulation reabsorbed by this collection since last Diffusion step
 
 private:
 #ifdef USE_GL

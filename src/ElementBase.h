@@ -154,9 +154,9 @@ public:
     }
   }
 
-  void add_rot_strengths(const S _constfac, const S _rotfactor) {
-    // do nothing here
-  }
+  // do nothing here
+  void add_unit_rot_strengths() {}
+  void add_solved_rot_strengths(const S _factor) {}
 
   void transform(const double _time) {
     // reset positions according to prescribed motion

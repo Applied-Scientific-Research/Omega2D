@@ -52,8 +52,7 @@ public:
             BEM<S,I>& _bem);
 
 private:
-  // the VRM algorithm, template params are storage, compute, max moments
-  // note that NNLS needs doubles for its compute type or else it will fail
+  // the VRM algorithm, template params are storage, solver, max moments
   VRM<S,double,2> vrm;
 
   // other necessary variables
@@ -90,13 +89,26 @@ void Diffusion<S,A,I>::step(const double                _time,
 
   std::cout << "Inside Diffusion::step with dt=" << _dt << std::endl;
 
+  //
   // always re-run the BEM calculation before shedding
+  //
   solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
+
+  //
+  // important for augmented BEM: reset the circulation counter
+  //
+  for (auto &coll : _bdry) {
+    // run this step if the collection is Surfaces
+    if (std::holds_alternative<Surfaces<S>>(coll)) {
+      Surfaces<S>& surf = std::get<Surfaces<S>>(coll);
+      // zeros reabsorbed circ
+      surf.reset_augmentation_vars();
+    }
+  }
 
   //
   // generate particles at boundary surfaces
   //
-
   for (auto &coll : _bdry) {
 
     // run this step if the collection is Surfaces
