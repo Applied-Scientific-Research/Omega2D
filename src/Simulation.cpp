@@ -451,7 +451,7 @@ void Simulation::dump_stats_to_status() {
     for (auto &src : vort) {
       tot_circ += std::visit([=](auto& elem) { return elem.get_total_circ(time); }, src);
     }
-    // then add up the circulation in bodies - DO WE NEED TO RE-SOLVE BEM FIRST?
+    // then add up the circulation in bodies
     for (auto &src : bdry) {
       tot_circ += std::visit([=](auto& elem) { return elem.get_total_circ(time); }, src);
       tot_circ += std::visit([=](auto& elem) { return elem.get_body_circ(time); }, src);
