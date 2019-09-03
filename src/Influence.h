@@ -329,6 +329,10 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
 
   float flops = (float)targ.get_npanels();
 
+  //for (size_t j=0; j<src.get_n(); ++j) {
+  //  std::cout << "  src part " << j << " with str " << vs[j] << std::endl;
+  //}
+
 #ifdef USE_VC
   // define vector types for Vc (still only S==A supported here)
   typedef Vc::Vector<S> StoreVec;
@@ -347,6 +351,8 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
 
     // scale by the panel size
     const A plen = 1.0 / std::sqrt(std::pow(tx[0][ip1]-tx[0][ip0],2) + std::pow(tx[1][ip1]-tx[1][ip0],2));
+
+    //std::cout << "  panel " << i << " at " << tx[0][ip0] << " " << tx[1][ip0] << " has plen " << plen << std::endl;
 
 #ifdef USE_VC
     // spread the target out over a vector
@@ -372,10 +378,13 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
       accumv += resultv;
     }
 
+    //std::cout << "  panel " << i << " at " << tx[0][ip0] << " " << tx[1][ip0] << std::endl;
+    //std::cout << "    old vel is " << tu[0][i] << " " << tu[1][i] << std::endl;
+    //std::cout << "    new vel adds " << (-plen*accumu.sum()) << " " << (-plen*accumv.sum()) << std::endl;
+
     // but we use it backwards, so the resulting velocities are negative
     tu[0][i] -= plen*accumu.sum();
     tu[1][i] -= plen*accumv.sum();
-    //std::cout << "    new 0_1 vel on " << i << " is " << (-plen*accumu.sum()) << " " << (-plen*accumv.sum()) << std::endl;
     //if (std::isnan(tu[0][i])) exit(1);
 
 #else
@@ -391,14 +400,30 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
                        vs[j],
                        sx[0][j],   sx[1][j],
                        &resultu, &resultv);
+      //std::cout << "    part " << j << " at " << sx[0][j] << " " << sx[1][j] << " has str " << vs[j];// << std::endl;
+      //std::cout << " adds vel " << (-plen*resultu) << " " << (-plen*resultv);// << std::endl;
       accumu += resultu;
       accumv += resultv;
+
+      // testing - convert the panel to a point and find the vel there
+      if (false) {
+        A testu = 0.0;
+        A testv = 0.0;
+        kernel_0v_0v<S,A>(sx[0][j], sx[1][j], 0.5*0.189737, vs[j], 
+                          0.5*(tx[0][ip0]+tx[0][ip1]), 0.5*(tx[1][ip0]+tx[1][ip1]), 0.5*0.189737,
+                          &testu, &testv);
+        std::cout << " pp vel " << testu << " " << testv << std::endl;
+      }
     }
+
+    //std::cout << "  panel " << i << " at " << tx[0][ip0] << " " << tx[1][ip0] << " has plen " << plen << std::endl;
+    //std::cout << "    old vel is " << tu[0][i] << " " << tu[1][i] << std::endl;
+    //std::cout << "    new vel adds " << (-plen*accumu) << " " << (-plen*accumv) << std::endl;
 
     // but we use it backwards, so the resulting velocities are negative
     tu[0][i] -= plen*accumu;
     tu[1][i] -= plen*accumv;
-    //std::cout << "  vel on " << i << " is " << tu[0][i] << " " << tu[1][i] << std::endl;
+    //std::cout << "    new vel on " << i << " is " << tu[0][i] << " " << tu[1][i] << std::endl;
     //std::cout << "    new 0_1 vel on " << i << " is " << (-plen*accumu) << " " << (-plen*accumv) << std::endl;
 #endif
   }
