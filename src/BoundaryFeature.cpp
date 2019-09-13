@@ -7,6 +7,7 @@
 
 #include "BoundaryFeature.h"
 
+#define __STDCPP_WANT_MATH_SPEC_FUNCS__ 1
 #include <cmath>
 #include <algorithm>
 #include <iostream>
@@ -132,23 +133,86 @@ SolidOval::init_elements(const float _ips) const {
 
   if (not this->is_enabled()) return ElementPacket<float>();
 
+  // use the formula for equidistant nodes?
+  // from https://math.stackexchange.com/questions/172766/calculating-equidistant-points-around-an-ellipse-arc
+  const bool equidistant = true;
+
+  float circum = 0.0;
+  if (equidistant) {
+    circum = 4.0*0.5*m_diam*std::comp_ellint_2(1.0-std::pow(m_dmin/m_diam,2));
+    std::cout << "analytic circumference is " << circum << std::endl;
+  } else {
+    circum = m_diam * M_PI;
+  }
+
   // how many panels?
-  const size_t num_panels = std::min(40000, std::max(5, (int)(m_diam * M_PI / _ips)));
+  size_t num_panels = std::min(40000, std::max(5, (int)(circum / _ips)));
 
   std::cout << "Creating oval with " << num_panels << " panels" << std::endl;
 
+  // these are for rotating the oval
   const float st = std::sin(M_PI * m_theta / 180.0);
   const float ct = std::cos(M_PI * m_theta / 180.0);
 
-  // created once
+  // arrays created once
   std::vector<float>   x(num_panels*2);
   std::vector<Int>   idx(num_panels*2);
   std::vector<float> val(num_panels);
 
+
   // outside is to the left walking from one point to the next
   // so go CW around the circle starting at theta=0 (+x axis)
   for (size_t i=0; i<num_panels; i++) {
-    const float theta = 2.0 * M_PI * (float)i / (float)num_panels;
+    float theta = 2.0 * M_PI * (float)i / (float)num_panels;
+
+    // attempt to make uniform-sized panels by adjusting theta
+    if (equidistant and i>0) {
+      static float phi = theta;
+      // one method: numerically solve for the correct new angle phi
+      //const float m = 1.0-std::pow(m_dmin/m_diam,2);
+      // theta = 0.5*m_diam*std::ellint_2(m, phi);
+      //std::cout << "  i is " << i << " phi is " << phi << " and ips is " << _ips << std::endl;
+
+      // previous point
+      const float lastx = x[2*i-2];
+      const float lasty = x[2*i-1];
+      // first test point
+      float tdx = 0.5*m_diam * std::cos(phi);
+      float tdy = -0.5*m_dmin * std::sin(phi);
+      float testx = m_x + tdx*ct - tdy*st;
+      float testy = m_y + tdx*st + tdy*ct;
+      // distance
+      float dist = std::sqrt(std::pow(testx-lastx,2)+std::pow(testy-lasty,2));
+      float lastdist = dist;
+      float lastphi = phi;
+
+      // easier: march forward with small steps until the panel is the correct length
+      while (dist < _ips) {
+        lastdist = dist;
+        lastphi = phi;
+        // increment theta and test again
+        phi += 1.e-3;
+        tdx = 0.5*m_diam * std::cos(phi);
+        tdy = -0.5*m_dmin * std::sin(phi);
+        testx = m_x + tdx*ct - tdy*st;
+        testy = m_y + tdx*st + tdy*ct;
+        dist = std::sqrt(std::pow(testx-lastx,2)+std::pow(testy-lasty,2));
+        //std::cout << "    phi " << phi << " gives dist " << dist << std::endl;
+      }
+
+      // linear interpolate to find best phi
+      phi = lastphi + (phi-lastphi) * (_ips-lastdist) / (dist-lastdist);
+      //std::cout << "    solution is " << phi << std::endl;
+      theta = phi;
+
+      if (theta > 2.0 * M_PI) {
+        // we've gone too far! break out of the for loop!
+        num_panels = i-1;
+        break;
+      }
+    }
+
+    // now we have a usable theta, make the node
     const float dx =  0.5*m_diam * std::cos(theta);
     const float dy = -0.5*m_dmin * std::sin(theta);
     x[2*i]     = m_x + dx*ct - dy*st;
@@ -156,7 +220,13 @@ SolidOval::init_elements(const float _ips) const {
     idx[2*i]   = i;
     idx[2*i+1] = i+1;
     val[i]     = 0.0;
+    //std::cout << "  node " << i << " at " << x[2*i] << " " << x[2*i+1] << std::endl;
   }
+
+  // resize the arrays (num_panels may have changed)
+  x.resize(2*num_panels);
+  idx.resize(2*num_panels);
+  val.resize(num_panels);
 
   // correct the final index
   idx[2*num_panels-1] = 0;
