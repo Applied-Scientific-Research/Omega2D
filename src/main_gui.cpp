@@ -346,7 +346,7 @@ int main(int argc, char const *argv[]) {
     bool is_ready = sim.test_for_new_results();
 
     // before we start again, write the vtu output
-    if (export_vtk_this_frame) {
+    if (is_ready and export_vtk_this_frame) {
       vtk_out_files = sim.write_vtk();
       export_vtk_this_frame = false;
     }
