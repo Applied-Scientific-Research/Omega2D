@@ -427,6 +427,12 @@ void Simulation::step() {
   // only increment step here!
   nstep++;
 
+  // solve the BEM (before any VTK or status file output)
+  std::cout << "Updating element vels" << std::endl;
+  solve_bem<STORE,ACCUM,Int>(time, thisfs, vort, bdry, bem);
+  conv.find_vels(thisfs, vort, bdry, vort);
+  conv.find_vels(thisfs, vort, bdry, fldpt);
+
   // and write status file
   dump_stats_to_status();
 }
@@ -439,10 +445,6 @@ void Simulation::dump_stats_to_status() {
     // the basics
     sf.append_value((float)time);
     sf.append_value((int)get_nparts());
-
-    // update the BEM solution before we compute these numbers
-    std::array<double,2> thisfs = {fs[0], fs[1]};
-    solve_bem<STORE,ACCUM,Int>(time, thisfs, vort, bdry, bem);
 
     // more advanced info
 
