@@ -124,6 +124,7 @@ Tasks to consider or implement:
 * Re-orient the VRM insertion points to align to the nearest boundary - should smooth out the shedding
 * Draw a freestream arrow in the LR corner
 * Let the user grab the fs arrow to dynamically change the freestream
+* Allow a formula for the freestream instead of it being constant
 * Add field points in a grid over the visible domain, find vels, display as streaks - make this one of a few rendering options
 * Draw panels as polygons extending along the normal with a sharp edge on the body side and a gradient to zero on the flow side - then they can visually merge with the particles to make a visibly smooth and more-correct vorticity field
 * Reconsider templatizing on the scalar type. If you don't intend for floats or doubles in the same code, perhaps create a header with `using Scalar = float;` so you can flip back and forth easier. NBL
