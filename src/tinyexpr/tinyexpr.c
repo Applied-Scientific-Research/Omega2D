@@ -159,6 +159,7 @@ static const te_variable functions[] = {
     {"asin", asin,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"atan", atan,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"atan2", atan2,  TE_FUNCTION2 | TE_FLAG_PURE, 0},
+    {"cbrt", cbrt,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"ceil", ceil,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"cos", cos,      TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"cosh", cosh,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
@@ -173,6 +174,8 @@ static const te_variable functions[] = {
     {"log", log10,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #endif
     {"log10", log10,  TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"max", fmax,     TE_FUNCTION2 | TE_FLAG_PURE, 0},
+    {"min", fmin,     TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"ncr", ncr,      TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"npr", npr,      TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"pi", pi,        TE_FUNCTION0 | TE_FLAG_PURE, 0},
