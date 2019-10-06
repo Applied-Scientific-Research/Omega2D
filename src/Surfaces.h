@@ -96,6 +96,9 @@ public:
     }
     assert(idx_are_all_good && "Some indicies are bad");
 
+    // compute all basis vectors and panel areas
+    compute_bases(nsurfs);
+
     // are strengths/values on a per-node or per-panel basis? - per panel now
 
     // now, depending on the element type, put the value somewhere
@@ -152,25 +155,30 @@ public:
     }
   }
 
-  size_t                         get_npanels()     const { return np; }
-  const S                        get_vol()         const { return vol; }
-  const std::array<S,Dimensions> get_geom_center() const { return tc; }
+  size_t                            get_npanels()     const { return np; }
+  const S                           get_vol()         const { return vol; }
+  const std::array<S,Dimensions>    get_geom_center() const { return tc; }
 
   // callers should never have to change this array
-  const std::vector<Int>&        get_idx() const { return idx; }
-  const Vector<S>&               get_bcs() const { return bc; }
+  const std::vector<Int>&                  get_idx()  const { return idx; }
+  const Vector<S>&                         get_bcs()  const { return bc; }
 
   // override the ElementBase versions and send the panel-center vels
-  const std::array<Vector<S>,Dimensions>& get_vel() const { return pu; }
-  std::array<Vector<S>,Dimensions>&       get_vel()       { return pu; }
+  const std::array<Vector<S>,Dimensions>&  get_vel()  const { return pu; }
+  std::array<Vector<S>,Dimensions>&        get_vel()        { return pu; }
+
+  // panel properties
+  const std::array<Vector<S>,Dimensions>&  get_tang() const { return b[0]; }
+  const std::array<Vector<S>,Dimensions>&  get_norm() const { return b[1]; }
+  const Vector<S>&                         get_area() const { return area; }
 
   // vortex strengths
-  const Vector<S>&                        get_str() const { return *vs; }
-  Vector<S>&                              get_str()       { return *vs; }
+  const Vector<S>&                         get_str()  const { return *vs; }
+  Vector<S>&                               get_str()        { return *vs; }
 
   // source strengths
-  const bool                      have_src_str() const { return (bool)ss; }
-  const Vector<S>&                get_src_str()  const { return *ss; }
+  const bool                           have_src_str() const { return (bool)ss; }
+  const Vector<S>&                     get_src_str()  const { return *ss; }
 
   // find out the next row index in the BEM after this collection
   void set_first_row(const Int _i) { istart = _i; }
@@ -279,6 +287,9 @@ public:
       idx[2*neold+i] = nnold + _idx[i];
     }
     assert(idx_are_all_good && "Some indicies are bad");
+
+    // compute all basis vectors and panel areas
+    compute_bases(neold+nsurfs);
 
     // now, depending on the element type, put the value somewhere - but panel-wise, so here
     if (this->E == active) {
@@ -511,12 +522,64 @@ public:
     std::cout << "    geom center is " << utc[0] << " " << utc[1] << " and area is " << vol << std::endl;
   }
 
+  // need to maintain the 2x2 set of basis vectors for each panel
+  // this also calculates the triangle areas
+  void compute_bases(const Int nnew) {
+
+    assert(2*nnew == idx.size() && "Array size mismatch");
+
+    // how big is my set of basis vectors?
+    const Int norig = b[0][0].size();
+
+    // resize any vectors
+    for (size_t i=0; i<Dimensions; ++i) {
+      for (size_t j=0; j<Dimensions; ++j) {
+        b[i][j].resize(nnew);
+      }
+    }
+    area.resize(nnew);
+
+    // we'll reuse these vectors
+    std::array<S,Dimensions> x1, norm;
+
+    // update what we need
+    for (size_t i=norig; i<nnew; ++i) {
+      const size_t id0 = idx[2*i];
+      const size_t id1 = idx[2*i+1];
+      //std::cout << "elem near " << this->x[0][id0] << " " << this->x[1][id0] << std::endl;
+
+      // x1 vector is along direction from node 0 to node 1
+      for (size_t j=0; j<Dimensions; ++j) x1[j] = this->x[j][id1] - this->x[j][id0];
+      const S base = std::sqrt(x1[0]*x1[0] + x1[1]*x1[1]);
+      for (size_t j=0; j<Dimensions; ++j) x1[j] *= (1.0/base);
+      //std::cout << "  has x1 " << x1[0] << " " << x1[1] << std::endl;
+
+      // now we have the area
+      area[i] = base;
+
+      // the normal vector points into the fluid (to the left when walking from nodes 0 to 1)
+      norm[0] = -x1[1];
+      norm[1] =  x1[0];
+      //std::cout << "  norm " << norm[0] << " " << norm[1] << std::endl;
+
+      // and assign
+      for (size_t j=0; j<Dimensions; ++j) b[0][j][i] = x1[j];
+      for (size_t j=0; j<Dimensions; ++j) b[1][j][i] = norm[j];
+
+      //std::cout << "elem near " << this->x[0][id0] << " " << this->x[1][id0] << " has norm " << b[2][0][i] << " " << b[2][1][i] << " " << b[2][2][i] << std::endl;
+    }
+  }
+
   // when transforming a body-bound object to a new time, we must also transform the geometric center
   void transform(const double _time) {
     // must explicitly call the method in the base class
     ElementBase<S>::transform(_time);
 
-    if (this->B) {
+    // and recalculate the basis vectors
+    compute_bases(np);
+
+    if (this->B and this->M == bodybound) {
+    //if (this->B) {
       // prepare for the transform
       std::array<double,Dimensions> thispos = this->B->get_pos();
       const double theta = this->B->get_orient();
@@ -970,8 +1033,8 @@ protected:
   Vector<S>                         bc; // boundary condition for the elements
   std::optional<Vector<S>>          ss; // the source strengths per unit length which represent the vel
                                         //   influence of the volume vorticity of the parent body
-  //Vector<S>                     area; // panel areas
-  //std::array<std::array<Vector<S>,2>,2> b;  // transformed basis vectors: tangent is b[0], normal is b[1], normal x is b[1][0]
+  Vector<S>                       area; // panel areas
+  std::array<std::array<Vector<S>,2>,2> b;  // transformed basis vectors: tangent is b[0], normal is b[1], normal x is b[1][0]
 
   // parameters for the encompassing body
   Int                           istart; // index of first entry in RHS vector and A matrix
