@@ -423,6 +423,7 @@ std::string write_vtu_panels(Surfaces<S> const& surf, const size_t file_idx, con
 
   if (has_strengths) scalar_list.append("vortex sheet strength,");
   //if (has_radii) scalar_list.append("area,");
+  vector_list.append("velocity,");
 
   if (vector_list.size()>1) {
     vector_list.pop_back();
@@ -441,6 +442,13 @@ std::string write_vtu_panels(Surfaces<S> const& surf, const size_t file_idx, con
     write_DataArray (printer, surf.get_str(), compress, asbase64);
     printer.CloseElement();	// DataArray
   }
+
+  printer.OpenElement( "DataArray" );
+  printer.PushAttribute( "NumberOfComponents", "3" );
+  printer.PushAttribute( "Name", "velocity" );
+  printer.PushAttribute( "type", "Float32" );
+  write_DataArray (printer, surf.get_vel(), compress, asbase64);
+  printer.CloseElement();	// DataArray
 
   printer.CloseElement();	// CellData
 
