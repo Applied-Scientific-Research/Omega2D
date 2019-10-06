@@ -432,6 +432,7 @@ void Simulation::step() {
   solve_bem<STORE,ACCUM,Int>(time, thisfs, vort, bdry, bem);
   conv.find_vels(thisfs, vort, bdry, vort);
   conv.find_vels(thisfs, vort, bdry, fldpt);
+  conv.find_vels(thisfs, vort, bdry, bdry);
 
   // and write status file
   dump_stats_to_status();
