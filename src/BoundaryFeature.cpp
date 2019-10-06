@@ -159,6 +159,7 @@ SolidOval::init_elements(const float _ips) const {
   std::vector<Int>   idx(num_panels*2);
   std::vector<float> val(num_panels);
 
+  static float phi = 0.0;
 
   // outside is to the left walking from one point to the next
   // so go CW around the circle starting at theta=0 (+x axis)
@@ -167,7 +168,6 @@ SolidOval::init_elements(const float _ips) const {
 
     // attempt to make uniform-sized panels by adjusting theta
     if (equidistant and i>0) {
-      static float phi = theta;
       // one method: numerically solve for the correct new angle phi
       //const float m = 1.0-std::pow(m_dmin/m_diam,2);
       // theta = 0.5*m_diam*std::ellint_2(m, phi);
@@ -222,6 +222,9 @@ SolidOval::init_elements(const float _ips) const {
     val[i]     = 0.0;
     //std::cout << "  node " << i << " at " << x[2*i] << " " << x[2*i+1] << std::endl;
   }
+
+  // reset phi
+  phi = 0.0;
 
   // resize the arrays (num_panels may have changed)
   x.resize(2*num_panels);
