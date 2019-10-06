@@ -147,6 +147,8 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
   const std::array<Vector<S>,Dimensions>& sx = src.get_pos();
   const std::vector<Int>&                 si = src.get_idx();
   const std::array<Vector<S>,Dimensions>& tx = targ.get_pos();
+  const std::array<Vector<S>,Dimensions>& tt = targ.get_tang();
+  const Vector<S>&                        ta = targ.get_area();
   const std::vector<Int>&                 ti = targ.get_idx();
 
 #ifdef USE_VC
@@ -177,7 +179,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
     for (size_t i=0; i<ntargvec; i++) {
 
       // fill a 4- or 8-wide vector with the target coordinates
-      StoreVec tx0, ty0, tx1, ty1;
+      StoreVec tx0, ty0, tx1, ty1, ttx, tty;
       for (size_t ii=0; ii<StoreVec::size() && i*StoreVec::size()+ii<ntarg; ++ii) {
         const size_t idx = i*StoreVec::size() + ii;
         const Int tfirst  = ti[2*idx];
@@ -186,6 +188,8 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
         ty0[ii] = tx[1][tfirst];
         tx1[ii] = tx[0][tsecond];
         ty1[ii] = tx[1][tsecond];
+        ttx[ii] = tt[0][idx];
+        tty[ii] = tt[1][idx];
       }
 
       // collocation point for panel i
@@ -197,13 +201,8 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
       kernel_1_0v<StoreVec,StoreVec>(sx0, sy0, sx1, sy1, StoreVec(1.0),
                                      xi, yi, &resultu, &resultv);
 
-      // target panel vector
-      const StoreVec panelx = tx1 - tx0;
-      const StoreVec panely = ty1 - ty0;
-      const StoreVec panell = Vc::sqrt(panelx*panelx + panely*panely);
-
       // dot product with tangent vector, applying normalization here
-      const StoreVec newcoeffs = (resultu*panelx + resultv*panely) / panell;
+      const StoreVec newcoeffs = resultu*ttx + resultv*tty;
 
       // spread the results from a vector register back to the primary array
       for (size_t ii=0; ii<StoreVec::size() && i*StoreVec::size()+ii<ntarg; ++ii) {
@@ -233,13 +232,8 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
       S resultu, resultv;
       kernel_1_0v<S,S>(sx0, sy0, sx1, sy1, 1.0, xi, yi, &resultu, &resultv);
 
-      // target panel vector
-      const S panelx = tx1 - tx0;
-      const S panely = ty1 - ty0;
-      const S panell = std::sqrt(panelx*panelx + panely*panely);
-
-      // dot product with tangent vector, applying normalization here
-      coeffs[iptr++] = (resultu*panelx + resultv*panely) / panell;
+      // dot product with tangent vector
+      coeffs[iptr++] = resultu*tt[0][i] + resultv*tt[1][i];
     }
 #endif
 
@@ -301,16 +295,10 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
       // always include the panel lengths of the source body
       a_iter += nsrc;
       // then write the last value in this column - the length of this panel
-      const Int tfirst  = ti[2*j];
-      const Int tsecond = ti[2*j+1];
-      // target panel vector
-      const S panelx = tx[0][tsecond] - tx[0][tfirst];
-      const S panely = tx[1][tsecond] - tx[1][tfirst];
-      const S panell = std::sqrt(panelx*panelx + panely*panely);
       // coefficient in matrix is the panel length
-      //*a_iter = panell;
+      //*a_iter = ta[j];
       if (&src == &targ) {
-        *a_iter = panell;
+        *a_iter = ta[j];
       } else {
         *a_iter = 0.0;
       }
@@ -345,15 +333,8 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
 
       // find target point - just above the panel
       // yes, I know I am calling these "source"
-      const Int tfirst  = ti[2*i];
-      const Int tsecond = ti[2*i+1];
-      const S panelx = tx[0][tsecond] - tx[0][tfirst];
-      const S panely = tx[1][tsecond] - tx[1][tfirst];
-      const S panell = std::sqrt(panelx*panelx + panely*panely);
-      //std::cout << "targ panel " << i << " at " << tx[0][tfirst] << " " << tx[1][tfirst] << std::endl;
-
       // and find the component of that velocity along the "target" panel
-      *a_iter = (vel[0][i]*panelx + vel[1][i]*panely) / panell;
+      *a_iter = vel[0][i]*tt[0][i] + vel[1][i]*tt[1][i];
       ++a_iter;
     }
 

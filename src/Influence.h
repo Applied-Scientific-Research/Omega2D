@@ -325,6 +325,7 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
   const Vector<S>&                        vs = src.get_str();
   const std::array<Vector<S>,Dimensions>& tx = targ.get_pos();
   const std::vector<Int>&                 ti = targ.get_idx();
+  const Vector<S>&                        ta = targ.get_area();
   std::array<Vector<S>,Dimensions>&       tu = targ.get_vel();
 
   float flops = (float)targ.get_npanels();
@@ -350,7 +351,7 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
     const size_t ip1 = ti[2*i+1];
 
     // scale by the panel size
-    const A plen = 1.0 / std::sqrt(std::pow(tx[0][ip1]-tx[0][ip0],2) + std::pow(tx[1][ip1]-tx[1][ip0],2));
+    const A plen = 1.0 / ta[i];
 
     //std::cout << "  panel " << i << " at " << tx[0][ip0] << " " << tx[1][ip0] << " has plen " << plen << std::endl;
 

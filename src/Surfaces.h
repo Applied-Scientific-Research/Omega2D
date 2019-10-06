@@ -459,9 +459,9 @@ public:
       // panel tangential vector, fluid to the left, body to the right
       S panelx = (*this->ux)[0][jp1] - (*this->ux)[0][j];
       S panely = (*this->ux)[1][jp1] - (*this->ux)[1][j];
-      const S panell = 1.0 / std::sqrt(panelx*panelx + panely*panely);
-      panelx *= panell;
-      panely *= panell;
+      const S oopanell = 1.0 / area[i];
+      panelx *= oopanell;
+      panely *= oopanell;
 
       // the vortex strength - we ADD to the existing
       (*vs)[i] += -1.0 * (ui*panelx + vi*panely);
@@ -701,18 +701,14 @@ public:
       // start at center of panel
       px[4*i+0] = 0.5 * (this->x[0][id1] + this->x[0][id0]);
       px[4*i+1] = 0.5 * (this->x[1][id1] + this->x[1][id0]);
-      // push out a fixed distance
-      along[0] = this->x[0][id1] - this->x[0][id0];
-      along[1] = this->x[1][id1] - this->x[1][id0];
-      // one over the panel length is useful
-      oopanlen = 1.0 / std::sqrt(along[0]*along[0] + along[1]*along[1]);
+      // push out a fixed distance (b[1] is the array of normal vectors)
       // this assumes properly resolved, vdelta and dt
-      px[4*i+0] += _offset * -along[1] * oopanlen;
-      px[4*i+1] += _offset *  along[0] * oopanlen;
+      px[4*i+0] += _offset * b[1][0][i];
+      px[4*i+1] += _offset * b[1][1][i];
       // the panel strength is the solved strength plus the boundary condition
       const float this_str = (*vs)[i] + bc[i];
       // complete the element with a strength and radius
-      px[4*i+2] = this_str / oopanlen;
+      px[4*i+2] = this_str * area[i];
       px[4*i+3] = _vdelta;
       //std::cout << "  new part is " << px[4*i+0] << " " << px[4*i+1] << " " << px[4*i+2] << " " << px[4*i+3] << std::endl;
     }
@@ -752,15 +748,8 @@ public:
     if (vs) {
       // we have strengths, add them up
       for (size_t i=0; i<get_npanels(); i++) {
-        const Int id0 = idx[2*i];
-        const Int id1 = idx[2*i+1];
-        // find the panel length
-        const S dx = this->x[0][id1] - this->x[0][id0];
-        const S dy = this->x[1][id1] - this->x[1][id0];
-        // one over the panel length is useful
-        const S oopanlen = std::sqrt(dx*dx+dy*dy);
-        // complete the element with a strength and radius
-        circ += (*vs)[i] * oopanlen;
+        // total circulation is just vortex sheet strength times panel length
+        circ += (*vs)[i] * area[i];
       }
     }
 

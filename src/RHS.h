@@ -42,16 +42,15 @@ std::vector<S> vels_to_rhs_panels (Surfaces<S> const& targ) {
   std::cout << "    convert vels to RHS vector for" << targ.to_string() << std::endl;
 
   // pull references to the element arrays
-  const std::array<Vector<S>,Dimensions>& tx = targ.get_pos();
-  const std::vector<Int>&                 ti = targ.get_idx();
   const std::array<Vector<S>,Dimensions>& tu = targ.get_vel();
+  const std::array<Vector<S>,Dimensions>& tt = targ.get_tang();
   //const Vector<S>&                        tb = targ.get_bcs();
 
   //std::cout << "tu[0].size() is " << tu[0].size() << std::endl;
   //std::cout << "tx[0].size() is " << tx[0].size() << std::endl;
   //std::cout << "ti.size() is " << ti.size() << std::endl;
 
-  assert(2*tu[0].size() == ti.size() && "Input array sizes do not match");
+  assert(tu[0].size() == tt[0].size() && "Input array sizes do not match");
   //assert(tx[0].size() == tb.size() && "Input array sizes do not match");
 
   // find array sizes
@@ -65,22 +64,8 @@ std::vector<S> vels_to_rhs_panels (Surfaces<S> const& targ) {
   // convert velocity and boundary condition to RHS values
   for (size_t i=0; i<ntarg; i++) {
 
-    const Int tfirst  = ti[2*i];
-    const Int tsecond = ti[2*i+1];
-    const S tx0 = tx[0][tfirst];
-    const S ty0 = tx[1][tfirst];
-    const S tx1 = tx[0][tsecond];
-    const S ty1 = tx[1][tsecond];
-
-    // target panel vector
-    const S panelx = tx1 - tx0;
-    const S panely = ty1 - ty0;
-    const S panell = std::sqrt(panelx*panelx + panely*panely);
-    //std::cout << "  elem " << i << " panel is " << panelx << " " << panely << std::endl;
-
-    // new way
     // dot product of tangent with local velocity, applying normalization
-    rhs[i] = -(tu[0][i]*panelx + tu[1][i]*panely) / panell;
+    rhs[i] = -(tu[0][i]*tt[0][i] + tu[1][i]*tt[1][i]);
 
     // DO NOT include the influence of the boundary condition here, do it before shedding
     //rhs[i] -= tb[i];

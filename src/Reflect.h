@@ -110,29 +110,24 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
   // get handles for the vectors
   std::array<Vector<S>,Dimensions> const& sx = _src.get_pos();
   std::vector<Int> const&                 si = _src.get_idx();
+  std::array<Vector<S>,Dimensions> const& sn = _src.get_norm();
   std::array<Vector<S>,Dimensions>&       tx = _targ.get_pos();
 
-  // pre-compute the node normals
-  std::array<Vector<S>,Dimensions> sn;
+  // pre-compute the *node* normals
+  std::array<Vector<S>,Dimensions> nn;
   for (size_t i=0; i<Dimensions; ++i) {
-    sn[i].resize(_src.get_n());
-    std::fill(sn[i].begin(), sn[i].end(), 0.0);
+    nn[i].resize(_src.get_n());
+    std::fill(nn[i].begin(), nn[i].end(), 0.0);
   }
   for (size_t j=0; j<_src.get_npanels(); ++j) {
     // nodes in this panel
     const Int ip0 = si[2*j];
     const Int ip1 = si[2*j+1];
-    // find the normal of this panel
-    const S bx = sx[0][ip1] - sx[0][ip0];
-    const S by = sx[1][ip1] - sx[1][ip0];
-    const S blen = 1.0 / std::sqrt(bx*bx + by*by);
-    const S normx = -by * blen;
-    const S normy =  bx * blen;
     // add the normal to each of the nodes
-    sn[0][ip0] += normx;
-    sn[1][ip0] += normy;
-    sn[0][ip1] += normx;
-    sn[1][ip1] += normy;
+    nn[0][ip0] += sn[0][j];
+    nn[1][ip0] += sn[1][j];
+    nn[0][ip1] += sn[0][j];
+    nn[1][ip1] += sn[1][j];
   }
 
   size_t num_reflected = 0;
@@ -205,11 +200,8 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
       const size_t j = hits[k].jidx;
       if (hits[k].disttype == panel) {
         // hit a panel, use the norm
-        const S bx = sx[0][si[2*j+1]] - sx[0][si[2*j]];
-        const S by = sx[1][si[2*j+1]] - sx[1][si[2*j]];
-        const S blen = 1.0 / std::sqrt(bx*bx + by*by);
-        normx += -by * blen;
-        normy +=  bx * blen;
+        normx += sn[0][j];
+        normy += sn[1][j];
       } else {
         // hit a node, use the vector to the node (this could be backwards!)
         //const S bx = tx[0][i] - hits[k].cpx;
@@ -218,8 +210,8 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
         //normx += bx * blen;
         //normy += by * blen;
         // hit a node, use the cached node norm
-        normx += sn[0][hits[k].jidx];
-        normy += sn[1][hits[k].jidx];
+        normx += nn[0][j];
+        normy += nn[1][j];
       }
       cpx += hits[k].cpx;
       cpy += hits[k].cpy;
@@ -417,6 +409,7 @@ S clear_inner_panp2 (Surfaces<S> const & _src,
   // get handles for the vectors
   std::array<Vector<S>,Dimensions> const& sx = _src.get_pos();
   std::vector<Int> const&                 si = _src.get_idx();
+  std::array<Vector<S>,Dimensions> const& sn = _src.get_norm();
 
   std::array<Vector<S>,Dimensions>&       tx = _targ.get_pos();
   Vector<S>&                              ts = _targ.get_str();
@@ -425,26 +418,20 @@ S clear_inner_panp2 (Surfaces<S> const & _src,
   const bool are_fldpts = tr.empty();
 
   // pre-compute the node normals
-  std::array<Vector<S>,Dimensions> sn;
+  std::array<Vector<S>,Dimensions> nn;
   for (size_t i=0; i<Dimensions; ++i) {
-    sn[i].resize(_src.get_n());
-    std::fill(sn[i].begin(), sn[i].end(), 0.0);
+    nn[i].resize(_src.get_n());
+    std::fill(nn[i].begin(), nn[i].end(), 0.0);
   }
   for (size_t j=0; j<_src.get_npanels(); ++j) {
     // nodes in this panel
     const Int ip0 = si[2*j];
     const Int ip1 = si[2*j+1];
-    // find the normal of this panel
-    const S bx = sx[0][ip1] - sx[0][ip0];
-    const S by = sx[1][ip1] - sx[1][ip0];
-    const S blen = 1.0 / std::sqrt(bx*bx + by*by);
-    const S normx = -by * blen;
-    const S normy =  bx * blen;
     // add the normal to each of the nodes
-    sn[0][ip0] += normx;
-    sn[1][ip0] += normy;
-    sn[0][ip1] += normx;
-    sn[1][ip1] += normy;
+    nn[0][ip0] += sn[0][j];
+    nn[1][ip0] += sn[1][j];
+    nn[0][ip1] += sn[0][j];
+    nn[1][ip1] += sn[1][j];
   }
 
   if (not are_fldpts) {
@@ -525,16 +512,13 @@ S clear_inner_panp2 (Surfaces<S> const & _src,
       const size_t j = hits[k].jidx;
       if (hits[k].disttype == panel) {
         // hit a panel, use the norm
-        const S bx = sx[0][si[2*j+1]] - sx[0][si[2*j]];
-        const S by = sx[1][si[2*j+1]] - sx[1][si[2*j]];
-        const S blen = 1.0 / std::sqrt(bx*bx + by*by);
-        normx += -by * blen;
-        normy +=  bx * blen;
+        normx += sn[0][j];
+        normy += sn[1][j];
         //std::cout << "    panel norm is " << (-by * blen) << " " << (bx * blen) << std::endl;
       } else {
-        normx += sn[0][hits[k].jidx];
-        normy += sn[1][hits[k].jidx];
-        //std::cout << "    REAL norm is " << sn[0][hits[k].jidx] << " " << sn[1][hits[k].jidx] << std::endl;
+        normx += nn[0][j];
+        normy += nn[1][j];
+        //std::cout << "    REAL norm is " << nn[0][hits[k].jidx] << " " << nn[1][hits[k].jidx] << std::endl;
       }
       cpx += hits[k].cpx;
       cpy += hits[k].cpy;
