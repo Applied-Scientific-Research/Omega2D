@@ -204,10 +204,18 @@ void Simulation::clear_bodies() {
 }
 
 // Write a set of vtu files for the particles and panels
-std::vector<std::string> Simulation::write_vtk() {
+std::vector<std::string> Simulation::write_vtk(const int _index) {
   // may eventually want to avoid clobbering by maintaining an internal count of the
   //   number of simulations run from this execution of the GUI
   std::vector<std::string> files;
+
+  // if a positive number was passed in, use that instead of the current step
+  size_t stepnum = 0;
+  if (_index < 0) {
+    stepnum = nstep;
+  } else {
+    stepnum = (size_t)_index;
+  }
 
   size_t idx = 0;
   for (auto &coll : vort) {
@@ -217,7 +225,7 @@ std::vector<std::string> Simulation::write_vtk() {
     if (std::holds_alternative<Points<float>>(coll)) {
       Points<float>& pts = std::get<Points<float>>(coll);
       if (pts.get_n() > 0) {
-        files.emplace_back(write_vtu_points<float>(pts, idx++, nstep));
+        files.emplace_back(write_vtu_points<float>(pts, idx++, stepnum));
       }
     }
   }
@@ -230,7 +238,7 @@ std::vector<std::string> Simulation::write_vtk() {
     if (std::holds_alternative<Points<float>>(coll)) {
       Points<float>& pts = std::get<Points<float>>(coll);
       if (pts.get_n() > 0) {
-        files.emplace_back(write_vtu_points<float>(pts, idx++, nstep));
+        files.emplace_back(write_vtu_points<float>(pts, idx++, stepnum));
       }
     }
   }
@@ -243,7 +251,7 @@ std::vector<std::string> Simulation::write_vtk() {
     if (std::holds_alternative<Surfaces<float>>(coll)) {
       Surfaces<float>& surf = std::get<Surfaces<float>>(coll);
       if (surf.get_npanels() > 0) {
-        files.emplace_back(write_vtu_panels<float>(surf, idx++, nstep));
+        files.emplace_back(write_vtu_panels<float>(surf, idx++, stepnum));
       }
     }
   }

@@ -120,7 +120,7 @@ public:
   bool do_any_bodies_move();
   bool any_nonzero_bcs();
   bool test_for_new_results();
-  std::vector<std::string> write_vtk();
+  std::vector<std::string> write_vtk(const int _index = -1);
   bool test_vs_stop();
   bool test_vs_stop_async();
 
