@@ -700,9 +700,11 @@ int main(int argc, char const *argv[]) {
 
       if (is_viscous) {
         // show the toggle for AMR
-        //static bool use_amr = false;
-        //ImGui::Checkbox("Allow adaptive resolution", &use_amr);
-        //sim.set_amr(use_amr);
+#ifdef ADAPTIVE
+        static bool use_amr = false;
+        ImGui::Checkbox("Allow adaptive resolution", &use_amr);
+        sim.set_amr(use_amr);
+#endif
         sim.set_diffuse(true);
 
         // and let user choose Reynolds number

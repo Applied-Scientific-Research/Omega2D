@@ -113,6 +113,13 @@ void read_json (Simulation& sim,
       sim.set_max_steps(ms);
       std::cout << "  setting max_steps= " << ms << std::endl;
     }
+#ifdef ADAPTIVE
+    if (params.find("AMR") != params.end()) {
+      // for now, just enable it, don't set parameters
+      sim.set_amr(true);
+      std::cout << "  enabling amr" << std::endl;
+    }
+#endif
   }
 
   // now we can read Re

@@ -11,7 +11,11 @@
 #include "Core.h"
 #include "Merge.h"
 #include "Reflect.h"
-#include "VRM.h"
+#ifdef ADAPTIVE
+  #include "VRMadaptive.h"
+#else
+  #include "VRM.h"
+#endif
 #include "BEM.h"
 
 #include <cstdlib>
