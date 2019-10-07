@@ -198,8 +198,9 @@ public:
   Vector<S>&                               get_str()        { return *ps; }
 
   // strengths due to body rotation
-  const bool                           have_src_str() const { return (bool)rs; }
-  const Vector<S>&                     get_src_str()  const { return *rs; }
+  const bool                       have_rot_src_str() const { return (bool)rs[1]; }
+  const Vector<S>&                 get_rot_vort_str() const { return *rs[0]; }
+  const Vector<S>&                  get_rot_src_str() const { return *rs[1]; }
 
   // and (reactive only) boundary conditions
   const Vector<S>&                    get_tang_bcs()  const { return *bc[0]; }
@@ -428,10 +429,9 @@ public:
       std::fill(ps->begin(), ps->end(), 0.0);
     }
 
-    // and reset the source strengths here
-    if (rs) {
-      std::fill(rs->begin(), rs->end(), 0.0);
-    }
+    // and reset the rotational strengths here
+    if (rs[0]) std::fill(rs[0]->begin(), rs[0]->end(), 0.0);
+    if (rs[1]) std::fill(rs[1]->begin(), rs[1]->end(), 0.0);
   }
 
   // three ways to add source and vortex rotational strengths to the surface
@@ -479,15 +479,17 @@ public:
     // and we trust that we've transformed utc to tc
 
     // have we made rs yet? or is it the right size?
-    if (rs) {
-      rs->resize(get_npanels());
-    } else {
-      // value is a fixed strength for the segment
-      Vector<S> new_rs(get_npanels());
-      rs = std::move(new_rs);
+    for (size_t i=0; i<2; i++) {
+      if (rs[i]) {
+        rs[i]->resize(get_npanels());
+      } else {
+        // value is a fixed strength for the segment
+        Vector<S> new_rs(get_npanels());
+        rs[i] = std::move(new_rs);
+      }
     }
 
-    //std::cout << "Inside add_rot_strengths, sizes are: " << get_npanels() << " " << this->s->size() << " " << rs->size() << std::endl;
+    //std::cout << "Inside add_rot_strengths, sizes are: " << get_npanels() << " " << this->s->size() << " " << rs[0]->size() << std::endl;
     assert(ps->size() == get_npanels() && "Strength array is not the same as panel count");
 
     // still here? let's do it. use the untransformed coordinates
@@ -509,16 +511,18 @@ public:
       panely *= oopanell;
 
       // the vortex strength - we ADD to the existing
-      (*ps)[i] += -1.0 * (ui*panelx + vi*panely);
+      const S new_vort = -1.0 * (ui*panelx + vi*panely);
+      (*ps)[i] += new_vort;
+      (*rs[0])[i] += new_vort;
 
       // the source strength
-      (*rs)[i] += -1.0 * (ui*panely - vi*panelx);
+      const S new_src = -1.0 * (ui*panely - vi*panelx);
+      (*rs[1])[i] += new_src;
 
       // debug print
       if (_factor > 0.0 and false) {
-        std::cout << "  panel " << i << " at " << dx << " " << dy
-                  << " adds to vortex str " << (-1.0 * (ui*panelx + vi*panely))
-                  << " and source str " << (-1.0 * (ui*panely - vi*panelx)) << std::endl;
+        std::cout << "  panel " << i << " at " << dx << " " << dy << " adds to vortex str "
+                  << new_vort << " and source str " << new_src << std::endl;
       }
     }
   }
@@ -569,12 +573,10 @@ public:
 
   // need to maintain the 2x2 set of basis vectors for each panel
   // this also calculates the triangle areas
+  // always recalculate everything!
   void compute_bases(const Int nnew) {
 
     assert(2*nnew == idx.size() && "Array size mismatch");
-
-    // how big is my set of basis vectors?
-    const Int norig = b[0][0].size();
 
     // resize any vectors
     for (size_t i=0; i<Dimensions; ++i) {
@@ -588,7 +590,7 @@ public:
     std::array<S,Dimensions> x1, norm;
 
     // update what we need
-    for (size_t i=norig; i<nnew; ++i) {
+    for (size_t i=0; i<nnew; ++i) {
       const size_t id0 = idx[2*i];
       const size_t id1 = idx[2*i+1];
       //std::cout << "elem near " << this->x[0][id0] << " " << this->x[1][id0] << std::endl;
@@ -1073,9 +1075,8 @@ protected:
 
   // strengths and BCs
   std::optional<Vector<S>>          ps; // panel-wise strengths per unit length (for "active" and "reactive")
-  //std::optional<Vector<S>>          bc; // boundary condition for the elements (only when "reactive")
   Strength<S>                       bc; // boundary condition for the elements (only when "reactive")
-  std::optional<Vector<S>>          rs; // the strengths per unit length which represent the vel
+  Strength<S>                       rs; // the strengths per unit length which represent the vel
                                         //   influence of the volume vorticity of the parent body
                                         //   (also used only when type is "reactive")
 

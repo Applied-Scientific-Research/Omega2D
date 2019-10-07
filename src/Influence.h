@@ -154,8 +154,8 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
   std::array<Vector<S>,Dimensions>&       tu = targ.get_vel();
 
   // and get the source strengths, if they exist
-  const bool           have_source_strengths = src.have_src_str();
-  const Vector<S>&                        ss = src.get_src_str();
+  const bool           have_source_strengths = src.have_rot_src_str();
+  const Vector<S>&                        ss = src.get_rot_src_str();
 
   float flops = (float)targ.get_n();
 

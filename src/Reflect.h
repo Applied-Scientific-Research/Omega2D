@@ -129,6 +129,9 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
     nn[0][ip1] += sn[0][j];
     nn[1][ip1] += sn[1][j];
   }
+  //for (size_t j=0; j<_src.get_n(); ++j) {
+  //  std::cout << "Node " << j << " at " << sx[0][j] << " " << sx[1][j] << " has norm " << nn[0][j] << " " << nn[1][j] << std::endl;
+  //}
 
   size_t num_reflected = 0;
   const S eps = 10.0*std::numeric_limits<S>::epsilon();
