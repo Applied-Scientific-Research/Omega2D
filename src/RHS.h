@@ -44,7 +44,7 @@ std::vector<S> vels_to_rhs_panels (Surfaces<S> const& targ) {
   // pull references to the element arrays
   const std::array<Vector<S>,Dimensions>& tu = targ.get_vel();
   const std::array<Vector<S>,Dimensions>& tt = targ.get_tang();
-  //const Vector<S>&                        tb = targ.get_bcs();
+  //const Vector<S>&                        tb = targ.get_tang_bcs();
 
   //std::cout << "tu[0].size() is " << tu[0].size() << std::endl;
   //std::cout << "tx[0].size() is " << tx[0].size() << std::endl;

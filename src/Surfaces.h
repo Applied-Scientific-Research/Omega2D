@@ -26,6 +26,10 @@
 #include <optional>
 #include <cassert>
 
+# use cpp until these become real-time variables
+#define VORTEX_UNKNOWN
+//#define SOURCE_UNKNOWN
+
 
 // useful structure for panel strengths and BCs
 // Strength<S> ps;
@@ -65,8 +69,8 @@ public:
       max_strength(-1.0) {
 
     // make sure input arrays are correctly-sized
-    assert(_idx.size() % Dimensions == 0 && "Index array is not an even multiple of dimensions");
-    const size_t nsurfs = _idx.size() / Dimensions;
+    assert(_idx.size() % 2 == 0 && "Index array is not an even multiple of 2");
+    const size_t nsurfs = _idx.size() / 2;
 
     // if no surfs, quit out now
     if (nsurfs == 0) {
@@ -118,15 +122,21 @@ public:
     if (this->E == active) {
       // value is a fixed strength for the segment
       Vector<S> new_s(_val.size());
-      std::copy(_val.begin(), _val.end(), new_s.begin());
-      //new_s.resize(nsurfs);
       ps = std::move(new_s);
+      std::copy(_val.begin(), _val.end(), ps->begin());
 
     } else if (this->E == reactive) {
       // value is a boundary condition
-      Vector<S> new_bc(_val.size());
-      bc = std::move(new_bc);
-      std::copy(_val.begin(), _val.end(), bc->begin());
+      #ifdef VORTEX_UNKNOWN
+        Vector<S> new_bc(_val.size());
+        bc[0] = std::move(new_bc);
+        std::copy(_val.begin(), _val.end(), bc[0]->begin());
+      #endif
+      #ifdef SOURCE_UNKNOWN
+        Vector<S> new_bc1(_val.size());
+        bc[1] = std::move(new_bc1);
+        std::copy(_val.begin(), _val.end(), bc[1]->begin());
+      #endif
 
       // make space for the unknown, panel-centric strengths
       Vector<S> new_s(_val.size());
@@ -173,20 +183,17 @@ public:
   const S                           get_vol()         const { return vol; }
   const std::array<S,Dimensions>    get_geom_center() const { return tc; }
 
-  // callers should never have to change this array
+  // panel geometry
   const std::vector<Int>&                  get_idx()  const { return idx; }
-  const Vector<S>&                         get_bcs()  const { return *bc; }
+  const std::array<Vector<S>,Dimensions>&  get_tang() const { return b[0]; }
+  const std::array<Vector<S>,Dimensions>&  get_norm() const { return b[1]; }
+  const Vector<S>&                         get_area() const { return area; }
 
   // override the ElementBase versions and send the panel-center vels
   const std::array<Vector<S>,Dimensions>&  get_vel()  const { return pu; }
   std::array<Vector<S>,Dimensions>&        get_vel()        { return pu; }
 
-  // panel properties
-  const std::array<Vector<S>,Dimensions>&  get_tang() const { return b[0]; }
-  const std::array<Vector<S>,Dimensions>&  get_norm() const { return b[1]; }
-  const Vector<S>&                         get_area() const { return area; }
-
-  // vortex strengths
+  // fixed or unknown surface strengths
   const Vector<S>&                         get_str()  const { return *ps; }
   Vector<S>&                               get_str()        { return *ps; }
 
@@ -194,10 +201,15 @@ public:
   const bool                           have_src_str() const { return (bool)rs; }
   const Vector<S>&                     get_src_str()  const { return *rs; }
 
+  // and (reactive only) boundary conditions
+  const Vector<S>&                    get_tang_bcs()  const { return *bc[0]; }
+  const Vector<S>&                    get_norm_bcs()  const { return *bc[1]; }
+
   // find out the next row index in the BEM after this collection
   void set_first_row(const Int _i) { istart = _i; }
+  const Int num_unknowns_per_panel() const { return ((bool)bc[0] ? 1 : 0) + ((bool)bc[1] ? 1 : 0); }
   const Int get_first_row() const { return istart; }
-  const Int get_num_rows()  const { return (*bc).size() + (is_augmented() ? 1 : 0); }
+  const Int get_num_rows()  const { return (get_npanels()*num_unknowns_per_panel() + (is_augmented() ? 1 : 0)); }
   const Int get_next_row()  const { return istart+get_num_rows(); }
 
   // assign the new strengths from BEM - do not let base class do this
@@ -246,9 +258,18 @@ public:
 
   const float get_max_bc_value() const {
     if (this->E == reactive) {
-      const S this_max = *std::max_element(std::begin(*bc), std::end(*bc));
-      const S this_min = *std::min_element(std::begin(*bc), std::end(*bc));
-      return (float)std::max(this_max, -this_min);
+      S this_max = 0.0;
+      #ifdef VORTEX_UNKNOWN
+        const S vort_max = *std::max_element(std::begin(*bc[0]), std::end(*bc[0]));
+        const S vort_min = *std::min_element(std::begin(*bc[0]), std::end(*bc[0]));
+        this_max = std::max(this_max, std::max(vort_max, -vort_min));
+      #endif
+      #ifdef SOURCE_UNKNOWN
+        const S src_max = *std::max_element(std::begin(*bc[1]), std::end(*bc[1]));
+        const S src_min = *std::min_element(std::begin(*bc[1]), std::end(*bc[1]));
+        this_max = std::max(this_max, std::max(src_max, -src_min));
+      #endif
+      return (float)this_max;
     } else {
       return (float)0.0;
     }
@@ -316,8 +337,14 @@ public:
 
     } else if (this->E == reactive) {
       // value is a boundary condition
-      bc->reserve(neold+nsurfs); 
-      bc->insert(bc->end(), _val.begin(), _val.end());
+      #ifdef VORTEX_UNKNOWN
+        bc[0]->reserve(neold+nsurfs); 
+        bc[0]->insert(bc[0]->end(), _val.begin(), _val.end());
+      #endif
+      #ifdef SOURCE_UNKNOWN
+        bc[1]->reserve(neold+nsurfs); 
+        bc[1]->insert(bc[1]->end(), _val.begin(), _val.end());
+      #endif
       // and we still need strengths
       ps->resize(neold+nsurfs); 
 
@@ -724,8 +751,10 @@ public:
       px[4*i+1] += _offset * b[1][1][i];
       // the panel strength is the solved strength plus the boundary condition
       float this_str = (*ps)[i];
-      // add on the bc value here
-      if (this->E == reactive) this_str += (*bc)[i];
+      // add on the (vortex) bc value here
+      #ifdef VORTEX_UNKNOWN
+        if (this->E == reactive) this_str += (*bc[0])[i];
+      #endif
       // complete the element with a strength and radius
       px[4*i+2] = this_str * area[i];
       px[4*i+3] = _vdelta;
@@ -1044,7 +1073,8 @@ protected:
 
   // strengths and BCs
   std::optional<Vector<S>>          ps; // panel-wise strengths per unit length (for "active" and "reactive")
-  std::optional<Vector<S>>          bc; // boundary condition for the elements (only when "reactive")
+  //std::optional<Vector<S>>          bc; // boundary condition for the elements (only when "reactive")
+  Strength<S>                       bc; // boundary condition for the elements (only when "reactive")
   std::optional<Vector<S>>          rs; // the strengths per unit length which represent the vel
                                         //   influence of the volume vorticity of the parent body
                                         //   (also used only when type is "reactive")
