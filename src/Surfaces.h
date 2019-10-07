@@ -26,7 +26,7 @@
 #include <optional>
 #include <cassert>
 
-# use cpp until these become real-time variables
+// use cpp until these become real-time variables
 #define VORTEX_UNKNOWN
 //#define SOURCE_UNKNOWN
 
