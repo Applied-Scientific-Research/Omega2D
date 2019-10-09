@@ -1240,8 +1240,8 @@ int main(int argc, char const *argv[]) {
       if (ImGui::BeginPopupModal("New measurement structure"))
       {
         static int item = 0;
-        const char* items[] = { "single point/tracer", "streakline", "circle of tracers", "line of tracers", "measurement line" };
-        ImGui::Combo("type", &item, items, 5);
+        const char* items[] = { "single point/tracer", "streakline", "circle of tracers", "line of tracers", "measurement line", "measurement grid" };
+        ImGui::Combo("type", &item, items, 6);
 
         static float xc[2] = {0.0f, 0.0f};
         static float xf[2] = {0.0f, 1.0f};
@@ -1307,6 +1307,20 @@ int main(int argc, char const *argv[]) {
                                1+(int)(std::sqrt(std::pow(xf[0]-xc[0],2)+std::pow(xf[1]-xc[1],2))/(rparams.tracer_scale*sim.get_ips())));
             if (ImGui::Button("Add line of measurement points")) {
               mfeatures.emplace_back(std::make_unique<MeasurementLine>(xc[0], xc[1], xf[0], xf[1]));
+              std::cout << "Added " << (*mfeatures.back()) << std::endl;
+              ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            } break;
+          case 5: {
+            // a static grid of measurement points
+            ImGui::InputFloat2("start", xc);
+            ImGui::InputFloat2("finish", xf);
+            ImGui::SliderFloat("dx", &rad, sim.get_ips(), 1.0f, "%.4f");
+            ImGui::TextWrapped("This feature will add about %d field points",
+                               1+(int)((xf[0]-xc[0])*(xf[1]-xc[1])/(rad*rad)));
+            if (ImGui::Button("Add grid of measurement points")) {
+              mfeatures.emplace_back(std::make_unique<GridPoints>(xc[0], xc[1], xf[0], xf[1], rad));
               std::cout << "Added " << (*mfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }

@@ -36,6 +36,7 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
   else if (ftype == "tracer blob") {      _flist.emplace_back(std::make_unique<TracerBlob>()); }
   else if (ftype == "tracer line") {      _flist.emplace_back(std::make_unique<TracerLine>()); }
   else if (ftype == "measurement line") { _flist.emplace_back(std::make_unique<MeasurementLine>()); }
+  else if (ftype == "measurement grid") { _flist.emplace_back(std::make_unique<GridPoints>()); }
 
   // and pass the json object to the specific parser
   _flist.back()->from_json(_jin);
@@ -342,6 +343,71 @@ MeasurementLine::to_json() const {
   j["type"] = "measurement line";
   j["center"] = {m_x, m_y};
   j["end"] = {m_xf, m_yf};
+  return j;
+}
+
+
+//
+// Create a grid of static measurement points
+//
+std::vector<float>
+GridPoints::init_particles(float _ips) const {
+
+  // create a new vector to pass on
+  std::vector<float> x;
+
+  if (not this->is_enabled()) return x;
+
+  // ignore _ips and use m_dx to define grid density
+
+  // loop over integer indices
+  for (float xp=m_x+0.5*m_dx; xp<m_xf+0.01*m_dx; xp+=m_dx) {
+    for (float yp=m_y+0.5*m_dx; yp<m_yf+0.01*m_dx; yp+=m_dx) {
+      // create a field point here
+      x.emplace_back(xp);
+      x.emplace_back(yp);
+    }
+  }
+
+  return x;
+}
+
+std::vector<float>
+GridPoints::step_particles(float _ips) const {
+  // does not emit
+  return std::vector<float>();
+}
+
+void
+GridPoints::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+GridPoints::to_string() const {
+  std::stringstream ss;
+  ss << "measurement grid from " << m_x << " " << m_y << " to " << m_xf << " " << m_yf << " widh dx " << m_dx;
+  return ss.str();
+}
+
+void
+GridPoints::from_json(const nlohmann::json j) {
+  const std::vector<float> s = j["start"];
+  m_x = s[0];
+  m_y = s[1];
+  const std::vector<float> e = j["end"];
+  m_xf = e[0];
+  m_yf = e[1];
+  m_dx = j["dx"];
+}
+
+nlohmann::json
+GridPoints::to_json() const {
+  nlohmann::json j;
+  j["type"] = "measurement grid";
+  j["start"] = {m_x, m_y};
+  j["end"] = {m_xf, m_yf};
+  j["dx"] = m_dx;
   return j;
 }
 

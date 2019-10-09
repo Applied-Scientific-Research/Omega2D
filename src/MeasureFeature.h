@@ -183,6 +183,35 @@ protected:
 
 
 //
+// Concrete class for a grid of measurement points
+//
+class GridPoints : public MeasureFeature {
+public:
+  GridPoints(float _xs = -1.0,
+             float _ys = -1.0,
+             float _xf = 1.0,
+             float _yf = 1.0,
+             float _dx = 0.1)
+    : MeasureFeature(_xs, _ys, false),
+      m_xf(_xf),
+      m_yf(_yf),
+      m_dx(_dx)
+    {}
+
+  void debug(std::ostream& os) const override;
+  std::string to_string() const override;
+  void from_json(const nlohmann::json) override;
+  nlohmann::json to_json() const override;
+  std::vector<float> init_particles(float) const override;
+  std::vector<float> step_particles(float) const override;
+
+protected:
+  float m_xf, m_yf;
+  float m_dx;
+};
+
+
+//
 // Parser for converting json object to new feature
 //
 void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>&, const nlohmann::json);
