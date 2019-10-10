@@ -37,7 +37,8 @@ public:
       is_inviscid(false),
       adaptive_radii(false),
       nom_sep_scaled(std::sqrt(8.0)),
-      particle_overlap(1.5)
+      particle_overlap(1.5),
+      shed_before_diffuse(true)
     {}
 
   const bool get_diffuse() { return !is_inviscid; }
@@ -73,6 +74,10 @@ private:
 
   // particle core size is nominal separation times this
   S particle_overlap;
+
+  // method 1 (true) is to shed *at* the boundary, VRM those particles, then push out
+  // method 2 (false) is to VRM, push out, *then* generate new particles at the correct distance
+  bool shed_before_diffuse;
 };
 
 
@@ -110,46 +115,47 @@ void Diffusion<S,A,I>::step(const double                _time,
     }
   }
 
-  //
-  // generate particles at boundary surfaces
-  //
-  for (auto &coll : _bdry) {
-
-    // run this step if the collection is Surfaces
-    if (std::holds_alternative<Surfaces<S>>(coll)) {
-      Surfaces<S>& surf = std::get<Surfaces<S>>(coll);
-
-      // generate particles just above the surface
-      std::vector<S> new_pts = surf.represent_as_particles(0.0001*(S)_dt, _vdelta);
-
-      // add those particles to the main particle list
-      if (_vort.size() == 0) {
-        // no collections yet? make a new collection
-        _vort.push_back(Points<S>(new_pts, active, lagrangian, nullptr));      // vortons
-      } else {
-        // HACK - add all particles to first collection
-        auto& coll = _vort.back();
-        // only proceed if the last collection is Points
-        if (std::holds_alternative<Points<S>>(coll)) {
-          Points<S>& pts = std::get<Points<S>>(coll);
-          pts.add_new(new_pts);
-        }
-      }
-    }
-
-    // Kutta points and lifting lines can generate points here
-  }
-
-  //
-  // diffuse strength among existing particles
-  //
-
   // ensure that we have a current h_nu
   vrm.set_hnu(std::sqrt(_dt/_re));
 
   // ensure that it knows to allow or disallow adaptive radii
   vrm.set_adaptive_radii(adaptive_radii);
 
+  //
+  // generate particles at boundary surfaces
+  //
+  if (shed_before_diffuse) {
+    for (auto &coll : _bdry) {
+
+      // run this step if the collection is Surfaces
+      if (std::holds_alternative<Surfaces<S>>(coll)) {
+        Surfaces<S>& surf = std::get<Surfaces<S>>(coll);
+
+        // generate particles just above the surface
+        std::vector<S> new_pts = surf.represent_as_particles(0.01*(S)vrm.get_hnu(), _vdelta);
+
+        // add those particles to the main particle list
+        if (_vort.size() == 0) {
+          // no collections yet? make a new collection
+          _vort.push_back(Points<S>(new_pts, active, lagrangian, nullptr));      // vortons
+        } else {
+          // HACK - add all particles to first collection
+          auto& coll = _vort.back();
+          // only proceed if the last collection is Points
+          if (std::holds_alternative<Points<S>>(coll)) {
+            Points<S>& pts = std::get<Points<S>>(coll);
+            pts.add_new(new_pts);
+          }
+        }
+      }
+
+      // Kutta points and lifting lines can generate points here
+    }
+  }
+
+  //
+  // diffuse strength among existing particles
+  //
   // loop over active vorticity
   for (auto &coll : _vort) {
 
@@ -193,8 +199,48 @@ void Diffusion<S,A,I>::step(const double                _time,
   //
   // clean up by removing the innermost layer - the one that will be represented by boundary strengths
   //
-  (void) clear_inner_layer<S>(_bdry, _vort, 0.0, _vdelta/particle_overlap);
+  if (shed_before_diffuse) {
+    // use method which trims circulations under the threshold
+    (void) clear_inner_layer<S>(0, _bdry, _vort, 0.0, _vdelta/particle_overlap);
+  } else {
+    // use method which simply pushes all still-active particles to be at or above a threshold distance
+    // cutoff is a multiple of ips (these are the last two arguments)
+    (void) clear_inner_layer<S>(1, _bdry, _vort, 1.0/std::sqrt(2.0*M_PI), _vdelta/particle_overlap);
+  }
 
+
+  //
+  // generate particles above boundary surfaces
+  //
+  if (not shed_before_diffuse) {
+    for (auto &coll : _bdry) {
+
+      // run this step if the collection is Surfaces
+      if (std::holds_alternative<Surfaces<S>>(coll)) {
+        Surfaces<S>& surf = std::get<Surfaces<S>>(coll);
+
+        // generate particles above the surface at the centroid of one step of
+        //   diffusion from a flat plate
+        std::vector<S> new_pts = surf.represent_as_particles(vrm.get_hnu()*std::sqrt(4.0/M_PI), _vdelta);
+
+        // add those particles to the main particle list
+        if (_vort.size() == 0) {
+          // no collections yet? make a new collection
+          _vort.push_back(Points<S>(new_pts, active, lagrangian, nullptr));      // vortons
+        } else {
+          // HACK - add all particles to first collection
+          auto& coll = _vort.back();
+          // only proceed if the last collection is Points
+          if (std::holds_alternative<Points<S>>(coll)) {
+            Points<S>& pts = std::get<Points<S>>(coll);
+            pts.add_new(new_pts);
+          }
+        }
+      }
+
+      // Kutta points and lifting lines can generate points here
+    }
+  }
 
   //
   // merge again if clear did any work

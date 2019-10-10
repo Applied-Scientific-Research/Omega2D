@@ -424,7 +424,7 @@ void Simulation::step() {
   //diff.step(time, 0.5*dt, re, get_vdelta(), thisfs, vort, bdry, bem);
 
   // push field points out of objects every few steps
-  if (nstep%5 == 0) clear_inner_layer<STORE>(bdry, fldpt, (STORE)0.0, (STORE)(0.5*get_ips()));
+  if (nstep%5 == 0) clear_inner_layer<STORE>(1, bdry, fldpt, (STORE)0.0, (STORE)(0.5*get_ips()));
 
   // update strengths for coloring purposes (eventually should be taken care of automatically)
   //vort.update_max_str();

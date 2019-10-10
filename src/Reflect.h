@@ -394,7 +394,8 @@ std::pair<S,S> get_cut_entry (std::vector<std::tuple<S,S,S>>& ct, const S _pos) 
 // return value is the amount of circulation removed
 //
 template <class S>
-S clear_inner_panp2 (Surfaces<S> const & _src,
+S clear_inner_panp2 (const int _method,
+                     Surfaces<S> const & _src,
                      Points<S>& _targ,
                      const S _cutoff_mult,
                      const S _ips) {
@@ -437,7 +438,7 @@ S clear_inner_panp2 (Surfaces<S> const & _src,
     nn[1][ip1] += sn[1][j];
   }
 
-  if (not are_fldpts) {
+  if (_method==0 and not are_fldpts) {
     S this_circ = 0.0;
     for (int32_t i=0; i<(int32_t)_targ.get_n(); ++i) this_circ += ts[i];
     std::cout << "    circulation before: " << this_circ << std::endl;
@@ -545,37 +546,51 @@ S clear_inner_panp2 (Surfaces<S> const & _src,
 
     const S this_radius = are_fldpts ? _ips : tr[i];
 
-    if (dotp < this_radius) {
-      //std::cout << "  CLEARING pt at " << tx[0][i] << " " << tx[1][i] << " because dotp " << dotp << " and norm " << norm[0] << " " << norm[1] << std::endl;
+    if (_method == 0) {
+      if (dotp < this_radius) {
+        //std::cout << "  CLEARING pt at " << tx[0][i] << " " << tx[1][i] << " because dotp " << dotp << " and norm " << norm[0] << " " << norm[1] << std::endl;
 
-      // use precomputed table lookups for new position and remaining strength
-      if (not are_fldpts) {
-        const std::pair<S,S> entry = get_cut_entry(ct, dotp/this_radius);
+        // use precomputed table lookups for new position and remaining strength
+        if (not are_fldpts) {
+          const std::pair<S,S> entry = get_cut_entry(ct, dotp/this_radius);
 
-        // ensure that this "reabsorbed" circulation is accounted for in BEM
-        circ_removed += ts[i] * (1.0-std::get<0>(entry));
+          // ensure that this "reabsorbed" circulation is accounted for in BEM
+          circ_removed += ts[i] * (1.0-std::get<0>(entry));
 
-        // modify the particle in question
-        ts[i] *= std::get<0>(entry);
-        tx[0][i] += std::get<1>(entry) * this_radius * normx;
-        tx[1][i] += std::get<1>(entry) * this_radius * normy;
+          // modify the particle in question
+          ts[i] *= std::get<0>(entry);
+          tx[0][i] += std::get<1>(entry) * this_radius * normx;
+          tx[1][i] += std::get<1>(entry) * this_radius * normy;
+        }
+
+        //std::cout << "  SHIFTING dotp/tr " << (dotp/this_radius) << " str " << sfac << " and shift " << (shiftd/this_radius) << std::endl;
+        //assert(shiftd > 0.0 && "Shift in clear is less than zero");
+        //std::cout << "  PUSHING " << std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]);
+        //std::cout << "    to " << std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]) << " and scale str by " << sfac << std::endl;
+        // do not change radius yet
+        //std::cout << "    TO " << tx[0][i] << " " << tx[1][i] << " and weaken by " << sfac << std::endl;
+        //if (std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]) < 0.51) {
+        //  std::cout << "    dotp is " << dotp << " and tr[i] is " << this_radius << std::endl;
+        //  std::cout << "    pt is " << tx[0][i] << " " << tx[1][i] << std::endl;
+        //  //std::cout << "    cp is " << cpx << " " << cpy << std::endl;
+        //  std::cout << "    norm is " << normx << " " << normy << std::endl;
+        //  assert(false && "Die");
+        //}
+
+        num_cropped++;
       }
 
-      //std::cout << "  SHIFTING dotp/tr " << (dotp/this_radius) << " str " << sfac << " and shift " << (shiftd/this_radius) << std::endl;
-      //assert(shiftd > 0.0 && "Shift in clear is less than zero");
-      //std::cout << "  PUSHING " << std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]);
-      //std::cout << "    to " << std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]) << " and scale str by " << sfac << std::endl;
-      // do not change radius yet
-      //std::cout << "    TO " << tx[0][i] << " " << tx[1][i] << " and weaken by " << sfac << std::endl;
-      //if (std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]) < 0.51) {
-      //  std::cout << "    dotp is " << dotp << " and tr[i] is " << this_radius << std::endl;
-      //  std::cout << "    pt is " << tx[0][i] << " " << tx[1][i] << std::endl;
-      //  //std::cout << "    cp is " << cpx << " " << cpy << std::endl;
-      //  std::cout << "    norm is " << normx << " " << normy << std::endl;
-      //  assert(false && "Die");
-      //}
-
-      num_cropped++;
+    } else if (_method == 1) {
+      // simply push the particles until they are a certain distance from the body, keeping all strength
+      //std::cout << "  particle " << i << " at " << tx[0][i] << " " << tx[1][i] << " has dotp " << dotp << std::endl;
+      if (dotp < 0.0) {
+        // modify the particle in question
+        //std::cout << "  pushing " << tx[0][i] << " " << tx[1][i];
+        tx[0][i] -= dotp * normx;
+        tx[1][i] -= dotp * normy;
+        //std::cout << " to " << tx[0][i] << " " << tx[1][i] << std::endl;
+        num_cropped++;
+      }
     }
 
   } // end loop over particles
@@ -584,7 +599,7 @@ S clear_inner_panp2 (Surfaces<S> const & _src,
 
   std::cout << "    cropped " << num_cropped << " particles" << std::endl;
 
-  if (not are_fldpts) {
+  if (_method==0 and not are_fldpts) {
     S this_circ = 0.0;
     for (int32_t i=0; i<(int32_t)_targ.get_n(); ++i) this_circ += ts[i];
     std::cout << "    circulation after: " << this_circ << std::endl;
@@ -607,7 +622,8 @@ S clear_inner_panp2 (Surfaces<S> const & _src,
 // clean up by removing the innermost layer - the one that will be represented by boundary strengths
 //
 template <class S>
-void clear_inner_layer(std::vector<Collection>& _bdry,
+void clear_inner_layer(const int                _method,
+                       std::vector<Collection>& _bdry,
                        std::vector<Collection>& _vort,
                        const S                  _cutoff_factor,
                        const S                  _ips) {
@@ -623,7 +639,7 @@ void clear_inner_layer(std::vector<Collection>& _bdry,
           Surfaces<S>& surf = std::get<Surfaces<S>>(src);
 
           // call the specific panels-affect-points routine
-          const S lost_circ = clear_inner_panp2<S>(surf, pts, _cutoff_factor, _ips);
+          const S lost_circ = clear_inner_panp2<S>(_method, surf, pts, _cutoff_factor, _ips);
 
           // and tell the boundary collection that it reabsorbed that much
           surf.add_to_reabsorbed(lost_circ);
