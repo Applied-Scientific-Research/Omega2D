@@ -38,7 +38,7 @@ public:
       adaptive_radii(false),
       nom_sep_scaled(std::sqrt(8.0)),
       particle_overlap(1.5),
-      shed_before_diffuse(true)
+      shed_before_diffuse(false)
     {}
 
   const bool get_diffuse() { return !is_inviscid; }
