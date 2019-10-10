@@ -45,6 +45,7 @@ public:
   void set_diffuse(const bool _do_diffuse) { is_inviscid = not _do_diffuse; }
   void set_amr(const bool _do_amr) { adaptive_radii = _do_amr; }
   S get_nom_sep_scaled() const { return nom_sep_scaled; }
+  S get_nom_sep() { return nom_sep_scaled * vrm.get_hnu(); }
   S get_particle_overlap() const { return particle_overlap; }
 
   void step(const double,
@@ -98,10 +99,16 @@ void Diffusion<S,A,I>::step(const double                _time,
 
   std::cout << "Inside Diffusion::step with dt=" << _dt << std::endl;
 
+  // ensure that we have a current h_nu
+  vrm.set_hnu(std::sqrt(_dt/_re));
+
+  // ensure that it knows to allow or disallow adaptive radii
+  vrm.set_adaptive_radii(adaptive_radii);
+
   //
   // always re-run the BEM calculation before shedding
   //
-  solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
+  solve_bem<S,A,I>(_time, _fs, get_nom_sep(), _vort, _bdry, _bem);
 
   //
   // important for augmented BEM: reset the circulation counter
@@ -114,12 +121,6 @@ void Diffusion<S,A,I>::step(const double                _time,
       surf.reset_augmentation_vars();
     }
   }
-
-  // ensure that we have a current h_nu
-  vrm.set_hnu(std::sqrt(_dt/_re));
-
-  // ensure that it knows to allow or disallow adaptive radii
-  vrm.set_adaptive_radii(adaptive_radii);
 
   //
   // generate particles at boundary surfaces

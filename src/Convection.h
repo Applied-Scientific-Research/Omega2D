@@ -36,6 +36,7 @@ public:
   void advect_1st(const double,
                   const double,
                   const std::array<double,Dimensions>&,
+                  const S,
                   std::vector<Collection>&,
                   std::vector<Collection>&,
                   std::vector<Collection>&,
@@ -43,6 +44,7 @@ public:
   void advect_2nd(const double,
                   const double,
                   const std::array<double,Dimensions>&,
+                  const S,
                   std::vector<Collection>&,
                   std::vector<Collection>&,
                   std::vector<Collection>&,
@@ -107,9 +109,10 @@ void Convection<S,A,I>::find_vels(const std::array<double,Dimensions>& _fs,
 // first-order Euler forward integration
 //
 template <class S, class A, class I>
-void Convection<S,A,I>::advect_1st(const double _time,
-                                   const double _dt,
+void Convection<S,A,I>::advect_1st(const double                         _time,
+                                   const double                         _dt,
                                    const std::array<double,Dimensions>& _fs,
+                                   const S                              _ips,
                                    std::vector<Collection>&             _vort,
                                    std::vector<Collection>&             _bdry,
                                    std::vector<Collection>&             _fldpt,
@@ -119,7 +122,7 @@ void Convection<S,A,I>::advect_1st(const double _time,
 
   // part A - unknowns
 
-  solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
+  solve_bem<S,A,I>(_time, _fs, _ips, _vort, _bdry, _bem);
 
   // part B - knowns
 
@@ -147,9 +150,10 @@ void Convection<S,A,I>::advect_1st(const double _time,
 // second-order RK2 forward integration
 //
 template <class S, class A, class I>
-void Convection<S,A,I>::advect_2nd(const double _time,
-                                   const double _dt,
+void Convection<S,A,I>::advect_2nd(const double                         _time,
+                                   const double                         _dt,
                                    const std::array<double,Dimensions>& _fs,
+                                   const S                              _ips,
                                    std::vector<Collection>&             _vort,
                                    std::vector<Collection>&             _bdry,
                                    std::vector<Collection>&             _fldpt,
@@ -160,7 +164,7 @@ void Convection<S,A,I>::advect_2nd(const double _time,
   // take the first Euler step ---------
 
   // perform the first BEM
-  solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
+  solve_bem<S,A,I>(_time, _fs, _ips, _vort, _bdry, _bem);
 
   // find the derivatives
   find_vels(_fs, _vort, _bdry, _vort);
@@ -183,8 +187,8 @@ void Convection<S,A,I>::advect_2nd(const double _time,
   // begin the 2nd step ---------
 
   // perform the second BEM
-  //solve_bem<S,A,I>(_time + _dt, _fs, interim_vort, interim_bdry, _bem);
-  solve_bem<S,A,I>(_time + _dt, _fs, interim_vort, _bdry, _bem);
+  //solve_bem<S,A,I>(_time + _dt, _fs, _ips, interim_vort, interim_bdry, _bem);
+  solve_bem<S,A,I>(_time + _dt, _fs, _ips, interim_vort, _bdry, _bem);
 
   // find the derivatives
   //find_vels(_fs, interim_vort, interim_bdry, interim_fldpt);

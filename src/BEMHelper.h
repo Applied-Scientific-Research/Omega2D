@@ -11,6 +11,7 @@
 #include "Collection.h"
 #include "CollectionHelper.h"
 #include "Influence.h"
+#include "Reflect.h"
 #include "Coefficients.h"
 #include "RHS.h"
 #include "BEM.h"
@@ -28,6 +29,7 @@
 template <class S, class A, class I>
 void solve_bem(const double                         _time,
                const std::array<double,Dimensions>& _fs,
+               const S                              _ips,
                std::vector<Collection>&             _vort,
                std::vector<Collection>&             _bdry,
                BEM<S,I>&                            _bem) {
@@ -52,6 +54,10 @@ void solve_bem(const double                         _time,
   //for (auto &src : _bdry) {
   //  std::visit([=](auto& elem) { elem.add_unit_rot_strengths(); }, src);
   //}
+
+  // always make sure there are no particles inside or too close to the body
+  //   and move them out if they are!
+  clear_inner_layer<S>(1, _bdry, _vort, 1.0/std::sqrt(2.0*M_PI), _ips);
 
   // need this for dispatching velocity influence calls, template param is accumulator type
   InfluenceVisitor<A> ivisitor;

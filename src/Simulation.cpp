@@ -387,7 +387,7 @@ void Simulation::first_step() {
   // this is the first step, just solve BEM and return - it's time=0
 
   // update BEM and find vels on any particles but DO NOT ADVECT
-  conv.advect_1st(time, 0.0, thisfs, vort, bdry, fldpt, bem);
+  conv.advect_1st(time, 0.0, thisfs, get_ips(), vort, bdry, fldpt, bem);
 
   // and write status file
   dump_stats_to_status();
@@ -417,8 +417,8 @@ void Simulation::step() {
   //diff.step(time, 0.5*dt, re, get_vdelta(), thisfs, vort, bdry, bem);
 
   // advect with no diffusion (must update BEM strengths)
-  //conv.advect_1st(time, dt, thisfs, vort, bdry, fldpt, bem);
-  conv.advect_2nd(time, dt, thisfs, vort, bdry, fldpt, bem);
+  //conv.advect_1st(time, dt, thisfs, get_ips(), vort, bdry, fldpt, bem);
+  conv.advect_2nd(time, dt, thisfs, get_ips(), vort, bdry, fldpt, bem);
 
   // operator splitting requires another half-step diffuse (must compute new coefficients)
   //diff.step(time, 0.5*dt, re, get_vdelta(), thisfs, vort, bdry, bem);
@@ -437,7 +437,7 @@ void Simulation::step() {
 
   // solve the BEM (before any VTK or status file output)
   std::cout << "Updating element vels" << std::endl;
-  solve_bem<STORE,ACCUM,Int>(time, thisfs, vort, bdry, bem);
+  solve_bem<STORE,ACCUM,Int>(time, thisfs, get_ips(), vort, bdry, bem);
   conv.find_vels(thisfs, vort, bdry, vort);
   conv.find_vels(thisfs, vort, bdry, fldpt);
   conv.find_vels(thisfs, vort, bdry, bdry);
