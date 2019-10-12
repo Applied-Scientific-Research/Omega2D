@@ -673,6 +673,9 @@ int main(int argc, char const *argv[]) {
 
       // check and possibly resize the window to match the saved resolution
       resize_to_resolution(window, rparams.width, rparams.height);
+
+      // we don't need the welcome banner
+      show_welcome_window = false;
     }
 
 
