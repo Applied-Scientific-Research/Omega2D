@@ -99,7 +99,7 @@ void solve_bem(const double                         _time,
     std::vector<S> rhs = std::visit(rvisitor, targ);
 
     // optionally augment with an additional value
-    if (rhs.size() < tnum) {
+    if (std::visit([=](auto& elem) { return elem.is_augmented(); }, targ)) {
       assert(tnum-rhs.size()==1 && "Number of augmented rows is not 1");
       assert(std::holds_alternative<Surfaces<S>>(targ) && "Augmented boundary is not Surface!");
 
