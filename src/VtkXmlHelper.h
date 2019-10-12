@@ -329,10 +329,12 @@ std::string write_vtu_panels(Surfaces<S> const& surf, const size_t file_idx, con
   const bool compress = false;
   const bool asbase64 = true;
 
-  bool has_strengths = true;
+  bool has_vort_str = false;
+  bool has_src_str = false;
   std::string prefix = "panel_";
-  if (surf.is_inert()) {
-    has_strengths = false;
+  if (not surf.is_inert()) {
+    has_vort_str = true;
+    has_src_str = surf.have_src_str();
   }
 
   // generate file name
@@ -421,7 +423,8 @@ std::string write_vtu_panels(Surfaces<S> const& surf, const size_t file_idx, con
   std::string vector_list;
   std::string scalar_list;
 
-  if (has_strengths) scalar_list.append("vortex sheet strength,");
+  if (has_vort_str) scalar_list.append("vortex sheet strength,");
+  if (has_src_str) scalar_list.append("source sheet strength,");
   //if (has_radii) scalar_list.append("area,");
   vector_list.append("velocity,");
 
@@ -434,12 +437,21 @@ std::string write_vtu_panels(Surfaces<S> const& surf, const size_t file_idx, con
     printer.PushAttribute( "Scalars", scalar_list.c_str() );
   }
 
-  if (has_strengths) {
+  if (has_vort_str) {
     // put sheet strengths in here
     printer.OpenElement( "DataArray" );
     printer.PushAttribute( "Name", "vortex sheet strength" );
     printer.PushAttribute( "type", "Float32" );
-    write_DataArray (printer, surf.get_str(), compress, asbase64);
+    write_DataArray (printer, surf.get_vort_str(), compress, asbase64);
+    printer.CloseElement();	// DataArray
+  }
+
+  if (has_src_str) {
+    // put sheet strengths in here
+    printer.OpenElement( "DataArray" );
+    printer.PushAttribute( "Name", "source sheet strength" );
+    printer.PushAttribute( "type", "Float32" );
+    write_DataArray (printer, surf.get_src_str(), compress, asbase64);
     printer.CloseElement();	// DataArray
   }
 
