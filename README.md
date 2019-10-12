@@ -91,13 +91,13 @@ Generate an X.264-encoded video from a series of png images with the following c
 ## To do
 Tasks to consider or implement:
 
+* Bug: static field points should not be pushed out of bodies
 * Change BEM augmentation code to consider the *change* in circulation per step per body
 * Implement the merging procedure from Spalart (if we don't already) - prefer to merge weak particles, avoid merging opposite-signed circulations (really?)
 * Compute vel grad at each point (vortex or field pt) and write it to the vtu file
 * If we have velgrad, we can compute the elongation of any point - use this to determine when a field point has stretched too far, and replace it with two child field points, of half-brightness, in the correct places; this should be a toggleable behavior, as it would demand ever-increasing numbers of field points
 * Add support for NACA wings, whether from a library or by reading geometry files in standard formats
 * Add airfoils - read them from a text file or generate them algorithmically - this might mean enabling Kutta points (reactive Points)
-* Add a "grid" measurement feature, which inits particles on a grid over the current view
 * Have method to tell batch and gui to dump vtu files periodically
 * Would be nice to have an option to have solid bodies randomly shed tracers (small chance per step per panel)
 * Consider a zlib implementation for both vtu and png files: [zstr](https://github.com/mateidavid/zstr), [miniz](https://github.com/richgel999/miniz), or [gzip-hpp](https://github.com/mapbox/gzip-hpp)

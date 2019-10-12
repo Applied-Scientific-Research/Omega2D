@@ -597,7 +597,11 @@ S clear_inner_panp2 (const int _method,
 
   // we did not resize the x array, so we don't need to touch the u array
 
-  std::cout << "    cropped " << num_cropped << " particles" << std::endl;
+  if (_method == 0) {
+    std::cout << "    cropped " << num_cropped << " particles" << std::endl;
+  } else if (_method == 1) {
+    std::cout << "    pushed " << num_cropped << " particles" << std::endl;
+  }
 
   if (_method==0 and not are_fldpts) {
     S this_circ = 0.0;
@@ -634,15 +638,19 @@ void clear_inner_layer(const int                _method,
     if (std::holds_alternative<Points<S>>(targ)) {
       Points<S>& pts = std::get<Points<S>>(targ);
 
-      for (auto &src : _bdry) {
-        if (std::holds_alternative<Surfaces<S>>(src)) {
-          Surfaces<S>& surf = std::get<Surfaces<S>>(src);
+      // don't push anything if they don't move themselves
+      if (pts.get_movet() == lagrangian) {
 
-          // call the specific panels-affect-points routine
-          const S lost_circ = clear_inner_panp2<S>(_method, surf, pts, _cutoff_factor, _ips);
+        for (auto &src : _bdry) {
+          if (std::holds_alternative<Surfaces<S>>(src)) {
+            Surfaces<S>& surf = std::get<Surfaces<S>>(src);
 
-          // and tell the boundary collection that it reabsorbed that much
-          surf.add_to_reabsorbed(lost_circ);
+            // call the specific panels-affect-points routine
+            const S lost_circ = clear_inner_panp2<S>(_method, surf, pts, _cutoff_factor, _ips);
+
+            // and tell the boundary collection that it reabsorbed that much
+            surf.add_to_reabsorbed(lost_circ);
+          }
         }
       }
     }
