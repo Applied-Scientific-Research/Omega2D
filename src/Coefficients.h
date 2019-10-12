@@ -135,6 +135,10 @@ template <class S>
 Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
   std::cout << "    1_1 compute coefficients of" << src.to_string() << " on" << targ.to_string() << std::endl;
 
+#ifndef USE_VC
+  const bool use_two_way = false;
+#endif
+
   // use floats to prevent overruns
   float flops = 0.0;
   //auto start = std::chrono::system_clock::now();
@@ -143,13 +147,24 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
   const size_t nsrc  = src.get_npanels();
   const size_t ntarg = targ.get_npanels();
 
+  // and how many rows and cols does that mean?
+  const size_t oldncols =  nsrc * src.num_unknowns_per_panel();
+  const size_t oldnrows = ntarg * targ.num_unknowns_per_panel();
+
   // pull references to the element arrays
   const std::array<Vector<S>,Dimensions>& sx = src.get_pos();
   const std::vector<Int>&                 si = src.get_idx();
+  const bool                    src_have_src = (src.num_unknowns_per_panel() == 2);
+  const Vector<S>&                        sa = src.get_area();
+
   const std::array<Vector<S>,Dimensions>& tx = targ.get_pos();
-  const std::array<Vector<S>,Dimensions>& tt = targ.get_tang();
-  const Vector<S>&                        ta = targ.get_area();
   const std::vector<Int>&                 ti = targ.get_idx();
+  const bool                   targ_have_src = (targ.num_unknowns_per_panel() == 2);
+  const std::array<Vector<S>,Dimensions>& tt = targ.get_tang();
+  const std::array<Vector<S>,Dimensions>& tn = targ.get_norm();
+#ifndef USE_VC
+  const Vector<S>&                        ta = targ.get_area();
+#endif
 
 #ifdef USE_VC
   // define vector types for Vc (still only S==A supported here)
@@ -158,13 +173,19 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
 
   // allocate space for the output array
   Vector<S> coeffs;
-  coeffs.resize(nsrc*ntarg);
+  coeffs.resize(oldncols*oldnrows);
 
   // run a panels-on-points algorithm - THIS CAN BE MORE EFFICIENT
-  #pragma omp parallel for
+  #pragma omp parallel
+  {
+  Vector<S> col1,col2;
+  col1.resize(oldnrows);
+  if (src_have_src) col2.resize(oldnrows);
+
+  #pragma omp for
   for (int32_t j=0; j<(int32_t)nsrc; j++) {
 
-    size_t iptr = ntarg * j;
+    size_t rptr = 0;
     const Int sfirst  = si[2*j];
     const Int ssecond = si[2*j+1];
 
@@ -179,7 +200,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
     for (size_t i=0; i<ntargvec; i++) {
 
       // fill a 4- or 8-wide vector with the target coordinates
-      StoreVec tx0, ty0, tx1, ty1, ttx, tty;
+      StoreVec tx0, ty0, tx1, ty1, ttx, tty, tnx, tny;
       for (size_t ii=0; ii<StoreVec::size() && i*StoreVec::size()+ii<ntarg; ++ii) {
         const size_t idx = i*StoreVec::size() + ii;
         const Int tfirst  = ti[2*idx];
@@ -190,23 +211,54 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
         ty1[ii] = tx[1][tsecond];
         ttx[ii] = tt[0][idx];
         tty[ii] = tt[1][idx];
+        tnx[ii] = tn[0][idx];
+        tny[ii] = tn[1][idx];
       }
 
       // collocation point for panel i
       const StoreVec xi = StoreVec(0.5) * (tx1 + tx0);
       const StoreVec yi = StoreVec(0.5) * (ty1 + ty0);
 
-      // influence of vortex panel j with unit circulation on center of panel i
-      StoreVec resultu, resultv;
-      kernel_1_0v<StoreVec,StoreVec>(sx0, sy0, sx1, sy1, StoreVec(1.0),
-                                     xi, yi, &resultu, &resultv);
+      // need to be more sophisticated about this
+      if (src_have_src and targ_have_src) {
+        // vortex and source strengths
+        StoreVec vortu, vortv, srcu, srcv;
+        // influence of vortex panel j with unit circulation on center of panel i
+        kernel_1_0vps<StoreVec,StoreVec>(sx0, sy0, sx1, sy1,
+                                         StoreVec(1.0), StoreVec(1.0), xi, yi,
+                                         &vortu, &vortv, &srcu, &srcv);
 
-      // dot product with tangent vector, applying normalization here
-      const StoreVec newcoeffs = resultu*ttx + resultv*tty;
+        // dot product of vortex influence with tangent vector
+        const StoreVec c1e1 = vortu*ttx + vortv*tty;
+        // dot product of vortex influence with normal vector
+        const StoreVec c1e2 = vortu*tnx + vortv*tny;
+        // dot product of source influence with tangent vector
+        const StoreVec c2e1 = srcu*ttx + srcv*tty;
+        // dot product of source influence with normal vector
+        const StoreVec c2e2 = srcu*tnx + srcv*tny;
 
-      // spread the results from a vector register back to the primary array
-      for (size_t ii=0; ii<StoreVec::size() && i*StoreVec::size()+ii<ntarg; ++ii) {
-        coeffs[iptr++] = newcoeffs[ii];
+        // spread the results from a vector register back to the primary array
+        for (size_t ii=0; ii<StoreVec::size() && i*StoreVec::size()+ii<ntarg; ++ii) {
+          col1[rptr] = c1e1[ii];
+          col1[rptr+1] = c1e2[ii];
+          col2[rptr] = c2e1[ii];
+          col2[rptr+1] = c2e2[ii];
+          rptr += 2;
+        }
+
+      } else {
+        // influence of vortex panel j with unit circulation on center of panel i
+        StoreVec vortu, vortv;
+        kernel_1_0v<StoreVec,StoreVec>(sx0, sy0, sx1, sy1, StoreVec(1.0),
+                                       xi, yi, &vortu, &vortv);
+
+        // dot product with tangent vector
+        const StoreVec newcoeffs = vortu*ttx + vortv*tty;
+
+        // spread the results from a vector register back to the primary array
+        for (size_t ii=0; ii<StoreVec::size() && i*StoreVec::size()+ii<ntarg; ++ii) {
+          col1[rptr++] = newcoeffs[ii];
+        }
       }
     }
 #else	// no Vc
@@ -228,21 +280,91 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
       const S xi = 0.5 * (tx1 + tx0);
       const S yi = 0.5 * (ty1 + ty0);
 
-      // influence of vortex panel j with unit circulation on center of panel i
-      S resultu, resultv;
-      kernel_1_0v<S,S>(sx0, sy0, sx1, sy1, 1.0, xi, yi, &resultu, &resultv);
+      if (src_have_src and targ_have_src) {
+        // vortex and source strengths
+        S vortu, vortv, srcu, srcv;
+        // influence of vortex panel j with unit circulation on center of panel i
+        kernel_1_0vps<S,S>(sx0, sy0, sx1, sy1, 1.0, 1.0, xi, yi, &vortu, &vortv, &srcu, &srcv);
 
-      // dot product with tangent vector
-      coeffs[iptr++] = resultu*tt[0][i] + resultv*tt[1][i];
+        // dot product of vortex influence with tangent vector
+        col1[rptr] = vortu*tt[0][i] + vortv*tt[1][i];
+        // dot product of vortex influence with normal vector
+        col1[rptr+1] = vortu*tn[0][i] + vortv*tn[1][i];
+        // dot product of source influence with tangent vector
+        col2[rptr] = srcu*tt[0][i] + srcv*tt[1][i];
+        // dot product of source influence with normal vector
+        col2[rptr+1] = srcu*tn[0][i] + srcv*tn[1][i];
+
+        // average this with the point-affects-panel influence
+        if (use_two_way) {
+          kernel_1_0vps<S,S>(tx0, ty0, tx1, ty1, 1.0, 1.0, 0.5*(sx0+sx1), 0.5*(sy0+sy1), &vortu, &vortv, &srcu, &srcv);
+          const float fact = sa[j]/ta[i];
+          col1[rptr] -= fact*(vortu*tt[0][i] + vortv*tt[1][i]);
+          col1[rptr+1] -= fact*(vortu*tn[0][i] + vortv*tn[1][i]);
+          col2[rptr] -= fact*(srcu*tt[0][i] + srcv*tt[1][i]);
+          col2[rptr+1] -= fact*(srcu*tn[0][i] + srcv*tn[1][i]);
+          // take the average
+          col1[rptr] *= 0.5;
+          col1[rptr+1] *= 0.5;
+          col2[rptr] *= 0.5;
+          col2[rptr+1] *= 0.5;
+        }
+
+        rptr += 2;
+
+      } else {
+        // vortex-strengths only
+        // influence of vortex panel j with unit circulation on center of panel i
+        S vortu, vortv;
+        kernel_1_0v<S,S>(sx0, sy0, sx1, sy1, 1.0, xi, yi, &vortu, &vortv);
+
+        // dot product with tangent vector
+        col1[rptr] = vortu*tt[0][i] + vortv*tt[1][i];
+
+        // average this with the point-affects-panel influence
+        if (use_two_way) {
+          // flipping source and target returns negative of desired influence
+          kernel_1_0v<S,S>(tx0, ty0, tx1, ty1, 1.0, 0.5*(sx0+sx1), 0.5*(sy0+sy1), &vortu, &vortv);
+          col1[rptr] -= (vortu*tt[0][i] + vortv*tt[1][i]) * (sa[j]/ta[i]);
+          // take the average
+          col1[rptr] *= 0.5;
+        }
+
+        ++rptr;
+      }
     }
 #endif
 
     // special case: self-influence
     if (&src == &targ) {
-      coeffs[j*ntarg+j] = M_PI;
+      if (src_have_src and targ_have_src) {
+        // vortex and source strengths
+        col1[2*j]   = M_PI;
+        col1[2*j+1] = 0.0;
+        col2[2*j]   = 0.0;
+        col2[2*j+1] = M_PI;
+      } else {
+        // vortex-strengths only
+        col1[j] = M_PI;
+      }
     }
-  }
-  flops += (float)nsrc*(float)ntarg*0.0;
+
+    // copy these cols to the matrix
+    //for (size_t i=0; i<ntarg; i++) {
+      //std::cout << j << " " << i << " " << coeffs[j*ntarg+i] << " " << col1[i] << std::endl;
+    //}
+    if (src_have_src and targ_have_src) {
+      std::copy(col1.begin(), col1.end(), coeffs.begin()+4*j*ntarg);
+      std::copy(col2.begin(), col2.end(), coeffs.begin()+4*j*ntarg+2*ntarg);
+    } else {
+      std::copy(col1.begin(), col1.end(), coeffs.begin()+j*ntarg);
+    }
+
+  } // end omp for
+  } // end omp parallel
+
+  // update the flop count
+  flops += (float)nsrc * (float)ntarg * (4.0 + (src_have_src ? 45.0+12.0 : 35.0+3.0));
 
   // scale all influences by the constant
   const S fac = 1.0 / (2.0 * M_PI);
@@ -250,12 +372,16 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
                  [fac](S elem) { return elem * fac; });
   flops += 2.0 + (float)coeffs.size();
 
+  // skip out if we don't augment
+  if (not targ.is_augmented() and not src.is_augmented()) return coeffs;
+
+
   //
   // now we augment this "matrix" with an optional new row and column
   //
 
-  const size_t nrows = ntarg + (targ.is_augmented() ? 1 : 0);
-  const size_t ncols = nsrc  + ( src.is_augmented() ? 1 : 0);
+  const size_t nrows = oldnrows + (targ.is_augmented() ? 1 : 0);
+  const size_t ncols = oldncols + ( src.is_augmented() ? 1 : 0);
   if (targ.is_augmented() or src.is_augmented()) {
     std::cout << "    augmenting the " << ntarg << " x " << nsrc << " block to " << nrows << " x " << ncols << std::endl;
   }
@@ -266,9 +392,9 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
   // debug print the bottom-right corner
   if (debug) {
     std::cout << "Bottom-right corner of influence matrix:" << std::endl;
-    for (size_t i=ntarg-6; i<ntarg; ++i) {
-      for (size_t j=nsrc-6; j<nsrc; ++j) {
-        std::cout << " \t" << coeffs[ntarg*j+i];
+    for (size_t i=oldnrows-6; i<oldnrows; ++i) {
+      for (size_t j=oldncols-6; j<oldncols; ++j) {
+        std::cout << " \t" << coeffs[oldnrows*j+i];
       }
       std::cout << std::endl;
     }
@@ -281,24 +407,30 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
   // first, copy the old vector into the new and generate the new bottom row
 
   // original vector is column-major (src/column index changes slowest), so let's keep that
-  for (size_t j=0; j<nsrc; j++) {
+  for (size_t j=0; j<oldncols; j++) {
 
     // iterators in each vector
-    auto c_iter = coeffs.begin() + j*ntarg;
+    auto c_iter = coeffs.begin() + j*oldnrows;
     auto a_iter = augcoeff.begin() + j*nrows;
 
-    // copy the next ntarg numbers into the new vector
-    std::copy(c_iter, c_iter+ntarg, a_iter);
+    // copy the next ntarg (*1 or *2) numbers into the new vector
+    std::copy(c_iter, c_iter+oldnrows, a_iter);
 
     // and add the bottom value to this column
     if (targ.is_augmented()) {
       // always include the panel lengths of the source body
-      a_iter += nsrc;
+      a_iter += oldnrows;
       // then write the last value in this column - the length of this panel
       // coefficient in matrix is the panel length
-      //*a_iter = ta[j];
       if (&src == &targ) {
-        *a_iter = ta[j];
+        if (targ.num_unknowns_per_panel() == 1) {
+          *a_iter = sa[j];
+        } else if (j%2 == 0) {
+          // but only if an even number if V+S
+          *a_iter = sa[j/2];
+        } else {
+          *a_iter = 0.0;
+        }
       } else {
         *a_iter = 0.0;
       }
@@ -321,7 +453,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
 
   // then add the last column, if necessary, if target rotates
   if (src.is_augmented()) {
-    auto a_iter = augcoeff.begin() + nsrc*nrows;
+    auto a_iter = augcoeff.begin() + oldncols*nrows;
 
     // this is the velocity influence from the source body with unit rotational rate on these target panels
     std::array<Vector<S>,Dimensions> const& vel = targ.get_vel();
@@ -336,6 +468,11 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
       // and find the component of that velocity along the "target" panel
       *a_iter = vel[0][i]*tt[0][i] + vel[1][i]*tt[1][i];
       ++a_iter;
+
+      if (targ_have_src) {
+        *a_iter = vel[0][i]*tn[0][i] + vel[1][i]*tn[1][i];
+        ++a_iter;
+      }
     }
 
     // finally, the bottom corner is the circulation at unit rotation of the body

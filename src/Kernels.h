@@ -178,3 +178,66 @@ static inline void kernel_1_0vs (const S sx0, const S sy0,
   *tv += ss * (vstar*py - ustar*px);
 }
 
+
+//
+// analytic influence of 2d linear constant-strength vortex AND source panel
+//   on target point ignoring the 1/2pi factor, and separating out each velocity
+//   45 flops average
+//
+template <class S, class A>
+static inline void kernel_1_0vps (const S sx0, const S sy0,
+                                  const S sx1, const S sy1,
+                                  const S vs, const S ss,
+                                  const S tx, const S ty,
+                                  A* __restrict__ vu, A* __restrict__ vv,
+                                  A* __restrict__ su, A* __restrict__ sv) {
+
+  // segment vector
+  const S dx0   = tx - sx0;
+  const S dy0   = ty - sy0;
+  const S dx1   = tx - sx1;
+  const S dy1   = ty - sy1;
+
+  // side lengths of the triangle s0, s1, t
+  const S rij2  = dx0*dx0 + dy0*dy0;
+  const S rij12 = dx1*dx1 + dy1*dy1;
+#ifdef USE_VC
+  const S vstar = S(0.5f) * Vc::log(rij2/rij12);
+  S ustar = Vc::atan2(dx1, dy1) - Vc::atan2(dx0, dy0);
+#else
+  const S vstar = 0.5f * std::log(rij2/rij12);
+  S ustar = std::atan2(dx1, dy1) - std::atan2(dx0, dy0);
+#endif
+  //std::cout << "ustar started off as " << ustar << std::endl;
+#ifdef USE_VC
+  Vc::where(ustar < S(-M_PI)) | ustar += S(2.0f*M_PI);
+  Vc::where(ustar > S(M_PI)) | ustar -= S(2.0f*M_PI);
+#else
+  if (ustar < -M_PI) ustar += 2.0f*M_PI;
+  if (ustar > M_PI) ustar -= 2.0f*M_PI;
+#endif
+  //std::cout << "ustar is " << ustar << " and vstar is " << vstar << std::endl;
+
+  S px = sx1-sx0;
+  S py = sy1-sy0;
+  //std::cout << "px is " << px << " and py is " << py << std::endl;
+#ifdef USE_VC
+  const S mult  = Vc::rsqrt(px*px + py*py);
+#else
+  const S mult  = 1.0f / std::sqrt(px*px + py*py);
+#endif
+  px *= mult;
+  py *= mult;
+
+  // finally, rotate back into global coordinates
+  // and multiply by vortex sheet strength
+  *vu = vs * (ustar*px - vstar*py);
+  *vv = vs * (ustar*py + vstar*px);
+  //std::cout << "velx is " << velx << " and vely is " << vely << std::endl;
+  //std::cout << "finalx is " << (mult*velx) << " and finaly is " << (mult*vely) << std::endl;
+
+  // and now the source strength
+  *su = ss * (ustar*py + vstar*px);
+  *sv = ss * (vstar*py - ustar*px);
+}
+

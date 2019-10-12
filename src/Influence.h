@@ -149,13 +149,14 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
   // get references to use locally
   const std::array<Vector<S>,Dimensions>& sx = src.get_pos();
   const std::vector<Int>&                 si = src.get_idx();
+  //const Vector<S>&                        sa = src.get_area();
   const Vector<S>&                        vs = src.get_str();
   const std::array<Vector<S>,Dimensions>& tx = targ.get_pos();
   std::array<Vector<S>,Dimensions>&       tu = targ.get_vel();
 
   // and get the source strengths, if they exist
-  const bool           have_source_strengths = src.have_rot_src_str();
-  const Vector<S>&                        ss = src.get_rot_src_str();
+  const bool           have_source_strengths = src.have_src_str();
+  const Vector<S>&                        ss = src.get_src_str();
 
   float flops = (float)targ.get_n();
 
@@ -169,7 +170,8 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
   Vc::Memory<StoreVec> vsy0(src.get_npanels());
   Vc::Memory<StoreVec> vsx1(src.get_npanels());
   Vc::Memory<StoreVec> vsy1(src.get_npanels());
-  Vc::Memory<StoreVec> vsvs(src.get_npanels());
+  Vc::Memory<StoreVec> vsvs(src.get_npanels());	// vortex strength
+  Vc::Memory<StoreVec> vsss(src.get_npanels());	// source strength
   for (size_t j=0; j<src.get_npanels(); ++j) {
     const size_t id0 = si[2*j];
     const size_t id1 = si[2*j+1];
@@ -178,6 +180,7 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
     vsx1[j]     = sx[0][id1];
     vsy1[j]     = sx[1][id1];
     vsvs[j]     = vs[j];
+    vsss[j]     = 0.0;
     //std::cout << "  src panel " << j << " has " << vsx1[j] << " " << vsy1[j] << " and str " << vsvs[j] << std::endl;
   }
   for (size_t j=src.get_npanels(); j<vsvs.vectorsCount()*StoreVec::size(); ++j) {
@@ -187,21 +190,16 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
     vsx1[j] = 9999.0;
     vsy1[j] = -9999.0;
     vsvs[j] = 0.0;
+    vsss[j] = 0.0;
     //std::cout << "  src panel " << j << " has " << vsx1[j] << " " << vsy1[j] << " and str " << vsvs[j] << std::endl;
   }
 
   // set vectors for source source strength
-  Vc::Memory<StoreVec> vsss(src.get_npanels());
   if (have_source_strengths) {
     for (size_t j=0; j<src.get_npanels(); ++j) {
       vsss[j] = ss[j];
-    }
-    for (size_t j=src.get_npanels(); j<vsss.vectorsCount()*StoreVec::size(); ++j) {
-      vsss[j] = 0.0;
-    }
-  } else {
-    for (size_t j=0; j<vsss.vectorsCount()*StoreVec::size(); ++j) {
-      vsss[j] = 0.0;
+      //std::cout << "    part " << j << " has strs " << vsvs[j] << " " << vsss[j] << std::endl;
+      //std::cout << sa[j]*vsvs[j] << " " << sa[j]*vsss[j] << std::endl;
     }
   }
 
@@ -467,10 +465,6 @@ void panels_affect_panels (Surfaces<S> const& src, Surfaces<S>& targ) {
   const std::vector<Int>&                 ti = targ.get_idx();
   std::array<Vector<S>,Dimensions>&       tu = targ.get_vel();
 */
-
-  // run panels_affect_points on those
-  // or do it on the fly here
-  // return results
 }
 
 

@@ -44,6 +44,7 @@ std::vector<S> vels_to_rhs_panels (Surfaces<S> const& targ) {
   // pull references to the element arrays
   const std::array<Vector<S>,Dimensions>& tu = targ.get_vel();
   const std::array<Vector<S>,Dimensions>& tt = targ.get_tang();
+  const std::array<Vector<S>,Dimensions>& tn = targ.get_norm();
   //const Vector<S>&                        tb = targ.get_tang_bcs();
 
   //std::cout << "tu[0].size() is " << tu[0].size() << std::endl;
@@ -51,27 +52,40 @@ std::vector<S> vels_to_rhs_panels (Surfaces<S> const& targ) {
   //std::cout << "ti.size() is " << ti.size() << std::endl;
 
   assert(tu[0].size() == tt[0].size() && "Input array sizes do not match");
+  assert(tu[0].size() == tn[0].size() && "Input array sizes do not match");
   //assert(tx[0].size() == tb.size() && "Input array sizes do not match");
 
   // find array sizes
-  // this assumes one unknown per panel - not generally true!!!
-  const size_t ntarg  = targ.get_npanels();
+  const size_t ntarg = targ.get_npanels();
+  const size_t nunk  = targ.num_unknowns_per_panel();
 
   // prepare the rhs vector
   std::vector<S> rhs;
-  rhs.resize(ntarg);
+  rhs.resize(ntarg*nunk);
 
   // convert velocity and boundary condition to RHS values
-  for (size_t i=0; i<ntarg; i++) {
 
-    // dot product of tangent with local velocity, applying normalization
-    rhs[i] = -(tu[0][i]*tt[0][i] + tu[1][i]*tt[1][i]);
+  if (nunk == 1) {
+    // we have vortex strengths only - use the tangential boundary condition
+    for (size_t i=0; i<ntarg; i++) {
+      // dot product of normalized tangent with local velocity
+      rhs[i] = -(tu[0][i]*tt[0][i] + tu[1][i]*tt[1][i]);
 
-    // DO NOT include the influence of the boundary condition here, do it before shedding
-    //rhs[i] -= tb[i];
+      // DO NOT include the influence of the boundary condition here, do it before shedding
+      //rhs[i] -= tb[i];
 
-    //std::cout << "  elem " << i << " vel is " << tu[0][i] << " " << tu[1][i] << std::endl;
-    //std::cout << "  elem " << i << " rhs is " << rhs[i] << std::endl;
+      //std::cout << "  elem " << i << " vel is " << tu[0][i] << " " << tu[1][i] << std::endl;
+      //std::cout << "       " << " tan vec is " << tt[0][i] << " " << tt[1][i] << std::endl;
+      //std::cout << "       " << " rhs is " << rhs[i] << std::endl;
+    }
+
+  } else {
+    // we have unknown vortex and source strengths - use tangential and normal boundary conditions
+    for (size_t i=0; i<ntarg; i++) {
+      // dot product of normalized tangent with local velocity
+      rhs[2*i]   = -(tu[0][i]*tt[0][i] + tu[1][i]*tt[1][i]);
+      rhs[2*i+1] = -(tu[0][i]*tn[0][i] + tu[1][i]*tn[1][i]);
+    }
   }
 
   return rhs;
