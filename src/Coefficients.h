@@ -135,9 +135,7 @@ template <class S>
 Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
   std::cout << "    1_1 compute coefficients of" << src.to_string() << " on" << targ.to_string() << std::endl;
 
-#ifndef USE_VC
-  const bool use_two_way = false;
-#endif
+  const bool use_two_way = true;
 
   // use floats to prevent overruns
   float flops = 0.0;
@@ -162,9 +160,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
   const bool                   targ_have_src = (targ.num_unknowns_per_panel() == 2);
   const std::array<Vector<S>,Dimensions>& tt = targ.get_tang();
   const std::array<Vector<S>,Dimensions>& tn = targ.get_norm();
-#ifndef USE_VC
   const Vector<S>&                        ta = targ.get_area();
-#endif
 
 #ifdef USE_VC
   // define vector types for Vc (still only S==A supported here)
@@ -200,7 +196,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
     for (size_t i=0; i<ntargvec; i++) {
 
       // fill a 4- or 8-wide vector with the target coordinates
-      StoreVec tx0, ty0, tx1, ty1, ttx, tty, tnx, tny;
+      StoreVec tx0, ty0, tx1, ty1, ttx, tty, tnx, tny, tva;
       for (size_t ii=0; ii<StoreVec::size() && i*StoreVec::size()+ii<ntarg; ++ii) {
         const size_t idx = i*StoreVec::size() + ii;
         const Int tfirst  = ti[2*idx];
@@ -213,6 +209,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
         tty[ii] = tt[1][idx];
         tnx[ii] = tn[0][idx];
         tny[ii] = tn[1][idx];
+        tva[ii] = ta[idx];
       }
 
       // collocation point for panel i
@@ -253,7 +250,19 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
                                        xi, yi, &vortu, &vortv);
 
         // dot product with tangent vector
-        const StoreVec newcoeffs = vortu*ttx + vortv*tty;
+        StoreVec newcoeffs = vortu*ttx + vortv*tty;
+
+        // average this with the point-affects-panel influence
+        if (use_two_way) {
+          // flipping source and target returns negative of desired influence
+          //kernel_1_0v<S,S>(tx0, ty0, tx1, ty1, 1.0, 0.5*(sx0+sx1), 0.5*(sy0+sy1), &vortu, &vortv);
+          kernel_1_0v<StoreVec,StoreVec>(tx0, ty0, tx1, ty1, StoreVec(1.0),
+                                         StoreVec(0.5)*(sx0+sx1), StoreVec(0.5)*(sy0+sy1),
+                                         &vortu, &vortv);
+          newcoeffs -= (vortu*ttx + vortv*tty) * (sa[j]/tva);
+          // take the average
+          newcoeffs *= StoreVec(0.5);
+        }
 
         // spread the results from a vector register back to the primary array
         for (size_t ii=0; ii<StoreVec::size() && i*StoreVec::size()+ii<ntarg; ++ii) {
