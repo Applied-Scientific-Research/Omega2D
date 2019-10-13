@@ -205,6 +205,15 @@ void Simulation::clear_bodies() {
 
 // Write a set of vtu files for the particles and panels
 std::vector<std::string> Simulation::write_vtk(const int _index) {
+
+  // solve the BEM (before any VTK or status file output)
+  //std::cout << "Updating element vels" << std::endl;
+  std::array<double,2> thisfs = {fs[0], fs[1]};
+  solve_bem<STORE,ACCUM,Int>(time, thisfs, get_ips(), vort, bdry, bem);
+  conv.find_vels(thisfs, vort, bdry, vort);
+  conv.find_vels(thisfs, vort, bdry, fldpt);
+  conv.find_vels(thisfs, vort, bdry, bdry);
+
   // may eventually want to avoid clobbering by maintaining an internal count of the
   //   number of simulations run from this execution of the GUI
   std::vector<std::string> files;
@@ -435,13 +444,6 @@ void Simulation::step() {
   // only increment step here!
   nstep++;
 
-  // solve the BEM (before any VTK or status file output)
-  std::cout << "Updating element vels" << std::endl;
-  solve_bem<STORE,ACCUM,Int>(time, thisfs, get_ips(), vort, bdry, bem);
-  conv.find_vels(thisfs, vort, bdry, vort);
-  conv.find_vels(thisfs, vort, bdry, fldpt);
-  conv.find_vels(thisfs, vort, bdry, bdry);
-
   // and write status file
   dump_stats_to_status();
 }
@@ -456,6 +458,14 @@ void Simulation::dump_stats_to_status() {
     sf.append_value((int)get_nparts());
 
     // more advanced info
+
+    // solve the BEM (before any VTK or status file output)
+    std::array<double,2> thisfs = {fs[0], fs[1]};
+    solve_bem<STORE,ACCUM,Int>(time, thisfs, get_ips(), vort, bdry, bem);
+    // but do we really need to do these?
+    //conv.find_vels(thisfs, vort, bdry, vort);
+    //conv.find_vels(thisfs, vort, bdry, fldpt);
+    //conv.find_vels(thisfs, vort, bdry, bdry);
 
     // add up the total circulation
     float tot_circ = 0.0;
