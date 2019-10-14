@@ -222,17 +222,39 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
         StoreVec vortu, vortv, srcu, srcv;
         // influence of vortex panel j with unit circulation on center of panel i
         kernel_1_0vps<StoreVec,StoreVec>(sx0, sy0, sx1, sy1,
-                                         StoreVec(1.0), StoreVec(1.0), xi, yi,
+                                         StoreVec(1.0), StoreVec(1.0),
+                                         xi, yi,
                                          &vortu, &vortv, &srcu, &srcv);
 
         // dot product of vortex influence with tangent vector
-        const StoreVec c1e1 = vortu*ttx + vortv*tty;
+        StoreVec c1e1 = vortu*ttx + vortv*tty;
         // dot product of vortex influence with normal vector
-        const StoreVec c1e2 = vortu*tnx + vortv*tny;
+        StoreVec c1e2 = vortu*tnx + vortv*tny;
         // dot product of source influence with tangent vector
-        const StoreVec c2e1 = srcu*ttx + srcv*tty;
+        StoreVec c2e1 = srcu*ttx + srcv*tty;
         // dot product of source influence with normal vector
-        const StoreVec c2e2 = srcu*tnx + srcv*tny;
+        StoreVec c2e2 = srcu*tnx + srcv*tny;
+
+        // average this with the point-affects-panel influence
+        if (use_two_way) {
+          // flipping source and target returns negative of desired influence
+          kernel_1_0vps<StoreVec,StoreVec>(tx0, ty0, tx1, ty1,
+                                           StoreVec(1.0), StoreVec(1.0),
+                                           StoreVec(0.5)*(sx0+sx1), StoreVec(0.5)*(sy0+sy1),
+                                           &vortu, &vortv, &srcu, &srcv);
+          // subtract off the sum
+          const StoreVec fac = sa[j]/tva;
+          c1e1 -= (vortu*ttx + vortv*tty) * fac;
+          c1e2 -= (vortu*tnx + vortv*tny) * fac;
+          c2e1 -= ( srcu*ttx +  srcv*tty) * fac;
+          c2e2 -= ( srcu*tnx +  srcv*tny) * fac;
+
+          // and take the average
+          c1e1 *= StoreVec(0.5);
+          c1e2 *= StoreVec(0.5);
+          c2e1 *= StoreVec(0.5);
+          c2e2 *= StoreVec(0.5);
+        }
 
         // spread the results from a vector register back to the primary array
         for (size_t ii=0; ii<StoreVec::size() && i*StoreVec::size()+ii<ntarg; ++ii) {
@@ -255,7 +277,6 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
         // average this with the point-affects-panel influence
         if (use_two_way) {
           // flipping source and target returns negative of desired influence
-          //kernel_1_0v<S,S>(tx0, ty0, tx1, ty1, 1.0, 0.5*(sx0+sx1), 0.5*(sy0+sy1), &vortu, &vortv);
           kernel_1_0v<StoreVec,StoreVec>(tx0, ty0, tx1, ty1, StoreVec(1.0),
                                          StoreVec(0.5)*(sx0+sx1), StoreVec(0.5)*(sy0+sy1),
                                          &vortu, &vortv);
