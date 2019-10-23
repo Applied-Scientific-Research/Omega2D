@@ -148,6 +148,7 @@ static double ncr(double n, double r) {
     return result;
 }
 static double npr(double n, double r) {return ncr(n, r) * fac(r);}
+static double clamp(double v, double lo, double hi) { return fmax(fmin(v,hi), lo); }
 
 #pragma function (ceil)
 #pragma function (floor)
@@ -185,6 +186,7 @@ static const te_variable functions[] = {
     {"sqrt", sqrt,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"tan", tan,      TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"tanh", tanh,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"clamp", clamp,  TE_FUNCTION3 | TE_FLAG_PURE, 0},
     {0, 0, 0, 0}
 };
 
