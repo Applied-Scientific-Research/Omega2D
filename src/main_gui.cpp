@@ -703,7 +703,7 @@ int main(int argc, char const *argv[]) {
 
       if (is_viscous) {
         // show the toggle for AMR
-#ifdef ADAPTIVE
+#ifdef PLUGIN_AVRM
         static bool use_amr = false;
         ImGui::Checkbox("Allow adaptive resolution", &use_amr);
         sim.set_amr(use_amr);

@@ -11,7 +11,7 @@
 #include "Core.h"
 #include "Merge.h"
 #include "Reflect.h"
-#ifdef ADAPTIVE
+#ifdef PLUGIN_AVRM
   #include "VRMadaptive.h"
 #else
   #include "VRM.h"

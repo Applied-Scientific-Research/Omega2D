@@ -13,10 +13,13 @@ ENDIF ()
 SET (CMAKE_BUILD_TYPE "Release" CACHE STRING "Select which configuration to build" )
 SET (USE_OMP FALSE CACHE BOOL "Use OpenMP multithreading")
 SET (USE_VC FALSE CACHE BOOL "Use Vc for vector arithmetic")
+SET (USE_PLUGIN_AVRM FALSE CACHE BOOL "Enable adaptive VRM plugin")
+#SET (USE_PLUGIN_SIMPLEX FALSE CACHE BOOL "Enable simplex solver plugin")
+#SET (USE_PLUGIN_FMM FALSE CACHE BOOL "Enable FMM summation plugin")
 SET (CMAKE_VERBOSE_MAKEFILE on)
 SET (CMAKE_EXPORT_COMPILE_COMMANDS on)
-#SET (CPREPROCDEFS ${CPREPROCDEFS} -DADAPTIVE)
 
+# Split on compiler
 IF (CMAKE_COMPILER_IS_GNUCXX)
   # support Core2 at a minimum, haswell ideally
   #SET (CMAKE_CXX_FLAGS "-Wall -Wformat -Wno-int-in-bool-context -std=c++17 -march=core2 -mtune=haswell")
@@ -35,6 +38,7 @@ ELSEIF (MSVC)
   SET (CMAKE_CXX_FLAGS_RELEASE "/O2")
 ENDIF ()
 
+# Split on operating system
 IF( WIN32 )
   SET( GL_LIBS_HOME "C:/Lib" CACHE PATH "Location of support libraries" )
   SET( GLFW3_ROOT "${GL_LIBS_HOME}/glfw-3.3.bin.WIN32" CACHE STRING "GLFW3 root" )
@@ -155,6 +159,17 @@ ELSEIF( UNIX )
   SET( GUI_LIBS ${FRAMEWORK_LIBS} ${GLFW_LIBRARIES} )
 ENDIF()
 
+# Enable plugins
+# adaptive VRM
+IF( USE_PLUGIN_AVRM )
+  SET (CPREPROCDEFS ${CPREPROCDEFS} -DPLUGIN_AVRM)
+  INCLUDE_DIRECTORIES( "plugin-o2d-avrm" )
+  # add VRMadaptive.h to HEADERS?
+ENDIF()
+# simplex solver
+# fmm summation
+
+
 ADD_DEFINITIONS (${CPREPROCDEFS})
 
 INCLUDE_DIRECTORIES( "src/glad" )
@@ -163,6 +178,7 @@ INCLUDE_DIRECTORIES( "src/tinyxml2" )
 INCLUDE_DIRECTORIES( "src/tinyexpr" )
 INCLUDE_DIRECTORIES( "src/cppcodec" )
 INCLUDE_DIRECTORIES( "src/stb" )
+INCLUDE_DIRECTORIES( "src" )
 
 IF (CMAKE_COMPILER_IS_GNUCXX)
   SET_SOURCE_FILES_PROPERTIES("src/imgui/imgui_draw.cpp" PROPERTIES COMPILE_FLAGS -Wno-maybe-uninitialized)
