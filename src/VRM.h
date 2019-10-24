@@ -46,6 +46,10 @@ public:
                    const CoreType,
                    const ST);
 
+  // other functions to eventually support:
+  // two-to-one merge (when particles are close to each other)
+  // one-to-many elongate (re-sphericalize a stretched particle)
+
 protected:
   // search for new target location
   std::pair<ST,ST> fill_neighborhood_search(const int32_t,
@@ -81,10 +85,10 @@ private:
 
   // for adaptive particle size VRM
   bool adapt_radii = false;
-  //const ST radius_lapse = 0.3;
+  //const ST radius_lapse = 0.2;
   // only adapt particles if their strength is less than this
   //   fraction of max particle strength
-  //const ST adapt_thresh = 1.e-2;
+  //const ST adapt_thresh = 1.e-3;
 
   // do not perform VRM if source particle strength is less than
   //   this fraction of max particle strength
@@ -296,6 +300,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
   //size_t ntooclose = 0;
   size_t minneibs = 999999;
   size_t maxneibs = 0;
+  // note that an OpenMP loop here will need to use int32_t as the counter variable type
   for (size_t i=0; i<initial_n; ++i) {
 
     // find the nearest neighbor particles
