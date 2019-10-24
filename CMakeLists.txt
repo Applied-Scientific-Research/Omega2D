@@ -14,7 +14,7 @@ SET (CMAKE_BUILD_TYPE "Release" CACHE STRING "Select which configuration to buil
 SET (USE_OMP FALSE CACHE BOOL "Use OpenMP multithreading")
 SET (USE_VC FALSE CACHE BOOL "Use Vc for vector arithmetic")
 SET (USE_PLUGIN_AVRM FALSE CACHE BOOL "Enable adaptive VRM plugin")
-#SET (USE_PLUGIN_SIMPLEX FALSE CACHE BOOL "Enable simplex solver plugin")
+SET (USE_PLUGIN_SIMPLEX FALSE CACHE BOOL "Enable simplex solver plugin")
 #SET (USE_PLUGIN_FMM FALSE CACHE BOOL "Enable FMM summation plugin")
 SET (CMAKE_VERBOSE_MAKEFILE on)
 SET (CMAKE_EXPORT_COMPILE_COMMANDS on)
@@ -167,6 +167,11 @@ IF( USE_PLUGIN_AVRM )
   # add VRMadaptive.h to HEADERS?
 ENDIF()
 # simplex solver
+IF( USE_PLUGIN_SIMPLEX )
+  SET (CPREPROCDEFS ${CPREPROCDEFS} -DPLUGIN_SIMPLEX)
+  INCLUDE_DIRECTORIES( "plugin-o2d-simplex" )
+  # add simplex.h to HEADERS?
+ENDIF()
 # fmm summation
 
 
