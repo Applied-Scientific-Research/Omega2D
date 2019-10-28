@@ -173,6 +173,11 @@ IF( USE_PLUGIN_SIMPLEX )
   # add simplex.h to HEADERS?
 ENDIF()
 # fmm summation
+IF( USE_PLUGIN_FMM )
+  SET (CPREPROCDEFS ${CPREPROCDEFS} -DPLUGIN_FMM)
+  INCLUDE_DIRECTORIES( "plugin-o2d-fmm" )
+  # must probably add files to sources and headers
+ENDIF()
 
 
 ADD_DEFINITIONS (${CPREPROCDEFS})
