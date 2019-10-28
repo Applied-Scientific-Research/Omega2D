@@ -226,44 +226,10 @@ std::vector<std::string> Simulation::write_vtk(const int _index) {
     stepnum = (size_t)_index;
   }
 
-  size_t idx = 0;
-  for (auto &coll : vort) {
-    // eventually all collections will support vtk output
-    //std::visit([=](auto& elem) { elem.write_vtk(); }, coll);
-    // only proceed if the collection is Points
-    if (std::holds_alternative<Points<float>>(coll)) {
-      Points<float>& pts = std::get<Points<float>>(coll);
-      if (pts.get_n() > 0) {
-        files.emplace_back(write_vtu_points<float>(pts, idx++, stepnum));
-      }
-    }
-  }
-
-  idx = 0;
-  for (auto &coll : fldpt) {
-    // eventually all collections will support vtk output
-    //std::visit([=](auto& elem) { elem.write_vtk(); }, coll);
-    // only proceed if the collection is Points
-    if (std::holds_alternative<Points<float>>(coll)) {
-      Points<float>& pts = std::get<Points<float>>(coll);
-      if (pts.get_n() > 0) {
-        files.emplace_back(write_vtu_points<float>(pts, idx++, stepnum));
-      }
-    }
-  }
-
-  idx = 0;
-  for (auto &coll : bdry) {
-    // eventually all collections will support vtk output
-    //std::visit([=](auto& elem) { elem.write_vtk(); }, coll);
-    // only proceed if the collection is Points
-    if (std::holds_alternative<Surfaces<float>>(coll)) {
-      Surfaces<float>& surf = std::get<Surfaces<float>>(coll);
-      if (surf.get_npanels() > 0) {
-        files.emplace_back(write_vtu_panels<float>(surf, idx++, stepnum));
-      }
-    }
-  }
+  // ask Vtk to write files for each collection
+  write_vtk_files<float>(vort, stepnum, files);
+  write_vtk_files<float>(fldpt, stepnum, files);
+  write_vtk_files<float>(bdry, stepnum, files);
 
   return files;
 }

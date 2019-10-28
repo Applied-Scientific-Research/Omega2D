@@ -9,6 +9,7 @@
 
 #include "Omega2D.h"
 #include "VectorHelper.h"
+#include "Collection.h"
 #include "Points.h"
 #include "Surfaces.h"
 
@@ -473,5 +474,32 @@ std::string write_vtu_panels(Surfaces<S> const& surf, const size_t file_idx, con
 
   std::cout << "Wrote " << surf.get_npanels() << " panels to " << vtkfn.str() << std::endl;
   return vtkfn.str();
+}
+
+
+//
+// write a collection
+//
+template <class S>
+void write_vtk_files(std::vector<Collection> const& coll, const size_t _index, std::vector<std::string>& _files) {
+
+  size_t idx = 0;
+  for (auto &elem : coll) {
+    // is there a way to simplyfy this code with a lambda?
+    //std::visit([=](auto& elem) { elem.write_vtk(); }, coll);
+
+    // split on collection type
+    if (std::holds_alternative<Points<S>>(elem)) {
+      Points<S> const & pts = std::get<Points<S>>(elem);
+      if (pts.get_n() > 0) {
+        _files.emplace_back(write_vtu_points<S>(pts, idx++, _index));
+      }
+    } else if (std::holds_alternative<Surfaces<S>>(elem)) {
+      Surfaces<S> const & surf = std::get<Surfaces<S>>(elem);
+      if (surf.get_npanels() > 0) {
+        _files.emplace_back(write_vtu_panels<S>(surf, idx++, _index));
+      }
+    }
+  }
 }
 
