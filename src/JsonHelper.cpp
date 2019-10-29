@@ -147,47 +147,7 @@ void read_json (Simulation& sim,
 
   // must do this first, as we need to set viscous before reading Re
   if (j.count("drawparams") == 1) {
-    json params = j["drawparams"];
-
-    if (params.find("backgroundColor") != params.end()) {
-      std::vector<float> new_color = params["backgroundColor"];
-      //std::cout << "  setting bg color to " << new_color[0] << " " << new_color[1] << " " << new_color[2] << " " << new_color[3] << std::endl;
-      for (size_t i=0; i<4; ++i) rp.clear_color[i] = new_color[i];
-    }
-    if (params.find("featureColor") != params.end()) {
-      std::vector<float> new_color = params["featureColor"];
-      //std::cout << "  setting def color to " << new_color[0] << " " << new_color[1] << " " << new_color[2] << " " << new_color[3] << std::endl;
-      for (size_t i=0; i<4; ++i) rp.default_color[i] = new_color[i];
-    }
-    if (params.find("positiveColor") != params.end()) {
-      std::vector<float> new_color = params["positiveColor"];
-      //std::cout << "  setting pos color to " << new_color[0] << " " << new_color[1] << " " << new_color[2] << " " << new_color[3] << std::endl;
-      for (size_t i=0; i<4; ++i) rp.pos_circ_color[i] = new_color[i];
-    }
-    if (params.find("negativeColor") != params.end()) {
-      std::vector<float> new_color = params["negativeColor"];
-      //std::cout << "  setting neg color to " << new_color[0] << " " << new_color[1] << " " << new_color[2] << " " << new_color[3] << std::endl;
-      for (size_t i=0; i<4; ++i) rp.neg_circ_color[i] = new_color[i];
-    }
-    if (params.find("density") != params.end()) {
-      rp.circ_density = params["density"];
-    }
-    if (params.find("tracerScale") != params.end()) {
-      rp.tracer_scale = params["tracerScale"];
-    }
-    if (params.find("viewPoint") != params.end()) {
-      std::vector<float> new_vec = params["viewPoint"];
-      rp.vcx = new_vec[0];
-      rp.vcy = new_vec[1];
-    }
-    if (params.find("viewScale") != params.end()) {
-      rp.vsize = params["viewScale"];
-    }
-    if (params.find("windowSize") != params.end()) {
-      std::vector<int> new_vec = params["windowSize"];
-      rp.width = new_vec[0];
-      rp.height = new_vec[1];
-    }
+    rp.from_json(j["drawparams"]);
   }
 
   // read the flow features, if any
@@ -331,15 +291,7 @@ void write_json(Simulation& sim,
   if (sim.using_max_steps()) j["simparams"].push_back( {"maxSteps", sim.get_max_steps()} );
   if (sim.using_end_time()) j["simparams"].push_back( {"endTime", sim.get_end_time()} );
 
-  j["drawparams"] = { {"backgroundColor", {rp.clear_color[0], rp.clear_color[1], rp.clear_color[2], rp.clear_color[3]} },
-                      {"featureColor", {rp.default_color[0], rp.default_color[1], rp.default_color[2], rp.default_color[3]} },
-                      {"positiveColor", {rp.pos_circ_color[0], rp.pos_circ_color[1], rp.pos_circ_color[2], rp.pos_circ_color[3]} },
-                      {"negativeColor", {rp.neg_circ_color[0], rp.neg_circ_color[1], rp.neg_circ_color[2], rp.neg_circ_color[3]} },
-                      {"density", rp.circ_density},
-                      {"tracerScale", rp.tracer_scale},
-                      {"viewPoint", {rp.vcx, rp.vcy} },
-                      {"viewScale", rp.vsize},
-                      {"windowSize", {rp.width, rp.height} } };
+  j["drawparams"] = rp.to_json();
 
   if (ffeatures.size() > 0) {
     // assemble a vector of flow features

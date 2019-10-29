@@ -7,10 +7,13 @@
 
 #pragma once
 
+#include "json/json.hpp"
+
 //
 // Class-like struct for all Imgui and OpenGL render parameters
 //
-struct RenderParams {
+class RenderParams {
+public:
   RenderParams() = default;
   ~RenderParams() = default;
 
@@ -18,6 +21,10 @@ struct RenderParams {
   RenderParams(RenderParams&&) = default; //allow move
   RenderParams& operator=(RenderParams const&) = default; //allow copy
   RenderParams& operator=(RenderParams&&) = default; //allow move
+
+  // read to and write from a json object
+  void from_json(const nlohmann::json);
+  nlohmann::json to_json() const;
 
   // public-equivalent data
 
