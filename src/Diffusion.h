@@ -41,7 +41,7 @@ public:
       shed_before_diffuse(false)
     {}
 
-  const bool get_diffuse() { return !is_inviscid; }
+  const bool get_diffuse() const { return !is_inviscid; }
   void set_diffuse(const bool _do_diffuse) { is_inviscid = not _do_diffuse; }
   void set_amr(const bool _do_amr) { adaptive_radii = _do_amr; }
   S get_nom_sep_scaled() const { return nom_sep_scaled; }

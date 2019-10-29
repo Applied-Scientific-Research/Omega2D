@@ -86,66 +86,15 @@ void read_json (Simulation& sim,
 
   // must do this first, as we need to set viscous before reading Re
   if (j.count("simparams") == 1) {
-    json params = j["simparams"];
-    if (params.find("nominalDt") != params.end()) {
-      float* dt = sim.addr_dt();
-      *dt = params["nominalDt"];
-      std::cout << "  setting dt= " << *dt << std::endl;
-    }
-    if (params.find("viscous") != params.end()) {
-      std::string viscous = params["viscous"];
-      if (viscous == "vrm") { sim.set_diffuse(true); }
-      else { sim.set_diffuse(false); }
-      std::cout << "  setting is_viscous= " << sim.get_diffuse() << std::endl;
-    }
-    if (params.find("outputDt") != params.end()) {
-      float odt = params["outputDt"];
-      sim.set_output_dt(odt);
-      std::cout << "  setting output_dt= " << odt << std::endl;
-    }
-    if (params.find("endTime") != params.end()) {
-      float et = params["endTime"];
-      sim.set_end_time(et);
-      std::cout << "  setting end_time= " << et << std::endl;
-    }
-    if (params.find("maxSteps") != params.end()) {
-      size_t ms = params["maxSteps"];
-      sim.set_max_steps(ms);
-      std::cout << "  setting max_steps= " << ms << std::endl;
-    }
-#ifdef PLUGIN_AVRM
-    if (params.find("AMR") != params.end()) {
-      // for now, just enable it, don't set parameters
-      sim.set_amr(true);
-      std::cout << "  enabling amr" << std::endl;
-    }
-#endif
+    sim.from_json(j["simparams"]);
   }
 
-  // now we can read Re
+  // now we can read Re, freestream
   if (j.count("flowparams") == 1) {
-    json params = j["flowparams"];
-    if (params.find("Re") != params.end()) {
-      float* re = sim.addr_re();
-      *re = params["Re"];
-      std::cout << "  setting re= " << *re << std::endl;
-    }
-    if (params.find("Uinf") != params.end()) {
-      // eventually support an expression for Uinf instead of just a single float
-      std::vector<float> new_fs = {0.0, 0.0, 0.0};
-      new_fs.resize(Dimensions);
-      if (params["Uinf"].is_array()) {
-        new_fs = params["Uinf"].get<std::vector<float>>();
-      } else if (params["Uinf"].is_number()) {
-        new_fs[0] = params["Uinf"].get<float>();
-      }
-      float* fs = sim.addr_fs();
-      for (size_t i=0; i<Dimensions; ++i) fs[i] = new_fs[i];
-      std::cout << "  setting freestream to " << fs[0] << " " << fs[1] << std::endl;
-    }
+    sim.flow_from_json(j["flowparams"]);
   }
 
-  // must do this first, as we need to set viscous before reading Re
+  // ask RenderParams to read itself
   if (j.count("drawparams") == 1) {
     rp.from_json(j["drawparams"]);
   }
@@ -279,17 +228,9 @@ void write_json(Simulation& sim,
     j["runtime"] = { {"statusFile", sfile} };
   }
 
-  float re = *(sim.addr_re());
-  float* fs = sim.addr_fs();
-  j["flowparams"] = { {"Re", re},
-                      {"Uinf", {fs[0], fs[1]} } };
+  j["flowparams"] = sim.flow_to_json();
 
-  float dt = *(sim.addr_dt());
-  std::string viscous = sim.get_diffuse() ? "vrm" : "none";
-  j["simparams"] = { {"nominalDt", dt},
-                     {"viscous", viscous} };
-  if (sim.using_max_steps()) j["simparams"].push_back( {"maxSteps", sim.get_max_steps()} );
-  if (sim.using_end_time()) j["simparams"].push_back( {"endTime", sim.get_end_time()} );
+  j["simparams"] = sim.to_json();
 
   j["drawparams"] = rp.to_json();
 

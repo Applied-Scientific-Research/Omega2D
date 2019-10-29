@@ -51,18 +51,18 @@ public:
   float* addr_fs();
 
   // get the derived parameters
-  float get_re();
-  float get_dt();
-  float get_ips();
-  float get_hnu();
-  float get_vdelta();
-  float get_time();
-  float get_end_time();
-  bool using_end_time();
-  size_t get_nstep();
-  size_t get_max_steps();
-  bool using_max_steps();
-  float get_output_dt();
+  float get_re() const;
+  float get_dt() const;
+  float get_ips() const;
+  float get_hnu() const;
+  float get_vdelta() const;
+  float get_time() const;
+  float get_end_time() const;
+  bool using_end_time() const;
+  size_t get_nstep() const;
+  size_t get_max_steps() const;
+  bool using_max_steps() const;
+  float get_output_dt() const;
   std::string get_description();
   bool autostart();
   bool quitonstop();
@@ -76,6 +76,10 @@ public:
   void set_output_dt(const double);
   void set_auto_start(const bool);
   void set_quit_on_stop(const bool);
+
+  // access status file
+  void set_status_file_name(const std::string);
+  std::string get_status_file_name();
 
   // get runtime status
   size_t get_npanels();
@@ -97,14 +101,10 @@ public:
   std::vector<std::shared_ptr<Body>>::iterator bodies_begin() { return bodies.begin(); }
   std::vector<std::shared_ptr<Body>>::iterator bodies_end() { return bodies.end(); }
 
-  // access status file
-  void set_status_file_name(const std::string);
-  std::string get_status_file_name();
-
   // act on stuff
   void set_amr(const bool);
   void set_diffuse(const bool);
-  const bool get_diffuse();
+  const bool get_diffuse() const;
   void reset();
   void clear_bodies();
   void async_first_step();
@@ -123,6 +123,12 @@ public:
   std::vector<std::string> write_vtk(const int _index = -1);
   bool test_vs_stop();
   bool test_vs_stop_async();
+
+  // read to and write from a json object
+  void flow_from_json(const nlohmann::json);
+  nlohmann::json flow_to_json() const;
+  void from_json(const nlohmann::json);
+  nlohmann::json to_json() const;
 
 #ifdef USE_GL
   // graphics pass-through calls

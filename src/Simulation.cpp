@@ -49,18 +49,18 @@ float* Simulation::addr_dt() { return &dt; }
 float* Simulation::addr_fs() { return fs; }
 
 // getters
-float Simulation::get_re() { return re; }
-float Simulation::get_dt() { return dt; }
-float Simulation::get_hnu() { return std::sqrt(dt/re); }
-float Simulation::get_ips() { return diff.get_nom_sep_scaled() * get_hnu(); }
-float Simulation::get_vdelta() { return diff.get_particle_overlap() * get_ips(); }
-float Simulation::get_time() { return (float)time; }
-float Simulation::get_end_time() { return (float)end_time; }
-bool Simulation::using_end_time() { return use_end_time; }
-size_t Simulation::get_nstep() { return nstep; }
-size_t Simulation::get_max_steps() { return max_steps; }
-bool Simulation::using_max_steps() { return use_max_steps; }
-float Simulation::get_output_dt() { return (float)output_dt; }
+float Simulation::get_re() const { return re; }
+float Simulation::get_dt() const { return dt; }
+float Simulation::get_hnu() const { return std::sqrt(dt/re); }
+float Simulation::get_ips() const { return diff.get_nom_sep_scaled() * get_hnu(); }
+float Simulation::get_vdelta() const { return diff.get_particle_overlap() * get_ips(); }
+float Simulation::get_time() const { return (float)time; }
+float Simulation::get_end_time() const { return (float)end_time; }
+bool Simulation::using_end_time() const { return use_end_time; }
+size_t Simulation::get_nstep() const { return nstep; }
+size_t Simulation::get_max_steps() const { return max_steps; }
+bool Simulation::using_max_steps() const { return use_max_steps; }
+float Simulation::get_output_dt() const { return (float)output_dt; }
 std::string Simulation::get_description() { return description; }
 bool Simulation::autostart() { return auto_start; }
 bool Simulation::quitonstop() { return quit_on_stop; }
@@ -119,7 +119,7 @@ void Simulation::set_diffuse(const bool _do_diffuse) {
   diff.set_diffuse(_do_diffuse);
 }
 
-const bool Simulation::get_diffuse() {
+const bool Simulation::get_diffuse() const {
   return diff.get_diffuse();
 }
 
@@ -128,7 +128,114 @@ void Simulation::set_amr(const bool _do_amr) {
   diff.set_diffuse(true);
 }
 
+//
+// json read/write
+//
+
+// set "flowparams" json object
+void
+Simulation::flow_from_json(const nlohmann::json j) {
+
+  if (j.find("Re") != j.end()) {
+    re = j["Re"];
+    std::cout << "  setting re= " << re << std::endl;
+  }
+  if (j.find("Uinf") != j.end()) {
+    // eventually support an expression for Uinf instead of just a single float
+    std::vector<float> new_fs = {0.0, 0.0, 0.0};
+    new_fs.resize(Dimensions);
+    if (j["Uinf"].is_array()) {
+      new_fs = j["Uinf"].get<std::vector<float>>();
+    } else if (j["Uinf"].is_number()) {
+      new_fs[0] = j["Uinf"].get<float>();
+    }
+    for (size_t i=0; i<Dimensions; ++i) fs[i] = new_fs[i];
+    std::cout << "  setting freestream to " << fs[0] << " " << fs[1] << std::endl;
+  }
+}
+
+// create and write a json object for "flowparams"
+nlohmann::json
+Simulation::flow_to_json() const {
+  nlohmann::json j;
+
+  j["Re"] = re;
+  j["Uinf"] = {fs[0], fs[1]};
+
+  return j;
+}
+
+// set "simparams" json object
+void
+Simulation::from_json(const nlohmann::json j) {
+
+  if (j.find("nominalDt") != j.end()) {
+    dt = j["nominalDt"];
+    std::cout << "  setting dt= " << dt << std::endl;
+  }
+
+  if (j.find("outputDt") != j.end()) {
+    output_dt = j["outputDt"];
+    std::cout << "  setting output dt= " << output_dt << std::endl;
+  }
+
+  if (j.find("viscous") != j.end()) {
+    std::string viscous = j["viscous"];
+    if (viscous == "vrm") { set_diffuse(true); }
+    else { set_diffuse(false); }
+    std::cout << "  setting is_viscous= " << get_diffuse() << std::endl;
+  }
+
+  if (j.find("maxSteps") != j.end()) {
+    use_max_steps = true;
+    max_steps = j["maxSteps"];
+    std::cout << "  setting max_steps= " << max_steps << std::endl;
+  } else {
+    use_max_steps = false;
+  }
+
+  if (j.find("endTime") != j.end()) {
+    use_end_time = true;
+    end_time = j["endTime"];
+    std::cout << "  setting end_time= " << end_time << std::endl;
+  } else {
+    use_end_time = false;
+  }
+
+  // set VRM-specific settings
+  //if (params.find("VRM") != params.end()) {
+  //}
+
+#ifdef PLUGIN_AVRM
+  // set aadaptive-VRM-specific settings
+  if (j.find("AMR") != j.end()) {
+    // for now, just enable it, don't set parameters
+    set_amr(true);
+    std::cout << "  enabling amr" << std::endl;
+  }
+#endif
+}
+
+// create and write a json object for "simparams"
+nlohmann::json
+Simulation::to_json() const {
+  nlohmann::json j;
+
+  j["nominalDt"] = dt;
+
+  j["viscous"] = get_diffuse() ? "vrm" : "none";
+
+  if (using_max_steps()) j["maxSteps"] = get_max_steps();
+  if (using_end_time()) j["endTime"] = get_end_time();
+
+  return j;
+}
+
 #ifdef USE_GL
+//
+// OpenGL-specific code
+//
+
 void Simulation::initGL(std::vector<float>& _projmat,
                         float*              _poscolor,
                         float*              _negcolor,

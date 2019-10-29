@@ -51,7 +51,6 @@ RenderParams::from_json(const nlohmann::json j) {
     width = new_vec[0];
     height = new_vec[1];
   }
-
 }
 
 
