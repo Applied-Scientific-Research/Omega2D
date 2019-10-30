@@ -105,6 +105,13 @@ public:
   void set_amr(const bool);
   void set_diffuse(const bool);
   const bool get_diffuse() const;
+  void set_vrm_relative(const bool _in) { diff.set_vrm_relative(_in); }
+  void set_vrm_ignore(const float _in) { diff.set_vrm_ignore(_in); }
+  void set_vrm_simplex(const bool _in) { diff.set_vrm_simplex(_in); }
+#ifdef PLUGIN_AVRM
+  void set_vrm_radgrad(const float _in) { diff.set_vrm_radgrad(_in); }
+  void set_vrm_adapt(const float _in) { diff.set_vrm_adapt(_in); }
+#endif
   void reset();
   void clear_bodies();
   void async_first_step();

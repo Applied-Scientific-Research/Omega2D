@@ -46,6 +46,13 @@ public:
   const bool get_diffuse() const { return !is_inviscid; }
   void set_diffuse(const bool _do_diffuse) { is_inviscid = not _do_diffuse; }
   void set_amr(const bool _do_amr) { adaptive_radii = _do_amr; }
+  void set_vrm_relative(const bool _in) { vrm.set_relative(_in); }
+  void set_vrm_ignore(const float _in) { vrm.set_ignore(_in); }
+  void set_vrm_simplex(const bool _in) { vrm.set_simplex(_in); }
+#ifdef PLUGIN_AVRM
+  void set_vrm_radgrad(const float _in) { vrm.set_radgrad(_in); }
+  void set_vrm_adapt(const float _in) { vrm.set_adapt(_in); }
+#endif
   S get_nom_sep_scaled() const { return nom_sep_scaled; }
   S get_nom_sep() { return nom_sep_scaled * vrm.get_hnu(); }
   S get_particle_overlap() const { return particle_overlap; }
