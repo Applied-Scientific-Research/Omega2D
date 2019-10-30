@@ -165,7 +165,7 @@ Simulation::flow_to_json() const {
   return j;
 }
 
-// set "simparams" json object
+// read "simparams" json object
 void
 Simulation::from_json(const nlohmann::json j) {
 
@@ -177,13 +177,6 @@ Simulation::from_json(const nlohmann::json j) {
   if (j.find("outputDt") != j.end()) {
     output_dt = j["outputDt"];
     std::cout << "  setting output dt= " << output_dt << std::endl;
-  }
-
-  if (j.find("viscous") != j.end()) {
-    std::string viscous = j["viscous"];
-    if (viscous == "vrm") { set_diffuse(true); }
-    else { set_diffuse(false); }
-    std::cout << "  setting is_viscous= " << get_diffuse() << std::endl;
   }
 
   if (j.find("maxSteps") != j.end()) {
@@ -202,18 +195,9 @@ Simulation::from_json(const nlohmann::json j) {
     use_end_time = false;
   }
 
-  // set VRM-specific settings
-  //if (params.find("VRM") != params.end()) {
-  //}
-
-#ifdef PLUGIN_AVRM
-  // set aadaptive-VRM-specific settings
-  if (j.find("AMR") != j.end()) {
-    // for now, just enable it, don't set parameters
-    set_amr(true);
-    std::cout << "  enabling amr" << std::endl;
-  }
-#endif
+  // set diffusion-specific parameters
+  // Diffusion will find and set "viscous", "VRM" and "AMR" parameters
+  diff.from_json(j);
 }
 
 // create and write a json object for "simparams"
@@ -222,11 +206,12 @@ Simulation::to_json() const {
   nlohmann::json j;
 
   j["nominalDt"] = dt;
-
-  j["viscous"] = get_diffuse() ? "vrm" : "none";
-
+  j["outputDt"] = output_dt;
   if (using_max_steps()) j["maxSteps"] = get_max_steps();
   if (using_end_time()) j["endTime"] = get_end_time();
+
+  // Diffusion will write "viscous", "VRM" and "AMR" parameters
+  diff.add_to_json(j);
 
   return j;
 }

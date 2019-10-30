@@ -55,6 +55,9 @@ public:
   // two-to-one merge (when particles are close to each other)
   // one-to-many elongate (re-sphericalize a stretched particle)
 
+  void from_json(const nlohmann::json);
+  void add_to_json(nlohmann::json&) const;
+
 protected:
   // search for new target location
   std::pair<ST,ST> fill_neighborhood_search(const int32_t,
@@ -90,16 +93,12 @@ private:
 
   // for adaptive particle size VRM
   bool adapt_radii = false;
-  //const ST radius_lapse = 0.2;
-  // only adapt particles if their strength is less than this
-  //   fraction of max particle strength
-  //const ST adapt_thresh = 1.e-3;
 
   // do not perform VRM if source particle strength is less than
   //   this fraction of max particle strength
-  const ST ignore_thresh = 1.e-5;
+  ST ignore_thresh = 1.e-5;
   // are thresholds absolute or relative to strongest particle?
-  const bool thresholds_are_relative = true;
+  bool thresholds_are_relative = true;
 
   // use nanoflann for nearest-neighbor searching? false uses direct search
   const bool use_tree = true;
@@ -627,5 +626,39 @@ bool VRM<ST,CT,MAXMOM>::attempt_solution(const int32_t idiff,
   // set output fractions and result
   fracout = fractions;
   return haveSolution;
+}
+
+//
+// read/write parameters to json
+//
+
+// create and write a json object for all diffusion parameters
+template <class ST, class CT, uint8_t MAXMOM>
+void VRM<ST,CT,MAXMOM>::from_json(const nlohmann::json simj) {
+
+  if (simj.find("VRM") != simj.end()) {
+    nlohmann::json j = simj["VRM"];
+
+    if (j.find("ignoreBelow") != j.end()) {
+      ignore_thresh = j["ignoreBelow"];
+      std::cout << "  setting ignore_thresh= " << ignore_thresh << std::endl;
+    }
+
+    if (j.find("relativeThresholds") != j.end()) {
+      thresholds_are_relative = j["relativeThresholds"];
+      std::cout << "  setting thresholds_are_relative= " << thresholds_are_relative << std::endl;
+    }
+  }
+}
+
+// create and write a json object for all diffusion parameters
+template <class ST, class CT, uint8_t MAXMOM>
+void VRM<ST,CT,MAXMOM>::add_to_json(nlohmann::json& simj) const {
+
+  // set vrm-specific parameters
+  nlohmann::json j;
+  j["ignoreBelow"] = ignore_thresh;
+  j["relativeThresholds"] = thresholds_are_relative;
+  simj["VRM"] = j;
 }
 
