@@ -402,11 +402,14 @@ public:
       mgl->pos_color_attribute = glGetUniformLocation(mgl->spo[1], "pos_color");
       mgl->neg_color_attribute = glGetUniformLocation(mgl->spo[1], "neg_color");
       mgl->str_scale_attribute = glGetUniformLocation(mgl->spo[1], "str_scale");
+      mgl->rad_scale_attribute = glGetUniformLocation(mgl->spo[1], "rad_scale");
+
 
       // send the current values
       glUniform4fv(mgl->pos_color_attribute, 1, (const GLfloat *)_poscolor);
       glUniform4fv(mgl->neg_color_attribute, 1, (const GLfloat *)_negcolor);
       glUniform1f (mgl->str_scale_attribute, (const GLfloat)1.0);
+      glUniform1f (mgl->rad_scale_attribute, (const GLfloat)1.0);
 
       // and indicate the fragment color output
       glBindFragDataLocation(mgl->spo[1], 0, "frag_color");
@@ -519,9 +522,11 @@ public:
         glUniformMatrix4fv(mgl->projmat_attribute_bl, 1, GL_FALSE, _projmat.data());
 
         // upload the current color values
+        const float color_scaling = _rparams.circ_density * std::pow(_vdelta/_rparams.vorton_scale,2) / max_strength;
         glUniform4fv(mgl->pos_color_attribute, 1, (const GLfloat *)_rparams.pos_circ_color);
         glUniform4fv(mgl->neg_color_attribute, 1, (const GLfloat *)_rparams.neg_circ_color);
-        glUniform1f (mgl->str_scale_attribute, (const GLfloat)(_rparams.circ_density*std::pow(_vdelta,2)/max_strength));
+        glUniform1f (mgl->str_scale_attribute, (const GLfloat)color_scaling);
+        glUniform1f (mgl->rad_scale_attribute, (const GLfloat)_rparams.vorton_scale);
 
         // the one draw call here
         glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, mgl->num_uploaded);

@@ -1341,6 +1341,7 @@ int main(int argc, char const *argv[]) {
       ImGui::ColorEdit3("background color",     rparams.clear_color);
       //ImGui::Checkbox("show origin", &show_origin);
       ImGui::SliderFloat("vorticity density", &(rparams.circ_density), 0.01f, 10.0f, "%.2f", 2.0f);
+      ImGui::SliderFloat("particle scale", &(rparams.vorton_scale), 0.02f, 2.0f, "%.2f", 2.0f);
 
       if (ImGui::Button("Recenter")) {
         // put everything back to center

@@ -4,6 +4,7 @@ R"(
 uniform mat4 Projection;
 uniform vec4 pos_color;
 uniform vec4 neg_color;
+uniform float rad_scale;
 in vec4 quad_attr;
 in float px;
 in float py;
@@ -24,6 +25,7 @@ void main() {
   strength = abs(sx)/(r*r);
 
   // make 4 verts as a single primitive and set texture coords - see other shaders
-  gl_Position = Projection * vec4(px + 2.5f*r*quad_attr.x, py + 2.5f*r*quad_attr.y, 0.f, 1.f);
+  float rscale = 2.5f * r * rad_scale;
+  gl_Position = Projection * vec4(px + rscale*quad_attr.x, py + rscale*quad_attr.y, 0.f, 1.f);
 }
 )"
