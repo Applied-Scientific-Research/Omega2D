@@ -282,7 +282,7 @@ AsymmetricBlob::from_json(const nlohmann::json j) {
 nlohmann::json
 AsymmetricBlob::to_json() const {
   nlohmann::json j;
-  j["type"] = "vortex blob";
+  j["type"] = "asymmetric blob";
   j["center"] = {m_x, m_y};
   j["softness"] = m_softness;
   j["strength"] = m_str;
