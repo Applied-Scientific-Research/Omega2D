@@ -404,7 +404,6 @@ public:
       mgl->str_scale_attribute = glGetUniformLocation(mgl->spo[1], "str_scale");
       mgl->rad_scale_attribute = glGetUniformLocation(mgl->spo[1], "rad_scale");
 
-
       // send the current values
       glUniform4fv(mgl->pos_color_attribute, 1, (const GLfloat *)_poscolor);
       glUniform4fv(mgl->neg_color_attribute, 1, (const GLfloat *)_negcolor);
