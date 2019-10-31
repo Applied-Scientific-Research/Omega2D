@@ -41,13 +41,13 @@ public:
   VRM();
   VRM(const CT);
 
-  void set_hnu(const ST);
+  void set_hnu(const ST _in) { h_nu = _in; }
   void set_adaptive_radii(const bool);
   void set_relative(const bool _in) { thresholds_are_relative = _in; }
   void set_ignore(const float _in) { ignore_thresh = _in; }
   void set_simplex(const bool _in) { use_solver = (_in ? simplex : nnls); }
 
-  ST get_hnu();
+  const ST get_hnu() const { return (ST)h_nu; }
   const bool get_adaptive_radii() const { return adapt_radii; }
   const bool get_relative() const { return thresholds_are_relative; }
   const float get_ignore() const { return ignore_thresh; }
@@ -183,20 +183,10 @@ void VRM<ST,CT,MAXMOM>::initialize_sites() {
 }
 
 template <class ST, class CT, uint8_t MAXMOM>
-void VRM<ST,CT,MAXMOM>::set_hnu(const ST _newhnu) {
-  h_nu = _newhnu;
-}
-
-template <class ST, class CT, uint8_t MAXMOM>
 void VRM<ST,CT,MAXMOM>::set_adaptive_radii(const bool _doamr) {
   //if (!adapt_radii and _doamr) std::cout << "Particle radii will adapt to solution" << std::endl;
   //if (adapt_radii and !_doamr) std::cout << "Particle radii will not adapt to solution" << std::endl;
   adapt_radii = _doamr;
-}
-
-template <class ST, class CT, uint8_t MAXMOM>
-ST VRM<ST,CT,MAXMOM>::get_hnu() {
-  return (ST)h_nu;
 }
 
 //
