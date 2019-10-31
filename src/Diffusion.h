@@ -43,15 +43,21 @@ public:
       shed_before_diffuse(false)
     {}
 
-  const bool get_diffuse() const { return !is_inviscid; }
   void set_diffuse(const bool _do_diffuse) { is_inviscid = not _do_diffuse; }
   void set_amr(const bool _do_amr) { adaptive_radii = _do_amr; }
   void set_vrm_relative(const bool _in) { vrm.set_relative(_in); }
   void set_vrm_ignore(const float _in) { vrm.set_ignore(_in); }
   void set_vrm_simplex(const bool _in) { vrm.set_simplex(_in); }
+  const bool get_diffuse() const { return !is_inviscid; }
+  const bool get_amr() const { return adaptive_radii; }
+  const bool get_vrm_relative() const { return vrm.get_relative(); }
+  const float get_vrm_ignore() const { return vrm.get_ignore(); }
+  const bool get_vrm_simplex() const { return vrm.get_simplex(); }
 #ifdef PLUGIN_AVRM
   void set_vrm_radgrad(const float _in) { vrm.set_radgrad(_in); }
   void set_vrm_adapt(const float _in) { vrm.set_adapt(_in); }
+  const float get_vrm_radgrad() const { return vrm.get_radgrad(); }
+  const float get_vrm_adapt() const { return vrm.get_adapt(); }
 #endif
   S get_nom_sep_scaled() const { return nom_sep_scaled; }
   S get_nom_sep() { return nom_sep_scaled * vrm.get_hnu(); }

@@ -40,12 +40,18 @@ class VRM {
 public:
   VRM();
   VRM(const CT);
+
   void set_hnu(const ST);
-  ST get_hnu();
   void set_adaptive_radii(const bool);
   void set_relative(const bool _in) { thresholds_are_relative = _in; }
   void set_ignore(const float _in) { ignore_thresh = _in; }
   void set_simplex(const bool _in) { use_solver = (_in ? simplex : nnls); }
+
+  ST get_hnu();
+  const bool get_adaptive_radii() const { return adapt_radii; }
+  const bool get_relative() const { return thresholds_are_relative; }
+  const float get_ignore() const { return ignore_thresh; }
+  const bool get_simplex() const { return (use_solver==simplex); }
 
   // all-to-all diffuse; can change array sizes
   void diffuse_all(std::array<Vector<ST>,2>&,

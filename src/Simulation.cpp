@@ -119,14 +119,11 @@ void Simulation::set_diffuse(const bool _do_diffuse) {
   diff.set_diffuse(_do_diffuse);
 }
 
-const bool Simulation::get_diffuse() const {
-  return diff.get_diffuse();
-}
-
 void Simulation::set_amr(const bool _do_amr) {
   diff.set_amr(_do_amr);
   diff.set_diffuse(true);
 }
+
 
 //
 // json read/write

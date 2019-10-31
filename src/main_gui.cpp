@@ -1341,7 +1341,7 @@ int main(int argc, char const *argv[]) {
       ImGui::ColorEdit3("background color",     rparams.clear_color);
       //ImGui::Checkbox("show origin", &show_origin);
       ImGui::SliderFloat("vorticity density", &(rparams.circ_density), 0.01f, 10.0f, "%.2f", 2.0f);
-      ImGui::SliderFloat("particle scale", &(rparams.vorton_scale), 0.02f, 2.0f, "%.2f", 2.0f);
+      ImGui::SliderFloat("particle scale", &(rparams.vorton_scale), 0.01f, 2.0f, "%.2f", 2.0f);
 
       if (ImGui::Button("Recenter")) {
         // put everything back to center
@@ -1358,14 +1358,14 @@ int main(int argc, char const *argv[]) {
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Solver parameters (advanced)")) {
 
-      static bool relative_thresh = true;
+      bool relative_thresh = sim.get_vrm_relative();
       ImGui::Checkbox("Thresholds are relative to strongest particle", &relative_thresh);
       ImGui::SameLine();
       ShowHelpMarker("If unchecked, the thresholds defined here are absolute and unscaled to the strongest particle.");
       sim.set_vrm_relative(relative_thresh);
 
       ImGui::PushItemWidth(-270);
-      static float ignore_thresh = -5;
+      float ignore_thresh = std::log10(sim.get_vrm_ignore());
       ImGui::SliderFloat("Threshold to ignore", &ignore_thresh, -12, 0, "%.1f");
       ImGui::SameLine();
       ShowHelpMarker("During diffusion, ignore any particles with strength magnitude less than this power of ten threshold.");
@@ -1374,25 +1374,25 @@ int main(int argc, char const *argv[]) {
 
 #ifdef PLUGIN_SIMPLEX
       // bool toggle for NNLS vs. Simplex
-      static bool use_simplex = true;
+      bool use_simplex = sim.get_vrm_simplex();
       ImGui::Checkbox("VRM uses Simplex solver", &use_simplex);
       sim.set_vrm_simplex(use_simplex);
 #endif
 
 #ifdef PLUGIN_AVRM
       // show the toggle for AMR
-      static bool use_amr = false;
+      bool use_amr = sim.get_amr();
       ImGui::Checkbox("Allow adaptive resolution", &use_amr);
       sim.set_amr(use_amr);
 
       ImGui::PushItemWidth(-270);
-      static float lapse_rate = 0.2;
+      float lapse_rate = sim.get_vrm_radgrad();
       ImGui::SliderFloat("Radius gradient", &lapse_rate, 0.01, 0.5f, "%.2f");
       ImGui::SameLine();
       ShowHelpMarker("During adaptive diffusion, enforce a maximum spatial gradient for particle radii.");
       sim.set_vrm_radgrad(lapse_rate);
 
-      static float adapt_thresh = -3;
+      float adapt_thresh = std::log10(sim.get_vrm_adapt());
       ImGui::SliderFloat("Threshold to adapt", &adapt_thresh, -12, 0, "%.1f");
       ImGui::SameLine();
       ShowHelpMarker("During diffusion, allow any particles with strength less than this power-of-ten threshold to grow in size.");
