@@ -71,6 +71,17 @@ size_t merge_close_particles(std::array<Vector<S>,2>& pos,
   nanoflann::SearchParams params;
   params.sorted = true;
 
+  // new merging needs two new thresholds
+  const S initial_thresh = 0.5;
+  const S always_thresh = 0.05;
+
+  // and a measure of the mean strength
+  S meanstr = 0.0;
+  for (size_t i=0; i<n; ++i) {
+    meanstr += std::abs(s[i]);
+  }
+  meanstr /= (S)n;
+
   //
   // merge co-located particles with identical radii
   //
@@ -86,7 +97,7 @@ size_t merge_close_particles(std::array<Vector<S>,2>& pos,
 
       // nominal separation for this particle
       const S nom_sep = r[i] / particle_overlap;
-      const S search_rad = nom_sep * threshold;
+      const S search_rad = nom_sep * initial_thresh;
       const S distsq_thresh = std::pow(search_rad, 2);
 
       // tree-based search with nanoflann
@@ -101,26 +112,39 @@ size_t merge_close_particles(std::array<Vector<S>,2>& pos,
           if (i != iother and not erase_me[iother]) {
             // make sure distance is also less than target particle's threshold
             // note that distance returned from radiusSearch is already squared
-            if (ret_matches[j].second < std::pow(threshold*r[iother]/particle_overlap, 2)) {
+            const S dist = std::sqrt(ret_matches[j].second);
+            if (dist < initial_thresh*r[iother]/particle_overlap) {
               //std::cout << "  particles " << i << " and " << iother << " will merge" << std::endl;
               //std::cout << "    first at " << x[i] << " " << y[i] << " with str " << s[i] << " and rad " << r[i] << std::endl;
               //std::cout << "    other at " << x[iother] << " " << y[iother] << " with str " << s[iother] << " and rad " << r[iother] << std::endl;
               const S si = std::abs(s[i]) + std::numeric_limits<S>::epsilon();
               const S so = std::abs(s[iother]) + std::numeric_limits<S>::epsilon();
-              const S strength_mag = si + so;
-              // find center of strength
-              const S newx = (x[i]*si + x[iother]*so) / strength_mag;
-              const S newy = (y[i]*si + y[iother]*so) / strength_mag;
-              // move strengths to particle i
-              x[i] = newx;
-              y[i] = newy;
-              if (adapt_radii) {
-                r[i] = std::sqrt((si*r[i]*r[i] + so*r[iother]*r[iother])/strength_mag);
+              const S frac = so / (si + so);
+
+              bool do_merge = false;
+              const S min_rad = std::min(r[iother],r[i]) / particle_overlap;
+              // check vs. magnitude of relative error
+              if (dist*frac*si < threshold*meanstr*min_rad) do_merge = true;
+              // or merge regardless if particles are very close
+              if (dist < always_thresh*min_rad) do_merge = true;
+
+              if (do_merge) {
+                // find center of strength
+                const S omfrac = 1.0 - frac;
+                const S newx = x[i]*omfrac + x[iother]*frac;
+                const S newy = y[i]*omfrac + y[iother]*frac;
+
+                // move strengths to particle i
+                x[i] = newx;
+                y[i] = newy;
+                if (adapt_radii) {
+                  r[i] = std::sqrt(omfrac*r[i]*r[i] + frac*r[iother]*r[iother]);
+                }
+                s[i] = s[i] + s[iother];
+                //std::cout << "    result   " << x[i] << " " << y[i] << " with str " << s[i] << " and rad " << r[i] << std::endl;
+                // flag other particle for deletion
+                erase_me[iother] = true;
               }
-              s[i] = s[i] + s[iother];
-              //std::cout << "    result   " << x[i] << " " << y[i] << " with str " << s[i] << " and rad " << r[i] << std::endl;
-              // flag other particle for deletion
-              erase_me[iother] = true;
             }
           }
         }
