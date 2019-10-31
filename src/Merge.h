@@ -82,28 +82,26 @@ size_t merge_close_particles(std::array<Vector<S>,2>& pos,
 
   // now, for every particle, search for a co-located and identical-radius particle!
   for (size_t i=0; i<n; ++i) {
+    if (not erase_me[i]) {
 
-    // nominal separation for this particle
-    const S nom_sep = r[i] / particle_overlap;
-    const S search_rad = nom_sep * threshold;
-    const S distsq_thresh = std::pow(search_rad, 2);
+      // nominal separation for this particle
+      const S nom_sep = r[i] / particle_overlap;
+      const S search_rad = nom_sep * threshold;
+      const S distsq_thresh = std::pow(search_rad, 2);
 
-    // tree-based search with nanoflann
-    const S query_pt[Dimensions] = { x[i], y[i] };
-    const size_t nMatches = mat_index.index->radiusSearch(query_pt, distsq_thresh, ret_matches, params);
+      // tree-based search with nanoflann
+      const S query_pt[Dimensions] = { x[i], y[i] };
+      const size_t nMatches = mat_index.index->radiusSearch(query_pt, distsq_thresh, ret_matches, params);
 
-    // match 0 should be self, match 1 is closest
-    // if there are more than one, check the radii
-    if (nMatches > 1) {
-      for (size_t j=0; j<ret_matches.size(); ++j) {
-        const size_t iother = (size_t)ret_matches[j].first;
-        if (i != iother) {
-          // make sure distance is also less than target particle's threshold
-          // note that distance returned from radiusSearch is already squared
-          if (std::sqrt(ret_matches[j].second) < threshold*r[iother]/particle_overlap) {
-            if (erase_me[i] or erase_me[iother]) {
-              // we've already account for this one
-            } else {
+      // match 0 should be self, match 1 is closest
+      // if there are more than one, check the radii
+      if (nMatches > 1) {
+        for (size_t j=0; j<ret_matches.size(); ++j) {
+          const size_t iother = (size_t)ret_matches[j].first;
+          if (i != iother and not erase_me[iother]) {
+            // make sure distance is also less than target particle's threshold
+            // note that distance returned from radiusSearch is already squared
+            if (ret_matches[j].second < std::pow(threshold*r[iother]/particle_overlap, 2)) {
               //std::cout << "  particles " << i << " and " << iother << " will merge" << std::endl;
               //std::cout << "    first at " << x[i] << " " << y[i] << " with str " << s[i] << " and rad " << r[i] << std::endl;
               //std::cout << "    other at " << x[iother] << " " << y[iother] << " with str " << s[iother] << " and rad " << r[iother] << std::endl;
