@@ -23,6 +23,7 @@
 #include <optional>
 #include <chrono>
 #include <cmath>
+#include <cassert>
 
 
 //
@@ -43,16 +44,26 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
   std::array<Vector<S>,Dimensions>&       tu = targ.get_vel();
 
 #ifdef USE_VC
+  // define vector types for Vc
+  typedef Vc::Vector<S> StoreVec;
+  typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
+
   // create float_v versions of the source vectors
-  const Vc::Memory<Vc::Vector<S>> sxv = stdvec_to_vcvec<S>(sx[0], 0.0);
-  const Vc::Memory<Vc::Vector<S>> syv = stdvec_to_vcvec<S>(sx[1], 0.0);
-  const Vc::Memory<Vc::Vector<S>> srv = stdvec_to_vcvec<S>(sr,    1.0);
-  const Vc::Memory<Vc::Vector<S>> ssv = stdvec_to_vcvec<S>(ss,    0.0);
+  const Vc::Memory<StoreVec> sxv = stdvec_to_vcvec<S>(sx[0], 0.0);
+  const Vc::Memory<StoreVec> syv = stdvec_to_vcvec<S>(sx[1], 0.0);
+  const Vc::Memory<StoreVec> srv = stdvec_to_vcvec<S>(sr,    1.0);
+  const Vc::Memory<StoreVec> ssv = stdvec_to_vcvec<S>(ss,    0.0);
 #endif
 
   float flops = (float)targ.get_n();
 
-  // here is where we can dispatch on solver type, grads-or-not, core function, etc.?
+  // We need 4 different loops here, for the options:
+  //   target radii or no target radii
+  //   Vc or no Vc
+
+  //
+  // targets are field points, with no core radius ===============================================
+  //
   if (targ.is_inert()) {
     std::cout << "    0v_0p compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
     // targets are field points
@@ -60,13 +71,13 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
     #pragma omp parallel for
     for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
 #ifdef USE_VC
-      const Vc::Vector<S> txv = tx[0][i];
-      const Vc::Vector<S> tyv = tx[1][i];
+      const StoreVec txv = tx[0][i];
+      const StoreVec tyv = tx[1][i];
       // care must be taken if S != A, because these vectors must have the same length
-      Vc::Vector<A> accumu = 0.0;
-      Vc::Vector<A> accumv = 0.0;
+      AccumVec accumu = 0.0;
+      AccumVec accumv = 0.0;
       for (size_t j=0; j<sxv.vectorsCount(); ++j) {
-        kernel_0v_0p<Vc::Vector<S>,Vc::Vector<A>>(
+        kernel_0v_0p<StoreVec,AccumVec>(
                           sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
                           txv, tyv,
                           &accumu, &accumv);
@@ -87,6 +98,9 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
     }
     flops *= 2.0 + 13.0*(float)src.get_n();
 
+  //
+  // targets are particles, with a core radius ===================================================
+  //
   } else {
     std::cout << "    0v_0v compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
     // targets are particles
@@ -95,21 +109,21 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
     #pragma omp parallel for
     for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
 #ifdef USE_VC
-      const Vc::Vector<S> txv = tx[0][i];
-      const Vc::Vector<S> tyv = tx[1][i];
-      const Vc::Vector<S> trv = tr[i];
+      const StoreVec txv = tx[0][i];
+      const StoreVec tyv = tx[1][i];
+      const StoreVec trv = tr[i];
       // care must be taken if S != A, because these vectors must have the same length
-      Vc::Vector<A> accumu = 0.0;
-      Vc::Vector<A> accumv = 0.0;
+      AccumVec accumu = 0.0;
+      AccumVec accumv = 0.0;
       for (size_t j=0; j<sxv.vectorsCount(); ++j) {
-        kernel_0v_0v<Vc::Vector<S>,Vc::Vector<A>>(
+        kernel_0v_0v<StoreVec,AccumVec>(
                           sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
                           txv, tyv, trv,
                           &accumu, &accumv);
         /*
         if (false) {
           // this is how to print
-          Vc::Vector<S> temp = sxv.vector(j,0);
+          StoreVec temp = sxv.vector(j,0);
           std::cout << "src " << j << " has sxv " << temp << std::endl;
         }
         */
@@ -129,6 +143,10 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
 #endif // no Vc
     }
     flops *= 2.0 + 15.0*(float)src.get_n();
+
+  //
+  // end conditional over whether targets are field points (with no core radius)
+  //
   }
 
   auto end = std::chrono::system_clock::now();
@@ -328,12 +346,8 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
 
   float flops = (float)targ.get_npanels();
 
-  //for (size_t j=0; j<src.get_n(); ++j) {
-  //  std::cout << "  src part " << j << " with str " << vs[j] << std::endl;
-  //}
-
 #ifdef USE_VC
-  // define vector types for Vc (still only S==A supported here)
+  // define vector types for Vc
   typedef Vc::Vector<S> StoreVec;
   typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
 
@@ -455,16 +469,6 @@ void panels_affect_panels (Surfaces<S> const& src, Surfaces<S>& targ) {
   for (size_t i=0; i<Dimensions; ++i) {
     std::copy(fromvel[i].begin(), fromvel[i].end(), tovel[i].begin());
   }
-
-  // get references to use locally
-/*
-  const std::array<Vector<S>,Dimensions>& sx = src.get_pos();
-  const std::vector<Int>&                 si = src.get_idx();
-  const Vector<S>&                        ss = src.get_str();
-  const std::array<Vector<S>,Dimensions>& tx = targ.get_pos();
-  const std::vector<Int>&                 ti = targ.get_idx();
-  std::array<Vector<S>,Dimensions>&       tu = targ.get_vel();
-*/
 }
 
 
