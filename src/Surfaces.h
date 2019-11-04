@@ -66,8 +66,8 @@ public:
       max_strength(-1.0) {
 
     // make sure input arrays are correctly-sized
-    assert(_idx.size() % 2 == 0 && "Index array is not an even multiple of 2");
-    const size_t nsurfs = _idx.size() / 2;
+    assert(_idx.size() % Dimensions == 0 && "Index array is not an even multiple of dimensions");
+    const size_t nsurfs = _idx.size() / Dimensions;
 
     // if no surfs, quit out now
     if (nsurfs == 0) {
