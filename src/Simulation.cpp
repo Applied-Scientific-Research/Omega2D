@@ -298,7 +298,8 @@ std::vector<std::string> Simulation::write_vtk(const int _index) {
   // solve the BEM (before any VTK or status file output)
   //std::cout << "Updating element vels" << std::endl;
   std::array<double,2> thisfs = {fs[0], fs[1]};
-  solve_bem<STORE,ACCUM,Int>(time, thisfs, get_ips(), vort, bdry, bem);
+  clear_inner_layer<STORE>(1, bdry, vort, 1.0/std::sqrt(2.0*M_PI), get_ips());
+  solve_bem<STORE,ACCUM,Int>(time, thisfs, vort, bdry, bem);
   conv.find_vels(thisfs, vort, bdry, vort);
   conv.find_vels(thisfs, vort, bdry, fldpt);
   conv.find_vels(thisfs, vort, bdry, bdry);
@@ -514,9 +515,13 @@ void Simulation::dump_stats_to_status() {
 
     // more advanced info
 
-    // solve the BEM (before any VTK or status file output)
     std::array<double,2> thisfs = {fs[0], fs[1]};
-    solve_bem<STORE,ACCUM,Int>(time, thisfs, get_ips(), vort, bdry, bem);
+
+    // push away particles inside or too close to the body
+    clear_inner_layer<STORE>(1, bdry, vort, 1.0/std::sqrt(2.0*M_PI), get_ips());
+    // solve the BEM (before any VTK or status file output)
+    solve_bem<STORE,ACCUM,Int>(time, thisfs, vort, bdry, bem);
+
     // but do we really need to do these?
     //conv.find_vels(thisfs, vort, bdry, vort);
     //conv.find_vels(thisfs, vort, bdry, fldpt);

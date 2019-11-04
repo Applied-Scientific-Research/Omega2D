@@ -130,7 +130,9 @@ void Diffusion<S,A,I>::step(const double                _time,
   //
   // always re-run the BEM calculation before shedding
   //
-  solve_bem<S,A,I>(_time, _fs, get_nom_sep(), _vort, _bdry, _bem);
+  // first push away particles inside or too close to the body
+  clear_inner_layer<S>(1, _bdry, _vort, 1.0/std::sqrt(2.0*M_PI), get_nom_sep());
+  solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
 
   //
   // important for augmented BEM: reset the circulation counter
