@@ -418,13 +418,13 @@ public:
     for (size_t i=0; i<get_npanels(); ++i) {
 
       // apply the translational velocity
-      std::array<double,Dimensions> thisvel = this->B->get_vel(_time);
+      const std::array<double,Dimensions> thisvel = this->B->get_vel(_time);
       for (size_t d=0; d<Dimensions; ++d) {
         pu[d][i] += _factor * (float)thisvel[d];
       }
 
       // now compute the rotational velocity with respect to the geometric center
-      double thisrotvel = this->B->get_rotvel(_time);
+      const double thisrotvel = this->B->get_rotvel(_time);
       // center of this panel
       Int id0 = idx[2*i];
       Int id1 = idx[2*i+1];
@@ -590,7 +590,7 @@ public:
     // we'll reuse these vectors
     std::array<S,Dimensions> x1, norm;
 
-    // update what we need
+    // update everything
     for (size_t i=0; i<nnew; ++i) {
       const size_t id0 = idx[2*i];
       const size_t id1 = idx[2*i+1];
@@ -740,6 +740,9 @@ public:
     // init the output vector (x, y, s, r)
     std::vector<S> px(num_pts*4);
 
+    // get basis vectors
+    std::array<Vector<S>,2>& norm = b[1];
+
     // the fluid is to the left walking from one point to the next
     // so go CW around an external boundary starting at theta=0 (+x axis)
 
@@ -750,20 +753,20 @@ public:
       px[4*i+0] = 0.5 * (this->x[0][id1] + this->x[0][id0]);
       px[4*i+1] = 0.5 * (this->x[1][id1] + this->x[1][id0]);
       //std::cout << "  panel center is " << px[4*i+0] << " " << px[4*i+1];
-      // push out a fixed distance (b[1] is the array of normal vectors)
+      // push out a fixed distance
       // this assumes properly resolved, vdelta and dt
-      px[4*i+0] += _offset * b[1][0][i];
-      px[4*i+1] += _offset * b[1][1][i];
+      px[4*i+0] += _offset * norm[0][i];
+      px[4*i+1] += _offset * norm[1][i];
       // the panel strength is the solved strength plus the boundary condition
       float this_str = (*ps[0])[i];
       // add on the (vortex) bc value here
       if (this->E == reactive) this_str += (*bc[0])[i];
-      // complete the element with a strength and radius
+      // complete the element with a strength
       px[4*i+2] = this_str * area[i];
+      // and the core size
       px[4*i+3] = _vdelta;
       //std::cout << "  new part is " << px[4*i+0] << " " << px[4*i+1] << " " << px[4*i+2] << " " << px[4*i+3] << std::endl;
     }
-
 
     return px;
   }
@@ -1065,14 +1068,13 @@ public:
 protected:
   // ElementBase.h has x, s, u, ux on the *nodes*
 
-
   size_t np;				// number of panels
 
   // element-wise variables special to triangular panels
   std::vector<Int>                 idx;	// indexes into the x array
   Vector<S>                       area; // panel areas
   Basis<S>                           b; // transformed basis vecs: tangent is b[0], normal is b[1], x norm is b[1][0]
-  std::array<Vector<S>,Dimensions>  pu; // velocities on panel centers - this needs to NOT be called "u"
+  std::array<Vector<S>,Dimensions>  pu; // velocities on panel centers - "u" is node vels in ElementBase
 
   // strengths and BCs
   Strength<S>                       ps; // panel-wise strengths per unit length (for "active" and "reactive")
