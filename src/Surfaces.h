@@ -477,7 +477,7 @@ public:
   //   the solid-body rotation of the object
   // NOTE: this needs to provide both the vortex AND source strengths!
   // AND we don't have the time - assume bodies have been transformed
-  void add_rot_strengths_base(const S _factor) {
+  void add_rot_strengths_base(const S _rotvel) {
 
     // No - ALWAYS allow this to run
     // if no rotation, strengths, or no parent Body, or attached to ground, then no problem!
@@ -485,7 +485,7 @@ public:
     //if (not ps[0]) return;
     //if (std::string("ground").compare(this->B->get_name()) == 0) return;
 
-    //if (std::abs(_factor) < std::numeric_limits<float>::epsilon()) return;
+    //if (std::abs(_rotvel) < std::numeric_limits<float>::epsilon()) return;
 
     // make sure we've calculated transformed center (we do this when we do volume)
     assert(vol > 0.0 && "Have not calculated transformed center, or volume is negative");
@@ -502,8 +502,8 @@ public:
       const S dx = 0.5 * ((*this->ux)[0][j] + (*this->ux)[0][jp1]) - utc[0];
       const S dy = 0.5 * ((*this->ux)[1][j] + (*this->ux)[1][jp1]) - utc[1];
       // velocity of the panel center
-      const S ui = -_factor * dy;
-      const S vi =  _factor * dx;
+      const S ui = -_rotvel * dy;
+      const S vi =  _rotvel * dx;
 
       // panel tangential vector, fluid to the left, body to the right
       S panelx = (*this->ux)[0][jp1] - (*this->ux)[0][j];
