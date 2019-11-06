@@ -521,7 +521,7 @@ public:
       (*ps[1])[i] += new_src;
 
       // debug print
-      if (std::abs(_factor) > 0.0 and false) {
+      if (std::abs(_rotvel) > 0.0 and false) {
         std::cout << "  panel " << i << " at " << dx << " " << dy << " adds to vortex str "
                   << new_vort << " and source str " << new_src << std::endl;
       }
