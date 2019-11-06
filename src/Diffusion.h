@@ -25,6 +25,11 @@
 #include <vector>
 
 
+// eventually support multiple diffusion types, both inter-particle and boundary-to-fluid
+//enum PartDiffuseType { none, vrm, pse };
+//enum BdryDiffuseType { none, single, vrm, hybrid };
+
+
 //
 // One step of convection of elements, allowing for boundary conditions
 //
