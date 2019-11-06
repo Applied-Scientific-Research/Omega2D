@@ -7,6 +7,7 @@
 
 #include "Simulation.h"
 #include "Points.h"
+#include "Reflect.h"
 #include "BEMHelper.h"
 #include "VtkXmlHelper.h"
 

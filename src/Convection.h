@@ -13,6 +13,7 @@
 #include "Influence.h"
 #include "BEM.h"
 #include "BEMHelper.h"
+#include "Reflect.h"
 
 #include <cstdlib>
 #include <iostream>
