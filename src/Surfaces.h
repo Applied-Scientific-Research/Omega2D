@@ -75,10 +75,10 @@ public:
       if (_bp) this->ux = this->x;
       // and init ps also
       if (this->E != inert) {
-        Vector<S> new_s;
-        ps[0] = std::move(new_s);
-        Vector<S> new_s1;
-        ps[1] = std::move(new_s1);
+        for (size_t d=0; d<2; ++d) {
+          Vector<S> new_s;
+          ps[d] = std::move(new_s);
+         }
       }
       return;
     }
@@ -138,13 +138,12 @@ public:
       bc[1] = std::move(new_bc1);
       std::copy(_val.begin(), _val.end(), bc[1]->begin());
 
-      // make space for the unknown, panel-centric strengths
-      Vector<S> new_s(_val.size());
-      ps[0] = std::move(new_s);
-      std::fill(ps[0]->begin(), ps[0]->end(), 0.0);
-      Vector<S> new_s1(_val.size());
-      ps[1] = std::move(new_s1);
-      std::fill(ps[1]->begin(), ps[1]->end(), 0.0);
+      // make space for the unknown sheet strengths
+      for (size_t d=0; d<2; ++d) {
+        Vector<S> new_s(nsurfs);
+        ps[d] = std::move(new_s);
+        std::fill(ps[d]->begin(), ps[d]->end(), 0.0);
+      }
 
     } else if (this->E == inert) {
       // value is ignored (probably zero)
