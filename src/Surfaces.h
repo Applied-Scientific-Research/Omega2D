@@ -69,17 +69,18 @@ public:
     assert(_idx.size() % Dimensions == 0 && "Index array is not an even multiple of dimensions");
     const size_t nsurfs = _idx.size() / Dimensions;
 
+    // always initialize the ps panel strength optionals
+    if (this->E != inert) {
+      for (size_t d=0; d<2; ++d) {
+        Vector<S> new_s;
+        ps[d] = std::move(new_s);
+       }
+    }
+
     // if no surfs, quit out now
     if (nsurfs == 0) {
       // but still initialize ux before we go (in case first bfeature is not enabled)
       if (_bp) this->ux = this->x;
-      // and init ps also
-      if (this->E != inert) {
-        for (size_t d=0; d<2; ++d) {
-          Vector<S> new_s;
-          ps[d] = std::move(new_s);
-         }
-      }
       return;
     }
 
@@ -140,9 +141,10 @@ public:
 
       // make space for the unknown sheet strengths
       for (size_t d=0; d<2; ++d) {
-        Vector<S> new_s(nsurfs);
-        ps[d] = std::move(new_s);
-        std::fill(ps[d]->begin(), ps[d]->end(), 0.0);
+        if (ps[d]) {
+          ps[d]->resize(nsurfs);
+          std::fill(ps[d]->begin(), ps[d]->end(), 0.0);
+        }
       }
 
     } else if (this->E == inert) {
@@ -217,6 +219,7 @@ public:
 
   // assign the new strengths from BEM - do not let base class do this
   void set_str(const size_t ioffset, const size_t icnt, Vector<S> _in) {
+
     assert(ps[0] && "Strength array does not exist");
 
     // pop off the "unknown" rotation rate and save it
@@ -355,15 +358,20 @@ public:
       ps[1]->insert(ps[1]->end(), _val.begin(), _val.end());
 
     } else if (this->E == reactive) {
-      // ps is an unknown strength for the element
-      ps[0]->resize(neold+nsurfs); 
-      ps[1]->resize(neold+nsurfs); 
       // value is a boundary condition
       bc[0]->reserve(neold+nsurfs); 
       bc[0]->insert(bc[0]->end(), _val.begin(), _val.end());
       // HACK - should use the size of _val to determine whether we have data here
       bc[1]->reserve(neold+nsurfs); 
       bc[1]->insert(bc[1]->end(), _val.begin(), _val.end());
+
+      // upsize vortex sheet and raw strength arrays, too
+      for (size_t d=0; d<2; ++d) {
+        if (ps[d]) {
+          ps[d]->resize(neold+nsurfs);
+          //std::fill(ps[d]->begin(), ps[d]->end(), 0.0);
+        }
+      }
 
     } else if (this->E == inert) {
       // value is ignored (probably zero)
@@ -440,9 +448,12 @@ public:
     // call base class first
     ElementBase<S>::zero_strengths();
 
-    // and reset any panel strengths
-    if (ps[0]) std::fill(ps[0]->begin(), ps[0]->end(), 0.0);
-    if (ps[1]) std::fill(ps[1]->begin(), ps[1]->end(), 0.0);
+    // and reset any panel vortex or source strengths
+    for (size_t d=0; d<2; ++d) {
+      if (ps[d]) {
+        std::fill(ps[d]->begin(), ps[d]->end(), 0.0);
+      }
+    }
   }
 
   // three ways to add source and vortex rotational strengths to the surface
@@ -487,7 +498,8 @@ public:
     //if (std::abs(_rotvel) < std::numeric_limits<float>::epsilon()) return;
 
     // make sure we've calculated transformed center (we do this when we do volume)
-    assert(vol > 0.0 && "Have not calculated transformed center, or volume is negative");
+    // NO - we can't check this because internal flow setups will have negative volume
+    //assert(vol > 0.0 && "Have not calculated transformed center, or volume is negative");
     // and we trust that we've transformed utc to tc
 
     assert(ps[0]->size() == get_npanels() && "Strength array is not the same as panel count");

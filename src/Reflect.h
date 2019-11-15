@@ -103,6 +103,7 @@ ClosestReturn<S> panel_point_distance(const S sx0, const S sy0,
 //
 template <class S>
 void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
+
   //std::cout << "  inside reflect(Surfaces, Points)" << std::endl;
   std::cout << "  Reflecting" << _targ.to_string() << " from near" << _src.to_string() << std::endl;
   auto start = std::chrono::system_clock::now();
@@ -581,7 +582,7 @@ S clear_inner_panp2 (const int _method,
       }
 
     } else if (_method == 1) {
-      // simply push the particles until they are a certain distance from the body, keeping all strength
+      // simply push the particles until it is a certain distance from the body, keeping all strength
       //std::cout << "  particle " << i << " at " << tx[0][i] << " " << tx[1][i] << " has dotp " << dotp << std::endl;
       if (dotp < 0.0) {
         // modify the particle in question
