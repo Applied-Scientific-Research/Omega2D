@@ -87,13 +87,12 @@ Generate an X.264-encoded video from a series of png images with the following c
 
     mencoder "mf://img*png" -mf w=1280:h=720:type=png:fps=30 -o video.mp4 -sws 9 -of lavf -lavfopts format=mp4 -nosub -vf softskip,harddup -nosound -ovc x264 -x264encopts bitrate=4000:vbv_maxrate=6000:vbv_bufsize=2000:nointerlaced:force_cfr:frameref=3:mixed_refs:bframes=1:b_adapt=2:weightp=1:direct_pred=auto:aq_mode=1:me=umh:me_range=16:subq=6:mbtree:psy_rd=0.8,0.2:chroma_me:trellis=1:nocabac:deblock:partitions=p8x8,b8x8,i8x8,i4x4:nofast_pskip:nodct_decimate:threads=auto:ssim:psnr:keyint=300:keyint_min=30:level_idc=30:global_header
 
+    ffmpeg -f image2 -pattern_type glob -i "img*png" -c:v libx264 -crf 20 -framerate 30 -profile:v baseline -level 3.0 -pix_fmt yuv420p -f mp4 driven_cavity_re1k.mp4
 
 ## To do
 Tasks to consider or implement:
 
 * Bug: static field points should not be pushed out of bodies
-* Change BEM augmentation code to consider the *change* in circulation per step per body
-* Implement the merging procedure from Spalart (if we don't already) - prefer to merge weak particles, avoid merging opposite-signed circulations (really?)
 * Compute vel grad at each point (vortex or field pt) and write it to the vtu file
 * If we have velgrad, we can compute the elongation of any point - use this to determine when a field point has stretched too far, and replace it with two child field points, of half-brightness, in the correct places; this should be a toggleable behavior, as it would demand ever-increasing numbers of field points
 * Add support for NACA wings, whether from a library or by reading geometry files in standard formats
