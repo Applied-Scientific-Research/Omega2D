@@ -24,7 +24,7 @@
 template <class S, class A>
 static inline void kernel_0v_0v (const S sx, const S sy, const S sr, const S ss,
                                  const S tx, const S ty, const S tr,
-                                 A* __restrict__ tu, A* __restrict__ tv) {
+                                 A* const __restrict__ tu, A* const __restrict__ tv) {
   // 15 flops
   const S dx = tx - sx;
   const S dy = ty - sy;
@@ -42,7 +42,7 @@ static inline void kernel_0v_0v (const S sx, const S sy, const S sr, const S ss,
 template <class S, class A>
 static inline void kernel_0v_0p (const S sx, const S sy, const S sr, const S ss,
                                  const S tx, const S ty,
-                                 A* __restrict__ tu, A* __restrict__ tv) {
+                                 A* const __restrict__ tu, A* const __restrict__ tv) {
   // 13 flops
   const S dx = tx - sx;
   const S dy = ty - sy;
@@ -67,7 +67,7 @@ static inline void kernel_1_0v (const S sx0, const S sy0,
                                 const S sx1, const S sy1,
                                 const S str,
                                 const S tx, const S ty,
-                                A* __restrict__ tu, A* __restrict__ tv) {
+                                A* const __restrict__ tu, A* const __restrict__ tv) {
 
   // segment vector
   const S dx0   = tx - sx0;
@@ -127,7 +127,7 @@ static inline void kernel_1_0vs (const S sx0, const S sy0,
                                  const S sx1, const S sy1,
                                  const S vs, const S ss,
                                  const S tx, const S ty,
-                                 A* __restrict__ tu, A* __restrict__ tv) {
+                                 A* const __restrict__ tu, A* const __restrict__ tv) {
 
   // segment vector
   const S dx0   = tx - sx0;
@@ -189,8 +189,8 @@ static inline void kernel_1_0vps (const S sx0, const S sy0,
                                   const S sx1, const S sy1,
                                   const S vs, const S ss,
                                   const S tx, const S ty,
-                                  A* __restrict__ vu, A* __restrict__ vv,
-                                  A* __restrict__ su, A* __restrict__ sv) {
+                                  A* const __restrict__ vu, A* const __restrict__ vv,
+                                  A* const __restrict__ su, A* const __restrict__ sv) {
 
   // segment vector
   const S dx0   = tx - sx0;
