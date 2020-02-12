@@ -1,8 +1,8 @@
 /*
  * Diffusion.h - a class for diffusion of strength from bodies to particles and among particles
  *
- * (c)2017-9 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
+ * (c)2017-20 Applied Scientific Research, Inc.
+ *            Written by Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -303,9 +303,10 @@ void Diffusion<S,A,I>::from_json(const nlohmann::json j) {
 #ifdef PLUGIN_AVRM
   // set adaptive-VRM-specific settings
   if (j.find("adaptiveSize") != j.end()) {
-    // for now, just enable it, don't set parameters
-    set_amr(true);
-    std::cout << "  enabling amr" << std::endl;
+    if (j["adaptiveSize"]) {
+      set_amr(true);
+      std::cout << "  enabling amr" << std::endl;
+    }
   }
 #endif
 }
