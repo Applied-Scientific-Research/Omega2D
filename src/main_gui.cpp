@@ -691,7 +691,7 @@ int main(int argc, char const *argv[]) {
       ShowHelpMarker("If checked, simulation will add particles to solve diffusion equation; if unchecked, simulation will run fast, but quickly lose accuracy.");
 
       if (sim.is_initialized() and is_viscous) {
-        ImGui::Text("** While running, Time step and Reynolds number move together **");
+        ImGui::Text("** Until a reset, Time step and Reynolds number move together **");
       }
 
       // set input widget width for this and the next few
@@ -731,9 +731,9 @@ int main(int argc, char const *argv[]) {
         sim.set_re_for_ips(my_ips);
         my_ips = sim.get_ips();
       }
-      ImGui::InputFloat2("Freestream speed", sim.addr_fs());
+      ImGui::InputFloat2("Flow vector", sim.addr_fs());
       ImGui::SameLine();
-      ShowHelpMarker("Freestream is a uniform wind blowing everything along this vector.");
+      ShowHelpMarker("Also called freestream, this is a uniform wind blowing along this vector.");
 
       ImGui::PopItemWidth();
 
@@ -763,7 +763,7 @@ int main(int argc, char const *argv[]) {
 
     ImGui::Spacing();
     //if (ImGui::CollapsingHeader("Flow structures", ImGuiTreeNodeFlags_DefaultOpen)) {
-    if (ImGui::CollapsingHeader("Flow structures")) {
+    if (ImGui::CollapsingHeader("Startup structures")) {
 
       ImGui::Spacing();
       int buttonIDs = 10;
@@ -1340,7 +1340,7 @@ int main(int argc, char const *argv[]) {
       ImGui::ColorEdit3("feature color",        rparams.default_color);
       ImGui::ColorEdit3("background color",     rparams.clear_color);
       //ImGui::Checkbox("show origin", &show_origin);
-      ImGui::SliderFloat("vorticity density", &(rparams.circ_density), 0.01f, 10.0f, "%.2f", 2.0f);
+      ImGui::SliderFloat("particle brightness", &(rparams.circ_density), 0.01f, 10.0f, "%.2f", 2.0f);
       ImGui::SliderFloat("particle scale", &(rparams.vorton_scale), 0.01f, 2.0f, "%.2f", 2.0f);
 
       if (ImGui::Button("Recenter")) {
@@ -1376,6 +1376,8 @@ int main(int argc, char const *argv[]) {
       // bool toggle for NNLS vs. Simplex
       bool use_simplex = sim.get_vrm_simplex();
       ImGui::Checkbox("VRM uses Simplex solver", &use_simplex);
+      ImGui::SameLine();
+      ShowHelpMarker("Use the proprietary Simplex solver for overdetermined systems. If unchecked, the Vorticity Redistribution Method uses a Non-Negative Least Squares solver from Eigen.");
       sim.set_vrm_simplex(use_simplex);
 #endif
 
@@ -1383,6 +1385,8 @@ int main(int argc, char const *argv[]) {
       // show the toggle for AMR
       bool use_amr = sim.get_amr();
       ImGui::Checkbox("Allow adaptive resolution", &use_amr);
+      ImGui::SameLine();
+      ShowHelpMarker("Particle sizes will adapt as required to maintain resolution during the diffusion calculation. If unchecked, all particles will stay the same size.");
       sim.set_amr(use_amr);
 
       ImGui::PushItemWidth(-270);
@@ -1405,6 +1409,8 @@ int main(int argc, char const *argv[]) {
 
       static bool use_fmm = false;
       ImGui::Checkbox("Use Fast Multipole Method for velocity", &use_fmm);
+      ImGui::SameLine();
+      ShowHelpMarker("Use an O(N) method to calculate velocities. If unchecked, a simple O(N^2) method is used.");
 #endif
     }
 
