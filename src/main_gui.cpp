@@ -699,7 +699,7 @@ int main(int argc, char const *argv[]) {
 
       ImGui::SliderFloat("Time step", sim.addr_dt(), 0.0001f, 0.1f, "%.4f", 2.0f);
       ImGui::SameLine();
-      ShowHelpMarker("Adjust how far into the future each step must simulate. Smaller means better accuracy, larger is faster.");
+      ShowHelpMarker("Adjust how far into the future each step must simulate. Smaller means better accuracy but slower, larger means lower accuracy but faster.");
 
       if (is_viscous) {
         sim.set_diffuse(true);
