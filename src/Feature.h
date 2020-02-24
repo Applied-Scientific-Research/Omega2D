@@ -1,8 +1,8 @@
 /*
  * Feature.h - Parent class to all features
  *
- * (c)2019 Applied Scientific Research, Inc.
- *         Written by Mark J Stock <markjstock@gmail.com>
+ * (c)2019-20 Applied Scientific Research, Inc.
+ *            Written by Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -23,6 +23,7 @@ public:
   void enable() { m_enabled = true; };
   void disable() { m_enabled = false; };
   bool is_enabled() const { return m_enabled; };
+  bool* addr_enabled() { return &m_enabled; };
 
 protected:
   bool m_enabled;
