@@ -218,7 +218,7 @@ int main(int argc, char const *argv[]) {
   //gl3wInit();
 
   if (!gladLoadGL()) {
-    printf("Something went wrong!\n");
+    std::cout << "gladLoadGL failed " << std::endl;
     exit(-1);
   }
 
@@ -768,9 +768,6 @@ int main(int argc, char const *argv[]) {
       if (ffeatures.size() + bfeatures.size() == 0) {
         ImGui::Text("Add flow or boundry features (like vortex blobs and solid objects) here, then click RUN.");
       }
-
-
-
 
 
       ImGui::Spacing();
