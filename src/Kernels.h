@@ -1,15 +1,21 @@
 /*
  * Kernels.h - Non-class inner kernels for influence calculations
  *
- * (c)2017-9 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
+ * (c)2017-20 Applied Scientific Research, Inc.
+ *            Written by Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
 
+//#define USE_EXPONENTIAL_KERNEL
+#define USE_WL_KERNEL
+//#define USE_V2_KERNEL
+
 #ifdef _WIN32
 #define __restrict__ __restrict
 #endif
+
+#include "CoreFunc.h"
 
 #ifdef USE_VC
 #include <Vc/Vc>
@@ -18,7 +24,9 @@
 #include <cmath>
 
 
+//
 // velocity influence functions
+//
 
 // thick-cored particle on thick-cored point, no gradients
 template <class S, class A>
@@ -28,11 +36,18 @@ static inline void kernel_0v_0v (const S sx, const S sy, const S sr, const S ss,
   // 15 flops
   const S dx = tx - sx;
   const S dy = ty - sy;
-  S r2 = dx*dx + dy*dy + sr*sr + tr*tr;
-#ifdef USE_VC
-  r2 = ss * Vc::reciprocal(r2);
+#ifdef USE_EXPONENTIAL_KERNEL
+  const S r2 = ss * core_exp<S>(dx*dx + dy*dy, sr, tr);
 #else
-  r2 = ss / r2;
+#ifdef USE_WL_KERNEL
+  const S r2 = ss * core_wl<S>(dx*dx + dy*dy, sr, tr);
+#else
+#ifdef USE_V2_KERNEL
+  const S r2 = ss * core_v2<S>(dx*dx + dy*dy, sr, tr);
+#else
+  const S r2 = ss * core_rm<S>(dx*dx + dy*dy, sr, tr);
+#endif
+#endif
 #endif
   *tu -= r2 * dy;
   *tv += r2 * dx;
@@ -46,11 +61,18 @@ static inline void kernel_0v_0p (const S sx, const S sy, const S sr, const S ss,
   // 13 flops
   const S dx = tx - sx;
   const S dy = ty - sy;
-  S r2 = dx*dx + dy*dy + sr*sr;
-#ifdef USE_VC
-  r2 = ss * Vc::reciprocal(r2);
+#ifdef USE_EXPONENTIAL_KERNEL
+  const S r2 = ss * core_exp<S>(dx*dx + dy*dy, sr);
 #else
-  r2 = ss / r2;
+#ifdef USE_WL_KERNEL
+  const S r2 = ss * core_wl<S>(dx*dx + dy*dy, sr);
+#else
+#ifdef USE_V2_KERNEL
+  const S r2 = ss * core_v2<S>(dx*dx + dy*dy, sr);
+#else
+  const S r2 = ss * core_rm<S>(dx*dx + dy*dy, sr);
+#endif
+#endif
 #endif
   *tu -= r2 * dy;
   *tv += r2 * dx;
