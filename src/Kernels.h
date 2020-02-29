@@ -7,10 +7,6 @@
 
 #pragma once
 
-//#define USE_EXPONENTIAL_KERNEL
-#define USE_WL_KERNEL
-//#define USE_V2_KERNEL
-
 #ifdef _WIN32
 #define __restrict__ __restrict
 #endif
@@ -33,22 +29,10 @@ template <class S, class A>
 static inline void kernel_0v_0v (const S sx, const S sy, const S sr, const S ss,
                                  const S tx, const S ty, const S tr,
                                  A* const __restrict__ tu, A* const __restrict__ tv) {
-  // 15 flops
+  // 18 flops
   const S dx = tx - sx;
   const S dy = ty - sy;
-#ifdef USE_EXPONENTIAL_KERNEL
-  const S r2 = ss * core_exp<S>(dx*dx + dy*dy, sr, tr);
-#else
-#ifdef USE_WL_KERNEL
-  const S r2 = ss * core_wl<S>(dx*dx + dy*dy, sr, tr);
-#else
-#ifdef USE_V2_KERNEL
-  const S r2 = ss * core_v2<S>(dx*dx + dy*dy, sr, tr);
-#else
-  const S r2 = ss * core_rm<S>(dx*dx + dy*dy, sr, tr);
-#endif
-#endif
-#endif
+  const S r2 = ss * core_func<S>(dx*dx + dy*dy, sr, tr);
   *tu -= r2 * dy;
   *tv += r2 * dx;
 }
@@ -58,22 +42,10 @@ template <class S, class A>
 static inline void kernel_0v_0p (const S sx, const S sy, const S sr, const S ss,
                                  const S tx, const S ty,
                                  A* const __restrict__ tu, A* const __restrict__ tv) {
-  // 13 flops
+  // 16 flops
   const S dx = tx - sx;
   const S dy = ty - sy;
-#ifdef USE_EXPONENTIAL_KERNEL
-  const S r2 = ss * core_exp<S>(dx*dx + dy*dy, sr);
-#else
-#ifdef USE_WL_KERNEL
-  const S r2 = ss * core_wl<S>(dx*dx + dy*dy, sr);
-#else
-#ifdef USE_V2_KERNEL
-  const S r2 = ss * core_v2<S>(dx*dx + dy*dy, sr);
-#else
-  const S r2 = ss * core_rm<S>(dx*dx + dy*dy, sr);
-#endif
-#endif
-#endif
+  const S r2 = ss * core_func<S>(dx*dx + dy*dy, sr);
   *tu -= r2 * dy;
   *tv += r2 * dx;
 }

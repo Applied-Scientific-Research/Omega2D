@@ -17,13 +17,20 @@
 
 #include <cmath>
 
+//#define USE_RM_KERNEL
+//#define USE_EXPONENTIAL_KERNEL
+#define USE_WL_KERNEL
+//#define USE_V2_KERNEL
+
+
+#ifdef USE_RM_KERNEL
 //
 // core functions - Rosenhead-Moore
 //
 
 // this is always 5 flops
 template <class S>
-static inline S core_rm (const S distsq, const S sr, const S tr) {
+static inline S core_func (const S distsq, const S sr, const S tr) {
   const S r2 = distsq + sr*sr + tr*tr;
 #ifdef USE_VC
   return Vc::reciprocal(r2);
@@ -34,7 +41,7 @@ static inline S core_rm (const S distsq, const S sr, const S tr) {
 
 // this is always 3 flops
 template <class S>
-static inline S core_rm (const S distsq, const S sr) {
+static inline S core_func (const S distsq, const S sr) {
   const S r2 = distsq + sr*sr;
 #ifdef USE_VC
   return Vc::reciprocal(r2);
@@ -42,14 +49,17 @@ static inline S core_rm (const S distsq, const S sr) {
   return S(1.0) / r2;
 #endif
 }
+#endif
 
+
+#ifdef USE_EXPONENTIAL_KERNEL
 //
 // core functions - exponential
 //
 
 // this probably averages out to 9 flops
 template <class S>
-static inline S core_exp (const S distsq, const S sr, const S tr) {
+static inline S core_func (const S distsq, const S sr, const S tr) {
 #ifdef USE_VC
   const S ood2 = Vc::reciprocal(distsq);
   const S corefac = Vc::reciprocal(sr*sr + tr*tr);
@@ -76,7 +86,7 @@ static inline S core_exp (const S distsq, const S sr, const S tr) {
 
 // this probably averages out to 7 flops
 template <class S>
-static inline S core_exp (const S distsq, const S sr) {
+static inline S core_func (const S distsq, const S sr) {
 #ifdef USE_VC
   const S ood2 = Vc::reciprocal(distsq);
   const S corefac = Vc::reciprocal(sr*sr);
@@ -105,14 +115,17 @@ static inline S core_exp (const S distsq, const S sr) {
   }
 #endif
 }
+#endif
 
+
+#ifdef USE_WL_KERNEL
 //
 // core functions - Winckelmans–Leonard
 //
 
 // this is always 8 flops
 template <class S>
-static inline S core_wl (const S distsq, const S sr, const S tr) {
+static inline S core_func (const S distsq, const S sr, const S tr) {
   const S r2 = sr*sr + tr*tr;
   const S d2 = distsq + r2;
   return (distsq + S(2.0)*r2) / (d2*d2);
@@ -120,19 +133,22 @@ static inline S core_wl (const S distsq, const S sr, const S tr) {
 
 // this is always 6 flops
 template <class S>
-static inline S core_wl (const S distsq, const S sr) {
+static inline S core_func (const S distsq, const S sr) {
   const S r2 = sr*sr;
   const S d2 = distsq + r2;
   return (distsq + S(2.0)*r2) / (d2*d2);
 }
+#endif
 
+
+#ifdef USE_V2_KERNEL
 //
 // core functions - Vatistas n=2
 //
 
 // this is always 7 flops
 template <class S>
-static inline S core_v2 (const S distsq, const S sr, const S tr) {
+static inline S core_func (const S distsq, const S sr, const S tr) {
   const S d2 = distsq + sr*sr + tr*tr;
 #ifdef USE_VC
   return Vc::rsqrt(d2*d2);
@@ -143,7 +159,7 @@ static inline S core_v2 (const S distsq, const S sr, const S tr) {
 
 // this is always 5 flops
 template <class S>
-static inline S core_v2 (const S distsq, const S sr) {
+static inline S core_func (const S distsq, const S sr) {
   const S d2 = distsq + sr*sr;
 #ifdef USE_VC
   return Vc::rsqrt(d2*d2);
@@ -151,4 +167,5 @@ static inline S core_v2 (const S distsq, const S sr) {
   return S(1.0) / std::sqrt(d2*d2);
 #endif
 }
+#endif
 

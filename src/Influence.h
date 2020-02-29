@@ -96,7 +96,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
       tu[1][i] += accumv;
 #endif // no Vc
     }
-    flops *= 2.0 + 13.0*(float)src.get_n();
+    flops *= 2.0 + 16.0*(float)src.get_n();
 
   //
   // targets are particles, with a core radius ===================================================
@@ -142,7 +142,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
       tu[1][i] += accumv;
 #endif // no Vc
     }
-    flops *= 2.0 + 15.0*(float)src.get_n();
+    flops *= 2.0 + 18.0*(float)src.get_n();
 
   //
   // end conditional over whether targets are field points (with no core radius)
