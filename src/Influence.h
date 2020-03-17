@@ -95,6 +95,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
       tu[0][i] += accumu;
       tu[1][i] += accumv;
 #endif // no Vc
+      //std::cout << "pt " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
     }
     flops *= 2.0 + 16.0*(float)src.get_n();
 
@@ -141,6 +142,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
       tu[0][i] += accumu;
       tu[1][i] += accumv;
 #endif // no Vc
+      //std::cout << "part " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
     }
     flops *= 2.0 + 18.0*(float)src.get_n();
 
