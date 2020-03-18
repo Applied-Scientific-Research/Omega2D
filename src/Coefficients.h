@@ -394,7 +394,10 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
   } // end omp parallel
 
   // update the flop count
-  flops += (float)nsrc * (float)ntarg * (4.0 + (src_have_src ? 45.0+12.0 : 35.0+3.0));
+  flops += (float)nsrc * (float)ntarg * (use_two_way ? 2.0 : 1.0) *
+              (4.0 +
+               (float)(src_have_src ? flops_1_0vps<S,S>() : flops_1_0v<S,S>()) +
+               (targ_have_src ? 12.0 : 3.0));
 
   // scale all influences by the constant
   const S fac = 1.0 / (2.0 * M_PI);

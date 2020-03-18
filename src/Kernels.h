@@ -23,8 +23,18 @@
 //
 // velocity influence functions
 //
+// here is the naming system:
+//   kernel_NS_MT
+//     N is the number of dimensions of the source element (0=point, 2=surface)
+//     M is the number of dimensions of the target element
+//     S is the type of the source element ('v'=vortex, 's'=source, 'vs'=vortex and source)
+//     T is the type of the target element
+//         first character is 'p' for a singular point, 'b' for a vortex blob
+//         second character is 'g' if gradients must be returned
+//
 
 // thick-cored particle on thick-cored point, no gradients
+template <class S, class A> size_t flops_0v_0v () { return 10 + flops_tv_nograds<S>(); }
 template <class S, class A>
 static inline void kernel_0v_0v (const S sx, const S sy, const S sr, const S ss,
                                  const S tx, const S ty, const S tr,
@@ -38,6 +48,7 @@ static inline void kernel_0v_0v (const S sx, const S sy, const S sr, const S ss,
 }
 
 // thick-cored particle on singular point, no gradients
+template <class S, class A> size_t flops_0v_0p () { return 10 + flops_tp_nograds<S>(); }
 template <class S, class A>
 static inline void kernel_0v_0p (const S sx, const S sy, const S sr, const S ss,
                                  const S tx, const S ty,
@@ -56,6 +67,7 @@ static inline void kernel_0v_0p (const S sx, const S sy, const S sr, const S ss,
 //   ignoring the 1/2pi factor, which will be multiplied later
 //   35 flops average
 //
+template <class S, class A> size_t flops_1_0v () { return 35; }
 template <class S, class A>
 static inline void kernel_1_0v (const S sx0, const S sy0,
                                 const S sx1, const S sy1,
@@ -116,6 +128,7 @@ static inline void kernel_1_0v (const S sx0, const S sy0,
 //   on target point ignoring the 1/2pi factor, which will be multiplied later
 //   47 flops average
 //
+template <class S, class A> size_t flops_1_0vs () { return 47; }
 template <class S, class A>
 static inline void kernel_1_0vs (const S sx0, const S sy0,
                                  const S sx1, const S sy1,
@@ -178,6 +191,7 @@ static inline void kernel_1_0vs (const S sx0, const S sy0,
 //   on target point ignoring the 1/2pi factor, and separating out each velocity
 //   45 flops average
 //
+template <class S, class A> size_t flops_1_0vps () { return 45; }
 template <class S, class A>
 static inline void kernel_1_0vps (const S sx0, const S sy0,
                                   const S sx1, const S sy1,

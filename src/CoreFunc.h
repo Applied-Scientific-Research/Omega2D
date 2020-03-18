@@ -28,7 +28,8 @@
 // core functions - Rosenhead-Moore
 //
 
-// this is always 5 flops
+template <class S> size_t flops_tv_nograds () { return 5; }
+
 template <class S>
 static inline S core_func (const S distsq, const S sr, const S tr) {
   const S r2 = distsq + sr*sr + tr*tr;
@@ -39,7 +40,8 @@ static inline S core_func (const S distsq, const S sr, const S tr) {
 #endif
 }
 
-// this is always 3 flops
+template <class S> size_t flops_tp_nograds () { return 3; }
+
 template <class S>
 static inline S core_func (const S distsq, const S sr) {
   const S r2 = distsq + sr*sr;
@@ -57,7 +59,8 @@ static inline S core_func (const S distsq, const S sr) {
 // core functions - exponential
 //
 
-// this probably averages out to 9 flops
+template <class S> size_t flops_tv_nograds () { return 9; }
+
 template <class S>
 static inline S core_func (const S distsq, const S sr, const S tr) {
 #ifdef USE_VC
@@ -84,7 +87,8 @@ static inline S core_func (const S distsq, const S sr, const S tr) {
 #endif
 }
 
-// this probably averages out to 7 flops
+template <class S> size_t flops_tp_nograds () { return 7; }
+
 template <class S>
 static inline S core_func (const S distsq, const S sr) {
 #ifdef USE_VC
@@ -123,7 +127,8 @@ static inline S core_func (const S distsq, const S sr) {
 // core functions - Winckelmans–Leonard
 //
 
-// this is always 8 flops
+template <class S> size_t flops_tv_nograds () { return 8; }
+
 template <class S>
 static inline S core_func (const S distsq, const S sr, const S tr) {
   const S r2 = sr*sr + tr*tr;
@@ -131,7 +136,8 @@ static inline S core_func (const S distsq, const S sr, const S tr) {
   return (distsq + S(2.0)*r2) / (d2*d2);
 }
 
-// this is always 6 flops
+template <class S> size_t flops_tp_nograds () { return 6; }
+
 template <class S>
 static inline S core_func (const S distsq, const S sr) {
   const S r2 = sr*sr;
@@ -146,7 +152,8 @@ static inline S core_func (const S distsq, const S sr) {
 // core functions - Vatistas n=2
 //
 
-// this is always 7 flops
+template <class S> size_t flops_tv_nograds () { return 7; }
+
 template <class S>
 static inline S core_func (const S distsq, const S sr, const S tr) {
   const S d2 = distsq + sr*sr + tr*tr;
@@ -157,7 +164,8 @@ static inline S core_func (const S distsq, const S sr, const S tr) {
 #endif
 }
 
-// this is always 5 flops
+template <class S> size_t flops_tp_nograds () { return 5; }
+
 template <class S>
 static inline S core_func (const S distsq, const S sr) {
   const S d2 = distsq + sr*sr;

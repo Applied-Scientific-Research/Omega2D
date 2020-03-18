@@ -97,7 +97,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
 #endif // no Vc
       //std::cout << "pt " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
     }
-    flops *= 2.0 + 16.0*(float)src.get_n();
+    flops *= 2.0 + (float)flops_0v_0p<S,A>() * (float)src.get_n();
 
   //
   // targets are particles, with a core radius ===================================================
@@ -144,7 +144,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
 #endif // no Vc
       //std::cout << "part " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
     }
-    flops *= 2.0 + 18.0*(float)src.get_n();
+    flops *= 2.0 + (float)flops_0v_0v<S,A>() * (float)src.get_n();
 
   //
   // end conditional over whether targets are field points (with no core radius)
@@ -318,9 +318,9 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
 #endif
 
   if (have_source_strengths) {
-    flops *= 2.0 + 49.0*(float)src.get_npanels();
+    flops *= 2.0 + (float)flops_1_0vs<S,A>() * (float)src.get_npanels();
   } else {
-    flops *= 2.0 + 37.0*(float)src.get_npanels();
+    flops *= 2.0 + (float)flops_1_0v<S,A>() * (float)src.get_npanels();
   }
 
   auto end = std::chrono::system_clock::now();
@@ -443,7 +443,7 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
 #endif
   }
 
-  flops *= 11.0 + 37.0*(float)src.get_n();
+  flops *= 11.0 + (float)flops_1_0v<S,A>() * (float)src.get_n();
 
   auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
