@@ -128,22 +128,22 @@ static inline S core_func (const S distsq, const S sr) {
 // core functions - Winckelmans–Leonard
 //
 
-template <class S> size_t flops_tv_nograds () { return 8; }
+template <class S> size_t flops_tv_nograds () { return 7; }
 
 template <class S>
 static inline S core_func (const S distsq, const S sr, const S tr) {
   const S r2 = sr*sr + tr*tr;
   const S d2 = distsq + r2;
-  return (distsq + S(2.0)*r2) / (d2*d2);
+  return (d2 + r2) / (d2*d2);
 }
 
-template <class S> size_t flops_tp_nograds () { return 6; }
+template <class S> size_t flops_tp_nograds () { return 5; }
 
 template <class S>
 static inline S core_func (const S distsq, const S sr) {
   const S r2 = sr*sr;
   const S d2 = distsq + r2;
-  return (distsq + S(2.0)*r2) / (d2*d2);
+  return (d2 + r2) / (d2*d2);
 }
 #endif
 
