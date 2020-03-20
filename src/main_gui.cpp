@@ -1386,19 +1386,21 @@ int main(int argc, char const *argv[]) {
       ShowHelpMarker("Particle sizes will adapt as required to maintain resolution during the diffusion calculation. If unchecked, all particles will stay the same size.");
       sim.set_amr(use_amr);
 
-      ImGui::PushItemWidth(-270);
-      float lapse_rate = sim.get_vrm_radgrad();
-      ImGui::SliderFloat("Radius gradient", &lapse_rate, 0.01, 0.5f, "%.2f");
-      ImGui::SameLine();
-      ShowHelpMarker("During adaptive diffusion, enforce a maximum spatial gradient for particle radii.");
-      sim.set_vrm_radgrad(lapse_rate);
+      if (use_amr) {
+        ImGui::PushItemWidth(-270);
+        float lapse_rate = sim.get_vrm_radgrad();
+        ImGui::SliderFloat("Radius gradient", &lapse_rate, 0.01, 0.5f, "%.2f");
+        ImGui::SameLine();
+        ShowHelpMarker("During adaptive diffusion, enforce a maximum spatial gradient for particle radii.");
+        sim.set_vrm_radgrad(lapse_rate);
 
-      float adapt_thresh = std::log10(sim.get_vrm_adapt());
-      ImGui::SliderFloat("Threshold to adapt", &adapt_thresh, -12, 0, "%.1f");
-      ImGui::SameLine();
-      ShowHelpMarker("During diffusion, allow any particles with strength less than this power-of-ten threshold to grow in size.");
-      sim.set_vrm_adapt(std::pow(10.f,adapt_thresh));
-      ImGui::PopItemWidth();
+        float adapt_thresh = std::log10(sim.get_vrm_adapt());
+        ImGui::SliderFloat("Threshold to adapt", &adapt_thresh, -12, 0, "%.1f");
+        ImGui::SameLine();
+        ShowHelpMarker("During diffusion, allow any particles with strength less than this power-of-ten threshold to grow in size.");
+        sim.set_vrm_adapt(std::pow(10.f,adapt_thresh));
+        ImGui::PopItemWidth();
+      }
 #endif
 
 #ifdef PLUGIN_FMM
