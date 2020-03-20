@@ -19,8 +19,9 @@
 
 //#define USE_RM_KERNEL
 //#define USE_EXPONENTIAL_KERNEL
-#define USE_WL_KERNEL
-//#define USE_V2_KERNEL
+//#define USE_WL_KERNEL
+#define USE_V2_KERNEL
+//#define USE_V3_KERNEL
 
 
 #ifdef USE_RM_KERNEL
@@ -152,27 +153,68 @@ static inline S core_func (const S distsq, const S sr) {
 // core functions - Vatistas n=2
 //
 
-template <class S> size_t flops_tv_nograds () { return 7; }
+template <class S> size_t flops_tv_nograds () { return 9; }
 
 template <class S>
 static inline S core_func (const S distsq, const S sr, const S tr) {
-  const S d2 = distsq + sr*sr + tr*tr;
+  const S r2 = sr*sr;
+  const S o2 = tr*tr;
 #ifdef USE_VC
-  return Vc::rsqrt(d2*d2);
+  return Vc::rsqrt(distsq*distsq + r2*r2 + o2*o2);
 #else
-  return S(1.0) / std::sqrt(d2*d2);
+  return S(1.0) / std::sqrt(distsq*distsq + r2*r2 + o2*o2);
 #endif
 }
 
-template <class S> size_t flops_tp_nograds () { return 5; }
+template <class S> size_t flops_tp_nograds () { return 6; }
 
 template <class S>
 static inline S core_func (const S distsq, const S sr) {
-  const S d2 = distsq + sr*sr;
+  const S r2 = sr*sr;
 #ifdef USE_VC
-  return Vc::rsqrt(d2*d2);
+  return Vc::rsqrt(distsq*distsq + r2*r2);
 #else
-  return S(1.0) / std::sqrt(d2*d2);
+  return S(1.0) / std::sqrt(distsq*distsq + r2*r2);
+#endif
+}
+#endif
+
+
+#ifdef USE_V3_KERNEL
+//
+// core functions - Vatistas n=3
+//
+
+#ifdef USE_VC
+template <class S> size_t flops_tv_nograds () { return 13; }
+#else
+template <class S> size_t flops_tv_nograds () { return 12; }
+#endif
+
+template <class S>
+static inline S core_func (const S distsq, const S sr, const S tr) {
+  const S r2 = sr*sr;
+  const S o2 = tr*tr;
+#ifdef USE_VC
+  return Vc::exp(S(-0.3333333)*Vc::log(distsq*distsq*distsq + r2*r2*r2 + o2*o2*o2));
+#else
+  return S(1.0) / std::cbrt(distsq*distsq*distsq + r2*r2*r2 + o2*o2*o2);
+#endif
+}
+
+#ifdef USE_VC
+template <class S> size_t flops_tp_nograds () { return 9; }
+#else
+template <class S> size_t flops_tp_nograds () { return 8; }
+#endif
+
+template <class S>
+static inline S core_func (const S distsq, const S sr) {
+  const S r2 = sr*sr;
+#ifdef USE_VC
+  return Vc::exp(S(-0.3333333)*Vc::log(distsq*distsq*distsq + r2*r2*r2));
+#else
+  return S(1.0) / std::cbrt(distsq*distsq*distsq + r2*r2*r2);
 #endif
 }
 #endif
