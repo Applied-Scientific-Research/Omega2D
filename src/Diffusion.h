@@ -230,7 +230,8 @@ void Diffusion<S,A,I>::step(const double                _time,
   //
   if (shed_before_diffuse) {
     // use method which trims circulations under the threshold
-    (void) clear_inner_layer<S>(0, _bdry, _vort, 0.0, _vdelta/particle_overlap);
+    //(void) clear_inner_layer<S>(0, _bdry, _vort, 0.0, _vdelta/particle_overlap); // THIS IS BAD
+    (void) clear_inner_layer<S>(1, _bdry, _vort, 1.0/std::sqrt(2.0*M_PI), _vdelta/particle_overlap);
   } else {
     // use method which simply pushes all still-active particles to be at or above a threshold distance
     // cutoff is a multiple of ips (these are the last two arguments)
