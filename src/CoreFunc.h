@@ -17,10 +17,10 @@
 
 #include <cmath>
 
-//#define USE_RM_KERNEL
+#define USE_RM_KERNEL
 //#define USE_EXPONENTIAL_KERNEL
 //#define USE_WL_KERNEL
-#define USE_V2_KERNEL
+//#define USE_V2_KERNEL
 //#define USE_V3_KERNEL
 
 
@@ -84,6 +84,7 @@ static inline S core_func (const S distsq, const S sr, const S tr) {
     return corefac;
   } else {
     return ood2 * (S(1.0) - std::exp(-reld2));
+    //return ood2 * (-std::expm1(-reld2));		// slower
   }
 #endif
 }
@@ -116,6 +117,7 @@ static inline S core_func (const S distsq, const S sr) {
     // 2 flops
   } else {
     return ood2 * (S(1.0) - std::exp(-reld2));
+    //return ood2 * (-std::expm1(-reld2));		// slower
     // 3 flops
   }
 #endif
@@ -163,6 +165,7 @@ static inline S core_func (const S distsq, const S sr, const S tr) {
   return Vc::rsqrt(distsq*distsq + r2*r2 + o2*o2);
 #else
   return S(1.0) / std::sqrt(distsq*distsq + r2*r2 + o2*o2);
+  //return S(1.0) / std::hypot(distsq, r2, o2);		// slower
 #endif
 }
 
@@ -175,6 +178,7 @@ static inline S core_func (const S distsq, const S sr) {
   return Vc::rsqrt(distsq*distsq + r2*r2);
 #else
   return S(1.0) / std::sqrt(distsq*distsq + r2*r2);
+  //return S(1.0) / std::hypot(distsq, r2);		// slower
 #endif
 }
 #endif
