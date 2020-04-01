@@ -449,152 +449,157 @@ S clear_inner_panp2 (const int _method,
   S circ_removed = 0.0;
   const S eps = 10.0*std::numeric_limits<S>::epsilon();
 
-  #pragma omp parallel for reduction(+:num_cropped,circ_removed)
-  for (int32_t i=0; i<(int32_t)_targ.get_n(); ++i) {
+  // create array of flags - any moved particle will be tested again
+  std::vector<bool> untested;
+  untested.assign(_targ.get_n(), true);
 
-    S mindist = std::numeric_limits<S>::max();
-    std::vector<ClosestReturn<S>> hits;
+  // iterate more than once to make sure particles get cleared from corners
+  while (std::any_of(untested.begin(), untested.end(), [](bool x){return x;})) {
 
-    // iterate and search for closest panel/node
-    for (size_t j=0; j<_src.get_npanels(); ++j) {
-      ClosestReturn<S> result = panel_point_distance<S>(sx[0][si[2*j]],   sx[1][si[2*j]],
-                                                        sx[0][si[2*j+1]], sx[1][si[2*j+1]],
-                                                        tx[0][i],         tx[1][i]);
+    #pragma omp parallel for reduction(+:num_cropped,circ_removed)
+    for (int32_t i=0; i<(int32_t)_targ.get_n(); ++i) {
 
-      if (result.distsq < mindist - eps) {
-        // we blew the old one away
-        mindist = result.distsq;
-        if (result.disttype == node) {
-          result.jidx = si[2*j+result.jidx];
-        } else {
-          result.jidx = j;
-        }
-        hits.clear();
-        hits.push_back(result);
-        //std::cout << "  THIS BLOWS AWAY THE CLOSEST, AT " << std::sqrt(mindist) << std::endl;
+      if (untested[i]) {
 
-      } else if (result.distsq < mindist + eps) {
-        // we are effectively the same as the old closest
-        if (result.disttype == node) {
-          result.jidx = si[2*j+result.jidx];
-        } else {
-          result.jidx = j;
-        }
-        hits.push_back(result);
-        //std::cout << "  THIS TIES THE CLOSEST, AT " << std::sqrt(mindist) << std::endl;
-      }
-    } // end of loop over panels
+        S mindist = std::numeric_limits<S>::max();
+        std::vector<ClosestReturn<S>> hits;
 
-    // dump out the hits
-    if (false) {
-      std::cout << "point " << i << " is " << tx[0][i] << " " << tx[1][i] << std::endl;
-      for (auto & ahit: hits) {
-        if (ahit.disttype == node) {
-          std::cout << "  node " << ahit.jidx << " dist " << std::sqrt(ahit.distsq) << std::endl;
-          std::cout << "    cp is " << ahit.cpx << " " << ahit.cpy << std::endl;
-        } else {
-          std::cout << "  panel " << ahit.jidx << " dist " << std::sqrt(ahit.distsq) << std::endl;
-          std::cout << "    cp is " << ahit.cpx << " " << ahit.cpy << std::endl;
-        }
-      }
-    }
+        // iterate and search for closest panel/node
+        for (size_t j=0; j<_src.get_npanels(); ++j) {
+          ClosestReturn<S> result = panel_point_distance<S>(sx[0][si[2*j]],   sx[1][si[2*j]],
+                                                            sx[0][si[2*j+1]], sx[1][si[2*j+1]],
+                                                            tx[0][i],         tx[1][i]);
 
-    // if no hits, then something is wrong
-    assert(hits.size() > 0 && "No nearest neighbors");
+          if (result.distsq < mindist - eps) {
+            // we blew the old one away
+            mindist = result.distsq;
+            if (result.disttype == node) {
+              result.jidx = si[2*j+result.jidx];
+            } else {
+              result.jidx = j;
+            }
+            hits.clear();
+            hits.push_back(result);
+            //std::cout << "  THIS BLOWS AWAY THE CLOSEST, AT " << std::sqrt(mindist) << std::endl;
 
-    //std::cout << "  CLEARING pt at " << tx[0][i] << " " << tx[1][i] << std::endl;
+          } else if (result.distsq < mindist + eps) {
+            // we are effectively the same as the old closest
+            if (result.disttype == node) {
+              result.jidx = si[2*j+result.jidx];
+            } else {
+              result.jidx = j;
+            }
+            hits.push_back(result);
+            //std::cout << "  THIS TIES THE CLOSEST, AT " << std::sqrt(mindist) << std::endl;
+          }
+        } // end of loop over panels
 
-    // init the mean normal and the mean contact point
-    S normx = 0.0;
-    S normy = 0.0;
-    S cpx = 0.0;
-    S cpy = 0.0;
-
-    // accumulate mean normal and the mean contact point
-    for (size_t k=0; k<hits.size(); ++k) {
-      //std::cout << "    cp at " << hits[k].cpx << " " << hits[k].cpy << std::endl;
-
-      const size_t j = hits[k].jidx;
-      if (hits[k].disttype == panel) {
-        // hit a panel, use the norm
-        normx += sn[0][j];
-        normy += sn[1][j];
-        //std::cout << "    panel norm is " << (-by * blen) << " " << (bx * blen) << std::endl;
-      } else {
-        normx += nn[0][j];
-        normy += nn[1][j];
-        //std::cout << "    REAL norm is " << nn[0][hits[k].jidx] << " " << nn[1][hits[k].jidx] << std::endl;
-      }
-      cpx += hits[k].cpx;
-      cpy += hits[k].cpy;
-    }
-
-    // finish computing the mean norm and mean cp
-    const S normilen = 1.0 / std::sqrt(normx*normx + normy*normy);
-    normx *= normilen;
-    normy *= normilen;
-    cpx /= (S)hits.size();
-    cpy /= (S)hits.size();
-    //std::cout << "  mean norm is " << normx << " " << normy << std::endl;
-    //std::cout << "  mean cp is " << cpx << " " << cpy << std::endl;
-
-    // compare this mean norm to the vector from the contact point to the particle
-    const S dotp = normx*(tx[0][i]-cpx) + normy*(tx[1][i]-cpy) - _cutoff_mult*_ips;
-    // now dotp is how far this point is above the cutoff layer
-    // if dotp == 0.0 then the point is exactly on the cutoff layer, and it loses half of its strength
-    // if dotp < -vdelta then the point loses all of its strength
-    // if dotp > vdelta then the point passes unmodified
-
-    const S this_radius = are_fldpts ? _ips : tr[i];
-
-    if (_method == 0) {
-      if (dotp < this_radius) {
-        //std::cout << "  CLEARING pt at " << tx[0][i] << " " << tx[1][i] << " because dotp " << dotp << " and norm " << norm[0] << " " << norm[1] << std::endl;
-
-        // use precomputed table lookups for new position and remaining strength
-        if (not are_fldpts) {
-          const std::pair<S,S> entry = get_cut_entry(ct, dotp/this_radius);
-
-          // ensure that this "reabsorbed" circulation is accounted for in BEM
-          circ_removed += ts[i] * (1.0-std::get<0>(entry));
-
-          // modify the particle in question
-          ts[i] *= std::get<0>(entry);
-          tx[0][i] += std::get<1>(entry) * this_radius * normx;
-          tx[1][i] += std::get<1>(entry) * this_radius * normy;
+        // dump out the hits
+        if (false) {
+          std::cout << "point " << i << " is " << tx[0][i] << " " << tx[1][i] << std::endl;
+          for (auto & ahit: hits) {
+            if (ahit.disttype == node) {
+              std::cout << "  node " << ahit.jidx << " dist " << std::sqrt(ahit.distsq) << std::endl;
+              std::cout << "    cp is " << ahit.cpx << " " << ahit.cpy << std::endl;
+            } else {
+              std::cout << "  panel " << ahit.jidx << " dist " << std::sqrt(ahit.distsq) << std::endl;
+              std::cout << "    cp is " << ahit.cpx << " " << ahit.cpy << std::endl;
+            }
+          }
         }
 
-        //std::cout << "  SHIFTING dotp/tr " << (dotp/this_radius) << " str " << sfac << " and shift " << (shiftd/this_radius) << std::endl;
-        //assert(shiftd > 0.0 && "Shift in clear is less than zero");
-        //std::cout << "  PUSHING " << std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]);
-        //std::cout << "    to " << std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]) << " and scale str by " << sfac << std::endl;
-        // do not change radius yet
-        //std::cout << "    TO " << tx[0][i] << " " << tx[1][i] << " and weaken by " << sfac << std::endl;
-        //if (std::sqrt(tx[0][i]*tx[0][i]+tx[1][i]*tx[1][i]) < 0.51) {
-        //  std::cout << "    dotp is " << dotp << " and tr[i] is " << this_radius << std::endl;
-        //  std::cout << "    pt is " << tx[0][i] << " " << tx[1][i] << std::endl;
-        //  //std::cout << "    cp is " << cpx << " " << cpy << std::endl;
-        //  std::cout << "    norm is " << normx << " " << normy << std::endl;
-        //  assert(false && "Die");
-        //}
+        // if no hits, then something is wrong
+        assert(hits.size() > 0 && "No nearest neighbors");
 
-        num_cropped++;
-      }
+        //std::cout << "  CLEARING pt at " << tx[0][i] << " " << tx[1][i] << std::endl;
 
-    } else if (_method == 1) {
-      // simply push the particles until it is a certain distance from the body, keeping all strength
-      //std::cout << "  particle " << i << " at " << tx[0][i] << " " << tx[1][i] << " has dotp " << dotp << std::endl;
-      if (dotp < 0.0) {
-        // modify the particle in question
-        //std::cout << "  pushing " << tx[0][i] << " " << tx[1][i];
-        tx[0][i] -= dotp * normx;
-        tx[1][i] -= dotp * normy;
-        //std::cout << " to " << tx[0][i] << " " << tx[1][i] << std::endl;
-        num_cropped++;
-      }
-    }
+        // init the mean normal and the mean contact point
+        S normx = 0.0;
+        S normy = 0.0;
+        S cpx = 0.0;
+        S cpy = 0.0;
 
-  } // end loop over particles
+        // accumulate mean normal and the mean contact point
+        for (size_t k=0; k<hits.size(); ++k) {
+          //std::cout << "    cp at " << hits[k].cpx << " " << hits[k].cpy << std::endl;
+
+          const size_t j = hits[k].jidx;
+          if (hits[k].disttype == panel) {
+            // hit a panel, use the norm
+            normx += sn[0][j];
+            normy += sn[1][j];
+            //std::cout << "    panel norm is " << (-by * blen) << " " << (bx * blen) << std::endl;
+          } else {
+            normx += nn[0][j];
+            normy += nn[1][j];
+            //std::cout << "    REAL norm is " << nn[0][hits[k].jidx] << " " << nn[1][hits[k].jidx] << std::endl;
+          }
+          cpx += hits[k].cpx;
+          cpy += hits[k].cpy;
+        }
+
+        // finish computing the mean norm and mean cp
+        const S normilen = 1.0 / std::sqrt(normx*normx + normy*normy);
+        normx *= normilen;
+        normy *= normilen;
+        cpx /= (S)hits.size();
+        cpy /= (S)hits.size();
+        //std::cout << "  mean norm is " << normx << " " << normy << std::endl;
+        //std::cout << "  mean cp is " << cpx << " " << cpy << std::endl;
+
+        // compare this mean norm to the vector from the contact point to the particle
+        const S dotp = normx*(tx[0][i]-cpx) + normy*(tx[1][i]-cpy) - _cutoff_mult*_ips;
+        // now dotp is how far this point is above the cutoff layer
+        // if dotp == 0.0 then the point is exactly on the cutoff layer, and it loses half of its strength
+        // if dotp < -vdelta then the point loses all of its strength
+        // if dotp > vdelta then the point passes unmodified
+
+        const S this_radius = are_fldpts ? _ips : tr[i];
+
+        if (_method == 0) {
+          if (dotp < this_radius) {
+            //std::cout << "  CLEARING pt at " << tx[0][i] << " " << tx[1][i] << " because dotp " << dotp << " and norm " << norm[0] << " " << norm[1] << std::endl;
+
+            // use precomputed table lookups for new position and remaining strength
+            if (not are_fldpts) {
+              const std::pair<S,S> entry = get_cut_entry(ct, dotp/this_radius);
+
+              // ensure that this "reabsorbed" circulation is accounted for in BEM
+              circ_removed += ts[i] * (1.0-std::get<0>(entry));
+
+              // modify the particle in question
+              ts[i] *= std::get<0>(entry);
+              tx[0][i] += std::get<1>(entry) * this_radius * normx;
+              tx[1][i] += std::get<1>(entry) * this_radius * normy;
+            }
+
+            num_cropped++;
+
+          } else {
+            // don't test this point again
+            untested[i] = false;
+          }
+
+        } else if (_method == 1) {
+          // simply push the particles until it is a certain distance from the body, keeping all strength
+          //std::cout << "  particle " << i << " at " << tx[0][i] << " " << tx[1][i] << " has dotp " << dotp << std::endl;
+          if (dotp < -0.001*_ips) {
+            // modify the particle in question
+            //std::cout << "  pushing " << tx[0][i] << " " << tx[1][i];
+            tx[0][i] -= dotp * normx;
+            tx[1][i] -= dotp * normy;
+            //std::cout << " to " << tx[0][i] << " " << tx[1][i] << std::endl;
+            num_cropped++;
+
+          } else {
+            // don't test this point again
+            untested[i] = false;
+          }
+        }
+
+      } // end if (untested)
+    } // end loop over particles
+  } // end loop over iterations
 
   // we did not resize the x array, so we don't need to touch the u array
 
@@ -612,7 +617,7 @@ S clear_inner_panp2 (const int _method,
   }
 
   // flops count here is taken from reflect - might be different here
-  const S flops = _targ.get_n() * (62.0 + 27.0*_src.get_npanels());
+  const S flops = (_targ.get_n()+num_cropped) * (62.0 + 27.0*_src.get_npanels());
 
   auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
