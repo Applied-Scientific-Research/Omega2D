@@ -52,6 +52,22 @@ static inline S core_func (const S distsq, const S sr) {
   return S(1.0) / r2;
 #endif
 }
+
+// Rosenhead-Moore with gradients
+
+template <class S> size_t flops_tv_grads () { return 9; }
+
+template <class S>
+static inline void core_func (const S distsq, const S sr, const S tr,
+                              S* const __restrict__ r2, S* const __restrict__ bbb) {
+  const S td2 = distsq + sr*sr + tr*tr;
+#ifdef USE_VC
+  *r2 = Vc::reciprocal(td2);
+#else
+  *r2 = S(1.0) / td2;
+#endif
+  *bbb = S(-2.0) * (*r2) * (*r2);
+}
 #endif
 
 
