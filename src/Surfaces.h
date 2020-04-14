@@ -57,7 +57,7 @@ public:
            std::shared_ptr<Body> _bp)
     : ElementBase<S>(0, _e, _m, _bp),
       np(0),
-      source_str_is_unknown(false),
+      source_str_is_unknown(true),
       vol(-1.0),
       solved_omega(0.0),
       omega_error(0.0),
