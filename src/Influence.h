@@ -1,8 +1,8 @@
 /*
  * Influence.h - Non-class influence calculations
  *
- * (c)2017-9 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
+ * (c)2017-20 Applied Scientific Research, Inc.
+ *            Written by Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -12,6 +12,13 @@
 #include "Kernels.h"
 #include "Points.h"
 #include "Surfaces.h"
+
+#ifdef EXTERNAL_VEL_SOLVE
+extern "C" float external_vel_solver_f_(int*, const float*, const float*, const float*, const float*,
+                                        int*, const float*, const float*, float*, float*);
+extern "C" float external_vel_solver_d_(int*, const double*, const double*, const double*, const double*,
+                                        int*, const double*, const double*, double*, double*);
+#endif
 
 #ifdef USE_VC
 #include <Vc/Vc>
@@ -32,6 +39,7 @@
 template <class S, class A>
 void points_affect_points (Points<S> const& src, Points<S>& targ) {
   auto start = std::chrono::system_clock::now();
+  float flops = (float)targ.get_n();
 
   // is this where we dispatch the OpenGL compute shader?
 
@@ -42,6 +50,16 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
 
   const std::array<Vector<S>,Dimensions>& tx = targ.get_pos();
   std::array<Vector<S>,Dimensions>&       tu = targ.get_vel();
+
+#ifdef EXTERNAL_VEL_SOLVE
+  std::cout << "    external influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
+  {
+    int ns = src.get_n();
+    int nt = targ.get_n();
+    flops = external_vel_solver_f_(&ns, sx[0].data(), sx[1].data(),    ss.data(),    sr.data(), 
+                                   &nt, tx[0].data(), tx[1].data(), tu[0].data(), tu[1].data());
+  }
+#else  // no external fast solve, perform O(N^2) calculations here
 
 #ifdef USE_VC
   // define vector types for Vc
@@ -54,8 +72,6 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
   const Vc::Memory<StoreVec> srv = stdvec_to_vcvec<S>(sr,    1.0);
   const Vc::Memory<StoreVec> ssv = stdvec_to_vcvec<S>(ss,    0.0);
 #endif
-
-  float flops = (float)targ.get_n();
 
   // We need 4 different loops here, for the options:
   //   target radii or no target radii
@@ -150,6 +166,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
   // end conditional over whether targets are field points (with no core radius)
   //
   }
+#endif // no external fast solve
 
   auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;

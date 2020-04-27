@@ -1403,13 +1403,13 @@ int main(int argc, char const *argv[]) {
       }
 #endif
 
-#ifdef PLUGIN_FMM
-      ImGui::Separator();
+#ifdef EXTERNAL_VEL_SOLVE
+      //ImGui::Separator();
 
-      static bool use_fmm = false;
-      ImGui::Checkbox("Use Fast Multipole Method for velocity", &use_fmm);
-      ImGui::SameLine();
-      ShowHelpMarker("Use an O(N) method to calculate velocities. If unchecked, a simple O(N^2) method is used.");
+      //static bool use_external_solver = false;
+      //ImGui::Checkbox("Use external function for velocity", &use_external_solver);
+      //ImGui::SameLine();
+      //ShowHelpMarker("Use an external method to calculate velocities. If unchecked, the internal O(N^2) method is used.");
 #endif
     }
 
