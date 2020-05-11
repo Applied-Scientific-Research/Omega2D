@@ -40,6 +40,16 @@ static inline S core_func (const S distsq, const S sr, const S tr) {
   return S(1.0) / r2;
 #endif
 }
+template <>
+inline float core_func (const float distsq, const float sr, const float tr) {
+  const float r2 = distsq + sr*sr + tr*tr;
+  return 1.0f / r2;
+}
+template <>
+inline double core_func (const double distsq, const double sr, const double tr) {
+  const double r2 = distsq + sr*sr + tr*tr;
+  return 1.0 / r2;
+}
 
 template <class S> size_t flops_tp_nograds () { return 3; }
 
@@ -51,6 +61,16 @@ static inline S core_func (const S distsq, const S sr) {
 #else
   return S(1.0) / r2;
 #endif
+}
+template <>
+inline float core_func (const float distsq, const float sr) {
+  const float r2 = distsq + sr*sr;
+  return 1.0f / r2;
+}
+template <>
+inline double core_func (const double distsq, const double sr) {
+  const double r2 = distsq + sr*sr;
+  return 1.0 / r2;
 }
 
 // Rosenhead-Moore with gradients

@@ -39,7 +39,7 @@ extern "C" float external_vel_solver_d_(int*, const double*, const double*, cons
 //
 template <class S, class A>
 void points_affect_points (Points<S> const& src, Points<S>& targ, ExecEnv& env) {
-  //std::cout << "    in ptpt with" << env.to_string() << std::endl;
+  std::cout << "    in ptpt with" << env.to_string() << std::endl;
 
   auto start = std::chrono::system_clock::now();
   float flops = (float)targ.get_n();
@@ -55,26 +55,23 @@ void points_affect_points (Points<S> const& src, Points<S>& targ, ExecEnv& env) 
   std::array<Vector<S>,Dimensions>&       tu = targ.get_vel();
 
 #ifdef EXTERNAL_VEL_SOLVE
-  std::cout << "    external influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
-  {
+  if (not env.is_internal()) {
+    std::cout << "    external influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
     int ns = src.get_n();
     int nt = targ.get_n();
+
     flops = external_vel_solver_f_(&ns, sx[0].data(), sx[1].data(),    ss.data(),    sr.data(), 
                                    &nt, tx[0].data(), tx[1].data(), tu[0].data(), tu[1].data());
+
+    auto end = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end-start;
+    const float gflops = 1.e-9 * flops / (float)elapsed_seconds.count();
+    printf("    points_affect_points: [%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);
+
+    return;
   }
-#else  // no external fast solve, perform O(N^2) calculations here
+#endif  // no external fast solve, perform O(N^2) calculations here
 
-#ifdef USE_VC
-  // define vector types for Vc
-  typedef Vc::Vector<S> StoreVec;
-  typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
-
-  // create float_v versions of the source vectors
-  const Vc::Memory<StoreVec> sxv = stdvec_to_vcvec<S>(sx[0], 0.0);
-  const Vc::Memory<StoreVec> syv = stdvec_to_vcvec<S>(sx[1], 0.0);
-  const Vc::Memory<StoreVec> srv = stdvec_to_vcvec<S>(sr,    1.0);
-  const Vc::Memory<StoreVec> ssv = stdvec_to_vcvec<S>(ss,    0.0);
-#endif
 
   // We need 4 different loops here, for the options:
   //   target radii or no target radii
@@ -87,34 +84,52 @@ void points_affect_points (Points<S> const& src, Points<S>& targ, ExecEnv& env) 
     std::cout << "    0v_0p compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
     // targets are field points
 
-    #pragma omp parallel for
-    for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
 #ifdef USE_VC
-      const StoreVec txv = tx[0][i];
-      const StoreVec tyv = tx[1][i];
-      // care must be taken if S != A, because these vectors must have the same length
-      AccumVec accumu = 0.0;
-      AccumVec accumv = 0.0;
-      for (size_t j=0; j<sxv.vectorsCount(); ++j) {
-        kernel_0v_0p<StoreVec,AccumVec>(
-                          sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
-                          txv, tyv,
-                          &accumu, &accumv);
+    if (env.get_instrs() == cpu_vc) {
+
+      // define vector types for Vc
+      typedef Vc::Vector<S> StoreVec;
+      typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
+
+      // create float_v versions of the source vectors
+      const Vc::Memory<StoreVec> sxv = stdvec_to_vcvec<S>(sx[0], 0.0);
+      const Vc::Memory<StoreVec> syv = stdvec_to_vcvec<S>(sx[1], 0.0);
+      const Vc::Memory<StoreVec> srv = stdvec_to_vcvec<S>(sr,    1.0);
+      const Vc::Memory<StoreVec> ssv = stdvec_to_vcvec<S>(ss,    0.0);
+
+      #pragma omp parallel for
+      for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+        const StoreVec txv = tx[0][i];
+        const StoreVec tyv = tx[1][i];
+        // care must be taken if S != A, because these vectors must have the same length
+        AccumVec accumu = 0.0;
+        AccumVec accumv = 0.0;
+        for (size_t j=0; j<sxv.vectorsCount(); ++j) {
+          kernel_0v_0p<StoreVec,AccumVec>(
+                            sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
+                            txv, tyv,
+                            &accumu, &accumv);
+        }
+        tu[0][i] += accumu.sum();
+        tu[1][i] += accumv.sum();
+        //std::cout << "pt " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
       }
-      tu[0][i] += accumu.sum();
-      tu[1][i] += accumv.sum();
-#else  // no Vc
-      A accumu = 0.0;
-      A accumv = 0.0;
-      for (size_t j=0; j<src.get_n(); ++j) {
-        kernel_0v_0p<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
-                          tx[0][i], tx[1][i],
-                          &accumu, &accumv);
+    } else
+#endif  // no Vc
+    {
+      #pragma omp parallel for
+      for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+        A accumu = 0.0;
+        A accumv = 0.0;
+        for (size_t j=0; j<src.get_n(); ++j) {
+          kernel_0v_0p<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
+                            tx[0][i], tx[1][i],
+                            &accumu, &accumv);
+        }
+        tu[0][i] += accumu;
+        tu[1][i] += accumv;
+        //std::cout << "pt " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
       }
-      tu[0][i] += accumu;
-      tu[1][i] += accumv;
-#endif // no Vc
-      //std::cout << "pt " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
     }
     flops *= 2.0 + (float)flops_0v_0p<S,A>() * (float)src.get_n();
 
@@ -126,41 +141,56 @@ void points_affect_points (Points<S> const& src, Points<S>& targ, ExecEnv& env) 
     // targets are particles
     const Vector<S>&				tr = targ.get_rad();
 
-    #pragma omp parallel for
-    for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
 #ifdef USE_VC
-      const StoreVec txv = tx[0][i];
-      const StoreVec tyv = tx[1][i];
-      const StoreVec trv = tr[i];
-      // care must be taken if S != A, because these vectors must have the same length
-      AccumVec accumu = 0.0;
-      AccumVec accumv = 0.0;
-      for (size_t j=0; j<sxv.vectorsCount(); ++j) {
-        kernel_0v_0v<StoreVec,AccumVec>(
-                          sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
-                          txv, tyv, trv,
-                          &accumu, &accumv);
-        /*
-        if (false) {
-          // this is how to print
-          StoreVec temp = sxv.vector(j,0);
-          std::cout << "src " << j << " has sxv " << temp << std::endl;
+    if (env.get_instrs() == cpu_vc) {
+
+      // define vector types for Vc
+      typedef Vc::Vector<S> StoreVec;
+      typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
+
+      // create float_v versions of the source vectors
+      const Vc::Memory<StoreVec> sxv = stdvec_to_vcvec<S>(sx[0], 0.0);
+      const Vc::Memory<StoreVec> syv = stdvec_to_vcvec<S>(sx[1], 0.0);
+      const Vc::Memory<StoreVec> srv = stdvec_to_vcvec<S>(sr,    1.0);
+      const Vc::Memory<StoreVec> ssv = stdvec_to_vcvec<S>(ss,    0.0);
+
+      #pragma omp parallel for
+      for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+        const StoreVec txv = tx[0][i];
+        const StoreVec tyv = tx[1][i];
+        const StoreVec trv = tr[i];
+        // care must be taken if S != A, because these vectors must have the same length
+        AccumVec accumu = 0.0;
+        AccumVec accumv = 0.0;
+        for (size_t j=0; j<sxv.vectorsCount(); ++j) {
+          kernel_0v_0v<StoreVec,AccumVec>(
+                            sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
+                            txv, tyv, trv,
+                            &accumu, &accumv);
+          /* if (false) {
+            // this is how to print
+            StoreVec temp = sxv.vector(j,0);
+            std::cout << "src " << j << " has sxv " << temp << std::endl;
+          } */
         }
-        */
+        tu[0][i] += accumu.sum();
+        tu[1][i] += accumv.sum();
       }
-      tu[0][i] += accumu.sum();
-      tu[1][i] += accumv.sum();
-#else  // no Vc
-      A accumu = 0.0;
-      A accumv = 0.0;
-      for (size_t j=0; j<src.get_n(); ++j) {
-        kernel_0v_0v<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
-                          tx[0][i], tx[1][i], tr[i],
-                          &accumu, &accumv);
+    } else
+#endif  // no Vc
+    {
+      #pragma omp parallel for
+      for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+        A accumu = 0.0;
+        A accumv = 0.0;
+        for (size_t j=0; j<src.get_n(); ++j) {
+          kernel_0v_0v<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
+                            tx[0][i], tx[1][i], tr[i],
+                            &accumu, &accumv);
+        }
+        tu[0][i] += accumu;
+        tu[1][i] += accumv;
       }
-      tu[0][i] += accumu;
-      tu[1][i] += accumv;
-#endif // no Vc
       //std::cout << "part " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
     }
     flops *= 2.0 + (float)flops_0v_0v<S,A>() * (float)src.get_n();
@@ -169,7 +199,6 @@ void points_affect_points (Points<S> const& src, Points<S>& targ, ExecEnv& env) 
   // end conditional over whether targets are field points (with no core radius)
   //
   }
-#endif // no external fast solve
 
   auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
