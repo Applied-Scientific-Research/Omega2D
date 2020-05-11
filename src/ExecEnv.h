@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <string>
 
 // solver type/order
 enum summation_t {
@@ -39,17 +40,22 @@ public:
       m_accel(_acceltype)
     {}
 
-  // delegating ctor
+  // default (delegating) ctor
   ExecEnv()
-    : ExecEnv(true, direct, cpu_x86)
-    {
 #ifdef EXTERNAL_VEL_SOLVE
-      m_internal = false;
+  #ifdef USE_VC
+    : ExecEnv(true, direct, cpu_vc)
+  #else
+    : ExecEnv(true, direct, cpu_x86)
+  #endif
+#else
+  #ifdef USE_VC
+    : ExecEnv(false, direct, cpu_vc)
+  #else
+    : ExecEnv(false, direct, cpu_x86)
+  #endif
 #endif
-#ifdef USE_VC
-      m_accel = cpu_vc;
-#endif
-    }
+    {}
 
   void use_internal() { m_internal = true; };
   void use_external() { m_internal = false; };
@@ -57,6 +63,29 @@ public:
   void set_summation(const summation_t _newsumm) { m_summ = _newsumm; };
   void set_instrs(const accel_t _newaccel) { m_accel = _newaccel; };
   accel_t get_instrs() const { return m_accel; };
+
+  std::string to_string() const {
+    std::string mystr;
+    if (m_internal) {
+      mystr += " external solver";
+    } else {
+      if (m_accel == cpu_x86) {
+        mystr += " native";
+      } else if (m_accel == cpu_vc) {
+        mystr += " Vc-accelerated";
+      } else {
+        mystr += " unknown acceleration";
+      }
+      if (m_summ == direct) {
+        mystr += " direct sums";
+      } else if (m_summ == barneshut) {
+        mystr += " treecode";
+      } else {
+        mystr += " unknown algorithm";
+      }
+    }
+    return mystr;
+  }
 
 protected:
   bool m_internal;

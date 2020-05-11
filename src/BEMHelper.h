@@ -14,6 +14,7 @@
 #include "Coefficients.h"
 #include "RHS.h"
 #include "BEM.h"
+#include "ExecEnv.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -53,8 +54,9 @@ void solve_bem(const double                         _time,
   //  std::visit([=](auto& elem) { elem.add_unit_rot_strengths(); }, src);
   //}
 
-  // need this for dispatching velocity influence calls, template param is accumulator type
-  InfluenceVisitor<A> ivisitor;
+  // need this for dispatching velocity influence calls, template param is accumulator type,
+  //   member variable is default execution environment
+  InfluenceVisitor<A> ivisitor = {ExecEnv()};
   RHSVisitor rvisitor;
 
   //

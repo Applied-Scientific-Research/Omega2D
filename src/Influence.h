@@ -12,6 +12,7 @@
 #include "Kernels.h"
 #include "Points.h"
 #include "Surfaces.h"
+#include "ExecEnv.h"
 
 #ifdef EXTERNAL_VEL_SOLVE
 extern "C" float external_vel_solver_f_(int*, const float*, const float*, const float*, const float*,
@@ -37,7 +38,9 @@ extern "C" float external_vel_solver_d_(int*, const double*, const double*, cons
 // Vc and x86 versions of Points/Particles affecting Points/Particles
 //
 template <class S, class A>
-void points_affect_points (Points<S> const& src, Points<S>& targ) {
+void points_affect_points (Points<S> const& src, Points<S>& targ, ExecEnv& env) {
+  //std::cout << "    in ptpt with" << env.to_string() << std::endl;
+
   auto start = std::chrono::system_clock::now();
   float flops = (float)targ.get_n();
 
@@ -179,7 +182,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ) {
 // Vc and x86 versions of Panels/Surfaces affecting Points/Particles
 //
 template <class S, class A>
-void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
+void panels_affect_points (Surfaces<S> const& src, Points<S>& targ, ExecEnv& env) {
   std::cout << "    1_0 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   auto start = std::chrono::system_clock::now();
 
@@ -351,7 +354,7 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ) {
 // Vc and x86 versions of Points/Particles affecting Panels/Surfaces
 //
 template <class S, class A>
-void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
+void points_affect_panels (Points<S> const& src, Surfaces<S>& targ, ExecEnv& env) {
   std::cout << "    0_1 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   auto start = std::chrono::system_clock::now();
 
@@ -470,7 +473,7 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ) {
 
 
 template <class S, class A>
-void panels_affect_panels (Surfaces<S> const& src, Surfaces<S>& targ) {
+void panels_affect_panels (Surfaces<S> const& src, Surfaces<S>& targ, ExecEnv& env) {
   std::cout << "    1_1 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
 
   // run panels_affect_points instead
@@ -480,7 +483,7 @@ void panels_affect_panels (Surfaces<S> const& src, Surfaces<S>& targ) {
   Points<float> temppts(xysr, active, lagrangian, nullptr);
 
   // run the calculation
-  panels_affect_points<S,A>(src, temppts);
+  panels_affect_points<S,A>(src, temppts, env);
 
   // and copy the velocities to the real target
   std::array<Vector<S>,Dimensions>& fromvel = temppts.get_vel();
@@ -496,10 +499,12 @@ void panels_affect_panels (Surfaces<S> const& src, Surfaces<S>& targ) {
 //
 template <class A>
 struct InfluenceVisitor {
-  // source collection, target collection
-  void operator()(Points<float> const& src,   Points<float>& targ)   { points_affect_points<float,A>(src, targ); } 
-  void operator()(Surfaces<float> const& src, Points<float>& targ)   { panels_affect_points<float,A>(src, targ); } 
-  void operator()(Points<float> const& src,   Surfaces<float>& targ) { points_affect_panels<float,A>(src, targ); } 
-  void operator()(Surfaces<float> const& src, Surfaces<float>& targ) { panels_affect_panels<float,A>(src, targ); } 
+  // source collection, target collection, optional execution environment
+  void operator()(Points<float> const& src,   Points<float>& targ)   { points_affect_points<float,A>(src, targ, env); }
+  void operator()(Surfaces<float> const& src, Points<float>& targ)   { panels_affect_points<float,A>(src, targ, env); }
+  void operator()(Points<float> const& src,   Surfaces<float>& targ) { points_affect_panels<float,A>(src, targ, env); }
+  void operator()(Surfaces<float> const& src, Surfaces<float>& targ) { panels_affect_panels<float,A>(src, targ, env); }
+
+  ExecEnv env;
 };
 
