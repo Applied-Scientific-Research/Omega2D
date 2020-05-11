@@ -1,6 +1,6 @@
 #
 # Omega2D
-# (c)2017-2019 Applied Scientific Research, Inc.
+# (c)2017-2020 Applied Scientific Research, Inc.
 #
 CMAKE_MINIMUM_REQUIRED( VERSION 2.8 )
 PROJECT( Omega2D )
