@@ -123,7 +123,6 @@ void Simulation::set_diffuse(const bool _do_diffuse) {
 
 void Simulation::set_amr(const bool _do_amr) {
   diff.set_amr(_do_amr);
-  diff.set_diffuse(true);
 }
 
 
@@ -222,119 +221,11 @@ Simulation::to_json() const {
 //
 void Simulation::draw_advanced() {
 
-  bool relative_thresh = get_vrm_relative();
-  ImGui::Checkbox("Thresholds are relative to strongest particle", &relative_thresh);
-  ImGui::SameLine();
-  ShowHelpMarker("If unchecked, the thresholds defined here are absolute and unscaled to the strongest particle.");
-  set_vrm_relative(relative_thresh);
+  // set the execution environment in Convection.h
+  conv.draw_advanced();
 
-  ImGui::PushItemWidth(-270);
-  float ignore_thresh = std::log10(get_vrm_ignore());
-  ImGui::SliderFloat("Threshold to ignore", &ignore_thresh, -12, 0, "%.1f");
-  ImGui::SameLine();
-  ShowHelpMarker("During diffusion, ignore any particles with strength magnitude less than this power of ten threshold.");
-  set_vrm_ignore(std::pow(10.f,ignore_thresh));
-  ImGui::PopItemWidth();
-
-#ifdef PLUGIN_SIMPLEX
-  // bool toggle for NNLS vs. Simplex
-  bool use_simplex = get_vrm_simplex();
-  ImGui::Checkbox("VRM uses Simplex solver", &use_simplex);
-  ImGui::SameLine();
-  ShowHelpMarker("Use the proprietary Simplex solver for overdetermined systems. If unchecked, the Vorticity Redistribution Method uses a Non-Negative Least Squares solver from Eigen.");
-  set_vrm_simplex(use_simplex);
-#endif
-
-#ifdef PLUGIN_AVRM
-  // show the toggle for AMR
-  bool use_amr = get_amr();
-  ImGui::Checkbox("Allow adaptive resolution", &use_amr);
-  ImGui::SameLine();
-  ShowHelpMarker("Particle sizes will adapt as required to maintain resolution during the diffusion calculation. If unchecked, all particles will stay the same size.");
-  set_amr(use_amr);
-
-  if (use_amr) {
-    ImGui::PushItemWidth(-270);
-    float lapse_rate = get_vrm_radgrad();
-    ImGui::SliderFloat("Radius gradient", &lapse_rate, 0.01, 0.5f, "%.2f");
-    ImGui::SameLine();
-    ShowHelpMarker("During adaptive diffusion, enforce a maximum spatial gradient for particle radii.");
-    set_vrm_radgrad(lapse_rate);
-
-    float adapt_thresh = std::log10(get_vrm_adapt());
-    ImGui::SliderFloat("Threshold to adapt", &adapt_thresh, -12, 0, "%.1f");
-    ImGui::SameLine();
-    ShowHelpMarker("During diffusion, allow any particles with strength less than this power-of-ten threshold to grow in size.");
-    set_vrm_adapt(std::pow(10.f,adapt_thresh));
-    ImGui::PopItemWidth();
-  }
-#endif
-
-  static bool use_internal_solver = true;
-  ImGui::Separator();
-  ImGui::Spacing();
-#ifdef EXTERNAL_VEL_SOLVE
-  ImGui::Checkbox("Use internal velocity solver", &use_internal_solver);
-  ImGui::SameLine();
-  ShowHelpMarker("Use the internal method to calculate velocities. Uncheck to use an external solver.");
-#endif
-
-  if (use_internal_solver) {
-#ifdef USE_VC
-    static int acc_item = 0;
-  #ifdef USE_OGL_COMPUTE
-    const char* acc_items[] = { "x86 (CPU)", "Vc SIMD (CPU)", "OpenGL (GPU)" };
-    ImGui::PushItemWidth(240);
-    ImGui::Combo("Select instructions", &acc_item, acc_items, 3);
-    ImGui::PopItemWidth();
-    switch(acc_item) {
-        case 0: conv_env.set_instrs(cpu_x86); break;
-        case 1: conv_env.set_instrs(cpu_vc); break;
-        case 2: conv_env.set_instrs(gpu_opengl); break;
-    } // end switch
-  #else
-    const char* acc_items[] = { "x86 (CPU)", "Vc SIMD (CPU)" };
-    ImGui::PushItemWidth(240);
-    ImGui::Combo("Select instructions", &acc_item, acc_items, 2);
-    ImGui::PopItemWidth();
-    switch(acc_item) {
-        case 0: conv_env.set_instrs(cpu_x86); break;
-        case 1: conv_env.set_instrs(cpu_vc); break;
-    } // end switch
-  #endif
-#else
-  #ifdef USE_OGL_COMPUTE
-    static int acc_item = 0;
-    const char* acc_items[] = { "x86 (CPU)", "OpenGL (GPU)" };
-    ImGui::PushItemWidth(240);
-    ImGui::Combo("Select instructions", &acc_item, acc_items, 2);
-    ImGui::PopItemWidth();
-    switch(acc_item) {
-        case 0: conv_env.set_instrs(cpu_x86); break;
-        case 1: conv_env.set_instrs(gpu_opengl); break;
-    } // end switch
-  #else
-    // none!
-    ImGui::Text("Instructions are x86 (CPU)");
-  #endif
-#endif
-
-    // now, depending on which was selected, allow different summation algorithms
-    static int algo_item = 0;
-    const accel_t accel_selected = conv_env.get_instrs();
-    if (accel_selected == cpu_x86) {
-      const char* algo_items[] = { "direct, O(N^2)", "treecode, O(NlogN)" };
-      ImGui::PushItemWidth(240);
-      ImGui::Combo("Select algorithm", &algo_item, algo_items, 2);
-      ImGui::PopItemWidth();
-      switch(algo_item) {
-        case 0: conv_env.set_summation(direct); break;
-        case 1: conv_env.set_summation(barneshut); break;
-      } // end switch
-    } else {
-      ImGui::Text("Algorithm is direct, O(N^2)");
-    }
-  }
+  // set the diffusion parameters in Diffusion.h
+  diff.draw_advanced();
 }
 #endif
 

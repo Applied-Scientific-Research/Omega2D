@@ -14,7 +14,6 @@
 #include "Convection.h"
 #include "Diffusion.h"
 #include "StatusFile.h"
-#include "ExecEnv.h"
 
 #ifdef USE_GL
 #include "RenderParams.h"
@@ -102,23 +101,11 @@ public:
   std::vector<std::shared_ptr<Body>>::iterator bodies_begin() { return bodies.begin(); }
   std::vector<std::shared_ptr<Body>>::iterator bodies_end() { return bodies.end(); }
 
-  // read/write vrm/amr parameters
+  // get/set vrm/amr triggers
   void set_amr(const bool);
   void set_diffuse(const bool);
-  void set_vrm_relative(const bool _in) { diff.set_vrm_relative(_in); }
-  void set_vrm_ignore(const float _in) { diff.set_vrm_ignore(_in); }
-  void set_vrm_simplex(const bool _in) { diff.set_vrm_simplex(_in); }
   const bool get_amr() const { return diff.get_amr(); };
   const bool get_diffuse() const { return diff.get_diffuse(); };
-  const bool get_vrm_relative() const { return diff.get_vrm_relative(); }
-  const float get_vrm_ignore() const { return diff.get_vrm_ignore(); }
-  const bool get_vrm_simplex() const { return diff.get_vrm_simplex(); }
-#ifdef PLUGIN_AVRM
-  void set_vrm_radgrad(const float _in) { diff.set_vrm_radgrad(_in); }
-  void set_vrm_adapt(const float _in) { diff.set_vrm_adapt(_in); }
-  const float get_vrm_radgrad() const { return diff.get_vrm_radgrad(); }
-  const float get_vrm_adapt() const { return diff.get_vrm_adapt(); }
-#endif
 
   // act on stuff
   void reset();
@@ -195,9 +182,6 @@ private:
 
   // status file
   StatusFile sf;
-
-  // execution environments
-  ExecEnv conv_env, bem_env;
 
   // state
   std::string description;

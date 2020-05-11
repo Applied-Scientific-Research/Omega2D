@@ -17,6 +17,7 @@
   #include "VRM.h"
 #endif
 #include "BEM.h"
+#include "GuiHelper.h"
 
 #include "json/json.hpp"
 
@@ -49,21 +50,9 @@ public:
     {}
 
   void set_diffuse(const bool _do_diffuse) { is_inviscid = not _do_diffuse; }
-  void set_amr(const bool _do_amr) { adaptive_radii = _do_amr; }
-  void set_vrm_relative(const bool _in) { vrm.set_relative(_in); }
-  void set_vrm_ignore(const float _in) { vrm.set_ignore(_in); }
-  void set_vrm_simplex(const bool _in) { vrm.set_simplex(_in); }
+  void set_amr(const bool _do_amr);
   const bool get_diffuse() const { return !is_inviscid; }
   const bool get_amr() const { return adaptive_radii; }
-  const bool get_vrm_relative() const { return vrm.get_relative(); }
-  const float get_vrm_ignore() const { return vrm.get_ignore(); }
-  const bool get_vrm_simplex() const { return vrm.get_simplex(); }
-#ifdef PLUGIN_AVRM
-  void set_vrm_radgrad(const float _in) { vrm.set_radgrad(_in); }
-  void set_vrm_adapt(const float _in) { vrm.set_adapt(_in); }
-  const float get_vrm_radgrad() const { return vrm.get_radgrad(); }
-  const float get_vrm_adapt() const { return vrm.get_adapt(); }
-#endif
   S get_nom_sep_scaled() const { return nom_sep_scaled; }
   S get_nom_sep() { return nom_sep_scaled * vrm.get_hnu(); }
   S get_particle_overlap() const { return particle_overlap; }
@@ -77,6 +66,10 @@ public:
             std::vector<Collection>&,
             std::vector<Collection>&,
             BEM<S,I>& _bem);
+
+#ifdef USE_IMGUI
+  void draw_advanced();
+#endif
 
   // read/write parameters
   void from_json(const nlohmann::json);
@@ -106,6 +99,12 @@ private:
   bool shed_before_diffuse;
 };
 
+//
+template <class S, class A, class I>
+void Diffusion<S,A,I>::set_amr(const bool _do_amr) {
+  adaptive_radii = _do_amr;
+  if (_do_amr) is_inviscid = true;
+}
 
 //
 // take a diffusion step
@@ -283,6 +282,67 @@ void Diffusion<S,A,I>::step(const double                _time,
     std::visit([=](auto& elem) { elem.update_max_str(); }, coll);
   }
 }
+
+#ifdef USE_IMGUI
+//
+// draw advanced options parts of the GUI
+//
+template <class S, class A, class I>
+void Diffusion<S,A,I>::draw_advanced() {
+
+  ImGui::Separator();
+  ImGui::Spacing();
+  ImGui::Text("Diffusion settings");
+
+  bool relative_thresh = vrm.get_relative();
+  ImGui::Checkbox("Thresholds are relative to strongest particle", &relative_thresh);
+  ImGui::SameLine();
+  ShowHelpMarker("If unchecked, the thresholds defined here are absolute and unscaled to the strongest particle.");
+  vrm.set_relative(relative_thresh);
+
+  ImGui::PushItemWidth(-270);
+  float ignore_thresh = std::log10(vrm.get_ignore());
+  ImGui::SliderFloat("Threshold to ignore", &ignore_thresh, -12, 0, "%.1f");
+  ImGui::SameLine();
+  ShowHelpMarker("During diffusion, ignore any particles with strength magnitude less than this power of ten threshold.");
+  vrm.set_ignore(std::pow(10.f,ignore_thresh));
+  ImGui::PopItemWidth();
+
+#ifdef PLUGIN_SIMPLEX
+  // bool toggle for NNLS vs. Simplex
+  bool use_simplex = vrm.get_simplex();
+  ImGui::Checkbox("VRM uses Simplex solver", &use_simplex);
+  ImGui::SameLine();
+  ShowHelpMarker("Use the proprietary Simplex solver for overdetermined systems. If unchecked, the Vorticity Redistribution Method uses a Non-Negative Least Squares solver from Eigen.");
+  vrm.set_simplex(use_simplex);
+#endif
+
+#ifdef PLUGIN_AVRM
+  // show the toggle for AMR
+  bool use_amr = get_amr();
+  ImGui::Checkbox("Allow adaptive resolution", &use_amr);
+  ImGui::SameLine();
+  ShowHelpMarker("Particle sizes will adapt as required to maintain resolution during the diffusion calculation. If unchecked, all particles will stay the same size.");
+  set_amr(use_amr);
+
+  if (use_amr) {
+    ImGui::PushItemWidth(-270);
+    float lapse_rate = vrm.get_radgrad();
+    ImGui::SliderFloat("Radius gradient", &lapse_rate, 0.01, 0.5f, "%.2f");
+    ImGui::SameLine();
+    ShowHelpMarker("During adaptive diffusion, enforce a maximum spatial gradient for particle radii.");
+    vrm.set_radgrad(lapse_rate);
+
+    float adapt_thresh = std::log10(vrm.get_adapt());
+    ImGui::SliderFloat("Threshold to adapt", &adapt_thresh, -12, 0, "%.1f");
+    ImGui::SameLine();
+    ShowHelpMarker("During diffusion, allow any particles with strength less than this power-of-ten threshold to grow in size.");
+    vrm.set_adapt(std::pow(10.f,adapt_thresh));
+    ImGui::PopItemWidth();
+  }
+#endif
+}
+#endif
 
 //
 // read/write parameters to json
