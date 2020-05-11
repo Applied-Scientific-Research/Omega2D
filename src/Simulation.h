@@ -1,8 +1,8 @@
 /*
  * Simulation.h - a class to control a 2D vortex particle sim
  *
- * (c)2017-9 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
+ * (c)2017-20 Applied Scientific Research, Inc.
+ *            Written by Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -14,6 +14,7 @@
 #include "Convection.h"
 #include "Diffusion.h"
 #include "StatusFile.h"
+//#include "ExecEnv.h"
 
 #ifdef USE_GL
 #include "RenderParams.h"
@@ -152,6 +153,10 @@ public:
   void drawGL(std::vector<float>&, RenderParams&);
 #endif
 
+#ifdef USE_IMGUI
+  void draw_advanced();
+#endif
+
 private:
   // primary simulation params
   float re;
@@ -190,6 +195,9 @@ private:
 
   // status file
   StatusFile sf;
+
+  // execution environments
+  //ExecEnv conv_env, bem_env;
 
   // state
   std::string description;

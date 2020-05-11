@@ -1,8 +1,8 @@
 /*
  * Simulation.cpp - a class to control a 2D vortex particle sim
  *
- * (c)2017-9 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
+ * (c)2017-20 Applied Scientific Research, Inc.
+ *            Written by Mark J Stock <markjstock@gmail.com>
  */
 
 #include "Simulation.h"
@@ -10,6 +10,7 @@
 #include "Reflect.h"
 #include "BEMHelper.h"
 #include "VtkXmlHelper.h"
+#include "GuiHelper.h"
 
 #include <cassert>
 #include <cmath>
@@ -213,6 +214,74 @@ Simulation::to_json() const {
 
   return j;
 }
+
+
+#ifdef USE_IMGUI
+//
+// ImGui code
+//
+void Simulation::draw_advanced() {
+
+  bool relative_thresh = get_vrm_relative();
+  ImGui::Checkbox("Thresholds are relative to strongest particle", &relative_thresh);
+  ImGui::SameLine();
+  ShowHelpMarker("If unchecked, the thresholds defined here are absolute and unscaled to the strongest particle.");
+  set_vrm_relative(relative_thresh);
+
+  ImGui::PushItemWidth(-270);
+  float ignore_thresh = std::log10(get_vrm_ignore());
+  ImGui::SliderFloat("Threshold to ignore", &ignore_thresh, -12, 0, "%.1f");
+  ImGui::SameLine();
+  ShowHelpMarker("During diffusion, ignore any particles with strength magnitude less than this power of ten threshold.");
+  set_vrm_ignore(std::pow(10.f,ignore_thresh));
+  ImGui::PopItemWidth();
+
+#ifdef PLUGIN_SIMPLEX
+  // bool toggle for NNLS vs. Simplex
+  bool use_simplex = get_vrm_simplex();
+  ImGui::Checkbox("VRM uses Simplex solver", &use_simplex);
+  ImGui::SameLine();
+  ShowHelpMarker("Use the proprietary Simplex solver for overdetermined systems. If unchecked, the Vorticity Redistribution Method uses a Non-Negative Least Squares solver from Eigen.");
+  set_vrm_simplex(use_simplex);
+#endif
+
+#ifdef PLUGIN_AVRM
+  // show the toggle for AMR
+  bool use_amr = get_amr();
+  ImGui::Checkbox("Allow adaptive resolution", &use_amr);
+  ImGui::SameLine();
+  ShowHelpMarker("Particle sizes will adapt as required to maintain resolution during the diffusion calculation. If unchecked, all particles will stay the same size.");
+  set_amr(use_amr);
+
+  if (use_amr) {
+    ImGui::PushItemWidth(-270);
+    float lapse_rate = get_vrm_radgrad();
+    ImGui::SliderFloat("Radius gradient", &lapse_rate, 0.01, 0.5f, "%.2f");
+    ImGui::SameLine();
+    ShowHelpMarker("During adaptive diffusion, enforce a maximum spatial gradient for particle radii.");
+    set_vrm_radgrad(lapse_rate);
+
+    float adapt_thresh = std::log10(get_vrm_adapt());
+    ImGui::SliderFloat("Threshold to adapt", &adapt_thresh, -12, 0, "%.1f");
+    ImGui::SameLine();
+    ShowHelpMarker("During diffusion, allow any particles with strength less than this power-of-ten threshold to grow in size.");
+    set_vrm_adapt(std::pow(10.f,adapt_thresh));
+    ImGui::PopItemWidth();
+  }
+#endif
+
+#ifdef EXTERNAL_VEL_SOLVE
+  //ImGui::Separator();
+
+  //static bool use_external_solver = false;
+  //ImGui::Checkbox("Use external function for velocity", &use_external_solver);
+  //ImGui::SameLine();
+  //ShowHelpMarker("Use an external method to calculate velocities. If unchecked, the internal O(N^2) method is used.");
+#endif
+
+}
+#endif
+
 
 #ifdef USE_GL
 //
