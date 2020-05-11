@@ -14,7 +14,7 @@
 #include "Convection.h"
 #include "Diffusion.h"
 #include "StatusFile.h"
-//#include "ExecEnv.h"
+#include "ExecEnv.h"
 
 #ifdef USE_GL
 #include "RenderParams.h"
@@ -197,7 +197,7 @@ private:
   StatusFile sf;
 
   // execution environments
-  //ExecEnv conv_env, bem_env;
+  ExecEnv conv_env, bem_env;
 
   // state
   std::string description;
