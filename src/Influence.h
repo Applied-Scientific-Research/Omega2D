@@ -39,8 +39,8 @@ extern "C" float external_vel_solver_d_(int*, const double*, const double*, cons
 //
 template <class S, class A>
 void points_affect_points (Points<S> const& src, Points<S>& targ, ExecEnv& env) {
-  std::cout << "    in ptpt with" << env.to_string() << std::endl;
 
+  std::cout << "    in ptpt with" << env.to_string() << std::endl;
   auto start = std::chrono::system_clock::now();
   float flops = (float)targ.get_n();
 
@@ -70,7 +70,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ, ExecEnv& env) 
 
     return;
   }
-#endif  // no external fast solve, perform O(N^2) calculations here
+#endif  // no external fast solve, perform calculations below
 
 
   // We need 4 different loops here, for the options:
@@ -212,8 +212,11 @@ void points_affect_points (Points<S> const& src, Points<S>& targ, ExecEnv& env) 
 //
 template <class S, class A>
 void panels_affect_points (Surfaces<S> const& src, Points<S>& targ, ExecEnv& env) {
+
+  std::cout << "    in panpt with" << env.to_string() << std::endl;
   std::cout << "    1_0 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   auto start = std::chrono::system_clock::now();
+  float flops = (float)targ.get_n();
 
   // get references to use locally
   const std::array<Vector<S>,Dimensions>& sx = src.get_pos();
@@ -227,144 +230,152 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ, ExecEnv& env
   const bool           have_source_strengths = src.have_src_str();
   const Vector<S>&                        ss = src.get_src_str();
 
-  float flops = (float)targ.get_n();
+#ifdef EXTERNAL_VEL_SOLVE
+  if (not env.is_internal()) {
+    //return;
+  }
+#endif  // no external fast solve, perform calculations below
 
 #ifdef USE_VC
-  // define vector types for Vc (still only S==A supported here)
-  typedef Vc::Vector<S> StoreVec;
-  typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
+  if (env.get_instrs() == cpu_vc) {
 
-  // sources are panels, assemble de-interleaved vectors
-  Vc::Memory<StoreVec> vsx0(src.get_npanels());
-  Vc::Memory<StoreVec> vsy0(src.get_npanels());
-  Vc::Memory<StoreVec> vsx1(src.get_npanels());
-  Vc::Memory<StoreVec> vsy1(src.get_npanels());
-  Vc::Memory<StoreVec> vsvs(src.get_npanels());	// vortex strength
-  Vc::Memory<StoreVec> vsss(src.get_npanels());	// source strength
-  for (size_t j=0; j<src.get_npanels(); ++j) {
-    const size_t id0 = si[2*j];
-    const size_t id1 = si[2*j+1];
-    vsx0[j]     = sx[0][id0];
-    vsy0[j]     = sx[1][id0];
-    vsx1[j]     = sx[0][id1];
-    vsy1[j]     = sx[1][id1];
-    vsvs[j]     = vs[j];
-    vsss[j]     = 0.0;
-    //std::cout << "  src panel " << j << " has " << vsx1[j] << " " << vsy1[j] << " and str " << vsvs[j] << std::endl;
-  }
-  for (size_t j=src.get_npanels(); j<vsvs.vectorsCount()*StoreVec::size(); ++j) {
-    // set this to an impossible place
-    vsx0[j] = -9999.0;
-    vsy0[j] = -9999.0;
-    vsx1[j] = 9999.0;
-    vsy1[j] = -9999.0;
-    vsvs[j] = 0.0;
-    vsss[j] = 0.0;
-    //std::cout << "  src panel " << j << " has " << vsx1[j] << " " << vsy1[j] << " and str " << vsvs[j] << std::endl;
-  }
+    // define vector types for Vc (still only S==A supported here)
+    typedef Vc::Vector<S> StoreVec;
+    typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
 
-  // set vectors for source source strength
-  if (have_source_strengths) {
+    // sources are panels, assemble de-interleaved vectors
+    Vc::Memory<StoreVec> vsx0(src.get_npanels());
+    Vc::Memory<StoreVec> vsy0(src.get_npanels());
+    Vc::Memory<StoreVec> vsx1(src.get_npanels());
+    Vc::Memory<StoreVec> vsy1(src.get_npanels());
+    Vc::Memory<StoreVec> vsvs(src.get_npanels());	// vortex strength
+    Vc::Memory<StoreVec> vsss(src.get_npanels());	// source strength
     for (size_t j=0; j<src.get_npanels(); ++j) {
-      vsss[j] = ss[j];
-      //std::cout << "    part " << j << " has strs " << vsvs[j] << " " << vsss[j] << std::endl;
-      //std::cout << sa[j]*vsvs[j] << " " << sa[j]*vsss[j] << std::endl;
+      const size_t id0 = si[2*j];
+      const size_t id1 = si[2*j+1];
+      vsx0[j]     = sx[0][id0];
+      vsy0[j]     = sx[1][id0];
+      vsx1[j]     = sx[0][id1];
+      vsy1[j]     = sx[1][id1];
+      vsvs[j]     = vs[j];
+      vsss[j]     = 0.0;
+      //std::cout << "  src panel " << j << " has " << vsx1[j] << " " << vsy1[j] << " and str " << vsvs[j] << std::endl;
     }
-  }
+    for (size_t j=src.get_npanels(); j<vsvs.vectorsCount()*StoreVec::size(); ++j) {
+      // set this to an impossible place
+      vsx0[j] = -9999.0;
+      vsy0[j] = -9999.0;
+      vsx1[j] = 9999.0;
+      vsy1[j] = -9999.0;
+      vsvs[j] = 0.0;
+      vsss[j] = 0.0;
+      //std::cout << "  src panel " << j << " has " << vsx1[j] << " " << vsy1[j] << " and str " << vsvs[j] << std::endl;
+    }
 
-  #pragma omp parallel for
-  for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
-
-    // spread the target points out over a vector
-    const StoreVec vtx = tx[0][i];
-    const StoreVec vty = tx[1][i];
-
-    // generate accumulator
-    AccumVec accumu(0.0);
-    AccumVec accumv(0.0);
-    AccumVec resultu(0.0);
-    AccumVec resultv(0.0);
-
+    // set vectors for source source strength
     if (have_source_strengths) {
-      for (size_t j=0; j<vsvs.vectorsCount(); ++j) {
-        // note that this is the same kernel as panels_affect_points!
-        kernel_1_0vs<StoreVec,AccumVec>(vsx0.vector(j), vsy0.vector(j),
-                                        vsx1.vector(j), vsy1.vector(j),
-                                        vsvs.vector(j), vsss.vector(j),
-                                        vtx, vty,
-                                        &resultu, &resultv);
-        accumu += resultu;
-        accumv += resultv;
-      }
-    } else {
-      // only vortex strengths
-      for (size_t j=0; j<vsvs.vectorsCount(); ++j) {
-        // note that this is the same kernel as panels_affect_points!
-        kernel_1_0v<StoreVec,AccumVec>(vsx0.vector(j), vsy0.vector(j),
-                                       vsx1.vector(j), vsy1.vector(j),
-                                       vsvs.vector(j),
-                                       vtx, vty,
-                                       &resultu, &resultv);
-        accumu += resultu;
-        accumv += resultv;
+      for (size_t j=0; j<src.get_npanels(); ++j) {
+        vsss[j] = ss[j];
+        //std::cout << "    part " << j << " has strs " << vsvs[j] << " " << vsss[j] << std::endl;
+        //std::cout << sa[j]*vsvs[j] << " " << sa[j]*vsss[j] << std::endl;
       }
     }
 
-    // use this as normal
-    tu[0][i] += accumu.sum();
-    tu[1][i] += accumv.sum();
-    //std::cout << "    new 1_0 vel on " << i << " is " << accumu.sum() << " " << accumv.sum() << std::endl;
-  }
-#else
+    #pragma omp parallel for
+    for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
 
-  #pragma omp parallel for
-  for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+      // spread the target points out over a vector
+      const StoreVec vtx = tx[0][i];
+      const StoreVec vty = tx[1][i];
 
-    A accumu  = 0.0;
-    A accumv  = 0.0;
-    A resultu = 0.0;
-    A resultv = 0.0;
+      // generate accumulator
+      AccumVec accumu(0.0);
+      AccumVec accumv(0.0);
+      AccumVec resultu(0.0);
+      AccumVec resultv(0.0);
 
-    if (have_source_strengths) {
-      // source and vortex strengths
-      for (size_t j=0; j<src.get_npanels(); ++j) {
-        const size_t jp0 = si[2*j];
-        const size_t jp1 = si[2*j+1];
-
-        // note that this is the same kernel as points_affect_panels
-        kernel_1_0vs<S,A>(sx[0][jp0], sx[1][jp0], 
-                          sx[0][jp1], sx[1][jp1],
-                          vs[j],      ss[j],
-                          tx[0][i],   tx[1][i],
-                          &resultu, &resultv);
-
-        accumu += resultu;
-        accumv += resultv;
+      if (have_source_strengths) {
+        for (size_t j=0; j<vsvs.vectorsCount(); ++j) {
+          // note that this is the same kernel as panels_affect_points!
+          kernel_1_0vs<StoreVec,AccumVec>(vsx0.vector(j), vsy0.vector(j),
+                                          vsx1.vector(j), vsy1.vector(j),
+                                          vsvs.vector(j), vsss.vector(j),
+                                          vtx, vty,
+                                          &resultu, &resultv);
+          accumu += resultu;
+          accumv += resultv;
+        }
+      } else {
+        // only vortex strengths
+        for (size_t j=0; j<vsvs.vectorsCount(); ++j) {
+          // note that this is the same kernel as panels_affect_points!
+          kernel_1_0v<StoreVec,AccumVec>(vsx0.vector(j), vsy0.vector(j),
+                                         vsx1.vector(j), vsy1.vector(j),
+                                         vsvs.vector(j),
+                                         vtx, vty,
+                                         &resultu, &resultv);
+          accumu += resultu;
+          accumv += resultv;
+        }
       }
-    } else {
-      // only vortex strengths
-      for (size_t j=0; j<src.get_npanels(); ++j) {
-        const size_t jp0 = si[2*j];
-        const size_t jp1 = si[2*j+1];
 
-        // note that this is the same kernel as points_affect_panels
-        kernel_1_0v<S,A>(sx[0][jp0], sx[1][jp0], 
-                         sx[0][jp1], sx[1][jp1],
-                         vs[j],
-                         tx[0][i],   tx[1][i],
-                         &resultu, &resultv);
-
-        accumu += resultu;
-        accumv += resultv;
-      }
+      // use this as normal
+      tu[0][i] += accumu.sum();
+      tu[1][i] += accumv.sum();
+      //std::cout << "    new 1_0 vel on " << i << " is " << accumu.sum() << " " << accumv.sum() << std::endl;
     }
+  } else
 
-    // use this as normal
-    tu[0][i] += accumu;
-    tu[1][i] += accumv;
-    //std::cout << "    new 1_0 vel on " << i << " is " << accumu << " " << accumv << std::endl;
+#endif  // no Vc
+  {
+    #pragma omp parallel for
+    for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+
+      A accumu  = 0.0;
+      A accumv  = 0.0;
+      A resultu = 0.0;
+      A resultv = 0.0;
+
+      if (have_source_strengths) {
+        // source and vortex strengths
+        for (size_t j=0; j<src.get_npanels(); ++j) {
+          const size_t jp0 = si[2*j];
+          const size_t jp1 = si[2*j+1];
+
+          // note that this is the same kernel as points_affect_panels
+          kernel_1_0vs<S,A>(sx[0][jp0], sx[1][jp0], 
+                            sx[0][jp1], sx[1][jp1],
+                            vs[j],      ss[j],
+                            tx[0][i],   tx[1][i],
+                            &resultu, &resultv);
+
+          accumu += resultu;
+          accumv += resultv;
+        }
+      } else {
+        // only vortex strengths
+        for (size_t j=0; j<src.get_npanels(); ++j) {
+          const size_t jp0 = si[2*j];
+          const size_t jp1 = si[2*j+1];
+
+          // note that this is the same kernel as points_affect_panels
+          kernel_1_0v<S,A>(sx[0][jp0], sx[1][jp0], 
+                           sx[0][jp1], sx[1][jp1],
+                           vs[j],
+                           tx[0][i],   tx[1][i],
+                           &resultu, &resultv);
+
+          accumu += resultu;
+          accumv += resultv;
+        }
+      }
+
+      // use this as normal
+      tu[0][i] += accumu;
+      tu[1][i] += accumv;
+      //std::cout << "    new 1_0 vel on " << i << " is " << accumu << " " << accumv << std::endl;
+    }
   }
-#endif
 
   if (have_source_strengths) {
     flops *= 2.0 + (float)flops_1_0vs<S,A>() * (float)src.get_npanels();
@@ -384,8 +395,11 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ, ExecEnv& env
 //
 template <class S, class A>
 void points_affect_panels (Points<S> const& src, Surfaces<S>& targ, ExecEnv& env) {
+
+  std::cout << "    in ptpan with" << env.to_string() << std::endl;
   std::cout << "    0_1 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   auto start = std::chrono::system_clock::now();
+  float flops = (float)targ.get_npanels();
 
   // get references to use locally
   const std::array<Vector<S>,Dimensions>& sx = src.get_pos();
@@ -395,101 +409,119 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ, ExecEnv& env
   const Vector<S>&                        ta = targ.get_area();
   std::array<Vector<S>,Dimensions>&       tu = targ.get_vel();
 
-  float flops = (float)targ.get_npanels();
+#ifdef EXTERNAL_VEL_SOLVE
+  if (not env.is_internal()) {
+    //return;
+  }
+#endif  // no external fast solve, perform calculations below
 
 #ifdef USE_VC
-  // define vector types for Vc
-  typedef Vc::Vector<S> StoreVec;
-  typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
+  if (env.get_instrs() == cpu_vc) {
 
-  const Vc::Memory<StoreVec> sxv = stdvec_to_vcvec<S>(sx[0], 999.999f);
-  const Vc::Memory<StoreVec> syv = stdvec_to_vcvec<S>(sx[1], 999.999f);
-  const Vc::Memory<StoreVec> vsv = stdvec_to_vcvec<S>(vs,    0.0);
-#endif
+    // define vector types for Vc
+    typedef Vc::Vector<S> StoreVec;
+    typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
 
-  #pragma omp parallel for
-  for (int32_t i=0; i<(int32_t)targ.get_npanels(); ++i) {
+    const Vc::Memory<StoreVec> sxv = stdvec_to_vcvec<S>(sx[0], 999.999f);
+    const Vc::Memory<StoreVec> syv = stdvec_to_vcvec<S>(sx[1], 999.999f);
+    const Vc::Memory<StoreVec> vsv = stdvec_to_vcvec<S>(vs,    0.0);
 
-    const size_t ip0 = ti[2*i];
-    const size_t ip1 = ti[2*i+1];
+    #pragma omp parallel for
+    for (int32_t i=0; i<(int32_t)targ.get_npanels(); ++i) {
 
-    // scale by the panel size
-    const A plen = 1.0 / ta[i];
+      const size_t ip0 = ti[2*i];
+      const size_t ip1 = ti[2*i+1];
 
-    //std::cout << "  panel " << i << " at " << tx[0][ip0] << " " << tx[1][ip0] << " has plen " << plen << std::endl;
+      // scale by the panel size
+      const A plen = 1.0 / ta[i];
 
-#ifdef USE_VC
-    // spread the target out over a vector
-    const StoreVec vtx0 = tx[0][ip0];
-    const StoreVec vty0 = tx[1][ip0];
-    const StoreVec vtx1 = tx[0][ip1];
-    const StoreVec vty1 = tx[1][ip1];
+      //std::cout << "  panel " << i << " at " << tx[0][ip0] << " " << tx[1][ip0] << " has plen " << plen << std::endl;
 
-    // generate accumulator
-    AccumVec accumu(0.0);
-    AccumVec accumv(0.0);
-    AccumVec resultu(0.0);
-    AccumVec resultv(0.0);
+      // spread the target out over a vector
+      const StoreVec vtx0 = tx[0][ip0];
+      const StoreVec vty0 = tx[1][ip0];
+      const StoreVec vtx1 = tx[0][ip1];
+      const StoreVec vty1 = tx[1][ip1];
 
-    for (size_t j=0; j<vsv.vectorsCount(); ++j) {
-      // note that this is the same kernel as panels_affect_points!
-      kernel_1_0v<StoreVec,AccumVec>(vtx0, vty0,
-                                     vtx1, vty1,
-                                     vsv.vector(j),
-                                     sxv.vector(j), syv.vector(j),
-                                     &resultu, &resultv);
-      accumu += resultu;
-      accumv += resultv;
-    }
+      // generate accumulator
+      AccumVec accumu(0.0);
+      AccumVec accumv(0.0);
+      AccumVec resultu(0.0);
+      AccumVec resultv(0.0);
 
-    //std::cout << "  panel " << i << " at " << tx[0][ip0] << " " << tx[1][ip0] << std::endl;
-    //std::cout << "    old vel is " << tu[0][i] << " " << tu[1][i] << std::endl;
-    //std::cout << "    new vel adds " << (-plen*accumu.sum()) << " " << (-plen*accumv.sum()) << std::endl;
-
-    // but we use it backwards, so the resulting velocities are negative
-    tu[0][i] -= plen*accumu.sum();
-    tu[1][i] -= plen*accumv.sum();
-    //if (std::isnan(tu[0][i])) exit(1);
-
-#else
-    A accumu  = 0.0;
-    A accumv  = 0.0;
-    A resultu = 0.0;
-    A resultv = 0.0;
-
-    for (size_t j=0; j<src.get_n(); ++j) {
-      // note that this is the same kernel as panels_affect_points!
-      kernel_1_0v<S,A>(tx[0][ip0], tx[1][ip0],
-                       tx[0][ip1], tx[1][ip1],
-                       vs[j],
-                       sx[0][j],   sx[1][j],
-                       &resultu, &resultv);
-      //std::cout << "    part " << j << " at " << sx[0][j] << " " << sx[1][j] << " has str " << vs[j];// << std::endl;
-      //std::cout << " adds vel " << (-plen*resultu) << " " << (-plen*resultv);// << std::endl;
-      accumu += resultu;
-      accumv += resultv;
-
-      // testing - convert the panel to a point and find the vel there
-      if (false) {
-        A testu = 0.0;
-        A testv = 0.0;
-        kernel_0v_0v<S,A>(sx[0][j], sx[1][j], 0.5*0.189737, vs[j], 
-                          0.5*(tx[0][ip0]+tx[0][ip1]), 0.5*(tx[1][ip0]+tx[1][ip1]), 0.5*0.189737,
-                          &testu, &testv);
-        std::cout << " pp vel " << testu << " " << testv << std::endl;
+      for (size_t j=0; j<vsv.vectorsCount(); ++j) {
+        // note that this is the same kernel as panels_affect_points!
+        kernel_1_0v<StoreVec,AccumVec>(vtx0, vty0,
+                                       vtx1, vty1,
+                                       vsv.vector(j),
+                                       sxv.vector(j), syv.vector(j),
+                                       &resultu, &resultv);
+        accumu += resultu;
+        accumv += resultv;
       }
+
+      //std::cout << "  panel " << i << " at " << tx[0][ip0] << " " << tx[1][ip0] << std::endl;
+      //std::cout << "    old vel is " << tu[0][i] << " " << tu[1][i] << std::endl;
+      //std::cout << "    new vel adds " << (-plen*accumu.sum()) << " " << (-plen*accumv.sum()) << std::endl;
+
+      // but we use it backwards, so the resulting velocities are negative
+      tu[0][i] -= plen*accumu.sum();
+      tu[1][i] -= plen*accumv.sum();
+      //if (std::isnan(tu[0][i])) exit(1);
     }
+  } else
 
-    //std::cout << "  panel " << i << " at " << tx[0][ip0] << " " << tx[1][ip0] << " has plen " << plen << std::endl;
-    //std::cout << "    old vel is " << tu[0][i] << " " << tu[1][i] << std::endl;
-    //std::cout << "    new vel adds " << (-plen*accumu) << " " << (-plen*accumv) << std::endl;
+#endif  // no Vc
+  {
+    #pragma omp parallel for
+    for (int32_t i=0; i<(int32_t)targ.get_npanels(); ++i) {
 
-    // but we use it backwards, so the resulting velocities are negative
-    tu[0][i] -= plen*accumu;
-    tu[1][i] -= plen*accumv;
-    //std::cout << "    new vel on " << i << " is " << tu[0][i] << " " << tu[1][i] << std::endl;
-    //std::cout << "    new 0_1 vel on " << i << " is " << (-plen*accumu) << " " << (-plen*accumv) << std::endl;
-#endif
+      const size_t ip0 = ti[2*i];
+      const size_t ip1 = ti[2*i+1];
+
+      // scale by the panel size
+      const A plen = 1.0 / ta[i];
+
+      //std::cout << "  panel " << i << " at " << tx[0][ip0] << " " << tx[1][ip0] << " has plen " << plen << std::endl;
+
+      A accumu  = 0.0;
+      A accumv  = 0.0;
+      A resultu = 0.0;
+      A resultv = 0.0;
+
+      for (size_t j=0; j<src.get_n(); ++j) {
+        // note that this is the same kernel as panels_affect_points!
+        kernel_1_0v<S,A>(tx[0][ip0], tx[1][ip0],
+                         tx[0][ip1], tx[1][ip1],
+                         vs[j],
+                         sx[0][j],   sx[1][j],
+                         &resultu, &resultv);
+        //std::cout << "    part " << j << " at " << sx[0][j] << " " << sx[1][j] << " has str " << vs[j];// << std::endl;
+        //std::cout << " adds vel " << (-plen*resultu) << " " << (-plen*resultv);// << std::endl;
+        accumu += resultu;
+        accumv += resultv;
+
+        // testing - convert the panel to a point and find the vel there
+        if (false) {
+          A testu = 0.0;
+          A testv = 0.0;
+          kernel_0v_0v<S,A>(sx[0][j], sx[1][j], 0.5*0.189737, vs[j], 
+                            0.5*(tx[0][ip0]+tx[0][ip1]), 0.5*(tx[1][ip0]+tx[1][ip1]), 0.5*0.189737,
+                            &testu, &testv);
+          std::cout << " pp vel " << testu << " " << testv << std::endl;
+        }
+      }
+
+      //std::cout << "  panel " << i << " at " << tx[0][ip0] << " " << tx[1][ip0] << " has plen " << plen << std::endl;
+      //std::cout << "    old vel is " << tu[0][i] << " " << tu[1][i] << std::endl;
+      //std::cout << "    new vel adds " << (-plen*accumu) << " " << (-plen*accumv) << std::endl;
+
+      // but we use it backwards, so the resulting velocities are negative
+      tu[0][i] -= plen*accumu;
+      tu[1][i] -= plen*accumv;
+      //std::cout << "    new vel on " << i << " is " << tu[0][i] << " " << tu[1][i] << std::endl;
+      //std::cout << "    new 0_1 vel on " << i << " is " << (-plen*accumu) << " " << (-plen*accumv) << std::endl;
+    }
   }
 
   flops *= 11.0 + (float)flops_1_0v<S,A>() * (float)src.get_n();

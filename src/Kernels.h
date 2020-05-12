@@ -93,7 +93,58 @@ static inline void kernel_0v_0vg (const S sx, const S sy, const S sr, const S ss
 //   ignoring the 1/2pi factor, which will be multiplied later
 //   35 flops average
 //
+// first, the flops count
 template <class S, class A> size_t flops_1_0v () { return 35; }
+
+// then some useful inlines, to pull out all of the Vc-specific language
+#ifdef USE_VC
+template <class S>
+static inline S get_vstar (const S rij2, const S rij12) {
+  return S(0.5f) * Vc::log(rij2/rij12);
+}
+#endif
+template <> inline float get_vstar (const float rij2, const float rij12) {
+  return 0.5f * std::log(rij2/rij12);
+}
+template <> inline double get_vstar (const double rij2, const double rij12) {
+  return 0.5 * std::log(rij2/rij12);
+}
+
+#ifdef USE_VC
+template <class S>
+static inline S get_ustar (const S dx0, const S dy0, const S dx1, const S dy1) {
+  S ustar = Vc::atan2(dx1, dy1) - Vc::atan2(dx0, dy0);
+  Vc::where(ustar < S(-M_PI)) | ustar += S(2.0f*M_PI);
+  Vc::where(ustar > S(M_PI)) | ustar -= S(2.0f*M_PI);
+  return ustar;
+}
+#endif
+template <> inline float get_ustar (const float dx0, const float dy0, const float dx1, const float dy1) {
+  float ustar = std::atan2(dx1, dy1) - std::atan2(dx0, dy0);
+  if (ustar < -M_PI) ustar += 2.0f*M_PI;
+  if (ustar > M_PI) ustar -= 2.0f*M_PI;
+  return ustar;
+}
+template <> inline double get_ustar (const double dx0, const double dy0, const double dx1, const double dy1) {
+  double ustar = std::atan2(dx1, dy1) - std::atan2(dx0, dy0);
+  if (ustar < -M_PI) ustar += 2.0*M_PI;
+  if (ustar > M_PI) ustar -= 2.0*M_PI;
+  return ustar;
+}
+
+#ifdef USE_VC
+template <class S>
+static inline S get_rsqrt (const S _in) {
+  return Vc::rsqrt(_in);
+}
+#endif
+template <> inline float get_rsqrt (const float _in) {
+  return 1.0f / std::sqrt(_in);
+}
+template <> inline double get_rsqrt (const double _in) {
+  return 1.0 / std::sqrt(_in);
+}
+
 template <class S, class A>
 static inline void kernel_1_0v (const S sx0, const S sy0,
                                 const S sx1, const S sy1,
@@ -106,26 +157,12 @@ static inline void kernel_1_0v (const S sx0, const S sy0,
   const S dy0   = ty - sy0;
   const S dx1   = tx - sx1;
   const S dy1   = ty - sy1;
+  const S ustar = get_ustar<S>(dx0, dy0, dx1, dy1);
 
   // side lengths of the triangle s0, s1, t
   const S rij2  = dx0*dx0 + dy0*dy0;
   const S rij12 = dx1*dx1 + dy1*dy1;
-#ifdef USE_VC
-  const S vstar = S(0.5f) * Vc::log(rij2/rij12);
-  S ustar = Vc::atan2(dx1, dy1) - Vc::atan2(dx0, dy0);
-  //Vc::where(Vc::isnan(ustar)) | ustar = S(0.0f);
-#else
-  const S vstar = 0.5f * std::log(rij2/rij12);
-  S ustar = std::atan2(dx1, dy1) - std::atan2(dx0, dy0);
-#endif
-  //std::cout << "ustar started off as " << ustar << std::endl;
-#ifdef USE_VC
-  Vc::where(ustar < S(-M_PI)) | ustar += S(2.0f*M_PI);
-  Vc::where(ustar > S(M_PI)) | ustar -= S(2.0f*M_PI);
-#else
-  if (ustar < -M_PI) ustar += 2.0f*M_PI;
-  if (ustar > M_PI) ustar -= 2.0f*M_PI;
-#endif
+  const S vstar = get_vstar<S>(rij2, rij12);
   //std::cout << "ustar is " << ustar << " and vstar is " << vstar << std::endl;
 
   const S px    = sx1-sx0;
@@ -136,11 +173,7 @@ static inline void kernel_1_0v (const S sx0, const S sy0,
   const S velx  = ustar*px - vstar*py;
   const S vely  = ustar*py + vstar*px;
   //std::cout << "velx is " << velx << " and vely is " << vely << std::endl;
-#ifdef USE_VC
-  const S mult  = str * Vc::rsqrt(px*px + py*py);
-#else
-  const S mult  = str / std::sqrt(px*px + py*py);
-#endif
+  const S mult  = str * get_rsqrt<S>(px*px + py*py);
   //std::cout << "finalx is " << (mult*velx) << " and finaly is " << (mult*vely) << std::endl;
 
   // and multiply by vortex sheet strength
@@ -167,35 +200,18 @@ static inline void kernel_1_0vs (const S sx0, const S sy0,
   const S dy0   = ty - sy0;
   const S dx1   = tx - sx1;
   const S dy1   = ty - sy1;
+  const S ustar = get_ustar<S>(dx0, dy0, dx1, dy1);
 
   // side lengths of the triangle s0, s1, t
   const S rij2  = dx0*dx0 + dy0*dy0;
   const S rij12 = dx1*dx1 + dy1*dy1;
-#ifdef USE_VC
-  const S vstar = S(0.5f) * Vc::log(rij2/rij12);
-  S ustar = Vc::atan2(dx1, dy1) - Vc::atan2(dx0, dy0);
-#else
-  const S vstar = 0.5f * std::log(rij2/rij12);
-  S ustar = std::atan2(dx1, dy1) - std::atan2(dx0, dy0);
-#endif
-  //std::cout << "ustar started off as " << ustar << std::endl;
-#ifdef USE_VC
-  Vc::where(ustar < S(-M_PI)) | ustar += S(2.0f*M_PI);
-  Vc::where(ustar > S(M_PI)) | ustar -= S(2.0f*M_PI);
-#else
-  if (ustar < -M_PI) ustar += 2.0f*M_PI;
-  if (ustar > M_PI) ustar -= 2.0f*M_PI;
-#endif
+  const S vstar = get_vstar<S>(rij2, rij12);
   //std::cout << "ustar is " << ustar << " and vstar is " << vstar << std::endl;
 
   S px = sx1-sx0;
   S py = sy1-sy0;
   //std::cout << "px is " << px << " and py is " << py << std::endl;
-#ifdef USE_VC
-  const S mult  = Vc::rsqrt(px*px + py*py);
-#else
-  const S mult  = 1.0f / std::sqrt(px*px + py*py);
-#endif
+  const S mult  = get_rsqrt<S>(px*px + py*py);
   px *= mult;
   py *= mult;
 
@@ -231,35 +247,18 @@ static inline void kernel_1_0vps (const S sx0, const S sy0,
   const S dy0   = ty - sy0;
   const S dx1   = tx - sx1;
   const S dy1   = ty - sy1;
+  const S ustar = get_ustar<S>(dx0, dy0, dx1, dy1);
 
   // side lengths of the triangle s0, s1, t
   const S rij2  = dx0*dx0 + dy0*dy0;
   const S rij12 = dx1*dx1 + dy1*dy1;
-#ifdef USE_VC
-  const S vstar = S(0.5f) * Vc::log(rij2/rij12);
-  S ustar = Vc::atan2(dx1, dy1) - Vc::atan2(dx0, dy0);
-#else
-  const S vstar = 0.5f * std::log(rij2/rij12);
-  S ustar = std::atan2(dx1, dy1) - std::atan2(dx0, dy0);
-#endif
-  //std::cout << "ustar started off as " << ustar << std::endl;
-#ifdef USE_VC
-  Vc::where(ustar < S(-M_PI)) | ustar += S(2.0f*M_PI);
-  Vc::where(ustar > S(M_PI)) | ustar -= S(2.0f*M_PI);
-#else
-  if (ustar < -M_PI) ustar += 2.0f*M_PI;
-  if (ustar > M_PI) ustar -= 2.0f*M_PI;
-#endif
+  const S vstar = get_vstar<S>(rij2, rij12);
   //std::cout << "ustar is " << ustar << " and vstar is " << vstar << std::endl;
 
   S px = sx1-sx0;
   S py = sy1-sy0;
   //std::cout << "px is " << px << " and py is " << py << std::endl;
-#ifdef USE_VC
-  const S mult  = Vc::rsqrt(px*px + py*py);
-#else
-  const S mult  = 1.0f / std::sqrt(px*px + py*py);
-#endif
+  const S mult  = get_rsqrt<S>(px*px + py*py);
   px *= mult;
   py *= mult;
 
