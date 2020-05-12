@@ -61,6 +61,32 @@ static inline void kernel_0v_0p (const S sx, const S sy, const S sr, const S ss,
   *tv += r2 * dx;
 }
 
+/*
+// gradient kernels here
+template <class S, class A> size_t flops_0v_0vg () { return 25 + flops_tv_grads<S>(); }
+template <class S, class A>
+static inline void kernel_0v_0vg (const S sx, const S sy, const S sr, const S ss,
+                                  const S tx, const S ty, const S tr,
+                                  A* const __restrict__ tu, A* const __restrict__ tv,
+                                  A* const __restrict__ tux, A* const __restrict__ tvx,
+                                  A* const __restrict__ tuy, A* const __restrict__ tvy) {
+  // 25 flops without core_func
+  const S dx = tx - sx;
+  const S dy = ty - sy;
+  S r2, bbb;
+  core_func<S>(dx*dx + dy*dy, sr, tr);
+  r2 *= ss;
+  bbb *= ss;
+  *tu -= r2 * dy;
+  *tv += r2 * dx;
+  // and the grads
+  *tux += -bbb*dx*dy;
+  *tuy += -bbb*dy*dy - r2;
+  *tvx +=  bbb*dx*dx + r2;
+  *tvy +=  bbb*dx*dy;
+}
+*/
+
 
 //
 // analytic influence of 2d linear constant-strength vortex panel on target point

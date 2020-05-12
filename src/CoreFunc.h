@@ -68,14 +68,14 @@ static inline void core_func (const S distsq, const S sr, const S tr,
 #endif
 template <>
 inline void core_func (const float distsq, const float sr, const float tr,
-                              float* const __restrict__ r2, float* const __restrict__ bbb) {
+                       float* const __restrict__ r2, float* const __restrict__ bbb) {
   const float td2 = distsq + sr*sr + tr*tr;
   *r2 = 1.0f / td2;
   *bbb = -2.0f * (*r2) * (*r2);
 }
 template <>
 inline void core_func (const double distsq, const double sr, const double tr,
-                              double* const __restrict__ r2, double* const __restrict__ bbb) {
+                       double* const __restrict__ r2, double* const __restrict__ bbb) {
   const double td2 = distsq + sr*sr + tr*tr;
   *r2 = 1.0 / td2;
   *bbb = -2.0 * (*r2) * (*r2);
