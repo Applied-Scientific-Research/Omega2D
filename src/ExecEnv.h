@@ -44,21 +44,22 @@ public:
   ExecEnv()
 #ifdef EXTERNAL_VEL_SOLVE
   #ifdef USE_VC
-    : ExecEnv(true, direct, cpu_vc)
-  #else
-    : ExecEnv(true, direct, cpu_x86)
-  #endif
-#else
-  #ifdef USE_VC
     : ExecEnv(false, direct, cpu_vc)
   #else
     : ExecEnv(false, direct, cpu_x86)
+  #endif
+#else
+  #ifdef USE_VC
+    : ExecEnv(true, direct, cpu_vc)
+  #else
+    : ExecEnv(true, direct, cpu_x86)
   #endif
 #endif
     {}
 
   void use_internal() { m_internal = true; };
   void use_external() { m_internal = false; };
+  void set_internal(const bool _isint) { m_internal = _isint; };
   bool is_internal() const { return m_internal; };
   void set_summation(const summation_t _newsumm) { m_summ = _newsumm; };
   void set_instrs(const accel_t _newaccel) { m_accel = _newaccel; };
@@ -67,8 +68,6 @@ public:
   std::string to_string() const {
     std::string mystr;
     if (m_internal) {
-      mystr += " external solver";
-    } else {
       if (m_accel == cpu_x86) {
         mystr += " native";
       } else if (m_accel == cpu_vc) {
@@ -83,6 +82,8 @@ public:
       } else {
         mystr += " unknown algorithm";
       }
+    } else {
+      mystr += " external solver";
     }
     return mystr;
   }
