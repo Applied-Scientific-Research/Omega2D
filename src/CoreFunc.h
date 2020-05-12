@@ -29,39 +29,15 @@
 // core functions - Rosenhead-Moore
 //
 
-template <class S> size_t flops_tv_nograds () { return 5; }
-
-template <class S>
-static inline S core_func (const S distsq, const S sr, const S tr) {
-  const S r2 = distsq + sr*sr + tr*tr;
-#ifdef USE_VC
-  return Vc::reciprocal(r2);
-#else
-  return S(1.0) / r2;
-#endif
-}
-template <>
-inline float core_func (const float distsq, const float sr, const float tr) {
-  const float r2 = distsq + sr*sr + tr*tr;
-  return 1.0f / r2;
-}
-template <>
-inline double core_func (const double distsq, const double sr, const double tr) {
-  const double r2 = distsq + sr*sr + tr*tr;
-  return 1.0 / r2;
-}
-
 template <class S> size_t flops_tp_nograds () { return 3; }
 
+#ifdef USE_VC
 template <class S>
 static inline S core_func (const S distsq, const S sr) {
   const S r2 = distsq + sr*sr;
-#ifdef USE_VC
   return Vc::reciprocal(r2);
-#else
-  return S(1.0) / r2;
-#endif
 }
+#endif
 template <>
 inline float core_func (const float distsq, const float sr) {
   const float r2 = distsq + sr*sr;
@@ -73,20 +49,40 @@ inline double core_func (const double distsq, const double sr) {
   return 1.0 / r2;
 }
 
+template <class S> size_t flops_tv_nograds () { return 5; }
+
+// and the one for non-singular targets
+template <class S>
+static inline S core_func (const S distsq, const S sr, const S tr) {
+  return core_func(distsq + tr*tr, sr);
+}
+
 // Rosenhead-Moore with gradients
 
 template <class S> size_t flops_tv_grads () { return 9; }
 
+#ifdef USE_VC
 template <class S>
 static inline void core_func (const S distsq, const S sr, const S tr,
                               S* const __restrict__ r2, S* const __restrict__ bbb) {
   const S td2 = distsq + sr*sr + tr*tr;
-#ifdef USE_VC
   *r2 = Vc::reciprocal(td2);
-#else
-  *r2 = S(1.0) / td2;
-#endif
   *bbb = S(-2.0) * (*r2) * (*r2);
+}
+#endif
+template <>
+static inline void core_func (const float distsq, const float sr, const float tr,
+                              float* const __restrict__ r2, float* const __restrict__ bbb) {
+  const float td2 = distsq + sr*sr + tr*tr;
+  *r2 = 1.0f / td2;
+  *bbb = -2.0f * (*r2) * (*r2);
+}
+template <>
+static inline void core_func (const double distsq, const double sr, const double tr,
+                              double* const __restrict__ r2, double* const __restrict__ bbb) {
+  const double td2 = distsq + sr*sr + tr*tr;
+  *r2 = 1.0 / td2;
+  *bbb = -2.0 * (*r2) * (*r2);
 }
 #endif
 
@@ -98,65 +94,93 @@ static inline void core_func (const S distsq, const S sr, const S tr,
 
 template <class S> size_t flops_tv_nograds () { return 9; }
 
+#ifdef USE_VC
 template <class S>
 static inline S core_func (const S distsq, const S sr, const S tr) {
-#ifdef USE_VC
   const S ood2 = Vc::reciprocal(distsq);
   const S corefac = Vc::reciprocal(sr*sr + tr*tr);
-#else
-  const S ood2 = S(1.0) / distsq;
-  const S corefac = S(1.0) / (std::pow(sr,2) + std::pow(tr,2));
-#endif
   const S reld2 = corefac / ood2;
-#ifdef USE_VC
   S returnval = ood2;
   returnval(reld2 < S(16.0)) = ood2 * (S(1.0) - Vc::exp(-reld2));
   returnval(reld2 < S(0.001)) = corefac;
   return returnval;
-#else
-  if (reld2 > S(16.0)) {
+}
+#endif
+template <>
+static inline float core_func (const float distsq, const float sr, const float tr) {
+  const float ood2 = 1.0f / distsq;
+  const float corefac = 1.0f / (std::pow(sr,2) + std::pow(tr,2));
+  const float reld2 = corefac / ood2;
+  if (reld2 > 16.0f) {
     return ood2;
-  } else if (reld2 < S(0.001)) {
+  } else if (reld2 < 0.001f) {
     return corefac;
   } else {
-    return ood2 * (S(1.0) - std::exp(-reld2));
-    //return ood2 * (-std::expm1(-reld2));		// slower
+    return ood2 * (1.0f - std::exp(-reld2));
   }
-#endif
+}
+template <>
+static inline double core_func (const double distsq, const double sr, const double tr) {
+  const double ood2 = 1.0 / distsq;
+  const double corefac = 1.0 / (std::pow(sr,2) + std::pow(tr,2));
+  const double reld2 = corefac / ood2;
+  if (reld2 > 16.0) {
+    return ood2;
+  } else if (reld2 < 0.001) {
+    return corefac;
+  } else {
+    return ood2 * (1.0 - std::exp(-reld2));
+  }
 }
 
 template <class S> size_t flops_tp_nograds () { return 7; }
 
+#ifdef USE_VC
 template <class S>
 static inline S core_func (const S distsq, const S sr) {
-#ifdef USE_VC
   const S ood2 = Vc::reciprocal(distsq);
   const S corefac = Vc::reciprocal(sr*sr);
-#else
-  const S ood2 = S(1.0) / distsq;
-  const S corefac = S(1.0) / std::pow(sr,2);
-#endif
   const S reld2 = corefac / ood2;
   // 4 flops to here
-#ifdef USE_VC
   S returnval = ood2;
   returnval(reld2 < S(16.0)) = ood2 * (S(1.0) - Vc::exp(-reld2));
   returnval(reld2 < S(0.001)) = corefac;
-  //std::cout << std::endl << dist << std::endl << reld2 << std::endl << returnval << std::endl;
   return returnval;
-#else
-  if (reld2 > S(16.0)) {
+}
+#endif
+template <>
+static inline float core_func (const float distsq, const float sr) {
+  const float ood2 = 1.0f / distsq;
+  const float corefac = 1.0f / std::pow(sr,2);
+  const float reld2 = corefac / ood2;
+  // 4 flops to here
+  if (reld2 > 16.0f) {
     return ood2;
     // 1 flop (comparison)
-  } else if (reld2 < S(0.001)) {
+  } else if (reld2 < 0.001f) {
     return corefac;
     // 2 flops
   } else {
-    return ood2 * (S(1.0) - std::exp(-reld2));
-    //return ood2 * (-std::expm1(-reld2));		// slower
+    return ood2 * (1.0f - std::exp(-reld2));
     // 3 flops
   }
-#endif
+}
+template <>
+static inline double core_func (const double distsq, const double sr) {
+  const double ood2 = 1.0f / distsq;
+  const double corefac = 1.0f / std::pow(sr,2);
+  const double reld2 = corefac / ood2;
+  // 4 flops to here
+  if (reld2 > 16.0f) {
+    return ood2;
+    // 1 flop (comparison)
+  } else if (reld2 < 0.001f) {
+    return corefac;
+    // 2 flops
+  } else {
+    return ood2 * (1.0f - std::exp(-reld2));
+    // 3 flops
+  }
 }
 #endif
 
