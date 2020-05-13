@@ -218,7 +218,6 @@ static inline S core_func (const S distsq, const S sr) {
   const S r2 = sr*sr;
   return Vc::rsqrt(distsq*distsq + r2*r2);
 }
-#endif
 template <>
 inline float core_func (const float distsq, const float sr) {
   const float r2 = sr*sr;
@@ -230,6 +229,13 @@ inline double core_func (const double distsq, const double sr) {
   // std::hypot was slower
   return 1.0 / std::sqrt(distsq*distsq + r2*r2);
 }
+#else
+template <class S>
+inline S core_func (const S distsq, const S sr) {
+  const S r2 = sr*sr;
+  return S(1.0) / std::sqrt(distsq*distsq + r2*r2);
+}
+#endif
 template <class S> size_t flops_tp_nograds () { return 6; }
 
 // and for non-singular targets
@@ -240,7 +246,6 @@ static inline S core_func (const S distsq, const S sr, const S tr) {
   const S o2 = tr*tr;
   return Vc::rsqrt(distsq*distsq + r2*r2 + o2*o2);
 }
-#endif
 template <>
 inline float core_func (const float distsq, const float sr, const float tr) {
   const float r2 = sr*sr;
@@ -253,6 +258,14 @@ inline double core_func (const double distsq, const double sr, const double tr) 
   const double o2 = tr*tr;
   return 1.0 / std::sqrt(distsq*distsq + r2*r2 + o2*o2);
 }
+#else
+template <class S>
+static inline S core_func (const S distsq, const S sr, const S tr) {
+  const S r2 = sr*sr;
+  const S o2 = tr*tr;
+  return 1.0f / std::sqrt(distsq*distsq + r2*r2 + o2*o2);
+}
+#endif
 template <class S> size_t flops_tv_nograds () { return 9; }
 #endif
 
