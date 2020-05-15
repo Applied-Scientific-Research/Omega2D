@@ -44,8 +44,6 @@ void points_affect_points (Points<S> const& src, Points<S>& targ, ExecEnv& env) 
   auto start = std::chrono::system_clock::now();
   float flops = (float)targ.get_n();
 
-  // is this where we dispatch the OpenGL compute shader?
-
   // get references to use locally
   const std::array<Vector<S>,Dimensions>& sx = src.get_pos();
   const Vector<S>&                        sr = src.get_rad();
@@ -70,12 +68,31 @@ void points_affect_points (Points<S> const& src, Points<S>& targ, ExecEnv& env) 
 
     return;
   }
-#endif  // no external fast solve, perform calculations below
+#endif  // no external fast solve, perform internal calculations below
 
+#ifdef USE_OGL_COMPUTE
+  if (env.get_instrs() == gpu_opengl) {
+  }
+#endif  // no internal opengl solve, perform internal CPU calc below
 
   // We need 4 different loops here, for the options:
   //   target radii or no target radii
   //   Vc or no Vc
+
+#ifdef USE_VC
+  // define vector types for Vc
+  typedef Vc::Vector<S> StoreVec;
+  typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
+  Vc::Memory<StoreVec> sxv(0), syv(0), srv(0), ssv(0);
+
+  // initialize float_v versions of the source vectors
+  if (env.get_instrs() == cpu_vc) {
+    sxv = stdvec_to_vcvec<S>(sx[0], 0.0);
+    syv = stdvec_to_vcvec<S>(sx[1], 0.0);
+    srv = stdvec_to_vcvec<S>(sr,    1.0);
+    ssv = stdvec_to_vcvec<S>(ss,    0.0);
+  }
+#endif
 
   //
   // targets are field points, with no core radius ===============================================
@@ -87,21 +104,10 @@ void points_affect_points (Points<S> const& src, Points<S>& targ, ExecEnv& env) 
 #ifdef USE_VC
     if (env.get_instrs() == cpu_vc) {
 
-      // define vector types for Vc
-      typedef Vc::Vector<S> StoreVec;
-      typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
-
-      // create float_v versions of the source vectors
-      const Vc::Memory<StoreVec> sxv = stdvec_to_vcvec<S>(sx[0], 0.0);
-      const Vc::Memory<StoreVec> syv = stdvec_to_vcvec<S>(sx[1], 0.0);
-      const Vc::Memory<StoreVec> srv = stdvec_to_vcvec<S>(sr,    1.0);
-      const Vc::Memory<StoreVec> ssv = stdvec_to_vcvec<S>(ss,    0.0);
-
       #pragma omp parallel for
       for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
         const StoreVec txv = tx[0][i];
         const StoreVec tyv = tx[1][i];
-        // care must be taken if S != A, because these vectors must have the same length
         AccumVec accumu = 0.0;
         AccumVec accumv = 0.0;
         for (size_t j=0; j<sxv.vectorsCount(); ++j) {
@@ -144,22 +150,11 @@ void points_affect_points (Points<S> const& src, Points<S>& targ, ExecEnv& env) 
 #ifdef USE_VC
     if (env.get_instrs() == cpu_vc) {
 
-      // define vector types for Vc
-      typedef Vc::Vector<S> StoreVec;
-      typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
-
-      // create float_v versions of the source vectors
-      const Vc::Memory<StoreVec> sxv = stdvec_to_vcvec<S>(sx[0], 0.0);
-      const Vc::Memory<StoreVec> syv = stdvec_to_vcvec<S>(sx[1], 0.0);
-      const Vc::Memory<StoreVec> srv = stdvec_to_vcvec<S>(sr,    1.0);
-      const Vc::Memory<StoreVec> ssv = stdvec_to_vcvec<S>(ss,    0.0);
-
       #pragma omp parallel for
       for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
         const StoreVec txv = tx[0][i];
         const StoreVec tyv = tx[1][i];
         const StoreVec trv = tr[i];
-        // care must be taken if S != A, because these vectors must have the same length
         AccumVec accumu = 0.0;
         AccumVec accumv = 0.0;
         for (size_t j=0; j<sxv.vectorsCount(); ++j) {
