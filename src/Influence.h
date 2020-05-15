@@ -232,12 +232,11 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ, ExecEnv& env
 #endif  // no external fast solve, perform calculations below
 
 #ifdef USE_VC
+  // define vector types for Vc (still only S==A supported here)
+  typedef Vc::Vector<S> StoreVec;
+  typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
+
   if (env.get_instrs() == cpu_vc) {
-
-    // define vector types for Vc (still only S==A supported here)
-    typedef Vc::Vector<S> StoreVec;
-    typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
-
     // sources are panels, assemble de-interleaved vectors
     Vc::Memory<StoreVec> vsx0(src.get_npanels());
     Vc::Memory<StoreVec> vsy0(src.get_npanels());
@@ -555,7 +554,7 @@ void panels_affect_panels (Surfaces<S> const& src, Surfaces<S>& targ, ExecEnv& e
 //
 template <class A>
 struct InfluenceVisitor {
-  // source collection, target collection, optional execution environment
+  // source collection, target collection, execution environment
   void operator()(Points<float> const& src,   Points<float>& targ)   { points_affect_points<float,A>(src, targ, env); }
   void operator()(Surfaces<float> const& src, Points<float>& targ)   { panels_affect_points<float,A>(src, targ, env); }
   void operator()(Points<float> const& src,   Surfaces<float>& targ) { points_affect_panels<float,A>(src, targ, env); }
