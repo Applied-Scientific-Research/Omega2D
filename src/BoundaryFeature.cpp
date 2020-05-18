@@ -139,8 +139,12 @@ SolidOval::init_elements(const float _ips) const {
 
   float circum = 0.0;
   if (equidistant) {
+#ifdef __APPLE__
+    circum = m_diam * M_PI;
+#else
     circum = 4.0*0.5*m_diam*std::comp_ellint_2(1.0-std::pow(m_dmin/m_diam,2));
     std::cout << "analytic circumference is " << circum << std::endl;
+#endif
   } else {
     circum = m_diam * M_PI;
   }
