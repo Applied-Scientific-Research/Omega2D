@@ -79,20 +79,6 @@ void points_affect_points (Points<S> const& src, Points<S>& targ, ExecEnv& env) 
   //   target radii or no target radii
   //   Vc or no Vc
 
-#ifdef USE_VC
-  // define vector types for Vc
-  typedef Vc::Vector<S> StoreVec;
-  typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
-  Vc::Memory<StoreVec> sxv(0), syv(0), srv(0), ssv(0);
-
-  // initialize float_v versions of the source vectors
-  if (env.get_instrs() == cpu_vc) {
-    sxv = stdvec_to_vcvec<S>(sx[0], 0.0);
-    syv = stdvec_to_vcvec<S>(sx[1], 0.0);
-    srv = stdvec_to_vcvec<S>(sr,    1.0);
-    ssv = stdvec_to_vcvec<S>(ss,    0.0);
-  }
-#endif
 
   //
   // targets are field points, with no core radius ===============================================
@@ -103,6 +89,16 @@ void points_affect_points (Points<S> const& src, Points<S>& targ, ExecEnv& env) 
 
 #ifdef USE_VC
     if (env.get_instrs() == cpu_vc) {
+
+      // define vector types for Vc
+      typedef Vc::Vector<S> StoreVec;
+      typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
+
+      // initialize float_v versions of the source vectors
+      Vc::Memory<StoreVec> sxv = stdvec_to_vcvec<S>(sx[0], 0.0);
+      Vc::Memory<StoreVec> syv = stdvec_to_vcvec<S>(sx[1], 0.0);
+      Vc::Memory<StoreVec> srv = stdvec_to_vcvec<S>(sr,    1.0);
+      Vc::Memory<StoreVec> ssv = stdvec_to_vcvec<S>(ss,    0.0);
 
       #pragma omp parallel for
       for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
@@ -149,6 +145,16 @@ void points_affect_points (Points<S> const& src, Points<S>& targ, ExecEnv& env) 
 
 #ifdef USE_VC
     if (env.get_instrs() == cpu_vc) {
+
+      // define vector types for Vc
+      typedef Vc::Vector<S> StoreVec;
+      typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
+
+      // initialize float_v versions of the source vectors
+      Vc::Memory<StoreVec> sxv = stdvec_to_vcvec<S>(sx[0], 0.0);
+      Vc::Memory<StoreVec> syv = stdvec_to_vcvec<S>(sx[1], 0.0);
+      Vc::Memory<StoreVec> srv = stdvec_to_vcvec<S>(sr,    1.0);
+      Vc::Memory<StoreVec> ssv = stdvec_to_vcvec<S>(ss,    0.0);
 
       #pragma omp parallel for
       for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
@@ -232,11 +238,12 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ, ExecEnv& env
 #endif  // no external fast solve, perform calculations below
 
 #ifdef USE_VC
-  // define vector types for Vc (still only S==A supported here)
-  typedef Vc::Vector<S> StoreVec;
-  typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
-
   if (env.get_instrs() == cpu_vc) {
+
+    // define vector types for Vc
+    typedef Vc::Vector<S> StoreVec;
+    typedef Vc::SimdArray<A, Vc::Vector<S>::size()> AccumVec;
+
     // sources are panels, assemble de-interleaved vectors
     Vc::Memory<StoreVec> vsx0(src.get_npanels());
     Vc::Memory<StoreVec> vsy0(src.get_npanels());
