@@ -92,6 +92,8 @@ Generate an X.264-encoded video from a series of png images with the following c
 ## To do
 Tasks to consider or implement:
 
+* Add an openmp setting to the CPU execution environment, to show the effects of multithreading
+* Consider implementing PSE and RVM and add those as options (alongside VRM) in the advanced section
 * Bug: static field points should not be pushed out of bodies
 * Compute vel grad at each point (vortex or field pt) and write it to the vtu file
 * If we have velgrad, we can compute the elongation of any point - use this to determine when a field point has stretched too far, and replace it with two child field points, of half-brightness, in the correct places; this should be a toggleable behavior, as it would demand ever-increasing numbers of field points
