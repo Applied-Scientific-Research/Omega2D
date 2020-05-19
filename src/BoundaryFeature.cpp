@@ -139,7 +139,7 @@ SolidOval::init_elements(const float _ips) const {
 
   float circum = 0.0;
   if (equidistant) {
-#ifdef __APPLE__ && __clang__
+#if defined(__APPLE__) && defined(__clang__)
     // do it the dumb way, because XCode doesn't support comp_ellint_2
     circum = m_diam * M_PI;
 #else
