@@ -4,16 +4,14 @@
 #include <cstdlib>
 #include <sstream>
 #include <iostream>
+#include <filesystem>
 
-#include <experimental/filesystem>
-
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(_WIN64)
   #include <windows.h>
   #include <direct.h>
   #include <tchar.h>
   #include <IO.h>
   #define GetCurrentDir _getcwd
-  #include <filesystem> // Microsoft-specific implementation header file name
 #else
   #include <unistd.h>
   #include <dirent.h>
@@ -40,7 +38,7 @@
 using namespace std;
 using namespace ImGui;
 
-#if defined(WIN32)
+#if defined(_WIN32) || defined(_WIN64)
 vector<string> getWindowsDrives()
 {
     vector<string> result;
@@ -242,7 +240,7 @@ bool MiniPath::isAbsoluteFilePath( const string& s )
 
 std::list<string> MiniPath::listDirectories( const string& s )
 {
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(_WIN64)
 	using namespace experimental::filesystem::v1;
 
     list<string> directories;
@@ -293,7 +291,7 @@ std::list<string> MiniPath::listDirectories( const string& s )
 
 std::list<string> MiniPath::listFiles( const string& s, string filter )
 {
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(_WIN64)
     using namespace experimental::filesystem::v1;
     list<string> files;
 
@@ -351,7 +349,7 @@ std::list<string> MiniPath::listFiles( const string& s, string filter )
 
 bool MiniPath::pathExists( const std::string& s )
 {
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(_WIN64)
     struct _finddata_t c_file;
     intptr_t hFile;
 
@@ -452,7 +450,7 @@ bool fileIOWindow(
     static int  file_type_selected = 0;
     static int  file_selected = 0;
     static int  directory_selected = 0;
-#if defined(WIN32)
+#if defined(_WIN32) || defined(_WIN64)
     static int  drive_selected = 0;
 #endif
     static bool directory_browsing = false;
@@ -526,7 +524,7 @@ bool fileIOWindow(
     {
         if( Button( split_directories[i].c_str() ) )
         {
-#if defined(WIN32)
+#if defined(_WIN32) || defined(_WIN64)
             string chosen_dir;
 #else
             string chosen_dir = "/";
@@ -548,7 +546,7 @@ bool fileIOWindow(
     {
         directory_browsing = true;
 
-#if defined(WIN32)
+#if defined(_WIN32) || defined(_WIN64)
         vector<const char*> drive_list;
         toCStringVec( drive_list, getWindowsDrives() );
 
@@ -579,7 +577,9 @@ bool fileIOWindow(
             {
                 vector<string> split_directories = current_mini_path.getPathTokens();
                 current_folder.clear();
-#ifndef WIN32
+#if defined(_WIN32) || defined(_WIN64)
+                // noop
+#else
                 current_folder += "/";
 #endif
                 for( size_t i = 0; i < split_directories.size() - 1; ++i )
