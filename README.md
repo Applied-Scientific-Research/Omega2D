@@ -38,6 +38,8 @@ or on OSX via [Homebrew](https://docs.brew.sh/Installation) with
     sudo make install
     cd ../..
 
+The above commands should work verbatim on Linux and OSX. Don't ask about Windows - there's a calling convention issue preventing this from working.
+
 #### Compile
 Upon installation of the prerequisites, the following commands should build Omega2D.
 
@@ -50,10 +52,10 @@ Upon installation of the prerequisites, the following commands should build Omeg
 
 If you were able to build and install Vc, then you should set `-DUSE_VC=ON` in the above `cmake` command.
 
-On OSX, to get OpenMP parallelization of the solver, you may need to use Clang, or install and use GCC with brew, and use a special `cmake` command:
+On OSX, to get OpenMP parallelization of the solver, you may need to install GCC with brew (as above), and add a few more arguments to the `cmake` command:
 
     brew install gcc
-    cmake -DCMAKE_C_COMPILER=/usr/local/bin/gcc-7 -DCMAKE_CXX_COMPILER=/usr/local/bin/g++-7 ..
+    cmake -DCMAKE_C_COMPILER=/usr/local/bin/gcc-9 -DCMAKE_CXX_COMPILER=/usr/local/bin/g++-9 ..
 
 
 ## Run a simulation in the GUI
