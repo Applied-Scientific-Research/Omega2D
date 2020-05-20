@@ -135,7 +135,7 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
   //}
 
   size_t num_reflected = 0;
-  const S eps = 10.0*std::numeric_limits<S>::epsilon();
+  //const S eps = 10.0*std::numeric_limits<S>::epsilon();
 
   #pragma omp parallel for reduction(+:num_reflected)
   for (int32_t i=0; i<(int32_t)_targ.get_n(); ++i) {
@@ -150,7 +150,8 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
                                                         sx[0][jp1], sx[1][jp1],
                                                         tx[0][i],   tx[1][i]);
 
-      if (result.distsq < mindist - eps) {
+      //if (result.distsq < mindist - eps) {
+      if (result.distsq < std::nextafter(mindist,0.0)) {
         // we blew the old one away
         mindist = result.distsq;
         if (result.disttype == node) {
@@ -162,7 +163,8 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
         hits.push_back(result);
         //std::cout << "  THIS BLOWS AWAY THE CLOSEST, AT " << std::sqrt(mindist) << std::endl;
 
-      } else if (result.distsq < mindist + eps) {
+      //} else if (result.distsq < mindist + eps) {
+      } else if (result.distsq < std::nextafter(mindist, std::numeric_limits<S>::max())) {
         // we are effectively the same as the old closest
         if (result.disttype == node) {
           result.jidx = si[2*j+result.jidx];
@@ -447,7 +449,7 @@ S clear_inner_panp2 (const int _method,
 
   size_t num_cropped = 0;
   S circ_removed = 0.0;
-  const S eps = 10.0*std::numeric_limits<S>::epsilon();
+  //const S eps = 10.0*std::numeric_limits<S>::epsilon();
 
   // create array of flags - any moved particle will be tested again
   std::vector<bool> untested;
@@ -461,7 +463,8 @@ S clear_inner_panp2 (const int _method,
 
       if (untested[i]) {
 
-        S mindist = std::numeric_limits<S>::max();
+        //S mindist = std::numeric_limits<S>::max();
+        S mindist = 0.1*std::numeric_limits<S>::max();
         std::vector<ClosestReturn<S>> hits;
 
         // iterate and search for closest panel/node
@@ -470,7 +473,8 @@ S clear_inner_panp2 (const int _method,
                                                             sx[0][si[2*j+1]], sx[1][si[2*j+1]],
                                                             tx[0][i],         tx[1][i]);
 
-          if (result.distsq < mindist - eps) {
+          //if (result.distsq < mindist - eps) {
+          if (result.distsq < std::nextafter(mindist,0.0)) {
             // we blew the old one away
             mindist = result.distsq;
             if (result.disttype == node) {
@@ -482,7 +486,7 @@ S clear_inner_panp2 (const int _method,
             hits.push_back(result);
             //std::cout << "  THIS BLOWS AWAY THE CLOSEST, AT " << std::sqrt(mindist) << std::endl;
 
-          } else if (result.distsq < mindist + eps) {
+          } else if (result.distsq < std::nextafter(mindist, std::numeric_limits<S>::max())) {
             // we are effectively the same as the old closest
             if (result.disttype == node) {
               result.jidx = si[2*j+result.jidx];
