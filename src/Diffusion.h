@@ -27,7 +27,7 @@
 
 
 // eventually support multiple diffusion types, both inter-particle and boundary-to-fluid
-//enum PartDiffuseType { none, vrm, pse };
+//enum PartDiffuseType { none, core, rvm, pse, vrm, avrm };
 //enum BdryDiffuseType { none, single, vrm, hybrid };
 
 
@@ -41,6 +41,7 @@ class Diffusion {
 public:
   Diffusion()
     : vrm(),
+      h_nu(0.1),
       core_func(gaussian),
       is_inviscid(false),
       adaptive_radii(false),
@@ -54,7 +55,8 @@ public:
   const bool get_diffuse() const { return !is_inviscid; }
   const bool get_amr() const { return adaptive_radii; }
   S get_nom_sep_scaled() const { return nom_sep_scaled; }
-  S get_nom_sep() { return nom_sep_scaled * vrm.get_hnu(); }
+  S get_nom_sep(const S _hnu) { return nom_sep_scaled * _hnu; }
+  S get_nom_sep(const double _dt, const S _re) { return nom_sep_scaled * std::sqrt(_dt/_re); }
   S get_particle_overlap() const { return particle_overlap; }
 
   // take a full diffusion step
@@ -80,6 +82,7 @@ private:
   VRM<S,double,2> vrm;
 
   // other necessary variables
+  S h_nu;
   CoreType core_func;
 
   // toggle inviscid
@@ -103,7 +106,7 @@ private:
 template <class S, class A, class I>
 void Diffusion<S,A,I>::set_amr(const bool _do_amr) {
   adaptive_radii = _do_amr;
-  if (_do_amr) is_inviscid = true;
+  if (_do_amr) set_diffuse(true);
 }
 
 //
@@ -124,7 +127,7 @@ void Diffusion<S,A,I>::step(const double                _time,
   std::cout << "Inside Diffusion::step with dt=" << _dt << std::endl;
 
   // ensure that we have a current h_nu
-  vrm.set_hnu(std::sqrt(_dt/_re));
+  h_nu = (S)std::sqrt(_dt/_re);
 
 #ifdef PLUGIN_AVRM
   // ensure that it knows to allow or disallow adaptive radii
@@ -135,7 +138,7 @@ void Diffusion<S,A,I>::step(const double                _time,
   // always re-run the BEM calculation before shedding
   //
   // first push away particles inside or too close to the body
-  clear_inner_layer<S>(1, _bdry, _vort, 1.0/std::sqrt(2.0*M_PI), get_nom_sep());
+  clear_inner_layer<S>(1, _bdry, _vort, 1.0/std::sqrt(2.0*M_PI), get_nom_sep(h_nu));
   solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
 
   //
@@ -161,7 +164,7 @@ void Diffusion<S,A,I>::step(const double                _time,
         Surfaces<S>& surf = std::get<Surfaces<S>>(coll);
 
         // generate particles just above the surface
-        std::vector<S> new_pts = surf.represent_as_particles(0.01*(S)vrm.get_hnu(), _vdelta);
+        std::vector<S> new_pts = surf.represent_as_particles(0.01*(S)h_nu, _vdelta);
 
         // add those particles to the main particle list
         if (_vort.size() == 0) {
@@ -203,7 +206,7 @@ void Diffusion<S,A,I>::step(const double                _time,
       vrm.diffuse_all(pts.get_pos(),
                       pts.get_str(),
                       pts.get_rad(),
-                      core_func,
+                      h_nu, core_func,
                       particle_overlap);
 
       // resize the rest of the arrays
@@ -250,7 +253,7 @@ void Diffusion<S,A,I>::step(const double                _time,
 
         // generate particles above the surface at the centroid of one step of
         //   diffusion from a flat plate
-        std::vector<S> new_pts = surf.represent_as_particles(vrm.get_hnu()*std::sqrt(4.0/M_PI), _vdelta);
+        std::vector<S> new_pts = surf.represent_as_particles(h_nu*std::sqrt(4.0/M_PI), _vdelta);
 
         // add those particles to the main particle list
         if (_vort.size() == 0) {
