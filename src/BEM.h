@@ -207,6 +207,7 @@ void BEM<S,I>::solve() {
 
   // find L2 norm of error
   start = std::chrono::system_clock::now();
+  assert(b.norm() != 0); // Can't divide by 0
   double relative_error = (A*strengths - b).norm() / b.norm(); // norm() is L2 norm
   if (verbose) printf("    L2 norm of error is %g\n", relative_error);
   end = std::chrono::system_clock::now();
