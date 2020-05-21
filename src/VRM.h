@@ -1,8 +1,8 @@
 /*
  * VRM.h - the Vorticity Redistribution Method for 2D vortex particles
  *
- * (c)2017-9 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
+ * (c)2017-20 Applied Scientific Research, Inc.
+ *            Written by Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -39,15 +39,12 @@ template <class ST, class CT, uint8_t MAXMOM>
 class VRM {
 public:
   VRM();
-  VRM(const CT);
 
-  void set_hnu(const ST _in) { h_nu = _in; }
   void set_adaptive_radii(const bool);
   void set_relative(const bool _in) { thresholds_are_relative = _in; }
   void set_ignore(const float _in) { ignore_thresh = _in; }
   void set_simplex(const bool _in) { use_solver = (_in ? simplex : nnls); }
 
-  const ST get_hnu() const { return (ST)h_nu; }
   const bool get_adaptive_radii() const { return adapt_radii; }
   const bool get_relative() const { return thresholds_are_relative; }
   const float get_ignore() const { return ignore_thresh; }
@@ -57,6 +54,7 @@ public:
   void diffuse_all(std::array<Vector<ST>,2>&,
                    Vector<ST>&,
                    Vector<ST>&,
+                   const ST,
                    const CoreType,
                    const ST);
 
@@ -82,6 +80,7 @@ protected:
                         Vector<ST>&,
                         Vector<ST>&,
                         Vector<ST>&,
+                        const ST,
                         const CoreType,
                         Eigen::Matrix<CT, Eigen::Dynamic, 1>&);
 
@@ -91,9 +90,6 @@ private:
   static constexpr int32_t num_rows = (num_moments+1) * (num_moments+2) / 2;
   // we needed 16 here for static solutions, 32 for dynamic, and 64 for dynamic with adaptivity
   static constexpr int32_t max_near = 32 * num_moments;
-
-  // h_nu is sqrt(dt*nu) or sqrt(dt/Re)
-  CT h_nu;
 
   // new point insertion sites (normalized to h_nu and centered around origin)
   static constexpr size_t num_sites = 30 * ((MAXMOM>2) ? 2 : 1);
@@ -116,17 +112,9 @@ private:
   //SolverType use_solver = simplex;
 };
 
-// delegating ctor
-template <class ST, class CT, uint8_t MAXMOM>
-VRM<ST,CT,MAXMOM>::VRM()
-  : VRM(1.0)
-  {}
-
 // primary constructor
 template <class ST, class CT, uint8_t MAXMOM>
-VRM<ST,CT,MAXMOM>::VRM(const CT _hnu)
-  : h_nu(_hnu) {
-
+VRM<ST,CT,MAXMOM>::VRM() {
   initialize_sites();
 }
 
@@ -237,6 +225,7 @@ template <class ST, class CT, uint8_t MAXMOM>
 void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
                                     Vector<ST>& str,
                                     Vector<ST>& rad,
+                                    const ST h_nu,
                                     const CoreType core_func,
                                     const ST particle_overlap) {
 
@@ -399,7 +388,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
 
       // this does the heavy lifting - assemble and solve the VRM equations for the 
       //   diffusion from particle i to particles in inear
-      haveSolution = attempt_solution(i, inear, x, y, r, newr, core_func, fractions);
+      haveSolution = attempt_solution(i, inear, x, y, r, newr, h_nu, core_func, fractions);
 
       // if that didn't work, add a particle and try again
       if (not haveSolution) {
@@ -474,6 +463,7 @@ bool VRM<ST,CT,MAXMOM>::attempt_solution(const int32_t idiff,
                                          Vector<ST>& y,
                                          Vector<ST>& r,
                                          Vector<ST>& newr,
+                                         const ST h_nu,
                                          const CoreType core_func,
                                          Eigen::Matrix<CT, Eigen::Dynamic, 1>& fracout) {
 
@@ -490,6 +480,8 @@ bool VRM<ST,CT,MAXMOM>::attempt_solution(const int32_t idiff,
   // core moments are the coefficients on the moments based on core type
   static const CT second_moment = 2.0;
   static const CT fourth_moment = 12.0;
+
+  const CT oohnu = 1.0 / h_nu;
 
   // the Ixx and Iyy moments of these core functions is half of the 2nd radial moment
   //static const CT core_second_mom = get_core_second_mom<CT>(core_func);
@@ -518,8 +510,8 @@ bool VRM<ST,CT,MAXMOM>::attempt_solution(const int32_t idiff,
   for (size_t j=0; j<inear.size(); ++j) {
     const int32_t jdx = inear[j];
     // all distances are normalized to h_nu
-    CT dx = (x[idiff]-x[jdx]) / h_nu;
-    CT dy = (y[idiff]-y[jdx]) / h_nu;
+    CT dx = (x[idiff]-x[jdx]) * oohnu;
+    CT dy = (y[idiff]-y[jdx]) * oohnu;
     A(0,j) = 1.0;
     if (num_moments > 0) {
       A(1,j) = dx;

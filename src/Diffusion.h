@@ -16,6 +16,8 @@
 #else
   #include "VRM.h"
 #endif
+#include "RVM.h"
+#include "CoreSpread.h"
 #include "BEM.h"
 #include "GuiHelper.h"
 
@@ -27,7 +29,14 @@
 
 
 // eventually support multiple diffusion types, both inter-particle and boundary-to-fluid
-//enum PartDiffuseType { none, vrm, pse };
+enum PartDiffuseType {
+  pd_none,
+  pd_core,
+  pd_rvm,
+  pd_pse,
+  pd_vrm,
+  pd_avrm
+  };
 //enum BdryDiffuseType { none, single, vrm, hybrid };
 
 
@@ -41,11 +50,16 @@ class Diffusion {
 public:
   Diffusion()
     : vrm(),
+      rvm(),
+      coresp(),
+      h_nu(0.1),
       core_func(gaussian),
       is_inviscid(false),
+      pd_type(pd_core),
       adaptive_radii(false),
       nom_sep_scaled(std::sqrt(8.0)),
       particle_overlap(1.5),
+      merge_thresh(0.2),
       shed_before_diffuse(true)
     {}
 
@@ -54,7 +68,8 @@ public:
   const bool get_diffuse() const { return !is_inviscid; }
   const bool get_amr() const { return adaptive_radii; }
   S get_nom_sep_scaled() const { return nom_sep_scaled; }
-  S get_nom_sep() { return nom_sep_scaled * vrm.get_hnu(); }
+  S get_nom_sep(const S _hnu) { return nom_sep_scaled * _hnu; }
+  S get_nom_sep(const double _dt, const S _re) { return nom_sep_scaled * std::sqrt(_dt/_re); }
   S get_particle_overlap() const { return particle_overlap; }
 
   // take a full diffusion step
@@ -79,11 +94,24 @@ private:
   // the VRM algorithm, template params are storage, solver, max moments
   VRM<S,double,2> vrm;
 
+  // the random vortex method
+  RVM<S> rvm;
+
+  // the core spreading method
+  CoreSpread<S> coresp;
+
+  // the particle-strength-exchange method
+  // PSE<S> pse;
+
   // other necessary variables
+  S h_nu;
   CoreType core_func;
 
   // toggle inviscid
   bool is_inviscid;
+
+  // diffusion method
+  PartDiffuseType pd_type;
 
   // toggle adaptive particle sizes
   bool adaptive_radii;
@@ -94,6 +122,9 @@ private:
   // particle core size is nominal separation times this
   S particle_overlap;
 
+  // merge aggressivity
+  S merge_thresh;
+
   // method 1 (true) is to shed *at* the boundary, VRM those particles, then push out
   // method 2 (false) is to VRM, push out, *then* generate new particles at the correct distance
   bool shed_before_diffuse;
@@ -103,7 +134,7 @@ private:
 template <class S, class A, class I>
 void Diffusion<S,A,I>::set_amr(const bool _do_amr) {
   adaptive_radii = _do_amr;
-  if (_do_amr) is_inviscid = true;
+  if (_do_amr) set_diffuse(true);
 }
 
 //
@@ -119,23 +150,31 @@ void Diffusion<S,A,I>::step(const double                _time,
                             std::vector<Collection>&    _bdry,
                             BEM<S,I>&                   _bem) {
 
-  if (is_inviscid) return;
+  // don't let part diffusion type change during execution
+  const PartDiffuseType curr_pd_type = pd_type;
+
+  if (is_inviscid or curr_pd_type==pd_none) return;
+
+  // some methods require different merging properties
+  if (curr_pd_type==pd_rvm) merge_thresh = 0.0;
+  if (curr_pd_type==pd_core) merge_thresh = 0.02;
+  else merge_thresh = 0.2;
 
   std::cout << "Inside Diffusion::step with dt=" << _dt << std::endl;
 
   // ensure that we have a current h_nu
-  vrm.set_hnu(std::sqrt(_dt/_re));
+  h_nu = (S)std::sqrt(_dt/_re);
 
 #ifdef PLUGIN_AVRM
   // ensure that it knows to allow or disallow adaptive radii
-  vrm.set_adaptive_radii(adaptive_radii);
+  if (curr_pd_type == pd_vrm) vrm.set_adaptive_radii(adaptive_radii);
 #endif
 
   //
   // always re-run the BEM calculation before shedding
   //
   // first push away particles inside or too close to the body
-  clear_inner_layer<S>(1, _bdry, _vort, 1.0/std::sqrt(2.0*M_PI), get_nom_sep());
+  clear_inner_layer<S>(1, _bdry, _vort, 1.0/std::sqrt(2.0*M_PI), get_nom_sep(h_nu));
   solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
 
   //
@@ -161,7 +200,7 @@ void Diffusion<S,A,I>::step(const double                _time,
         Surfaces<S>& surf = std::get<Surfaces<S>>(coll);
 
         // generate particles just above the surface
-        std::vector<S> new_pts = surf.represent_as_particles(0.01*(S)vrm.get_hnu(), _vdelta);
+        std::vector<S> new_pts = surf.represent_as_particles(0.01*(S)h_nu, _vdelta);
 
         // add those particles to the main particle list
         if (_vort.size() == 0) {
@@ -197,17 +236,33 @@ void Diffusion<S,A,I>::step(const double                _time,
       Points<S>& pts = std::get<Points<S>>(coll);
       std::cout << "    computing diffusion among " << pts.get_n() << " particles" << std::endl;
 
-      // vectors are not passed as const, because they may be extended with new particles
-      // this call also applies the changes, though we may want to save any changes into another
-      //   vector of derivatives to be applied later
-      vrm.diffuse_all(pts.get_pos(),
-                      pts.get_str(),
-                      pts.get_rad(),
-                      core_func,
-                      particle_overlap);
+      if (curr_pd_type==pd_vrm) {
+        // vectors are not passed as const, because they may be extended with new particles
+        // this call also applies the changes, though we may want to save any changes into another
+        //   vector of derivatives to be applied later
+        vrm.diffuse_all(pts.get_pos(),
+                        pts.get_str(),
+                        pts.get_rad(),
+                        h_nu, core_func,
+                        particle_overlap);
 
-      // resize the rest of the arrays
-      pts.resize(pts.get_rad().size());
+        // resize the rest of the arrays
+        pts.resize(pts.get_rad().size());
+
+      } else if (curr_pd_type==pd_core) {
+        // core-spreading only changes the radii, nothing else
+        coresp.diffuse_all(pts.get_pos(),
+                        pts.get_str(),
+                        pts.get_rad(),
+                        h_nu, core_func);
+
+      } else if (curr_pd_type==pd_rvm) {
+        // RVM only changes the positions, nothing else
+        rvm.diffuse_all(pts.get_pos(),
+                        pts.get_str(),
+                        pts.get_rad(),
+                        h_nu);
+      }
     }
   }
 
@@ -221,7 +276,7 @@ void Diffusion<S,A,I>::step(const double                _time,
   //
   // merge any close particles to clean up potentially-dense areas
   //
-  (void) merge_operation<S>(_vort, particle_overlap, 0.2, adaptive_radii);
+  if (curr_pd_type != pd_rvm) merge_operation<S>(_vort, particle_overlap, merge_thresh, adaptive_radii);
 
 
   //
@@ -250,7 +305,7 @@ void Diffusion<S,A,I>::step(const double                _time,
 
         // generate particles above the surface at the centroid of one step of
         //   diffusion from a flat plate
-        std::vector<S> new_pts = surf.represent_as_particles(vrm.get_hnu()*std::sqrt(4.0/M_PI), _vdelta);
+        std::vector<S> new_pts = surf.represent_as_particles(h_nu*std::sqrt(4.0/M_PI), _vdelta);
 
         // add those particles to the main particle list
         if (_vort.size() == 0) {
@@ -273,8 +328,8 @@ void Diffusion<S,A,I>::step(const double                _time,
 
   //
   // merge again if clear did any work
-  //
-  if (_bdry.size() > 0) merge_operation<S>(_vort, particle_overlap, 0.2, adaptive_radii);
+  // 
+  if (_bdry.size() > 0 and curr_pd_type != pd_rvm) merge_operation<S>(_vort, particle_overlap, merge_thresh, adaptive_radii);
 
 
   // now is a fine time to reset the max active/particle strength
@@ -293,6 +348,23 @@ void Diffusion<S,A,I>::draw_advanced() {
   ImGui::Separator();
   ImGui::Spacing();
   ImGui::Text("Diffusion settings");
+
+
+  // select diffusion type among available
+  static int diff_item = 2;
+  const char* diff_items[] = { "Core-spreading", "Random walk", "VRM solution" };
+  ImGui::PushItemWidth(240);
+  ImGui::Combo("Select diffusion method", &diff_item, diff_items, 3);
+  ImGui::PopItemWidth();
+  switch(diff_item) {
+      case 0: pd_type = pd_core; break;
+      case 1: pd_type = pd_rvm; break;
+      case 2: pd_type = pd_vrm; break;
+  } // end switch
+
+
+  // now, present options, depending on the diffusion type
+  if (pd_type == pd_vrm) {
 
   bool relative_thresh = vrm.get_relative();
   ImGui::Checkbox("Thresholds are relative to strongest particle", &relative_thresh);
@@ -341,6 +413,10 @@ void Diffusion<S,A,I>::draw_advanced() {
     ImGui::PopItemWidth();
   }
 #endif
+
+  } else if (pd_type == pd_core) {
+  } else if (pd_type == pd_rvm) {
+  }
 }
 #endif
 
