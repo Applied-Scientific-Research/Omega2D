@@ -14,8 +14,11 @@
 
 #include <cassert>
 #include <cmath>
+#include <cfenv> // Catch fp exceptions
 #include <limits>
 #include <variant>
+
+#pragma STDC FENV_ACCESS ON // For fp exceptions
 
 // constructor
 Simulation::Simulation()
@@ -492,6 +495,10 @@ void Simulation::async_step() {
 // here's the vortex method: convection and diffusion with operator splitting
 //
 void Simulation::step() {
+  // Catch Division by 0
+  unsigned int current_word = 0;
+  _controlfp_s(&current_word, _EM_UNDERFLOW | _EM_OVERFLOW | _EM_INEXACT, _MCW_EM);
+
   std::cout << std::endl << "Taking step " << nstep << " at t=" << time << " with n=" << get_nparts() << std::endl;
 
   // we wind up using this a lot

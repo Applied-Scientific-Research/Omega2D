@@ -163,8 +163,9 @@ void Diffusion<S,A,I>::step(const double                _time,
   std::cout << "Inside Diffusion::step with dt=" << _dt << std::endl;
 
   // ensure that we have a current h_nu
+  vrm.set_hnu(std::sqrt(_dt/_re));  assert((S)_re != 0); // Can't divide by 0
+  vrm.set_hnu(std::sqrt(_dt/_re));
   h_nu = (S)std::sqrt(_dt/_re);
-
 #ifdef PLUGIN_AVRM
   // ensure that it knows to allow or disallow adaptive radii
   if (curr_pd_type == pd_vrm) vrm.set_adaptive_radii(adaptive_radii);
@@ -174,8 +175,8 @@ void Diffusion<S,A,I>::step(const double                _time,
   // always re-run the BEM calculation before shedding
   //
   // first push away particles inside or too close to the body
-  clear_inner_layer<S>(1, _bdry, _vort, 1.0/std::sqrt(2.0*M_PI), get_nom_sep(h_nu));
-  solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
+  assert(M_PI != 0); // Can't divide by 0
+  clear_inner_layer<S>(1, _bdry, _vort, 1.0/std::sqrt(2.0*M_PI), get_nom_sep());  solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
 
   //
   // important for augmented BEM: reset the circulation counter

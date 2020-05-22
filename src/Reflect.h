@@ -59,6 +59,7 @@ ClosestReturn<S> panel_point_distance(const S sx0, const S sy0,
   const S ay    = ty-sy0;
 
   // t is a parametric value between 0 and 1 along the segment
+  assert(blensq != 0); // Can't divide by 0
   const S t     = (ax*bx + ay*by) / blensq;
   //std::cout << "  t is " << t << std::endl;
 
@@ -224,9 +225,11 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
     }
 
     // finish computing the mean norm and mean cp
+    assert(std::sqrt(normx* normx + normy * normy) != 0); // Can't divide by 0
     const S normilen = 1.0 / std::sqrt(normx*normx + normy*normy);
     normx *= normilen;
     normy *= normilen;
+    assert((S)hits.size() != 0); // Can't divide by 0
     cpx /= (S)hits.size();
     cpy /= (S)hits.size();
 
@@ -300,6 +303,7 @@ std::vector<std::tuple<S,S,S>> init_cut_tables (const S _dx) {
   const S max_rad = 3.0;
   // how many entries?
   const int nx = (int)(0.5 + max_rad / _dx);
+  assert((float)nx != 0); // Can't divide by 0
   const S dx = max_rad / (float)nx;
   //std::cout << "Making cut tables with nx " << nx << " and dx " << dx << std::endl;
 
@@ -324,6 +328,7 @@ std::vector<std::tuple<S,S,S>> init_cut_tables (const S _dx) {
     // scale by the cell size
     rwgt *= std::pow(dx, 2);
     // this is a pure 2D Gaussian
+    assert(M_PI != 0); // Can't divide by 0
     rwgt *= 1.0/M_PI;
     // this is for a 2D compact Gaussian
     //rwgt *= 0.3526021;
@@ -378,6 +383,7 @@ std::pair<S,S> get_cut_entry (std::vector<std::tuple<S,S,S>>& ct, const S _pos) 
     for (size_t i=1; i<inum; ++i) {
       if (_pos < std::get<0>(ct[i])) {
         // point lies between this and the previous entry
+        assert(std::get<0>(ct[i]) - std::get<0>(ct[i-1]) != 0); // Can't divide by zero
         const S frac = (_pos - std::get<0>(ct[i-1])) / (std::get<0>(ct[i]) - std::get<0>(ct[i-1]));
         smult = frac*std::get<1>(ct[i]) + (1.0-frac)*std::get<1>(ct[i-1]);
         dshift = frac*std::get<2>(ct[i]) + (1.0-frac)*std::get<2>(ct[i-1]);
@@ -499,7 +505,7 @@ S clear_inner_panp2 (const int _method,
         } // end of loop over panels
 
         // dump out the hits
-        if (false) {
+        if (true) {
           std::cout << "point " << i << " is " << tx[0][i] << " " << tx[1][i] << std::endl;
           for (auto & ahit: hits) {
             if (ahit.disttype == node) {
@@ -566,6 +572,7 @@ S clear_inner_panp2 (const int _method,
 
             // use precomputed table lookups for new position and remaining strength
             if (not are_fldpts) {
+              assert(this_radius != 0); // Can't divide by 0
               const std::pair<S,S> entry = get_cut_entry(ct, dotp/this_radius);
 
               // ensure that this "reabsorbed" circulation is accounted for in BEM
