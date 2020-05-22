@@ -205,6 +205,9 @@ static inline S get_ustar_fast (const S a2, const S b2, const S c2, const S norm
   const S numer = b2 + c2 - a2;
   assert(b2*c2 > 0 && "Can't take the square root of a negative number; Can't divide by 0");
   const S denom = 0.5f / std::sqrt(b2*c2);
+  /*if (abs(numer * denom) > 1) {
+      std::cout << "a2: " << a2 << " b2: " << b2 << "c2: " << c2 << std::endl;
+  }*/
   assert(abs(numer * denom) <= 1 && "acos takes values in [-1, 1]");
   float ustar = std::acos(numer * denom);
   return std::copysign(ustar, -norm);
@@ -258,8 +261,8 @@ static inline void kernel_1_0v (const S sx0, const S sy0,
   const S panl  = px*px   + py*py;
 
   // compute u* and v*
-  //const S ustar = get_ustar<S>(dx0, dy0, dx1, dy1);
-  const S ustar = get_ustar_fast<S>(panl, rij2, rij12, px*dy0-py*dx0);
+  const S ustar = get_ustar<S>(dx0, dy0, dx1, dy1);
+  //const S ustar = get_ustar_fast<S>(panl, rij2, rij12, px*dy0-py*dx0);
   const S vstar = get_vstar<S>(rij2, rij12);
   //std::cout << "ustar is " << ustar << std::endl;
   //std::cout << "ustarf is " << ustarf << std::endl;
@@ -312,8 +315,8 @@ static inline void kernel_1_0vs (const S sx0, const S sy0,
   py *= mult;
 
   // compute u* and v*
-  //const S ustar = get_ustar<S>(dx0, dy0, dx1, dy1);
-  const S ustar = get_ustar_fast<S>(panl, rij2, rij12, px*dy0-py*dx0);
+  const S ustar = get_ustar<S>(dx0, dy0, dx1, dy1);
+  //const S ustar = get_ustar_fast<S>(panl, rij2, rij12, px*dy0-py*dx0);
   const S vstar = get_vstar<S>(rij2, rij12);
   //std::cout << "ustar is " << ustar << " and vstar is " << vstar << std::endl;
 
@@ -365,8 +368,8 @@ static inline void kernel_1_0vps (const S sx0, const S sy0,
   py *= mult;
 
   // compute u* and v*
-  //const S ustar = get_ustar<S>(dx0, dy0, dx1, dy1);
-  const S ustar = get_ustar_fast<S>(panl, rij2, rij12, px*dy0-py*dx0);
+  const S ustar = get_ustar<S>(dx0, dy0, dx1, dy1);
+  //const S ustar = get_ustar_fast<S>(panl, rij2, rij12, px*dy0-py*dx0);
   const S vstar = get_vstar<S>(rij2, rij12);
 
   // finally, rotate back into global coordinates

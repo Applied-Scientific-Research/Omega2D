@@ -128,6 +128,7 @@ template <class S, class I>
 void BEM<S,I>::set_rhs(std::vector<S>& _b) {
   b.resize(_b.size());
   b = Eigen::Map<Eigen::Matrix<S, Eigen::Dynamic, 1>>(_b.data(), _b.size());
+  //std::cout << "    Setting b" << std::endl;
 }
 
 template <class S, class I>
@@ -207,8 +208,11 @@ void BEM<S,I>::solve() {
 
   // find L2 norm of error
   start = std::chrono::system_clock::now();
-  assert(b.norm() != 0); // Can't divide by 0
-  double relative_error = (A*strengths - b).norm() / b.norm(); // norm() is L2 norm
+  //assert(b.norm() != 0 && "Can't divide by 0");
+  // b.norm() is 0 for first computation, so we let it be one for the error computation
+  double b_norm = b.norm(); // norm() is L2 norm
+  if (b_norm == 0) { b_norm = 1.0; }
+  double relative_error = (A*strengths - b).norm() / b_norm;
   if (verbose) printf("    L2 norm of error is %g\n", relative_error);
   end = std::chrono::system_clock::now();
   elapsed_seconds = end-start;
