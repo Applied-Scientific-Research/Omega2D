@@ -272,7 +272,7 @@ static inline void kernel_1_0v (const S sx0, const S sy0,
   const S velx  = ustar*px - vstar*py;
   const S vely  = ustar*py + vstar*px;
   //std::cout << "velx is " << velx << " and vely is " << vely << std::endl;
-  assert(panl > 0); // Can't take the square root of a negative number; Can't divide by 0
+  // assert(panl > 0); // Can't take the square root of a negative number; Can't divide by 0
   const S mult  = str * get_rsqrt<S>(panl);
   //std::cout << "finalx is " << (mult*velx) << " and finaly is " << (mult*vely) << std::endl;
 
@@ -309,7 +309,7 @@ static inline void kernel_1_0vs (const S sx0, const S sy0,
   const S panl  = px*px   + py*py;
 
   //std::cout << "px is " << px << " and py is " << py << std::endl;
-  assert(panl > 0); // Can't take the square root of a negative number; Can't divide by 0
+  // assert(panl > 0); // Can't take the square root of a negative number; Can't divide by 0
   const S mult  = get_rsqrt<S>(panl);
   px *= mult;
   py *= mult;
@@ -362,7 +362,7 @@ static inline void kernel_1_0vps (const S sx0, const S sy0,
   //std::cout << "ustar is " << ustar << " and vstar is " << vstar << std::endl;
 
   //std::cout << "px is " << px << " and py is " << py << std::endl;
-  assert(panl > 0); // Can't take the square root of a negative number; Can't divide by 0
+  // assert(panl > 0); // Can't take the square root of a negative number; Can't divide by 0
   const S mult  = get_rsqrt<S>(panl);
   px *= mult;
   py *= mult;

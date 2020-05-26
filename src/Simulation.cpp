@@ -496,8 +496,8 @@ void Simulation::async_step() {
 //
 void Simulation::step() {
   // Catch Division by 0
-  unsigned int current_word = 0;
-  _controlfp_s(&current_word, _EM_UNDERFLOW | _EM_OVERFLOW | _EM_INEXACT, _MCW_EM);
+  // unsigned int current_word = 0;
+  // _controlfp_s(&current_word, _EM_UNDERFLOW | _EM_OVERFLOW | _EM_INEXACT, _MCW_EM);
 
   std::cout << std::endl << "Taking step " << nstep << " at t=" << time << " with n=" << get_nparts() << std::endl;
 

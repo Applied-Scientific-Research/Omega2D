@@ -1447,7 +1447,7 @@ int main(int argc, char const *argv[]) {
       ImGui::SameLine();
       */
 
-      //if (ImGui::Button("ImGui Samples")) show_test_window ^= 1;
+      // if (ImGui::Button("ImGui Samples")) show_test_window ^= 1;
       // use ASCII table for number: http://www.asciitable.com/
       // but use CAPITAL letter for a letter, jesus, really?!?
       if (ImGui::IsKeyPressed(84) and not show_file_output_window) show_test_window ^= 1;
@@ -1490,11 +1490,14 @@ int main(int argc, char const *argv[]) {
     }
 
     // Show the simulation stats in the corner
+    //if (nframes < 10){ std::cout << "show_stats_window: " << show_stats_window << std::endl; }
     if (show_stats_window) {
+      // std::cout << "Creating stats window: " << std::endl;
       // there's no way to have this appear in the output png without the rest of the GUI
       const int numrows = 4 + (sim.get_npanels()>0 ? 1 : 0) + (sim.get_nfldpts()>0 ? 1 : 0);
+      // std::cout << "   fontSize: " << fontSize << "\n   numrows: " << numrows << "\n   display_h: " << display_h << std::endl;
       ImGui::SetNextWindowSize(ImVec2(10+fontSize*11, 10+1.1*fontSize*numrows));
-      ImGui::SetNextWindowPos(ImVec2(20, display_h-fontSize*(1.1*numrows+1)));
+      ImGui::SetNextWindowPos(ImVec2(20, -display_h+fontSize*(1.1*numrows+1)));
       ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
       ImGui::Begin("Statistics", &show_stats_window, window_flags);
       ImGui::Text("Step %13ld", sim.get_nstep());
