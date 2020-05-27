@@ -379,6 +379,26 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
       //std::cout << "    fill neib with new part at " << newpt[0] << " " << newpt[1] << std::endl;
     }
 
+    // now remove close parts if we have more than max_near
+    while (inear.size() > max_near) {
+      // look for the part closest to the diffusing particle
+      int32_t jclose = 0;
+      ST distnear = std::numeric_limits<ST>::max();
+      for (size_t j=0; j<inear.size(); ++j) {
+        const size_t inearj = static_cast<size_t>(inear[j]);
+        if (inearj != i) {
+          const ST distsq = std::pow(x[i]-x[inearj], 2) + std::pow(y[i]-y[inearj], 2);
+          if (distsq < distnear) {
+            distnear = distsq;
+            jclose = j;
+          }
+        }
+      }
+      // and remove it
+      //std::cout << "removing pt near " << x[i] << " " << y[i] << std::endl;
+      inear.erase(inear.begin()+jclose);
+    }
+
     bool haveSolution = false;
     size_t numNewParts = 0;
 
@@ -392,10 +412,27 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
 
       // if that didn't work, add a particle and try again
       if (not haveSolution) {
-        // solution is bad, add a particle and try again
         auto newpt = fill_neighborhood_search(i, x, y, inear, nom_sep);
-        // add the index to the near list
-        inear.push_back(n);
+
+        if (inear.size() == max_near) {
+          // replace an old particle with this new one
+          size_t ireplace = 1;	// default is 1 because diffusing particle is probably position 0
+          for (size_t j=0; j<inear.size(); ++j) {
+            const size_t inj = static_cast<size_t>(inear[j]);
+            if (inj != i and inj < initial_n) {
+              ireplace = j;
+              break;
+            }
+          }
+          // we are moving an original particle from the near list, but not the global list
+          // but we are adding a new particle to the global list, hence the n
+          inear[ireplace] = n;
+          //std::cout << "  replacing pt " << ireplace << " in the list of " << inear.size() << std::endl;
+        } else {
+          // add a new one to the inear list and the master particle lists
+          inear.push_back(n);
+        }
+
         // add it to the master list
         x.push_back(newpt.first);
         y.push_back(newpt.second);
@@ -412,7 +449,11 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
     // did we eventually reach a solution?
     if (numNewParts >= maxNewParts) {
       std::cout << "Something went wrong" << std::endl;
+      std::cout << "  at " << x[i] << " " << y[i] << std::endl;
+      std::cout << "  with " << inear.size() << " near neibs" << std::endl;
       std::cout << "  needed numNewParts= " << numNewParts << std::endl;
+      // ideally, in this situation, we would create 6 new particles around the original particle with optimal fractions,
+      //   ignoring every other nearby particle - let merge take care of the higher density later
       exit(0);
     }
 
@@ -500,6 +541,7 @@ bool VRM<ST,CT,MAXMOM>::attempt_solution(const int32_t idiff,
 
   // reset the arrays
   //std::cout << "\nSetting up Ax=b least-squares problem" << std::endl;
+  assert(inear.size() <= static_cast<size_t>(max_near) && "Too many neighbors in VRM");
   b.setZero();
   A.resize(num_rows, inear.size());
   A.setZero();
