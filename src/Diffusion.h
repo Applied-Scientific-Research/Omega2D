@@ -55,7 +55,7 @@ public:
       h_nu(0.1),
       core_func(gaussian),
       is_inviscid(false),
-      pd_type(pd_core),
+      pd_type(pd_vrm),
       adaptive_radii(false),
       nom_sep_scaled(std::sqrt(8.0)),
       particle_overlap(1.5),
@@ -354,7 +354,9 @@ void Diffusion<S,A,I>::draw_advanced() {
 
 
   // select diffusion type among available
-  static int diff_item = 2;
+  static int diff_item = 2;	// default is VRM
+  // the following does not work!
+  //static int diff_item = static_cast<int>(PartDiffuseType::pd_vrm);
   const char* diff_items[] = { "Core-spreading", "Random walk", "VRM solution" };
   ImGui::PushItemWidth(240);
   ImGui::Combo("Select diffusion method", &diff_item, diff_items, 3);
