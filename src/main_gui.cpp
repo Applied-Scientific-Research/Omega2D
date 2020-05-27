@@ -39,6 +39,7 @@
 #include <iostream>
 #include <vector>
 #include <iomanip>	// for setfill, setw
+//#include <fenv.h>
 
 static void error_callback(int error, const char* description) {
   fprintf(stderr, "Error %d: %s\n", error, description);
@@ -273,6 +274,12 @@ int main(int argc, char const *argv[]) {
   style.Colors[ImGuiCol_WindowBg]              = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
   style.Colors[ImGuiCol_TitleBg]               = ImVec4(0.27f, 0.27f, 0.54f, 1.00f);
   style.Colors[ImGuiCol_TitleBgActive]         = ImVec4(0.32f, 0.32f, 0.63f, 1.00f);
+
+  // FE_OVERFLOW is triggered in ImGui
+  // FE_INVALID is triggered in std::acos
+  // FE_DIVBYZERO is triggered somewhere before Reflect.h:512, and only under x86, when switching from particle-only to BEM
+  //feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+  //feenableexcept(FE_DIVBYZERO);
 
 
   // Main loop
@@ -1497,7 +1504,7 @@ int main(int argc, char const *argv[]) {
       const int numrows = 4 + (sim.get_npanels()>0 ? 1 : 0) + (sim.get_nfldpts()>0 ? 1 : 0);
       // std::cout << "   fontSize: " << fontSize << "\n   numrows: " << numrows << "\n   display_h: " << display_h << std::endl;
       ImGui::SetNextWindowSize(ImVec2(10+fontSize*11, 10+1.1*fontSize*numrows));
-      ImGui::SetNextWindowPos(ImVec2(20, -display_h+fontSize*(1.1*numrows+1)));
+      ImGui::SetNextWindowPos(ImVec2(20, display_h-fontSize*(1.1*numrows+1)));
       ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
       ImGui::Begin("Statistics", &show_stats_window, window_flags);
       ImGui::Text("Step %13ld", sim.get_nstep());
