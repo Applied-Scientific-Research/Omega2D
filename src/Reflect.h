@@ -505,7 +505,7 @@ S clear_inner_panp2 (const int _method,
         } // end of loop over panels
 
         // dump out the hits
-        if (true) {
+        if (false) {
           std::cout << "point " << i << " is " << tx[0][i] << " " << tx[1][i] << std::endl;
           for (auto & ahit: hits) {
             if (ahit.disttype == node) {
