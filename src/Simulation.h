@@ -7,12 +7,13 @@
 
 #pragma once
 
-#include "Omega2D.h"
+#include "BEM.h"
 #include "Body.h"
 #include "Collection.h"
-#include "BEM.h"
 #include "Convection.h"
 #include "Diffusion.h"
+#include "ElementPacket.h"
+#include "Omega2D.h"
 #include "StatusFile.h"
 
 #ifdef USE_GL
