@@ -283,8 +283,7 @@ int main(int argc, char const *argv[]) {
 
 
   // Main loop
-  while (!glfwWindowShouldClose(window))
-  {
+  while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
     ImGui_ImplGlfwGL3_NewFrame();
 
@@ -670,8 +669,7 @@ int main(int argc, char const *argv[]) {
       show_welcome_window = false;
     }
 
-
-    //if (ImGui::CollapsingHeader("Simulation globals", ImGuiTreeNodeFlags_DefaultOpen)) {
+    //if (ImGui::CollapsingHeader("Simulation globals", ImGuiTreeNodeFlags_DefaultOpen)) 
     if (ImGui::CollapsingHeader("Simulation globals")) {
 
       // save current versions, so we know which changed
@@ -751,10 +749,10 @@ int main(int argc, char const *argv[]) {
       } else {
         sim.unset_end_time();
       }
-    }
+    } // end Simulation Globals
 
     ImGui::Spacing();
-    //if (ImGui::CollapsingHeader("Flow structures", ImGuiTreeNodeFlags_DefaultOpen)) {
+    //if (ImGui::CollapsingHeader("Flow structures", ImGuiTreeNodeFlags_DefaultOpen)) 
     if (ImGui::CollapsingHeader("Startup structures")) {
 
       if (ffeatures.size() + bfeatures.size() == 0) {
@@ -877,7 +875,7 @@ int main(int argc, char const *argv[]) {
 
         if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
         ImGui::EndPopup();
-      }
+      } // end popup new flow structures
 
 
       // button and modal window for adding new boundary objects
@@ -919,12 +917,14 @@ int main(int argc, char const *argv[]) {
 
         // define geometry second
         static int item = 0;
-        const char* items[] = { "circle", "square", "oval", "rectangle", "segment" };
+        static int numItems = 6;
+        const char* items[] = { "circle", "square", "oval", "rectangle", "segment", "polygon" };
         ImGui::Spacing();
-        ImGui::Combo("geometry type", &item, items, 5);
+        ImGui::Combo("geometry type", &item, items, numItems);
 
         static bool external_flow = true;
 
+        static int numSides = 4;
         static float xc[2] = {0.0f, 0.0f};
         static float rotdeg = 0.0f;
         static float circdiam = 1.0;
@@ -1121,11 +1121,51 @@ int main(int argc, char const *argv[]) {
             }
             ImGui::SameLine();
             } break;
-        }
+          
+          case 5: {
+            // create a square/rectangle boundary
+            ImGui::Checkbox("Object is in flow", &external_flow);
+            ImGui::SameLine();
+            ShowHelpMarker("Keep checked if object is immersed in flow,\nuncheck if flow is inside of object");
+            ImGui::InputInt("number of sides", &numSides);
+            ImGui::InputFloat2("center", xc);
+            ImGui::SliderFloat("side length", &sqside, 0.1f, 10.0f, "%.4f");
+            ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 89.0f, "%.0f");
+            //ImGui::SliderAngle("orientation", &rotdeg);
+            ImGui::TextWrapped("This feature will add a solid polygon boundary with n sides centered at the given coordinates");
+            if (ImGui::Button("Add polygon boundary")) {
+              //std::shared_ptr<Body> bp;
+              switch(mitem) {
+                case 0:
+                  // this geometry is fixed (attached to inertial)
+                  //bp = sim.get_pointer_to_body("ground");
+                  break;
+                case 1:
+                  // this geometry is attached to the previous geometry (or ground)
+                  //bp = sim.get_last_body();
+                  break;
+                case 2:
+                  // this geometry is attached to a new moving body
+                  //bp = std::make_shared<Body>();
+                  //bp->set_pos(0, std::string(strx));
+                  //bp->set_pos(1, std::string(stry));
+                  //bp->set_rot(std::string(strrad));
+                  //bp->set_name("polygon cylinder");
+                  //sim.add_body(bp);
+                  break;
+              }
+              //bfeatures.emplace_back(std::make_unique<SolidSquare>(bp, external_flow, xc[0], xc[1], sqside, rotdeg));
+              //std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+          }
+        } // end switch for geometry
 
         if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
         ImGui::EndPopup();
-      }
+        
+      } // end new boundary structures
 
 
       // button and modal window for adding new measurement objects
@@ -1225,8 +1265,7 @@ int main(int argc, char const *argv[]) {
 
         if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
         ImGui::EndPopup();
-      }
-
+        } // end measurement structures 
 
       ImGui::Spacing();
       int buttonIDs = 10;
@@ -1344,9 +1383,7 @@ int main(int argc, char const *argv[]) {
 
     // Solver parameters, under its own header
     ImGui::Spacing();
-    if (ImGui::CollapsingHeader("Solver parameters (advanced)")) {
-      sim.draw_advanced();
-    }
+    if (ImGui::CollapsingHeader("Solver parameters (advanced)")) { sim.draw_advanced(); }
 
     // Output buttons, under a header
     ImGui::Spacing();
@@ -1395,9 +1432,6 @@ int main(int argc, char const *argv[]) {
         }
       }
     }
-
-
-
     nframes++;
 
     // check vs. end conditions, if present
