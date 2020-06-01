@@ -221,4 +221,34 @@ protected:
   float m_normflow, m_tangflow;
 };
 
+/*
+ Polygon Class
+ This is a simple polygon with equa-length sides and angles.
+*/
+class SolidPolygon : public BoundaryFeature {
+public:
+  SolidPolygon(std::shared_ptr<Body> _bp = nullptr,
+               bool _ext = true,
+               float _x = 0.0,
+               float _y = 0.0,
+               int _numSides = 4,
+               float _side = 1.0,
+               float _theta = 0.0)
+    : BoundaryFeature(_bp, _ext, _x, _y),
+      m_numSides(_numSides),
+      m_side(_side),
+      m_theta(_theta)
+    {}
+
+  void debug(std::ostream& os) const override;
+  std::string to_string() const override;
+  void from_json(const nlohmann::json) override;
+  nlohmann::json to_json() const override;
+  ElementPacket<float> init_elements(const float) const override;
+
+protected:
+  int m_numSides;
+  float m_side;
+  float m_theta;
+};
 

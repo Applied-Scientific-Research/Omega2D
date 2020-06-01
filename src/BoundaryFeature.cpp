@@ -601,3 +601,103 @@ BoundarySegment::to_json() const {
 }
 
 
+// Create a Polygon 
+ElementPacket<float>
+SolidPolygon::init_elements(const float _ips) const {
+  // If object has been removed, return no elements?
+  if (not this->is_enabled()) return ElementPacket<float>();
+
+  // how many panels
+  const size_t num_panels = m_numSides * std::min(10000, std::max(1, (int)(m_side / _ips)));
+
+  std::cout << "Creating " << m_numSides << "-sided polygon with " << num_panels << " panels" << std::endl;
+
+  // created once
+  std::vector<float>   x(num_panels*2);
+  std::vector<Int>   idx(num_panels*2);
+  std::vector<float> val(num_panels);
+
+  // Turning degrees into radians: deg*pi/180
+  const float st = std::sin(M_PI * m_theta / 180.0);
+  const float ct = std::cos(M_PI * m_theta / 180.0);
+
+  // outside is to the left walking from one point to the next
+  // so go CW around the body
+  // m_side * i / panlsPerSide reflects distance between two adjacent panels
+  size_t icnt = 0;
+  size_t panlsPerSide = num_panels/m_numSides;
+  for (int j=m_numSides; j>0; j--) {
+    // Find current and next vertex
+    const float vx = m_x + std::sin(2*M_PI*j/m_numSides);
+    const float vy = m_y + std::cos(2*M_PI*j/m_numSides);
+    const float nxtVx = m_x + std::sin(2*M_PI*(j-1)/m_numSides);
+    const float nxtVy = m_y + std::cos(2*M_PI*(j-1)/m_numSides);
+    for (size_t i=0; i<panlsPerSide; i++) {
+      const float px = m_side * (vx+(nxtVx-vx)*i/panlsPerSide);
+      const float py = m_side * (vy+(nxtVy-vy)*i/panlsPerSide);
+      x[icnt++] = m_x + px*ct - py*st;
+      x[icnt++] = m_y + px*st + py*ct;
+    }
+  }
+
+  // outside is to the left walking from one point to the next
+  for (size_t i=0; i<num_panels; i++) {
+    idx[2*i]   = i;
+    idx[2*i+1] = i+1;
+    val[i]     = 0.0;
+  }
+
+  // correct the final index
+  idx[2*num_panels-1] = 0;
+
+  // flip the orientation of the panels
+  if (not m_external) {
+    for (size_t i=0; i<num_panels; i++) {
+      std::swap(idx[2*i], idx[2*i+1]);
+    }
+  }
+
+  return ElementPacket<float>({x, idx, val});
+}
+
+void
+SolidPolygon::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+SolidPolygon::to_string() const {
+  std::stringstream ss;
+  if (m_external) {
+    ss << "solid Polygon";
+  } else {
+    ss << "Polygon hole";
+  }
+  ss << " at " << m_x << " " << m_y << " with " << m_numSides << " sides length " << m_side << " rotated " << m_theta << " deg";
+  return ss.str();
+}
+
+void
+SolidPolygon::from_json(const nlohmann::json j) {
+  const std::vector<float> tr = j["translation"];
+  m_x = tr[0];
+  m_y = tr[1];
+  m_numSides = j["numberSides"];
+  m_side = j["scale"];
+  m_theta = j.value("rotation", 0.0);
+  m_external = j.value("external", true);
+}
+
+nlohmann::json
+SolidPolygon::to_json() const {
+  // make an object for the mesh
+  nlohmann::json mesh = nlohmann::json::object();
+  mesh["geometry"] = "square";
+  mesh["translation"] = {m_x, m_y};
+  mesh["numberSides"] = m_numSides;
+  mesh["scale"] = m_side;
+  mesh["rotation"] = m_theta;
+  mesh["external"] = m_external;
+  return mesh;
+}
+

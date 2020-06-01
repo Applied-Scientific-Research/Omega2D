@@ -1123,39 +1123,46 @@ int main(int argc, char const *argv[]) {
             } break;
           
           case 5: {
-            // create a square/rectangle boundary
+            // create a polygon boundary
             ImGui::Checkbox("Object is in flow", &external_flow);
             ImGui::SameLine();
             ShowHelpMarker("Keep checked if object is immersed in flow,\nuncheck if flow is inside of object");
             ImGui::InputInt("number of sides", &numSides);
+            // Must have at least 3 sides
+            if (numSides < 3) {
+              numSides = 3;
+            // Currently crashes if there are more than 17 sides
+            } else if (numSides > 17) {
+              numSides = 17;
+            }
             ImGui::InputFloat2("center", xc);
             ImGui::SliderFloat("side length", &sqside, 0.1f, 10.0f, "%.4f");
             ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 89.0f, "%.0f");
             //ImGui::SliderAngle("orientation", &rotdeg);
             ImGui::TextWrapped("This feature will add a solid polygon boundary with n sides centered at the given coordinates");
             if (ImGui::Button("Add polygon boundary")) {
-              //std::shared_ptr<Body> bp;
+              std::shared_ptr<Body> bp;
               switch(mitem) {
                 case 0:
                   // this geometry is fixed (attached to inertial)
-                  //bp = sim.get_pointer_to_body("ground");
+                  bp = sim.get_pointer_to_body("ground");
                   break;
                 case 1:
                   // this geometry is attached to the previous geometry (or ground)
-                  //bp = sim.get_last_body();
+                  bp = sim.get_last_body();
                   break;
                 case 2:
                   // this geometry is attached to a new moving body
-                  //bp = std::make_shared<Body>();
-                  //bp->set_pos(0, std::string(strx));
-                  //bp->set_pos(1, std::string(stry));
-                  //bp->set_rot(std::string(strrad));
-                  //bp->set_name("polygon cylinder");
-                  //sim.add_body(bp);
+                  bp = std::make_shared<Body>();
+                  bp->set_pos(0, std::string(strx));
+                  bp->set_pos(1, std::string(stry));
+                  bp->set_rot(std::string(strrad));
+                  bp->set_name("polygon cylinder");
+                  sim.add_body(bp);
                   break;
               }
-              //bfeatures.emplace_back(std::make_unique<SolidSquare>(bp, external_flow, xc[0], xc[1], sqside, rotdeg));
-              //std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              bfeatures.emplace_back(std::make_unique<SolidPolygon>(bp, external_flow, xc[0], xc[1], numSides, sqside, rotdeg));
+              std::cout << "Added " << (*bfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
