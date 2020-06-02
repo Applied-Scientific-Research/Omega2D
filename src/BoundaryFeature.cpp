@@ -626,12 +626,13 @@ SolidPolygon::init_elements(const float _ips) const {
   // m_side * i / panlsPerSide reflects distance between two adjacent panels
   size_t icnt = 0;
   size_t panlsPerSide = num_panels/m_numSides;
-  for (int j=m_numSides; j>0; j--) {
+  for (int j=0; j<m_numSides; j++) {
     // Find current and next vertex
-    const float vx = m_x + std::sin(2*M_PI*j/m_numSides);
-    const float vy = m_y + std::cos(2*M_PI*j/m_numSides);
-    const float nxtVx = m_x + std::sin(2*M_PI*(j-1)/m_numSides);
-    const float nxtVy = m_y + std::cos(2*M_PI*(j-1)/m_numSides);
+    const float vx = m_x + m_numSides * std::sin(2*M_PI*j/m_numSides);
+    const float vy = m_y + m_numSides * std::cos(2*M_PI*j/m_numSides);
+    const float nxtVx = m_x + m_numSides * std::sin(2*M_PI*(j+1)/m_numSides);
+    const float nxtVy = m_y + m_numSides * std::cos(2*M_PI*(j+1)/m_numSides);
+    std::cout << '(' << vx << ',' << vy << ") -> (" << nxtVx << ',' << nxtVy << ')' << std::endl;
     for (size_t i=0; i<panlsPerSide; i++) {
       const float px = m_side * (vx+(nxtVx-vx)*i/panlsPerSide);
       const float py = m_side * (vy+(nxtVy-vy)*i/panlsPerSide);
