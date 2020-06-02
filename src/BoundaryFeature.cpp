@@ -692,7 +692,7 @@ nlohmann::json
 SolidPolygon::to_json() const {
   // make an object for the mesh
   nlohmann::json mesh = nlohmann::json::object();
-  mesh["geometry"] = "square";
+  mesh["geometry"] = "Polygon";
   mesh["translation"] = {m_x, m_y};
   mesh["numberSides"] = m_numSides;
   mesh["scale"] = m_side;
