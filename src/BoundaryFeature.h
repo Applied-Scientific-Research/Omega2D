@@ -232,11 +232,13 @@ public:
                float _x = 0.0,
                float _y = 0.0,
                int _numSides = 4,
-               float _side = 1.0,
+               float _side = std::sqrt(2),
+               float _radius = 1.0,
                float _theta = 0.0)
     : BoundaryFeature(_bp, _ext, _x, _y),
       m_numSides(_numSides),
       m_side(_side),
+      m_radius(_radius),
       m_theta(_theta)
     {}
 
@@ -249,6 +251,7 @@ public:
 protected:
   int m_numSides;
   float m_side;
+  float m_radius;
   float m_theta;
 };
 

@@ -928,6 +928,7 @@ int main(int argc, char const *argv[]) {
         static float xc[2] = {0.0f, 0.0f};
         static float rotdeg = 0.0f;
         static float circdiam = 1.0;
+        static float circrad = 1.0;
         static float sqside = 1.0;
 
 
@@ -1127,17 +1128,23 @@ int main(int argc, char const *argv[]) {
             ImGui::Checkbox("Object is in flow", &external_flow);
             ImGui::SameLine();
             ShowHelpMarker("Keep checked if object is immersed in flow,\nuncheck if flow is inside of object");
-            ImGui::InputInt("number of sides", &numSides);
-            // Must have at least 3 sides
-            if (numSides < 3) {
-              numSides = 3;
-            // Currently crashes if there are more than 17 sides
-            } else if (numSides > 17) {
-              numSides = 17;
+            if (ImGui::InputInt("number of sides", &numSides)) {
+              // Must have at least 3 sides
+              if (numSides < 3) {
+                numSides = 3;
+              // Currently crashes if there are more than 17 sides
+              } else if (numSides > 17) {
+                numSides = 17;
+              }
+              // Set initial radius to 1 for number of sides
+              circrad = 1.0;
+              // Set side length st radius is 1
+              sqside = std::sqrt(2*(1-std::cos(M_PI*2/numSides)));
             }
             ImGui::InputFloat2("center", xc);
-            ImGui::SliderFloat("side length", &sqside, 0.1f, 10.0f, "%.4f");
-            ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 89.0f, "%.0f");
+            if (ImGui::SliderFloat("side length", &sqside, 0.1f, 10.0f, "%.4f")) { circrad = sqside/std::sqrt(2*(1-std::cos(M_PI*2/numSides))); }
+            if (ImGui::SliderFloat("Radius", &circrad, 0.1f, 10.0f, "%.4f")) { sqside = circrad*std::sqrt(2*(1-std::cos(M_PI*2/numSides))); }
+            ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 359.0f, "%.0f");
             //ImGui::SliderAngle("orientation", &rotdeg);
             ImGui::TextWrapped("This feature will add a solid polygon boundary with n sides centered at the given coordinates");
             if (ImGui::Button("Add polygon boundary")) {
@@ -1161,7 +1168,7 @@ int main(int argc, char const *argv[]) {
                   sim.add_body(bp);
                   break;
               }
-              bfeatures.emplace_back(std::make_unique<SolidPolygon>(bp, external_flow, xc[0], xc[1], numSides, sqside, rotdeg));
+              bfeatures.emplace_back(std::make_unique<SolidPolygon>(bp, external_flow, xc[0], xc[1], numSides, sqside, circrad, rotdeg));
               std::cout << "Added " << (*bfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }

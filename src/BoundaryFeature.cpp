@@ -618,21 +618,23 @@ SolidPolygon::init_elements(const float _ips) const {
   std::vector<float> val(num_panels);
 
   // Turning degrees into radians: deg*pi/180
+  // This doesn't rotate the object in place. As the object is rotated, its center moves.
   const float st = std::sin(M_PI * m_theta / 180.0);
   const float ct = std::cos(M_PI * m_theta / 180.0);
 
   // outside is to the left walking from one point to the next
   // so go CW around the body
   // m_side * i / panlsPerSide reflects distance between two adjacent panels
+  // If m_numSides is even, it seems to rotate CCW by 360/m_numSides/2 degrees in place
   size_t icnt = 0;
   size_t panlsPerSide = num_panels/m_numSides;
   for (int j=0; j<m_numSides; j++) {
     // Find current and next vertex
-    const float vx = m_x + m_numSides * std::sin(2*M_PI*j/m_numSides);
-    const float vy = m_y + m_numSides * std::cos(2*M_PI*j/m_numSides);
-    const float nxtVx = m_x + m_numSides * std::sin(2*M_PI*(j+1)/m_numSides);
-    const float nxtVy = m_y + m_numSides * std::cos(2*M_PI*(j+1)/m_numSides);
-    std::cout << '(' << vx << ',' << vy << ") -> (" << nxtVx << ',' << nxtVy << ')' << std::endl;
+    const float vx = m_x + m_radius * std::sin(2*M_PI*j/m_numSides);
+    const float vy = m_y + m_radius * std::cos(2*M_PI*j/m_numSides);
+    const float nxtVx = m_x + m_radius * std::sin(2*M_PI*(j+1)/m_numSides);
+    const float nxtVy = m_y + m_radius * std::cos(2*M_PI*(j+1)/m_numSides);
+    // std::cout << '(' << vx << ',' << vy << ") -> (" << nxtVx << ',' << nxtVy << ')' << std::endl;
     for (size_t i=0; i<panlsPerSide; i++) {
       const float px = m_side * (vx+(nxtVx-vx)*i/panlsPerSide);
       const float py = m_side * (vy+(nxtVy-vy)*i/panlsPerSide);
