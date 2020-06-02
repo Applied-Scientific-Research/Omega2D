@@ -687,6 +687,7 @@ SolidPolygon::from_json(const nlohmann::json j) {
   m_y = tr[1];
   m_numSides = j["numberSides"];
   m_side = j["scale"];
+  m_radius = j["radius"];
   m_theta = j.value("rotation", 0.0);
   m_external = j.value("external", true);
 }
@@ -699,6 +700,7 @@ SolidPolygon::to_json() const {
   mesh["translation"] = {m_x, m_y};
   mesh["numberSides"] = m_numSides;
   mesh["scale"] = m_side;
+  mesh["radius"] = m_radius;
   mesh["rotation"] = m_theta;
   mesh["external"] = m_external;
   return mesh;
