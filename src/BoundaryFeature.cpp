@@ -637,11 +637,11 @@ SolidPolygon::init_elements(const float _ips) const {
   // so go CW around the body
   // m_side * i / panlsPerSide reflects distance between two adjacent panels
   // If m_numSides is even, it seems to rotate CCW by 360/m_numSides/2 degrees in place
+  float vx = 0.0;
+  float vy = m_radius;
   size_t icnt = 0;
   for (int j=0; j<m_numSides; j++) {
-    // Find current and next vertex
-    const float vx = m_radius * std::sin(2*M_PI*(float)j/(float)m_numSides);
-    const float vy = m_radius * std::cos(2*M_PI*(float)j/(float)m_numSides);
+    // Find next vertex
     const float nxtVx = m_radius * std::sin(2*M_PI*(float)(j+1)/(float)m_numSides);
     const float nxtVy = m_radius * std::cos(2*M_PI*(float)(j+1)/(float)m_numSides);
     // std::cout << '(' << vx << ',' << vy << ") -> (" << nxtVx << ',' << nxtVy << ')' << std::endl;
@@ -651,6 +651,8 @@ SolidPolygon::init_elements(const float _ips) const {
       x[icnt++] = m_x + px*ct - py*st;
       x[icnt++] = m_y + px*st + py*ct;
     }
+    vx = nxtVx;
+    vy = nxtVy;
   }
 
   // outside is to the left walking from one point to the next
