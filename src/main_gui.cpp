@@ -930,6 +930,7 @@ int main(int argc, char const *argv[]) {
         static float circdiam = 1.0;
         static float circrad = 1.0;
         static float sqside = 1.0;
+        static float polySide = std::sqrt(2);
 
 
         // show different inputs based on what is selected
@@ -1139,11 +1140,11 @@ int main(int argc, char const *argv[]) {
               // Set initial radius to 1 for number of sides
               circrad = 1.0;
               // Set side length st radius is 1
-              sqside = std::sqrt(2*(1-std::cos(M_PI*2/numSides)));
+              polySide = std::sqrt(2*(1-std::cos(M_PI*2/numSides)));
             }
             ImGui::InputFloat2("center", xc);
-            if (ImGui::SliderFloat("side length", &sqside, 0.1f, 10.0f, "%.4f")) { circrad = sqside/std::sqrt(2*(1-std::cos(M_PI*2/numSides))); }
-            if (ImGui::SliderFloat("Radius", &circrad, 0.1f, 10.0f, "%.4f")) { sqside = circrad*std::sqrt(2*(1-std::cos(M_PI*2/numSides))); }
+            if (ImGui::SliderFloat("side length", &polySide, 0.1f, 10.0f, "%.4f")) { circrad = polySide/std::sqrt(2*(1-std::cos(M_PI*2/numSides))); }
+            if (ImGui::SliderFloat("Radius", &circrad, 0.1f, 10.0f, "%.4f")) { polySide = circrad*std::sqrt(2*(1-std::cos(M_PI*2/numSides))); }
             ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 359.0f, "%.0f");
             //ImGui::SliderAngle("orientation", &rotdeg);
             ImGui::TextWrapped("This feature will add a solid polygon boundary with n sides centered at the given coordinates");
@@ -1168,7 +1169,7 @@ int main(int argc, char const *argv[]) {
                   sim.add_body(bp);
                   break;
               }
-              bfeatures.emplace_back(std::make_unique<SolidPolygon>(bp, external_flow, xc[0], xc[1], numSides, sqside, circrad, rotdeg));
+              bfeatures.emplace_back(std::make_unique<SolidPolygon>(bp, external_flow, xc[0], xc[1], numSides, polySide, circrad, rotdeg));
               std::cout << "Added " << (*bfeatures.back()) << std::endl;
               ImGui::CloseCurrentPopup();
             }
