@@ -618,8 +618,9 @@ SolidPolygon::init_elements(const float _ips) const {
   if (not this->is_enabled()) return ElementPacket<float>();
 
   // how many panels
-  const size_t num_panels = m_numSides * std::min(10000, std::max(1, (int)(m_side / _ips)));
-
+  const size_t panlsPerSide = std::min(10000, std::max(1, (int)(m_side / _ips)));
+  const size_t num_panels = panlsPerSide * m_numSides;
+ 
   std::cout << "Creating " << m_numSides << "-sided polygon with " << num_panels << " panels" << std::endl;
 
   // created once
@@ -637,17 +638,16 @@ SolidPolygon::init_elements(const float _ips) const {
   // m_side * i / panlsPerSide reflects distance between two adjacent panels
   // If m_numSides is even, it seems to rotate CCW by 360/m_numSides/2 degrees in place
   size_t icnt = 0;
-  size_t panlsPerSide = num_panels/m_numSides;
   for (int j=0; j<m_numSides; j++) {
     // Find current and next vertex
-    const float vx = m_radius * std::sin(2*M_PI*j/m_numSides);
-    const float vy = m_radius * std::cos(2*M_PI*j/m_numSides);
-    const float nxtVx = m_radius * std::sin(2*M_PI*(j+1)/m_numSides);
-    const float nxtVy = m_radius * std::cos(2*M_PI*(j+1)/m_numSides);
+    const float vx = m_radius * std::sin(2*M_PI*(float)j/(float)m_numSides);
+    const float vy = m_radius * std::cos(2*M_PI*(float)j/(float)m_numSides);
+    const float nxtVx = m_radius * std::sin(2*M_PI*(float)(j+1)/(float)m_numSides);
+    const float nxtVy = m_radius * std::cos(2*M_PI*(float)(j+1)/(float)m_numSides);
     // std::cout << '(' << vx << ',' << vy << ") -> (" << nxtVx << ',' << nxtVy << ')' << std::endl;
     for (size_t i=0; i<panlsPerSide; i++) {
-      const float px = m_side * (vx+(nxtVx-vx)*i/panlsPerSide);
-      const float py = m_side * (vy+(nxtVy-vy)*i/panlsPerSide);
+      const float px = m_side * (vx+(nxtVx-vx)*(float)i/(float)panlsPerSide);
+      const float py = m_side * (vy+(nxtVy-vy)*(float)i/(float)panlsPerSide);
       x[icnt++] = m_x + px*ct - py*st;
       x[icnt++] = m_y + px*st + py*ct;
     }
