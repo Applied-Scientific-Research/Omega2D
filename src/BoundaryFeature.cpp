@@ -640,10 +640,10 @@ SolidPolygon::init_elements(const float _ips) const {
   size_t panlsPerSide = num_panels/m_numSides;
   for (int j=0; j<m_numSides; j++) {
     // Find current and next vertex
-    const float vx = m_x + m_radius * std::sin(2*M_PI*j/m_numSides);
-    const float vy = m_y + m_radius * std::cos(2*M_PI*j/m_numSides);
-    const float nxtVx = m_x + m_radius * std::sin(2*M_PI*(j+1)/m_numSides);
-    const float nxtVy = m_y + m_radius * std::cos(2*M_PI*(j+1)/m_numSides);
+    const float vx = m_radius * std::sin(2*M_PI*j/m_numSides);
+    const float vy = m_radius * std::cos(2*M_PI*j/m_numSides);
+    const float nxtVx = m_radius * std::sin(2*M_PI*(j+1)/m_numSides);
+    const float nxtVy = m_radius * std::cos(2*M_PI*(j+1)/m_numSides);
     // std::cout << '(' << vx << ',' << vy << ") -> (" << nxtVx << ',' << nxtVy << ')' << std::endl;
     for (size_t i=0; i<panlsPerSide; i++) {
       const float px = m_side * (vx+(nxtVx-vx)*i/panlsPerSide);
