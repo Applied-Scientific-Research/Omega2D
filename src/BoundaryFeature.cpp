@@ -111,6 +111,7 @@ SolidCircle::from_json(const nlohmann::json j) {
   m_y = tr[1];
   m_diam = j["scale"];
   m_external = j.value("external", true);
+  m_enabled = j["enabled"];
 }
 
 nlohmann::json
@@ -121,6 +122,7 @@ SolidCircle::to_json() const {
   mesh["translation"] = {m_x, m_y};
   mesh["scale"] = m_diam;
   mesh["external"] = m_external;
+  mesh["enabled"] = m_enabled;
   return mesh;
 }
 
@@ -276,6 +278,7 @@ SolidOval::from_json(const nlohmann::json j) {
   m_dmin = sc[1];
   m_theta = j.value("rotation", 0.0);
   m_external = j.value("external", true);
+  m_enabled = j["enabled"];
 }
 
 nlohmann::json
@@ -287,6 +290,7 @@ SolidOval::to_json() const {
   mesh["scale"] = {m_diam, m_dmin};;
   mesh["rotation"] = m_theta;
   mesh["external"] = m_external;
+  mesh["enabled"] = m_enabled;
   return mesh;
 }
 
@@ -385,6 +389,7 @@ SolidSquare::from_json(const nlohmann::json j) {
   m_side = j["scale"];
   m_theta = j.value("rotation", 0.0);
   m_external = j.value("external", true);
+  m_enabled = j["enabled"];
 }
 
 nlohmann::json
@@ -396,6 +401,7 @@ SolidSquare::to_json() const {
   mesh["scale"] = m_side;
   mesh["rotation"] = m_theta;
   mesh["external"] = m_external;
+  mesh["enabled"] = m_enabled;
   return mesh;
 }
 
@@ -498,6 +504,7 @@ SolidRect::from_json(const nlohmann::json j) {
   m_sidey = sc[1];
   m_theta = j.value("rotation", 0.0);
   m_external = j.value("external", true);
+  m_enabled = j["enabled"];
 }
 
 nlohmann::json
@@ -509,6 +516,7 @@ SolidRect::to_json() const {
   mesh["scale"] = {m_side, m_sidey};
   mesh["rotation"] = m_theta;
   mesh["external"] = m_external;
+  mesh["enabled"] = m_enabled;
   return mesh;
 }
 
@@ -585,6 +593,7 @@ BoundarySegment::from_json(const nlohmann::json j) {
   m_normflow = j.value("normalVel", 0.0);
   m_tangflow = j.value("tangentialVel", 0.0);
   m_external = true;//j.value("external", true);
+  m_enabled = j["enabled"];
 }
 
 nlohmann::json
@@ -597,6 +606,7 @@ BoundarySegment::to_json() const {
   mesh["normalVel"] = m_normflow;
   mesh["tangentialVel"] = m_tangflow;
   //mesh["external"] = m_external;
+  mesh["enabled"] = m_enabled;
   return mesh;
 }
 
@@ -686,23 +696,25 @@ SolidPolygon::from_json(const nlohmann::json j) {
   m_x = tr[0];
   m_y = tr[1];
   m_numSides = j["numberSides"];
-  m_side = j["scale"];
-  m_radius = j["radius"];
+  const std::vector<float>sc = j["scale"];
+  m_side = sc[0];
+  m_radius = sc[1];
   m_theta = j.value("rotation", 0.0);
   m_external = j.value("external", true);
+  m_enabled = j["enabled"];
 }
 
 nlohmann::json
 SolidPolygon::to_json() const {
   // make an object for the mesh
   nlohmann::json mesh = nlohmann::json::object();
-  mesh["geometry"] = "Polygon";
+  mesh["geometry"] = "polygon";
   mesh["translation"] = {m_x, m_y};
   mesh["numberSides"] = m_numSides;
-  mesh["scale"] = m_side;
-  mesh["radius"] = m_radius;
+  mesh["scale"] = {m_side, m_radius};
   mesh["rotation"] = m_theta;
   mesh["external"] = m_external;
+  mesh["enabled"] = m_enabled;
   return mesh;
 }
 
