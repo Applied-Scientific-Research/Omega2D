@@ -209,6 +209,7 @@ int main(int argc, char const *argv[]) {
   }
 
   // Setup ImGui binding
+  ImGui::CreateContext();
   ImGui_ImplGlfwGL3_Init(window, true);
 
   //glfwSetKeyCallback(keyboard_callback);
@@ -258,7 +259,7 @@ int main(int argc, char const *argv[]) {
   bool show_stats_window = true;
   bool show_welcome_window = true;
   bool show_terminal_window = false;
-  bool show_test_window = false;
+  bool show_test_window = true;
   bool show_json_input_window = false;
   bool show_file_output_window = false;
   //static bool show_origin = true;
@@ -283,6 +284,7 @@ int main(int argc, char const *argv[]) {
 
 
   // Main loop
+  std::cout << "Starting main loop" << std::endl;
   while (!glfwWindowShouldClose(window))
   {
     glfwPollEvents();
@@ -350,7 +352,7 @@ int main(int argc, char const *argv[]) {
 
       // draw the notification
       ImGui::SetNextWindowSize(ImVec2(10+fontSize*12, 10+fontSize*(2+vtk_out_files.size())));
-      ImGui::SetNextWindowPosCenter();
+      ImGui::SetNextWindowPos(ImVec2(0,0), 0);
       ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize;
       ImGui::Begin("Vtk written", NULL, window_flags);
       ImGui::Text("Wrote %ld file(s):", vtk_out_files.size());
@@ -1480,9 +1482,10 @@ int main(int argc, char const *argv[]) {
 
     // Show the welcome window
     if (show_welcome_window) {
+      // std::cout << "Welocome!" << std::endl;
       ImGui::OpenPopup("Welcome!");
       ImGui::SetNextWindowSize(ImVec2(500,300));
-      ImGui::SetNextWindowPosCenter();
+      ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f,0.5f));
       ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
       if (ImGui::BeginPopupModal("Welcome!", NULL, window_flags)) {
         //ImGui::Begin("Welcome", &show_welcome_window);
@@ -1526,7 +1529,7 @@ int main(int argc, char const *argv[]) {
     // Show the ImGui test window. Most of the sample code is in ImGui::ShowTestWindow()
     if (show_test_window) {
       ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
-      ImGui::ShowTestWindow(&show_test_window);
+      ImGui::ShowTestWindow();
     }
 
     // draw the simulation: panels and particles
@@ -1555,7 +1558,7 @@ int main(int argc, char const *argv[]) {
 
       // draw the notification
       ImGui::SetNextWindowSize(ImVec2(10+fontSize*12, 10+fontSize*2));
-      ImGui::SetNextWindowPosCenter();
+      ImGui::SetNextWindowPos(ImVec2(0,0), 0);
       ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize;
       ImGui::Begin("Png written", NULL, window_flags);
       ImGui::Text("Wrote %s", png_out_file.c_str());
@@ -1580,6 +1583,7 @@ int main(int argc, char const *argv[]) {
   sim.reset();
   std::cout << "Quitting" << std::endl;
   ImGui_ImplGlfwGL3_Shutdown();
+  ImGui::DestroyContext();
   glfwTerminate();
 
   return 0;
