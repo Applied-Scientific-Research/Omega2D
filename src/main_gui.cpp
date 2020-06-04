@@ -192,7 +192,7 @@ int main(int argc, char const *argv[]) {
   if (!glfwInit())
     return 1;
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #if __APPLE__
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -202,7 +202,6 @@ int main(int argc, char const *argv[]) {
   glfwSwapInterval(1); // Enable vsync
 
   //gl3wInit();
-
   if (!gladLoadGL()) {
     std::cout << "gladLoadGL failed " << std::endl;
     exit(-1);
@@ -259,7 +258,7 @@ int main(int argc, char const *argv[]) {
   bool show_stats_window = true;
   bool show_welcome_window = true;
   bool show_terminal_window = false;
-  bool show_test_window = true;
+  bool show_test_window = false;
   bool show_json_input_window = false;
   bool show_file_output_window = false;
   //static bool show_origin = true;
@@ -1456,7 +1455,7 @@ int main(int argc, char const *argv[]) {
       ImGui::SameLine();
       */
 
-      // if (ImGui::Button("ImGui Samples")) show_test_window ^= 1;
+      if (ImGui::Button("ImGui Samples")) show_test_window ^= 1;
       // use ASCII table for number: http://www.asciitable.com/
       // but use CAPITAL letter for a letter, jesus, really?!?
       if (ImGui::IsKeyPressed(84) and not show_file_output_window) show_test_window ^= 1;
@@ -1573,7 +1572,7 @@ int main(int argc, char const *argv[]) {
 
     // draw the GUI
     ImGui::Render();
-
+    ImGui_ImplGlfwGL3_RenderDrawData(ImGui::GetDrawData());
     // all done! swap buffers to the user can see
     glfwSwapBuffers(window);
   }
