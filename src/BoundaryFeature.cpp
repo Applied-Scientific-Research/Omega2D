@@ -629,9 +629,10 @@ SolidPolygon::init_elements(const float _ips) const {
   std::vector<float> val(num_panels);
 
   // Turning degrees into radians: deg*pi/180
-  // This doesn't rotate the object in place. As the object is rotated, its center moves.
-  const float st = std::sin(M_PI * m_theta / 180.0);
-  const float ct = std::cos(M_PI * m_theta / 180.0);
+  float phi = 0;
+  if (m_numSides % 2 == 0) { phi = 360/(m_numSides*2.0); }
+  const float st = std::sin(M_PI * (m_theta - phi) / 180.0);
+  const float ct = std::cos(M_PI * (m_theta - phi) / 180.0);
 
   // outside is to the left walking from one point to the next
   // so go CW around the body
