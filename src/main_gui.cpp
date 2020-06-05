@@ -1145,6 +1145,8 @@ int main(int argc, char const *argv[]) {
             ImGui::InputFloat2("center", xc);
             if (ImGui::SliderFloat("side length", &polySide, 0.1f, 10.0f, "%.4f")) { circrad = polySide/std::sqrt(2*(1-std::cos(M_PI*2/numSides))); }
             if (ImGui::SliderFloat("radius", &circrad, 0.1f, 10.0f, "%.4f")) { polySide = circrad*std::sqrt(2*(1-std::cos(M_PI*2/numSides))); }
+            ImGui::SameLine();
+            ShowHelpMarker("Polygons with different numbers of sides will appear similar in size with the same radius");
             ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 359.0f, "%.0f");
             //ImGui::SliderAngle("orientation", &rotdeg);
             ImGui::TextWrapped("This feature will add a solid polygon boundary with n sides centered at the given coordinates");
