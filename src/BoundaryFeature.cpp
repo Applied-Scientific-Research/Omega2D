@@ -37,6 +37,7 @@ void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
   else if (ftype == "square") { _flist.emplace_back(std::make_unique<SolidSquare>(_bp)); }
   else if (ftype == "rectangle") { _flist.emplace_back(std::make_unique<SolidRect>(_bp)); }
   else if (ftype == "segment") { _flist.emplace_back(std::make_unique<BoundarySegment>(_bp)); }
+  else if (ftype == "polygon") { _flist.emplace_back(std::make_unique<SolidPolygon>(_bp)); }
 
   // and pass the json object to the specific parser
   _flist.back()->from_json(_jin);
