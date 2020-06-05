@@ -37,6 +37,7 @@ void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
   else if (ftype == "square") { _flist.emplace_back(std::make_unique<SolidSquare>(_bp)); }
   else if (ftype == "rectangle") { _flist.emplace_back(std::make_unique<SolidRect>(_bp)); }
   else if (ftype == "segment") { _flist.emplace_back(std::make_unique<BoundarySegment>(_bp)); }
+  else if (ftype == "polygon") { _flist.emplace_back(std::make_unique<SolidPolygon>(_bp)); }
 
   // and pass the json object to the specific parser
   _flist.back()->from_json(_jin);
@@ -111,6 +112,7 @@ SolidCircle::from_json(const nlohmann::json j) {
   m_y = tr[1];
   m_diam = j["scale"];
   m_external = j.value("external", true);
+  m_enabled = j["enabled"];
 }
 
 nlohmann::json
@@ -121,6 +123,7 @@ SolidCircle::to_json() const {
   mesh["translation"] = {m_x, m_y};
   mesh["scale"] = m_diam;
   mesh["external"] = m_external;
+  mesh["enabled"] = m_enabled;
   return mesh;
 }
 
@@ -276,6 +279,7 @@ SolidOval::from_json(const nlohmann::json j) {
   m_dmin = sc[1];
   m_theta = j.value("rotation", 0.0);
   m_external = j.value("external", true);
+  m_enabled = j["enabled"];
 }
 
 nlohmann::json
@@ -287,6 +291,7 @@ SolidOval::to_json() const {
   mesh["scale"] = {m_diam, m_dmin};;
   mesh["rotation"] = m_theta;
   mesh["external"] = m_external;
+  mesh["enabled"] = m_enabled;
   return mesh;
 }
 
@@ -385,6 +390,7 @@ SolidSquare::from_json(const nlohmann::json j) {
   m_side = j["scale"];
   m_theta = j.value("rotation", 0.0);
   m_external = j.value("external", true);
+  m_enabled = j["enabled"];
 }
 
 nlohmann::json
@@ -396,6 +402,7 @@ SolidSquare::to_json() const {
   mesh["scale"] = m_side;
   mesh["rotation"] = m_theta;
   mesh["external"] = m_external;
+  mesh["enabled"] = m_enabled;
   return mesh;
 }
 
@@ -498,6 +505,7 @@ SolidRect::from_json(const nlohmann::json j) {
   m_sidey = sc[1];
   m_theta = j.value("rotation", 0.0);
   m_external = j.value("external", true);
+  m_enabled = j["enabled"];
 }
 
 nlohmann::json
@@ -509,6 +517,7 @@ SolidRect::to_json() const {
   mesh["scale"] = {m_side, m_sidey};
   mesh["rotation"] = m_theta;
   mesh["external"] = m_external;
+  mesh["enabled"] = m_enabled;
   return mesh;
 }
 
@@ -585,6 +594,7 @@ BoundarySegment::from_json(const nlohmann::json j) {
   m_normflow = j.value("normalVel", 0.0);
   m_tangflow = j.value("tangentialVel", 0.0);
   m_external = true;//j.value("external", true);
+  m_enabled = j["enabled"];
 }
 
 nlohmann::json
@@ -597,7 +607,118 @@ BoundarySegment::to_json() const {
   mesh["normalVel"] = m_normflow;
   mesh["tangentialVel"] = m_tangflow;
   //mesh["external"] = m_external;
+  mesh["enabled"] = m_enabled;
   return mesh;
 }
 
+
+// Create a Polygon 
+ElementPacket<float>
+SolidPolygon::init_elements(const float _ips) const {
+  // If object has been removed, return no elements?
+  if (not this->is_enabled()) return ElementPacket<float>();
+
+  // how many panels
+  const size_t panlsPerSide = std::min(10000, std::max(1, (int)(m_side / _ips)));
+  const size_t num_panels = panlsPerSide * m_numSides;
+ 
+  std::cout << "Creating " << m_numSides << "-sided polygon with " << num_panels << " panels" << std::endl;
+
+  // created once
+  std::vector<float>   x(num_panels*2);
+  std::vector<Int>   idx(num_panels*2);
+  std::vector<float> val(num_panels);
+
+  // Turning degrees into radians: deg*pi/180
+  float phi = 0;
+  if (m_numSides % 2 == 0) { phi = 360/(m_numSides*2.0); }
+  const float st = std::sin(M_PI * (m_theta - phi) / 180.0);
+  const float ct = std::cos(M_PI * (m_theta - phi) / 180.0);
+
+  // outside is to the left walking from one point to the next
+  // so go CW around the body
+  // m_side * i / panlsPerSide reflects distance between two adjacent panels
+  // If m_numSides is even, it seems to rotate CCW by 360/m_numSides/2 degrees in place
+  float vx = 0.0;
+  float vy = m_radius;
+  size_t icnt = 0;
+  for (int j=0; j<m_numSides; j++) {
+    // Find next vertex
+    const float nxtVx = m_radius * std::sin(2*M_PI*(float)(j+1)/(float)m_numSides);
+    const float nxtVy = m_radius * std::cos(2*M_PI*(float)(j+1)/(float)m_numSides);
+    // std::cout << '(' << vx << ',' << vy << ") -> (" << nxtVx << ',' << nxtVy << ')' << std::endl;
+    for (size_t i=0; i<panlsPerSide; i++) {
+      const float px = vx+(nxtVx-vx)*(float)i/(float)panlsPerSide;
+      const float py = vy+(nxtVy-vy)*(float)i/(float)panlsPerSide;
+      x[icnt++] = m_x + px*ct - py*st;
+      x[icnt++] = m_y + px*st + py*ct;
+    }
+    vx = nxtVx;
+    vy = nxtVy;
+  }
+
+  // outside is to the left walking from one point to the next
+  for (size_t i=0; i<num_panels; i++) {
+    idx[2*i]   = i;
+    idx[2*i+1] = i+1;
+    val[i]     = 0.0;
+  }
+
+  // correct the final index
+  idx[2*num_panels-1] = 0;
+
+  // flip the orientation of the panels
+  if (not m_external) {
+    for (size_t i=0; i<num_panels; i++) {
+      std::swap(idx[2*i], idx[2*i+1]);
+    }
+  }
+
+  return ElementPacket<float>({x, idx, val});
+}
+
+void
+SolidPolygon::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+SolidPolygon::to_string() const {
+  std::stringstream ss;
+  if (m_external) {
+    ss << "solid polygon";
+  } else {
+    ss << "polygon hole";
+  }
+  ss << " at " << m_x << " " << m_y << " with " << m_numSides << " sides length " << m_side << " rotated " << m_theta << " deg";
+  return ss.str();
+}
+
+void
+SolidPolygon::from_json(const nlohmann::json j) {
+  const std::vector<float> tr = j["translation"];
+  m_x = tr[0];
+  m_y = tr[1];
+  m_numSides = j["numberSides"];
+  const std::vector<float>sc = j["scale"];
+  m_side = sc[0];
+  m_radius = sc[1];
+  m_theta = j.value("rotation", 0.0);
+  m_external = j.value("external", true);
+  m_enabled = j["enabled"];
+}
+
+nlohmann::json
+SolidPolygon::to_json() const {
+  // make an object for the mesh
+  nlohmann::json mesh = nlohmann::json::object();
+  mesh["geometry"] = "polygon";
+  mesh["translation"] = {m_x, m_y};
+  mesh["numberSides"] = m_numSides;
+  mesh["scale"] = {m_side, m_radius};
+  mesh["rotation"] = m_theta;
+  mesh["external"] = m_external;
+  mesh["enabled"] = m_enabled;
+  return mesh;
+}
 
