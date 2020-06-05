@@ -267,7 +267,7 @@ int main(int argc, char const *argv[]) {
   bool show_stats_window = true;
   bool show_welcome_window = true;
   bool show_terminal_window = false;
-  bool show_test_window = false;
+  bool show_demo_window = false;
   bool show_json_input_window = false;
   bool show_file_output_window = false;
   //static bool show_origin = true;
@@ -413,7 +413,7 @@ int main(int argc, char const *argv[]) {
     if (not sim_err_msg.empty()) {
       // write a warning/error message
       ImGui::OpenPopup("Simulation error occurred");
-      ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiSetCond_FirstUseEver);
+      ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiCond_FirstUseEver);
       if (ImGui::BeginPopupModal("Simulation error occurred")) {
         ImGui::Spacing();
         ImGui::TextWrapped(sim_err_msg.c_str());
@@ -443,8 +443,8 @@ int main(int argc, char const *argv[]) {
     //
     {
 
-    ImGui::SetNextWindowSize(ImVec2(140+fontSize*24,100+fontSize*12), ImGuiSetCond_FirstUseEver);
-    ImGui::SetNextWindowPos(ImVec2(20,20), ImGuiSetCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(140+fontSize*24,100+fontSize*12), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(20,20), ImGuiCond_FirstUseEver);
     ImGui::Begin("Omega2D");
     ImGui::Spacing();
 
@@ -778,7 +778,7 @@ int main(int argc, char const *argv[]) {
 
       // button and modal window for adding new flow structures
       if (ImGui::Button("Add flow")) ImGui::OpenPopup("New flow structure");
-      ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiSetCond_FirstUseEver);
+      ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New flow structure"))
       {
         static int item = 1;
@@ -895,7 +895,7 @@ int main(int argc, char const *argv[]) {
       // button and modal window for adding new boundary objects
       ImGui::SameLine();
       if (ImGui::Button("Add boundary")) ImGui::OpenPopup("New boundary structure");
-      ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiSetCond_FirstUseEver);
+      ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New boundary structure"))
       {
         // define movement first
@@ -1143,7 +1143,7 @@ int main(int argc, char const *argv[]) {
       // button and modal window for adding new measurement objects
       ImGui::SameLine();
       if (ImGui::Button("Add measurement")) ImGui::OpenPopup("New measurement structure");
-      ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiSetCond_FirstUseEver);
+      ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New measurement structure"))
       {
         static int item = 0;
@@ -1466,10 +1466,10 @@ int main(int argc, char const *argv[]) {
       ImGui::SameLine();
       */
 
-      if (ImGui::Button("ImGui Samples")) show_test_window ^= 1;
+      if (ImGui::Button("ImGui Samples")) show_demo_window ^= 1;
       // use ASCII table for number: http://www.asciitable.com/
       // but use CAPITAL letter for a letter, jesus, really?!?
-      if (ImGui::IsKeyPressed(84) and not show_file_output_window) show_test_window ^= 1;
+      if (ImGui::IsKeyPressed(84) and not show_file_output_window) show_demo_window ^= 1;
 
       //ImGui::Text("Draw frame rate: %.2f ms/frame (%.1f FPS)",
       //            1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
@@ -1530,16 +1530,16 @@ int main(int argc, char const *argv[]) {
 
     // Show the terminal output of the program
     if (show_terminal_window) {
-      ImGui::SetNextWindowSize(ImVec2(200,100), ImGuiSetCond_FirstUseEver);
+      ImGui::SetNextWindowSize(ImVec2(200,100), ImGuiCond_FirstUseEver);
       ImGui::Begin("Terminal", &show_terminal_window);
       ImGui::Text("Hello");
       ImGui::End();
     }
 
     // Show the ImGui test window. Most of the sample code is in ImGui::ShowTestWindow()
-    if (show_test_window) {
-      ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
-      ImGui::ShowTestWindow();
+    if (show_demo_window) {
+      ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiCond_FirstUseEver);
+      ImGui::ShowDemoWindow();
     }
 
     // draw the simulation: panels and particles
