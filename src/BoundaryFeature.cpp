@@ -686,9 +686,9 @@ std::string
 SolidPolygon::to_string() const {
   std::stringstream ss;
   if (m_external) {
-    ss << "solid Polygon";
+    ss << "solid polygon";
   } else {
-    ss << "Polygon hole";
+    ss << "polygon hole";
   }
   ss << " at " << m_x << " " << m_y << " with " << m_numSides << " sides length " << m_side << " rotated " << m_theta << " deg";
   return ss.str();
