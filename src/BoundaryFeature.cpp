@@ -648,8 +648,8 @@ SolidPolygon::init_elements(const float _ips) const {
     const float nxtVy = m_radius * std::cos(2*M_PI*(float)(j+1)/(float)m_numSides);
     // std::cout << '(' << vx << ',' << vy << ") -> (" << nxtVx << ',' << nxtVy << ')' << std::endl;
     for (size_t i=0; i<panlsPerSide; i++) {
-      const float px = m_side * (vx+(nxtVx-vx)*(float)i/(float)panlsPerSide);
-      const float py = m_side * (vy+(nxtVy-vy)*(float)i/(float)panlsPerSide);
+      const float px = vx+(nxtVx-vx)*(float)i/(float)panlsPerSide;
+      const float py = vy+(nxtVy-vy)*(float)i/(float)panlsPerSide;
       x[icnt++] = m_x + px*ct - py*st;
       x[icnt++] = m_y + px*st + py*ct;
     }
