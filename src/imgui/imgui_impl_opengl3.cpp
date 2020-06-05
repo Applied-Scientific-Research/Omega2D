@@ -79,25 +79,25 @@
 #endif
 #endif
 
-#if defined(IMGUI_IMPL_OPENGL_ES2)
-#include <GLES2/gl2.h>
-#elif defined(IMGUI_IMPL_OPENGL_ES3)
-#include <GLES3/gl3.h>  // Use GL ES 3
-#else
+// #if defined(IMGUI_IMPL_OPENGL_ES2)
+// #include <GLES2/gl2.h>
+// #elif defined(IMGUI_IMPL_OPENGL_ES3)
+// #include <GLES3/gl3.h>  // Use GL ES 3
+// #else
 // About Desktop OpenGL function loaders:
 //  Modern desktop OpenGL doesn't have a standard portable header file to load OpenGL function pointers.
 //  Helper libraries are often used for this purpose! Here we are supporting a few common ones (gl3w, glew, glad).
 //  You may use another loader/header of your choice (glext, glLoadGen, etc.), or chose to manually implement your own.
-#if defined(IMGUI_IMPL_OPENGL_LOADER_GL3W)
-#include <GL/gl3w.h>
-#elif defined(IMGUI_IMPL_OPENGL_LOADER_GLEW)
-#include <GL/glew.h>
-#elif defined(IMGUI_IMPL_OPENGL_LOADER_GLAD)
+// #if defined(IMGUI_IMPL_OPENGL_LOADER_GL3W)
+// #include <GL/gl3w.h>
+// #elif defined(IMGUI_IMPL_OPENGL_LOADER_GLEW)
+// #include <GL/glew.h>
+// #elif defined(IMGUI_IMPL_OPENGL_LOADER_GLAD)
 #include <glad/glad.h>
-#else
-#include IMGUI_IMPL_OPENGL_LOADER_CUSTOM
-#endif
-#endif
+// #else
+// #include IMGUI_IMPL_OPENGL_LOADER_CUSTOM
+// #endif
+// #endif
 
 // OpenGL Data
 static char         g_GlslVersionString[32] = "";

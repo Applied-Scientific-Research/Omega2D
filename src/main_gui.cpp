@@ -192,12 +192,20 @@ int main(int argc, char const *argv[]) {
   if (!glfwInit())
     return 1;
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+#if __APPLE__
+  const char* glsl_version = "#version 150";
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-#if __APPLE__
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#else
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+  const char* glsl_version = "#version 130";
 #endif
   GLFWwindow* window = glfwCreateWindow(1280, 720, "Omega2D GUI", nullptr, nullptr);
+  if (!window) { 
+  std::cout << "glfwCreateWindow created " << window << std::endl;
+  exit(-1);
+  }
   glfwMakeContextCurrent(window);
   glfwSwapInterval(1); // Enable vsync
 
@@ -209,7 +217,8 @@ int main(int argc, char const *argv[]) {
 
   // Setup ImGui binding
   ImGui::CreateContext();
-  ImGui_ImplGlfwGL3_Init(window, true);
+  ImGui_ImplGlfw_InitForOpenGL(window, true);
+  ImGui_ImplOpenGL3_Init(glsl_version);
 
   //glfwSetKeyCallback(keyboard_callback);
 
@@ -287,8 +296,10 @@ int main(int argc, char const *argv[]) {
   while (!glfwWindowShouldClose(window))
   {
     glfwPollEvents();
-    ImGui_ImplGlfwGL3_NewFrame();
-
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    
     //
     // Initialize simulation
     //
@@ -1572,8 +1583,16 @@ int main(int argc, char const *argv[]) {
 
     // draw the GUI
     ImGui::Render();
-    ImGui_ImplGlfwGL3_RenderDrawData(ImGui::GetDrawData());
+    // int display_w;
+    // int display_h;
+    // glfwMakeContextCurrent(window);
+    // glfwGetFrameBufferSize(window, &display_w, &display_h);
+    // glViewport(0, 0, display_w, display_h);
+    // glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+    // glClear(GL_COLOR_BUFFER_BIT);
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     // all done! swap buffers to the user can see
+    glfwMakeContextCurrent(window);
     glfwSwapBuffers(window);
   }
 
@@ -1581,8 +1600,10 @@ int main(int argc, char const *argv[]) {
   std::cout << "Starting shutdown procedure" << std::endl;
   sim.reset();
   std::cout << "Quitting" << std::endl;
-  ImGui_ImplGlfwGL3_Shutdown();
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
+  glfwDestroyWindow(window);
   glfwTerminate();
 
   return 0;
