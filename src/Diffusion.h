@@ -354,9 +354,12 @@ void Diffusion<S,A,I>::draw_advanced() {
 
 
   // select diffusion type among available
-  static int diff_item = 2;	// default is VRM
-  // the following does not work!
-  //static int diff_item = static_cast<int>(PartDiffuseType::pd_vrm);
+  int diff_item = 2;		// default is VRM
+  if (pd_type==pd_core) diff_item = 0;
+  else if (pd_type==pd_rvm) diff_item = 1;
+  else if (pd_type==pd_vrm) diff_item = 2;
+
+  // draw the selector box, with the current one selected
   const char* diff_items[] = { "Core-spreading", "Random walk", "VRM solution" };
   ImGui::PushItemWidth(240);
   ImGui::Combo("Select diffusion method", &diff_item, diff_items, 3);
@@ -420,7 +423,11 @@ void Diffusion<S,A,I>::draw_advanced() {
 #endif
 
   } else if (pd_type == pd_core) {
+    // no special parameters
+
   } else if (pd_type == pd_rvm) {
+    // no special parameters
+
   }
 }
 #endif
@@ -435,11 +442,25 @@ void Diffusion<S,A,I>::from_json(const nlohmann::json j) {
 
   if (j.find("viscous") != j.end()) {
     std::string viscous = j["viscous"];
-    if (viscous == "vrm") { set_diffuse(true); }
-    else { set_diffuse(false); }
-    std::cout << "  setting is_viscous= " << get_diffuse() << std::endl;
+    if (viscous == "vrm") {
+      set_diffuse(true);
+      pd_type = pd_vrm;
+    } else if (viscous == "random") {
+      set_diffuse(true);
+      pd_type = pd_rvm;
+    } else if (viscous == "corespread") {
+      set_diffuse(true);
+      pd_type = pd_core;
+    } else {
+      // "none" or unsupported
+      set_diffuse(false);
+    }
+  } else {
+    set_diffuse(false);
   }
+  std::cout << "  setting is_viscous= " << get_diffuse() << std::endl;
 
+  // regardless, load VRM settings as they were
   vrm.from_json(j);
 
 #ifdef PLUGIN_AVRM
@@ -458,7 +479,16 @@ template <class S, class A, class I>
 void Diffusion<S,A,I>::add_to_json(nlohmann::json& j) const {
   //nlohmann::json j;
 
-  j["viscous"] = get_diffuse() ? "vrm" : "none";
+  if (not get_diffuse()) {
+    j["viscous"] = "none";
+  } else if (pd_type == pd_core) {
+    j["viscous"] = "corespread";
+  } else if (pd_type == pd_rvm) {
+    j["viscous"] = "random";
+  } else if (pd_type == pd_vrm) {
+    j["viscous"] = "vrm";
+  }
+
 #ifdef PLUGIN_AVRM
   j["adaptiveSize"] = adaptive_radii;
 #endif
@@ -467,7 +497,7 @@ void Diffusion<S,A,I>::add_to_json(nlohmann::json& j) const {
   //j["overlap"] = particle_overlap;
   //j["core"] = core_func;
 
-  // VRM will write "VRM" and "AMR" parameters
+  // VRM always writes "VRM" and "AMR" parameters
   vrm.add_to_json(j);
 }
 

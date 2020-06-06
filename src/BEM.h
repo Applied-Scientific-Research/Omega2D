@@ -168,7 +168,7 @@ void BEM<S,I>::solve() {
   // the Eigen solver object - persistent from call to call
   static Eigen::GMRES<Eigen::Matrix<S, Eigen::Dynamic, Eigen::Dynamic> > solver(A);
 
-  if (not solver_initialized) {
+  if (!solver_initialized) {
 
     // if A changes, we need to re-run this
     auto istart = std::chrono::system_clock::now();
