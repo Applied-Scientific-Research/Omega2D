@@ -1,8 +1,8 @@
 /*
  * BEM.h - Library code for a 2D vortex boundary element solver
  *
- * (c)2017-9 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
+ * (c)2017-20 Applied Scientific Research, Inc.
+ *            Written by Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -13,6 +13,7 @@
 #include <Eigen/IterativeLinearSolvers>		// for BiCGSTAB and GMRES
 #include <unsupported/Eigen/src/IterativeSolvers/GMRES.h>	// for GMRES
 
+#include <ciso646>
 #include <cstdlib>
 #include <cstdio>
 #include <cstdint>
@@ -168,7 +169,7 @@ void BEM<S,I>::solve() {
   // the Eigen solver object - persistent from call to call
   static Eigen::GMRES<Eigen::Matrix<S, Eigen::Dynamic, Eigen::Dynamic> > solver(A);
 
-  if (!solver_initialized) {
+  if (not solver_initialized) {
 
     // if A changes, we need to re-run this
     auto istart = std::chrono::system_clock::now();
