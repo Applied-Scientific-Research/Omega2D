@@ -1,8 +1,9 @@
 /*
  * BoundaryFeature.cpp - GUI-side descriptions of boundary features
  *
- * (c)2017-9 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
+ * (c)2017-20 Applied Scientific Research, Inc.
+ *            Mark J Stock <markjstock@gmail.com>
+ *            Blake Hillier
  */
 
 #include "BoundaryFeature.h"
@@ -38,6 +39,10 @@ void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
   else if (ftype == "rectangle") { _flist.emplace_back(std::make_unique<SolidRect>(_bp)); }
   else if (ftype == "segment") { _flist.emplace_back(std::make_unique<BoundarySegment>(_bp)); }
   else if (ftype == "polygon") { _flist.emplace_back(std::make_unique<SolidPolygon>(_bp)); }
+  else {
+    std::cout << "  type " << ftype << " does not name an available boundary feature, ignoring" << std::endl;
+    return;
+  }
 
   // and pass the json object to the specific parser
   _flist.back()->from_json(_jin);

@@ -29,7 +29,6 @@ void parse_flow_json(std::vector<std::unique_ptr<FlowFeature>>& _flist,
   if (_jin.count("type") != 1) return;
 
   const std::string ftype = _jin["type"];
-  std::cout << "  found " << ftype << std::endl;
 
   if      (ftype == "single particle") {  _flist.emplace_back(std::make_unique<SingleParticle>()); }
   else if (ftype == "vortex blob") {      _flist.emplace_back(std::make_unique<VortexBlob>()); }
@@ -37,9 +36,15 @@ void parse_flow_json(std::vector<std::unique_ptr<FlowFeature>>& _flist,
   else if (ftype == "uniform block") {    _flist.emplace_back(std::make_unique<UniformBlock>()); }
   else if (ftype == "block of random") {  _flist.emplace_back(std::make_unique<BlockOfRandom>()); }
   else if (ftype == "particle emitter") { _flist.emplace_back(std::make_unique<ParticleEmitter>()); }
+  else {
+    std::cout << "  type " << ftype << " does not name an available flow feature, ignoring" << std::endl;
+    return;
+  }
 
   // and pass the json object to the specific parser
   _flist.back()->from_json(_jin);
+
+  std::cout << "  found " << ftype << std::endl;
 }
 
 
