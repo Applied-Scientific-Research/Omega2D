@@ -86,6 +86,7 @@ SingleParticle::from_json(const nlohmann::json j) {
   m_x = c[0];
   m_y = c[1];
   m_str = j["strength"];
+  m_enabled = j.value("enabled", true);
 }
 
 nlohmann::json
@@ -94,6 +95,7 @@ SingleParticle::to_json() const {
   j["type"] = "single particle";
   j["center"] = {m_x, m_y};
   j["strength"] = m_str;
+  j["enabled"] = m_enabled;
   return j;
 }
 
@@ -178,6 +180,7 @@ VortexBlob::from_json(const nlohmann::json j) {
   m_rad = j["radius"];
   m_softness = j["softness"];
   m_str = j["strength"];
+  m_enabled = j.value("enabled", true);
 }
 
 nlohmann::json
@@ -188,6 +191,7 @@ VortexBlob::to_json() const {
   j["radius"] = m_rad;
   j["softness"] = m_softness;
   j["strength"] = m_str;
+  j["enabled"] = m_enabled;
   return j;
 }
 
@@ -282,6 +286,7 @@ AsymmetricBlob::from_json(const nlohmann::json j) {
   m_rad = sc[0];
   m_minrad = sc[1];
   m_theta = j.value("rotation", 0.0);
+  m_enabled = j.value("enabled", true);
 }
 
 nlohmann::json
@@ -293,6 +298,7 @@ AsymmetricBlob::to_json() const {
   j["strength"] = m_str;
   j["scale"] = {m_rad, m_minrad};;
   j["rotation"] = m_theta;
+  j["enabled"] = m_enabled;
   return j;
 }
 
@@ -356,6 +362,7 @@ UniformBlock::from_json(const nlohmann::json j) {
   m_xsize = s[0];
   m_ysize = s[1];
   m_str = j["strength"];
+  m_enabled = j.value("enabled", true);
 }
 
 nlohmann::json
@@ -365,6 +372,7 @@ UniformBlock::to_json() const {
   j["center"] = {m_x, m_y};
   j["size"] = {m_xsize, m_ysize};
   j["strength"] = m_str;
+  j["enabled"] = m_enabled;
   return j;
 }
 
@@ -426,6 +434,7 @@ BlockOfRandom::from_json(const nlohmann::json j) {
   m_minstr = sr[0];
   m_maxstr = sr[1];
   m_num = j["num"];
+  m_enabled = j.value("enabled", true);
 }
 
 nlohmann::json
@@ -436,6 +445,7 @@ BlockOfRandom::to_json() const {
   j["size"] = {m_xsize, m_ysize};
   j["strength range"] = {m_minstr, m_maxstr};
   j["num"] = m_num;
+  j["enabled"] = m_enabled;
   return j;
 }
 
@@ -472,6 +482,7 @@ ParticleEmitter::from_json(const nlohmann::json j) {
   m_x = c[0];
   m_y = c[1];
   m_str = j["strength"];
+  m_enabled = j.value("enabled", true);
 }
 
 nlohmann::json
@@ -480,6 +491,7 @@ ParticleEmitter::to_json() const {
   j["type"] = "particle emitter";
   j["center"] = {m_x, m_y};
   j["strength"] = m_str;
+  j["enabled"] = m_enabled;
   return j;
 }
 

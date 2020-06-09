@@ -81,6 +81,7 @@ SinglePoint::from_json(const nlohmann::json j) {
   const std::vector<float> c = j["center"];
   m_x = c[0];
   m_y = c[1];
+  m_enabled = j.value("enabled", true);
 }
 
 nlohmann::json
@@ -88,6 +89,7 @@ SinglePoint::to_json() const {
   nlohmann::json j;
   j["type"] = "tracer";
   j["center"] = {m_x, m_y};
+  j["enabled"] = m_enabled;
   return j;
 }
 
@@ -134,6 +136,7 @@ TracerEmitter::from_json(const nlohmann::json j) {
   const std::vector<float> c = j["center"];
   m_x = c[0];
   m_y = c[1];
+  m_enabled = j.value("enabled", true);
 }
 
 nlohmann::json
@@ -141,6 +144,7 @@ TracerEmitter::to_json() const {
   nlohmann::json j;
   j["type"] = "tracer emitter";
   j["center"] = {m_x, m_y};
+  j["enabled"] = m_enabled;
   return j;
 }
 
@@ -206,6 +210,7 @@ TracerBlob::from_json(const nlohmann::json j) {
   m_x = c[0];
   m_y = c[1];
   m_rad = j["rad"];
+  m_enabled = j.value("enabled", true);
 }
 
 nlohmann::json
@@ -214,6 +219,7 @@ TracerBlob::to_json() const {
   j["type"] = "tracer blob";
   j["center"] = {m_x, m_y};
   j["rad"] = m_rad;
+  j["enabled"] = m_enabled;
   return j;
 }
 
@@ -273,6 +279,7 @@ TracerLine::from_json(const nlohmann::json j) {
   const std::vector<float> e = j["end"];
   m_xf = e[0];
   m_yf = e[1];
+  m_enabled = j.value("enabled", true);
 }
 
 nlohmann::json
@@ -281,6 +288,7 @@ TracerLine::to_json() const {
   j["type"] = "tracer line";
   j["center"] = {m_x, m_y};
   j["end"] = {m_xf, m_yf};
+  j["enabled"] = m_enabled;
   return j;
 }
 
@@ -340,6 +348,7 @@ MeasurementLine::from_json(const nlohmann::json j) {
   const std::vector<float> e = j["end"];
   m_xf = e[0];
   m_yf = e[1];
+  m_enabled = j.value("enabled", true);
 }
 
 nlohmann::json
@@ -348,6 +357,7 @@ MeasurementLine::to_json() const {
   j["type"] = "measurement line";
   j["center"] = {m_x, m_y};
   j["end"] = {m_xf, m_yf};
+  j["enabled"] = j.value("enabled", true);
   return j;
 }
 
@@ -404,6 +414,7 @@ GridPoints::from_json(const nlohmann::json j) {
   m_xf = e[0];
   m_yf = e[1];
   m_dx = j["dx"];
+  m_enabled = j.value("enabled", true);
 }
 
 nlohmann::json
@@ -413,6 +424,7 @@ GridPoints::to_json() const {
   j["start"] = {m_x, m_y};
   j["end"] = {m_xf, m_yf};
   j["dx"] = m_dx;
+  j["enabled"] = m_enabled;
   return j;
 }
 
