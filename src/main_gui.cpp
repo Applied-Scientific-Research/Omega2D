@@ -189,27 +189,45 @@ int main(int argc, char const *argv[]) {
 
   // Set up primary OpenGL window
   glfwSetErrorCallback(error_callback);
-  if (!glfwInit())
-    return 1;
+  bool init = glfwInit();
+  if (!init) {
+    std::cout << "glfwInit failed" << std::endl;
+    exit(-1);
+  }
+
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+#if __APPLE__
+  const char* glsl_version = "#version 150";
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#elif _WIN32
+  const char* glsl_version = "#version 330 core";
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-#if __APPLE__
-  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#else
+  const char* glsl_version = "#version 130";
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 #endif
   GLFWwindow* window = glfwCreateWindow(1280, 720, "Omega2D GUI", nullptr, nullptr);
+  if (!window) { 
+  std::cout << "glfwCreateWindow created " << window << std::endl;
+  exit(-1);
+  }
   glfwMakeContextCurrent(window);
   glfwSwapInterval(1); // Enable vsync
 
   //gl3wInit();
-
-  if (!gladLoadGL()) {
-    std::cout << "gladLoadGL failed " << std::endl;
+  init = gladLoadGL();
+  if (!init) {
+    std::cout << "gladLoadGL failed" << std::endl;
     exit(-1);
   }
 
   // Setup ImGui binding
-  ImGui_ImplGlfwGL3_Init(window, true);
+  ImGui::CreateContext();
+  ImGui_ImplGlfw_InitForOpenGL(window, true);
+  ImGui_ImplOpenGL3_Init(glsl_version);
 
   //glfwSetKeyCallback(keyboard_callback);
 
@@ -258,7 +276,7 @@ int main(int argc, char const *argv[]) {
   bool show_stats_window = true;
   bool show_welcome_window = true;
   bool show_terminal_window = false;
-  bool show_test_window = false;
+  bool show_demo_window = false;
   bool show_json_input_window = false;
   bool show_file_output_window = false;
   //static bool show_origin = true;
@@ -283,10 +301,13 @@ int main(int argc, char const *argv[]) {
 
 
   // Main loop
+  std::cout << "Starting main loop" << std::endl;
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
-    ImGui_ImplGlfwGL3_NewFrame();
-
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    
     //
     // Initialize simulation
     //
@@ -349,7 +370,7 @@ int main(int argc, char const *argv[]) {
 
       // draw the notification
       ImGui::SetNextWindowSize(ImVec2(10+fontSize*12, 10+fontSize*(2+vtk_out_files.size())));
-      ImGui::SetNextWindowPosCenter();
+      ImGui::SetNextWindowPos(ImVec2(0,0), 0);
       ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize;
       ImGui::Begin("Vtk written", NULL, window_flags);
       ImGui::Text("Wrote %ld file(s):", vtk_out_files.size());
@@ -400,7 +421,7 @@ int main(int argc, char const *argv[]) {
     if (not sim_err_msg.empty()) {
       // write a warning/error message
       ImGui::OpenPopup("Simulation error occurred");
-      ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiSetCond_FirstUseEver);
+      ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiCond_FirstUseEver);
       if (ImGui::BeginPopupModal("Simulation error occurred")) {
         ImGui::Spacing();
         ImGui::TextWrapped(sim_err_msg.c_str());
@@ -430,8 +451,8 @@ int main(int argc, char const *argv[]) {
     //
     {
 
-    ImGui::SetNextWindowSize(ImVec2(140+fontSize*24,100+fontSize*12), ImGuiSetCond_FirstUseEver);
-    ImGui::SetNextWindowPos(ImVec2(20,20), ImGuiSetCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(140+fontSize*24,100+fontSize*12), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(20,20), ImGuiCond_FirstUseEver);
     ImGui::Begin("Omega2D");
     ImGui::Spacing();
 
@@ -764,7 +785,7 @@ int main(int argc, char const *argv[]) {
 
       // button and modal window for adding new flow structures
       if (ImGui::Button("Add flow")) ImGui::OpenPopup("New flow structure");
-      ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiSetCond_FirstUseEver);
+      ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New flow structure"))
       {
         static int item = 1;
@@ -881,7 +902,7 @@ int main(int argc, char const *argv[]) {
       // button and modal window for adding new boundary objects
       ImGui::SameLine();
       if (ImGui::Button("Add boundary")) ImGui::OpenPopup("New boundary structure");
-      ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiSetCond_FirstUseEver);
+      ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New boundary structure"))
       {
         // define movement first
@@ -1188,7 +1209,7 @@ int main(int argc, char const *argv[]) {
       // button and modal window for adding new measurement objects
       ImGui::SameLine();
       if (ImGui::Button("Add measurement")) ImGui::OpenPopup("New measurement structure");
-      ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiSetCond_FirstUseEver);
+      ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New measurement structure"))
       {
         static int item = 0;
@@ -1505,10 +1526,10 @@ int main(int argc, char const *argv[]) {
       ImGui::SameLine();
       */
 
-      // if (ImGui::Button("ImGui Samples")) show_test_window ^= 1;
+      if (ImGui::Button("ImGui Samples")) show_demo_window ^= 1;
       // use ASCII table for number: http://www.asciitable.com/
       // but use CAPITAL letter for a letter, jesus, really?!?
-      if (ImGui::IsKeyPressed(84) and not show_file_output_window) show_test_window ^= 1;
+      if (ImGui::IsKeyPressed(84) and not show_file_output_window) show_demo_window ^= 1;
 
       //ImGui::Text("Draw frame rate: %.2f ms/frame (%.1f FPS)",
       //            1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
@@ -1531,9 +1552,10 @@ int main(int argc, char const *argv[]) {
 
     // Show the welcome window
     if (show_welcome_window) {
+      // std::cout << "Welocome!" << std::endl;
       ImGui::OpenPopup("Welcome!");
       ImGui::SetNextWindowSize(ImVec2(500,300));
-      ImGui::SetNextWindowPosCenter();
+      ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f,0.5f));
       ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
       if (ImGui::BeginPopupModal("Welcome!", NULL, window_flags)) {
         //ImGui::Begin("Welcome", &show_welcome_window);
@@ -1568,16 +1590,16 @@ int main(int argc, char const *argv[]) {
 
     // Show the terminal output of the program
     if (show_terminal_window) {
-      ImGui::SetNextWindowSize(ImVec2(200,100), ImGuiSetCond_FirstUseEver);
+      ImGui::SetNextWindowSize(ImVec2(200,100), ImGuiCond_FirstUseEver);
       ImGui::Begin("Terminal", &show_terminal_window);
       ImGui::Text("Hello");
       ImGui::End();
     }
 
     // Show the ImGui test window. Most of the sample code is in ImGui::ShowTestWindow()
-    if (show_test_window) {
-      ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
-      ImGui::ShowTestWindow(&show_test_window);
+    if (show_demo_window) {
+      ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiCond_FirstUseEver);
+      ImGui::ShowDemoWindow();
     }
 
     // draw the simulation: panels and particles
@@ -1606,7 +1628,7 @@ int main(int argc, char const *argv[]) {
 
       // draw the notification
       ImGui::SetNextWindowSize(ImVec2(10+fontSize*12, 10+fontSize*2));
-      ImGui::SetNextWindowPosCenter();
+      ImGui::SetNextWindowPos(ImVec2(0,0), 0);
       ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize;
       ImGui::Begin("Png written", NULL, window_flags);
       ImGui::Text("Wrote %s", png_out_file.c_str());
@@ -1621,8 +1643,16 @@ int main(int argc, char const *argv[]) {
 
     // draw the GUI
     ImGui::Render();
-
+    // int display_w;
+    // int display_h;
+    // glfwMakeContextCurrent(window);
+    // glfwGetFrameBufferSize(window, &display_w, &display_h);
+    // glViewport(0, 0, display_w, display_h);
+    // glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+    // glClear(GL_COLOR_BUFFER_BIT);
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     // all done! swap buffers to the user can see
+    glfwMakeContextCurrent(window);
     glfwSwapBuffers(window);
   }
 
@@ -1630,7 +1660,10 @@ int main(int argc, char const *argv[]) {
   std::cout << "Starting shutdown procedure" << std::endl;
   sim.reset();
   std::cout << "Quitting" << std::endl;
-  ImGui_ImplGlfwGL3_Shutdown();
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
+  glfwDestroyWindow(window);
   glfwTerminate();
 
   return 0;
