@@ -3,7 +3,7 @@
  *
  * (c)2017-20 Applied Scientific Research, Inc.
  *            Mark J Stock <markjstock@gmail.com>
- *            Blake Hillier
+ *            Blake Hillier <blakehillier@mac.com>
  */
 
 #include "BoundaryFeature.h"
