@@ -189,17 +189,25 @@ int main(int argc, char const *argv[]) {
 
   // Set up primary OpenGL window
   glfwSetErrorCallback(error_callback);
-  if (!glfwInit())
-    return 1;
+  bool init = glfwInit();
+  if (!init) {
+    std::cout << "glfwInit failed" << std::endl;
+    exit(-1);
+  }
+
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 #if __APPLE__
   const char* glsl_version = "#version 150";
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#elif _WIN32
+  const char* glsl_version = "#version 330 core";
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #else
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
   const char* glsl_version = "#version 130";
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 #endif
   GLFWwindow* window = glfwCreateWindow(1280, 720, "Omega2D GUI", nullptr, nullptr);
   if (!window) { 
@@ -210,8 +218,9 @@ int main(int argc, char const *argv[]) {
   glfwSwapInterval(1); // Enable vsync
 
   //gl3wInit();
-  if (!gladLoadGL()) {
-    std::cout << "gladLoadGL failed " << std::endl;
+  init = gladLoadGL();
+  if (!init) {
+    std::cout << "gladLoadGL failed" << std::endl;
     exit(-1);
   }
 
