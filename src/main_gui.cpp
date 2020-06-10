@@ -299,7 +299,15 @@ int main(int argc, char const *argv[]) {
   //feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
   //feenableexcept(FE_DIVBYZERO);
 
-
+  // Load file names and paths of pre-stored sims
+  
+  std::string simPath = MiniPath::getCurrentDir();
+  std::string sysDelim = MiniPath::getSystemDelim();
+  std::list<std::string> sims = MiniPath::listFiles(simPath+sysDelim+"simulations", "*.json");
+  for(const std::string& s : sims) {
+      std::cout << s << std::endl;
+      std::cout << "  " << std::endl;
+  }
   // Main loop
   std::cout << "Starting main loop" << std::endl;
   while (!glfwWindowShouldClose(window)) {

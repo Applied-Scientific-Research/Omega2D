@@ -23,6 +23,8 @@ using json = nlohmann::json;
 //
 // create a json object from the file and apply it to the simulation
 //
+// We should load the sim in a separate function. We pass values by reference and maybe have it
+// return a bool to indicate success (that might be overkill)
 void read_json (Simulation& sim,
                 std::vector<std::unique_ptr<FlowFeature>>& ffeatures,
                 std::vector<std::unique_ptr<BoundaryFeature>>& bfeatures,
