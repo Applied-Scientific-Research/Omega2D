@@ -307,7 +307,6 @@ int main(int argc, char const *argv[]) {
   std::list<std::string> sims = MiniPath::listFiles(simPath+sysDelim+"simulations", "*.json");
   for(const std::string& s : sims) {
       std::cout << s << std::endl;
-      std::cout << "  " << std::endl;
   }
   // Main loop
   std::cout << "Starting main loop" << std::endl;
@@ -651,7 +650,7 @@ int main(int argc, char const *argv[]) {
           mfeatures.clear();
 
           // load and report
-          nlohmman::json j = read_json(infile);
+          nlohmann::json j = read_json(infile);
           parse_json(sim, ffeatures, bfeatures, mfeatures, rparams, j);
           // we have to manually set this variable
           is_viscous = sim.get_diffuse();
@@ -680,7 +679,7 @@ int main(int argc, char const *argv[]) {
       mfeatures.clear();
 
       command_line_input = argv[1];
-      nlohmman::json j = read_json(command_line_input);
+      nlohmann::json j = read_json(command_line_input);
       parse_json(sim, ffeatures, bfeatures, mfeatures, rparams, j);
 
       // we have to manually set this variable

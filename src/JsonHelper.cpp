@@ -25,7 +25,7 @@ using json = nlohmann::json;
 //
 // We should load the sim in a separate function. We pass values by reference and maybe have it
 // return a bool to indicate success (that might be overkill)
-void read_json (const std::string filename) {
+json read_json (const std::string filename) {
 
   // read a JSON file
   std::cout << std::endl << "Loading simulation from " << filename << std::endl;

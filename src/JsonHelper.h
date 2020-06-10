@@ -13,7 +13,7 @@
 
 #include <string>
 
-nlohmann::json read_json (const std::string filename);
+nlohmann::json read_json(const std::string filename);
 
 void parse_json(Simulation&,
                 std::vector<std::unique_ptr<FlowFeature>>&,

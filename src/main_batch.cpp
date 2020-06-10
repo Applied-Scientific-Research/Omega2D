@@ -42,7 +42,8 @@ int main(int argc, char const *argv[]) {
   // load a simulation from a JSON file - check command line for file name
   if (argc == 2) {
     std::string infile = argv[1];
-    read_json(sim, ffeatures, bfeatures, mfeatures, rparams, infile);
+    nlohmann::json j = read_json(infile);
+    parse_json(sim, ffeatures, bfeatures, mfeatures, rparams, j);
   } else {
     std::cout << std::endl << "Usage:" << std::endl;
     std::cout << "  " << argv[0] << " filename.json" << std::endl << std::endl;
