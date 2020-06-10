@@ -1,8 +1,8 @@
 /*
  * MeasureFeature.cpp - GUI-side descriptions of flow features
  *
- * (c)2018-9 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
+ * (c)2018-20 Applied Scientific Research, Inc.
+ *            Mark J Stock <markjstock@gmail.com>
  */
 
 #include "MeasureFeature.h"

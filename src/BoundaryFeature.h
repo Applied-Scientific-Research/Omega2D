@@ -1,9 +1,9 @@
 /*
  * BoundaryFeature.h - GUI-side descriptions of boundary features
  *
- * (c)2017-9 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
- *                      Blake Hillier <blakehillier@mac.com>
+ * (c)2017-20 Applied Scientific Research, Inc.
+ *            Mark J Stock <markjstock@gmail.com>
+ *            Blake Hillier <blakehillier@mac.com>
  */
 
 #pragma once

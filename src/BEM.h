@@ -2,7 +2,7 @@
  * BEM.h - Library code for a 2D vortex boundary element solver
  *
  * (c)2017-20 Applied Scientific Research, Inc.
- *            Written by Mark J Stock <markjstock@gmail.com>
+ *            Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -130,7 +130,6 @@ template <class S, class I>
 void BEM<S,I>::set_rhs(std::vector<S>& _b) {
   b.resize(_b.size());
   b = Eigen::Map<Eigen::Matrix<S, Eigen::Dynamic, 1>>(_b.data(), _b.size());
-  //std::cout << "    Setting b" << std::endl;
 }
 
 template <class S, class I>
