@@ -1,8 +1,8 @@
 /*
- * Omega2D.h - Useful definitions for anywhere in the code
+ * ElementPacket.h - Pass around fundamental geometry
  *
  * (c)2018-20 Applied Scientific Research, Inc.
- *            Written by Mark J Stock <markjstock@gmail.com>
+ *            Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
