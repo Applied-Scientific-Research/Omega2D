@@ -2,18 +2,18 @@
  * Simulation.h - a class to control a 2D vortex particle sim
  *
  * (c)2017-20 Applied Scientific Research, Inc.
- *            Written by Mark J Stock <markjstock@gmail.com>
+ *            Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
 
-#include "BEM.h"
+#include "Omega2D.h"
 #include "Body.h"
 #include "Collection.h"
+#include "BEM.h"
 #include "Convection.h"
 #include "Diffusion.h"
 #include "ElementPacket.h"
-#include "Omega2D.h"
 #include "StatusFile.h"
 
 #ifdef USE_GL
@@ -136,7 +136,6 @@ public:
 
 #ifdef USE_GL
   // graphics pass-through calls
-  void initGL(std::vector<float>&, float*, float*, float*);
   void updateGL();
   void drawGL(std::vector<float>&, RenderParams&);
 #endif
