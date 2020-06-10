@@ -13,6 +13,7 @@
 #include "JsonHelper.h"
 #include "Body.h"
 #include "RenderParams.h"
+#include "json/json.hpp"
 
 #ifdef _WIN32
   // for glad
@@ -650,8 +651,8 @@ int main(int argc, char const *argv[]) {
           mfeatures.clear();
 
           // load and report
-          read_json(sim, ffeatures, bfeatures, mfeatures, rparams, infile);
-
+          nlohmman::json j = read_json(infile);
+          parse_json(sim, ffeatures, bfeatures, mfeatures, rparams, j);
           // we have to manually set this variable
           is_viscous = sim.get_diffuse();
 
@@ -679,7 +680,8 @@ int main(int argc, char const *argv[]) {
       mfeatures.clear();
 
       command_line_input = argv[1];
-      read_json(sim, ffeatures, bfeatures, mfeatures, rparams, command_line_input);
+      nlohmman::json j = read_json(command_line_input);
+      parse_json(sim, ffeatures, bfeatures, mfeatures, rparams, j);
 
       // we have to manually set this variable
       is_viscous = sim.get_diffuse();
