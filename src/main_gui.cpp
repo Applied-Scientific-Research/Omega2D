@@ -303,8 +303,10 @@ int main(int argc, char const *argv[]) {
   // Load file names and paths of pre-stored sims
   
   std::string simPath = MiniPath::getCurrentDir();
+  simPath = simPath.substr(0,simPath.find_last_of('b')-1);
   std::string sysDelim = MiniPath::getSystemDelim();
   simPath = simPath+sysDelim+"simulations";
+  std::cout << simPath << std::endl;
   std::list<std::string> fileNames = MiniPath::listFiles(simPath, "*.json");
   std::vector<nlohmann::json> sims;
   std::vector<std::string> descriptions = {"Select a Simulation"};

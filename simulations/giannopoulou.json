@@ -1,0 +1,88 @@
+{
+  "bodies": [
+    {
+      "meshes": [
+        {
+          "enabled": true,
+          "external": true,
+          "geometry": "polygon",
+          "numberSides": 3,
+          "rotation": 90.0,
+          "scale": [
+            1.7320507764816284,
+            1.0
+          ],
+          "translation": [
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "name": "ground",
+      "rotation": 0.0,
+      "translation": [
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "description": "Giannopoulou",
+  "drawparams": {
+    "backgroundColor": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "density": 0.3499999940395355,
+    "featureColor": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "negativeColor": [
+      0.250980406999588,
+      0.250980406999588,
+      1.0,
+      1.0
+    ],
+    "positiveColor": [
+      0.6941176652908325,
+      0.1568627506494522,
+      0.1568627506494522,
+      1.0
+    ],
+    "tracerScale": 0.15000000596046448,
+    "viewPoint": [
+      -0.5,
+      0.0
+    ],
+    "viewScale": 1.7265434265136719,
+    "vortonScale": 1.0,
+    "windowSize": [
+      1252,
+      945
+    ]
+  },
+  "flowparams": {
+    "Re": 250.0,
+    "Uinf": [
+      1.0,
+      0.0
+    ]
+  },
+  "simparams": {
+    "VRM": {
+      "ignoreBelow": 9.999999747378752e-06,
+      "relativeThresholds": true
+    },
+    "nominalDt": 0.019999999552965164,
+    "outputDt": 0.0,
+    "viscous": "vrm"
+  },
+  "version": {
+    "Omega2D": 1,
+    "jsonInput": 1
+  }
+}
