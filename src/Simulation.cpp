@@ -18,7 +18,9 @@
 #include <limits>
 #include <variant>
 
+#ifdef _WIN32
 #pragma STDC FENV_ACCESS ON // For fp exceptions
+#endif
 
 // constructor
 Simulation::Simulation()

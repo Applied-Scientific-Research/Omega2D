@@ -25,7 +25,8 @@
   #define strcasecmp _stricmp
 #endif
 
-#define IM_ARRAYSIZE(_ARR)  ((int)(sizeof(_ARR)/sizeof(*_ARR)))
+// is already defined
+//#define IM_ARRAYSIZE(_ARR)  ((int)(sizeof(_ARR)/sizeof(*_ARR)))
 
 #if defined(ICON_FA_CARET_DOWN)
   #define CARET_DOWN ICON_FA_CARET_DOWN
