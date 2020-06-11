@@ -505,6 +505,7 @@ int main(int argc, char const *argv[]) {
         ffeatures.clear();
         mfeatures.clear();
         parse_json(sim, ffeatures, bfeatures, mfeatures, rparams, sims[currentItemIndex-1]);
+        is_viscous = sim.get_diffuse();
         currentItemIndex = 0;
       }
       // switch(sim_item) {
