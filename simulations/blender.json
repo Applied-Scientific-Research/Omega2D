@@ -1,0 +1,58 @@
+{
+  "bodies": [
+    {
+      "meshes": [
+        {
+          "enabled": true,
+          "external": true,
+          "geometry": "oval",
+          "rotation": 0.0,
+          "scale": [ 1.0, 0.1],
+          "translation": [ 0.0, 0.0 ]
+        }
+      ],
+      "name": "oval cylinder",
+      "rotation": "t",
+      "translation": [ "0.0*t", "0.0*t" ]
+    },
+    {
+      "meshes": [
+        {
+          "enabled": true,
+          "external": true,
+          "geometry": "oval",
+          "rotation": 90.0,
+          "scale": [ 1.0, 0.1],
+          "translation": [ 0.0, 0.0 ]
+        }
+      ],
+      "name": "oval cylinder",
+      "rotation": "-t",
+      "translation": [ "0.6", "0.0" ]
+    }
+  ],
+  "description": "Two thin ovals spinning together",
+  "drawparams": {
+    "density": 0.9,
+    "viewPoint": [ 0.3, 0.0 ],
+    "viewScale": 1.2363450527191162
+  },
+  "flowparams": {
+    "Re": 1000.0,
+    "Uinf": [ 0.0, 0.0 ]
+  },
+  "simparams": {
+    "VRM": {
+      "ignoreBelow": 1.0e-4,
+      "relativeThresholds": true
+    },
+    "endTime": 20.0,
+    "nominalDt": 0.005,
+    "outputDt": 0.0,
+    "viscous": "vrm"
+  },
+  "version": {
+    "Omega2D": 1,
+    "jsonInput": 1
+  }
+}

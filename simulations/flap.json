@@ -1,0 +1,45 @@
+{
+  "bodies": [
+    {
+      "meshes": [
+        {
+          "external": true,
+          "geometry": "rectangle",
+          "rotation": 0.0,
+          "scale": [ 1.0, 0.1 ],
+          "translation": [ 0.0, 0.0 ]
+        }
+      ],
+      "name": "rectangular cylinder",
+      "rotation": "-0.3927*cos(3.1415927*t+0.5)",
+      "translation": [
+        "0.0*t",
+        "0.5*sin(3.1415927*t)"
+      ]
+    }
+  ],
+  "description": "Flapping rectangle in freestream",
+  "drawparams": {
+    "density": 0.6,
+    "viewPoint": [ 2.5, 0.0 ],
+    "viewScale": 4.0,
+    "vortonScale": 0.12
+  },
+  "flowparams": {
+    "Re": 250.0,
+    "Uinf": [ 1.0, 0.0 ]
+  },
+  "simparams": {
+    "VRM": {
+      "ignoreBelow": 1.0e-4,
+      "relativeThresholds": true
+    },
+    "nominalDt": 0.01,
+    "outputDt": 0.0,
+    "viscous": "vrm"
+  },
+  "version": {
+    "Omega2D": 1,
+    "jsonInput": 1
+  }
+}
