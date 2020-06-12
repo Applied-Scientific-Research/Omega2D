@@ -21,6 +21,9 @@ SET (USE_EXTERNAL_SUM FALSE CACHE BOOL "Enable external velocity solver")
 SET (CMAKE_VERBOSE_MAKEFILE on)
 SET (CMAKE_EXPORT_COMPILE_COMMANDS on)
 
+# Finds directory to pre-made sims
+ADD_DEFINITIONS(-DSIMULATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/simulations")
+
 # Split on compiler
 IF (CMAKE_COMPILER_IS_GNUCXX)
   # support Core2 at a minimum, haswell ideally

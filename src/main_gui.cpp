@@ -301,15 +301,15 @@ int main(int argc, char const *argv[]) {
   //feenableexcept(FE_DIVBYZERO);
 
   // Load file names and paths of pre-stored sims
-  
-  std::string simPath = MiniPath::getCurrentDir();
-  simPath = simPath.substr(0,simPath.find_last_of('b')-1);
-  std::string sysDelim = MiniPath::getSystemDelim();
-  simPath = simPath+sysDelim+"simulations";
+  #ifdef SIMULATION_DIR
+    #define SIM_DIR SIMULATION_DIR
+  #endif 
+  std::string simPath = SIM_DIR; //MiniPath::getCurrentDir();
   std::cout << simPath << std::endl;
   std::list<std::string> fileNames = MiniPath::listFiles(simPath, "*.json");
   std::vector<nlohmann::json> sims;
   std::vector<std::string> descriptions = {"Select a Simulation"};
+  std::string sysDelim = MiniPath::getSystemDelim();
   std::cout << "Reading in" << std::endl;
   for(const std::string& s : fileNames) {
     sims.push_back(read_json(simPath+sysDelim+s));
