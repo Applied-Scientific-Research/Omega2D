@@ -170,7 +170,15 @@ void resize_to_resolution(GLFWwindow* window, const int new_w, const int new_h) 
   }
 }
 
-
+void LoadJsonSims(std::vector<nlohmann::json> &sims, std::vector<std::string> &descriptions, const std::string dirPath) {
+  std::list<std::string> fileNames = MiniPath::listFiles(dirPath, "*.json");
+  std::string sysDelim = MiniPath::getSystemDelim();
+  std::cout << "Reading in" << std::endl;
+  for(const std::string& s : fileNames) {
+    sims.push_back(read_json(dirPath+sysDelim+s));
+    descriptions.push_back(sims.back()["description"]);
+  }
+}
 // execution starts here
 
 int main(int argc, char const *argv[]) {
@@ -301,20 +309,13 @@ int main(int argc, char const *argv[]) {
   //feenableexcept(FE_DIVBYZERO);
 
   // Load file names and paths of pre-stored sims
-  #ifdef SIMULATION_DIR
-    #define SIM_DIR SIMULATION_DIR
-  #endif 
-  std::string simPath = SIM_DIR; //MiniPath::getCurrentDir();
-  std::cout << simPath << std::endl;
-  std::list<std::string> fileNames = MiniPath::listFiles(simPath, "*.json");
+#ifdef SIMULATION_DIR
+  #define SIM_DIR SIMULATION_DIR
+#endif
   std::vector<nlohmann::json> sims;
   std::vector<std::string> descriptions = {"Select a Simulation"};
-  std::string sysDelim = MiniPath::getSystemDelim();
-  std::cout << "Reading in" << std::endl;
-  for(const std::string& s : fileNames) {
-    sims.push_back(read_json(simPath+sysDelim+s));
-    descriptions.push_back(sims.back()["description"]);
-  }
+  LoadJsonSims(sims, descriptions, SIM_DIR);
+  
   // Main loop
   std::cout << "Starting main loop" << std::endl;
   while (!glfwWindowShouldClose(window)) {
