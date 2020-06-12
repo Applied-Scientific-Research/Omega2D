@@ -163,10 +163,9 @@ void Diffusion<S,A,I>::step(const double                _time,
   std::cout << "Inside Diffusion::step with dt=" << _dt << std::endl;
 
   // ensure that we have a current h_nu
-  // vrm.set_hnu(std::sqrt(_dt/_re));
-  // vrm.set_hnu(std::sqrt(_dt/_re));
   assert((S)_re != 0); // Can't divide by 0
   h_nu = (S)std::sqrt(_dt/_re);
+
 #ifdef PLUGIN_AVRM
   // ensure that it knows to allow or disallow adaptive radii
   if (curr_pd_type == pd_vrm) vrm.set_adaptive_radii(adaptive_radii);

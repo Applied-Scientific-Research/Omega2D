@@ -18,7 +18,9 @@
 #include <limits>
 #include <variant>
 
+#ifdef _WIN32
 #pragma STDC FENV_ACCESS ON // For fp exceptions
+#endif
 
 // constructor
 Simulation::Simulation()
@@ -237,21 +239,6 @@ void Simulation::draw_advanced() {
 //
 // OpenGL-specific code
 //
-
-void Simulation::initGL(std::vector<float>& _projmat,
-                        float*              _poscolor,
-                        float*              _negcolor,
-                        float*              _defcolor) {
-  for (auto &coll : vort) {
-    std::visit([=, &_projmat](auto& elem) { elem.initGL(_projmat, _poscolor, _negcolor, _defcolor); }, coll);
-  }
-  for (auto &coll : bdry) {
-    std::visit([=, &_projmat](auto& elem) { elem.initGL(_projmat, _poscolor, _negcolor, _defcolor); }, coll);
-  }
-  for (auto &coll : fldpt) {
-    std::visit([=, &_projmat](auto& elem) { elem.initGL(_projmat, _poscolor, _negcolor, _defcolor); }, coll);
-  }
-}
 
 void Simulation::updateGL() {
   for (auto &coll : vort) {

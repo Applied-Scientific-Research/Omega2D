@@ -2,7 +2,7 @@
  * Convection.h - a class for forward integration of elements and their strengths
  *
  * (c)2017-20 Applied Scientific Research, Inc.
- *            Written by Mark J Stock <markjstock@gmail.com>
+ *            Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -129,7 +129,7 @@ void Convection<S,A,I>::advect_1st(const double                         _time,
                                    std::vector<Collection>&             _fldpt,
                                    BEM<S,I>&                            _bem) {
 
-  std::cout << "Inside advect_1st with dt=" << _dt << std::endl;
+  std::cout << "Inside Convection::advect_1st with dt=" << _dt << std::endl;
 
   // part A - unknowns
 
@@ -146,7 +146,7 @@ void Convection<S,A,I>::advect_1st(const double                         _time,
 
   // part C - convection here
 
-  std::cout << std::endl << "Convection step" << std::endl;
+  //std::cout << std::endl << "Convection step" << std::endl;
 
   // move every movable element
   for (auto &coll : _vort) {
@@ -174,7 +174,7 @@ void Convection<S,A,I>::advect_2nd(const double                         _time,
                                    std::vector<Collection>&             _fldpt,
                                    BEM<S,I>&                            _bem) {
 
-  std::cout << "Inside advect_2nd with dt=" << _dt << std::endl;
+  std::cout << "Inside Convection::advect_2nd with dt=" << _dt << std::endl;
 
   // take the first Euler step ---------
 
@@ -205,7 +205,6 @@ void Convection<S,A,I>::advect_2nd(const double                         _time,
   // begin the 2nd step ---------
 
   // push away particles inside or too close to the body
-  assert(M_PI != 0); // Can't divide by 0
   clear_inner_layer<S>(1, _bdry, interim_vort, 1.0/std::sqrt(2.0*M_PI), _ips);
   // perform the second BEM
   solve_bem<S,A,I>(_time + _dt, _fs, interim_vort, _bdry, _bem);

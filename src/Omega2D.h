@@ -2,7 +2,7 @@
  * Omega2D.h - Useful definitions for anywhere in the code
  *
  * (c)2018-20 Applied Scientific Research, Inc.
- *            Written by Mark J Stock <markjstock@gmail.com>
+ *            Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
