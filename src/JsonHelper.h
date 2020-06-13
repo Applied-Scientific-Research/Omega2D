@@ -13,12 +13,15 @@
 
 #include <string>
 
-void read_json (Simulation&,
+nlohmann::json read_json(const std::string filename);
+
+void parse_json(Simulation&,
                 std::vector<std::unique_ptr<FlowFeature>>&,
                 std::vector<std::unique_ptr<BoundaryFeature>>&,
                 std::vector<std::unique_ptr<MeasureFeature>>&,
                 RenderParams&,
-                const std::string);
+                nlohmann::json);
+
 void write_json(Simulation&,
                 std::vector<std::unique_ptr<FlowFeature>>&,
                 std::vector<std::unique_ptr<BoundaryFeature>>&,

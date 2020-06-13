@@ -13,6 +13,7 @@
 #include "JsonHelper.h"
 #include "Body.h"
 #include "RenderParams.h"
+#include "json/json.hpp"
 
 #ifdef _WIN32
   // for glad
@@ -169,7 +170,15 @@ void resize_to_resolution(GLFWwindow* window, const int new_w, const int new_h) 
   }
 }
 
-
+void LoadJsonSims(std::vector<nlohmann::json> &sims, std::vector<std::string> &descriptions, const std::string dirPath) {
+  std::list<std::string> fileNames = MiniPath::listFiles(dirPath, "*.json");
+  std::string sysDelim = MiniPath::getSystemDelim();
+  std::cout << "Reading in" << std::endl;
+  for(const std::string& s : fileNames) {
+    sims.push_back(read_json(dirPath+sysDelim+s));
+    descriptions.push_back(sims.back()["description"]);
+  }
+}
 // execution starts here
 
 int main(int argc, char const *argv[]) {
@@ -301,7 +310,14 @@ int main(int argc, char const *argv[]) {
   //feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
   //feenableexcept(FE_DIVBYZERO);
 
-
+  // Load file names and paths of pre-stored sims
+#ifdef SIMULATION_DIR
+  #define SIM_DIR SIMULATION_DIR
+#endif
+  std::vector<nlohmann::json> sims;
+  std::vector<std::string> descriptions = {"Select a Simulation"};
+  LoadJsonSims(sims, descriptions, SIM_DIR);
+  
   // Main loop
   std::cout << "Starting main loop" << std::endl;
   while (!glfwWindowShouldClose(window)) {
@@ -461,165 +477,35 @@ int main(int argc, char const *argv[]) {
     // Select pre-populated simulations
     {
       static int sim_item = 0;
-      const char* sim_items[] = { "Select a simulation...", "co-rotating vortices", "traveling vortex pair", "asymmetric vortex patch", "flow over circle", "flow over square", "driven cavity" };
-      ImGui::Combo("", &sim_item, sim_items, 7);
+      int currentItemIndex = 0;
+      const char* currentItem = descriptions[currentItemIndex].c_str();
+      static ImGuiComboFlags flags = 0;
+      if (ImGui::BeginCombo("", currentItem, flags)) // The second parameter is the label previewed before opening the combo.
+      {
+        for (int n = 0; n < descriptions.size(); n++)
+        {
+          bool is_selected = (currentItem == descriptions[n].c_str());
+          if (ImGui::Selectable(descriptions[n].c_str(), is_selected)) {
+            currentItem = descriptions[n].c_str();
+            currentItemIndex = n;
+          }
+          if (is_selected) {
+              ImGui::SetItemDefaultFocus();   // Set the initial focus when opening the combo (scrolling + for keyboard navigation support in the upcoming navigation branch)
+          }
+        }
+        ImGui::EndCombo();
+      }
 
-      float* dt = sim.addr_dt();
-      float* fs = sim.addr_fs();
-      float* re = sim.addr_re();
-      std::shared_ptr<Body> bp;
-
-      switch(sim_item) {
-        case 0:
-          // nothing
-          break;
-        case 1:
-          // axisymmetrization of a co-rotating vortex pair
-          sim.reset();
-          sim.clear_bodies();
-          bfeatures.clear();
-          ffeatures.clear();
-          mfeatures.clear();
-          *dt = 0.02;
-          fs[0] = 0.0; fs[1] = 0.0;
-          sim.set_re_for_ips(0.025);
-          // generate the vortices
-          ffeatures.emplace_back(std::make_unique<VortexBlob>(0.0, 0.5, 1.0, 0.30, 0.1));
-          ffeatures.emplace_back(std::make_unique<VortexBlob>(0.0, -0.5, 1.0, 0.30, 0.1));
-          is_viscous = false;
-          sim.set_diffuse(false);
-          rparams.vcx = -0.5;
-          rparams.vcy = 0.0;
-          rparams.vsize = 2.0;
-          rparams.circ_density = 0.35;
-          // start it up
-          sim_is_running = true;
-          // and make sure we don't keep re-entering this
-          sim_item = 0;
-          break;
-        case 2:
-          // travelling counter-rotating pair
-          sim.reset();
-          sim.clear_bodies();
-          bfeatures.clear();
-          ffeatures.clear();
-          mfeatures.clear();
-          *dt = 0.02;
-          fs[0] = 0.0; fs[1] = 0.0;
-          sim.set_re_for_ips(0.025);
-          // generate the vortices
-          ffeatures.emplace_back(std::make_unique<VortexBlob>(0.0, 0.5, 1.0, 0.30, 0.1));
-          ffeatures.emplace_back(std::make_unique<VortexBlob>(0.0, -0.5, -1.0, 0.30, 0.1));
-          is_viscous = false;
-          sim.set_diffuse(false);
-          rparams.vcx = -0.5;
-          rparams.vcy = 0.0;
-          rparams.vsize = 2.0;
-          rparams.circ_density = 0.35;
-          // start it up
-          sim_is_running = true;
-          // and make sure we don't keep re-entering this
-          sim_item = 0;
-          break;
-        case 3:
-          // axi-symmetrization of an oval vortex patch
-          sim.reset();
-          sim.clear_bodies();
-          bfeatures.clear();
-          ffeatures.clear();
-          mfeatures.clear();
-          *dt = 0.02;
-          fs[0] = 0.0; fs[1] = 0.0;
-          sim.set_re_for_ips(0.015);
-          // generate the vortices
-          ffeatures.emplace_back(std::make_unique<AsymmetricBlob>(0.0, 0.0, 1.0, 1./2., 1./8., 1/32., 90.));
-          is_viscous = true;
-          sim.set_diffuse(true);
-          rparams.vcx = -0.5;
-          rparams.vcy = 0.0;
-          rparams.vsize = 2.0;
-          rparams.circ_density = 0.6;
-          // start it up
-          sim_is_running = true;
-          // and make sure we don't keep re-entering this
-          sim_item = 0;
-          break;
-        case 4:
-          // Re=250 flow over a circular cylinder
-          sim.reset();
-          sim.clear_bodies();
-          bfeatures.clear();
-          ffeatures.clear();
-          mfeatures.clear();
-          *dt = 0.02;
-          fs[0] = 1.0; fs[1] = 0.0;
-          *re = 250.0;
-          // generate the boundary
-          bp = sim.get_pointer_to_body("ground");
-          bfeatures.emplace_back(std::make_unique<SolidCircle>(bp, true, 0.0, 0.0, 1.0));
-          is_viscous = true;
-          sim.set_diffuse(true);
-          rparams.vcx = -0.5;
-          rparams.vcy = 0.0;
-          rparams.vsize = 2.0;
-          rparams.circ_density = 0.35;
-          // start it up
-          sim_is_running = true;
-          // and make sure we don't keep re-entering this
-          sim_item = 0;
-          break;
-        case 5:
-          // Re=500 flow over a square
-          sim.reset();
-          sim.clear_bodies();
-          bfeatures.clear();
-          ffeatures.clear();
-          mfeatures.clear();
-          *dt = 0.01;
-          fs[0] = 1.0; fs[1] = 0.0;
-          *re = 500.0;
-          // generate the boundary
-          bp = sim.get_pointer_to_body("ground");
-          bfeatures.emplace_back(std::make_unique<SolidSquare>(bp, true, 0.0, 0.0, 1.0, 0.0));
-          is_viscous = true;
-          sim.set_diffuse(true);
-          rparams.vcx = -0.5;
-          rparams.vcy = 0.0;
-          rparams.vsize = 2.0;
-          rparams.circ_density = 0.35;
-          // start it up
-          sim_is_running = true;
-          // and make sure we don't keep re-entering this
-          sim_item = 0;
-          break;
-        case 6:
-          // driven cavity
-          sim.reset();
-          sim.clear_bodies();
-          bfeatures.clear();
-          ffeatures.clear();
-          mfeatures.clear();
-          *dt = 0.02;
-          fs[0] = 0.0; fs[1] = 0.0;
-          *re = 250.0;
-          // generate the boundary
-          bp = sim.get_pointer_to_body("ground");
-          bfeatures.emplace_back(std::make_unique<BoundarySegment>(bp, true, 0.0, 0.0, 1.0, 0.0));
-          bfeatures.emplace_back(std::make_unique<BoundarySegment>(bp, true, 1.0, 0.0, 1.0, 1.0));
-          bfeatures.emplace_back(std::make_unique<BoundarySegment>(bp, true, 1.0, 1.0, 0.0, 1.0, 0.0, -1.0));
-          bfeatures.emplace_back(std::make_unique<BoundarySegment>(bp, true, 0.0, 1.0, 0.0, 0.0));
-          is_viscous = true;
-          sim.set_diffuse(true);
-          rparams.vcx = 0.06;
-          rparams.vcy = 0.5;
-          rparams.vsize = 1.0;
-          rparams.circ_density = 0.35;
-          // start it up
-          sim_is_running = true;
-          // and make sure we don't keep re-entering this
-          sim_item = 0;
-          break;
-      } // end switch
+      if(currentItemIndex) {
+        sim.reset();
+        bfeatures.clear();
+        ffeatures.clear();
+        mfeatures.clear();
+        parse_json(sim, ffeatures, bfeatures, mfeatures, rparams, sims[currentItemIndex-1]);
+        is_viscous = sim.get_diffuse();
+        currentItemIndex = 0;
+        sim_is_running = true;
+      }
     }
 
     // or load a simulation from a JSON file
@@ -644,8 +530,8 @@ int main(int argc, char const *argv[]) {
           mfeatures.clear();
 
           // load and report
-          read_json(sim, ffeatures, bfeatures, mfeatures, rparams, infile);
-
+          nlohmann::json j = read_json(infile);
+          parse_json(sim, ffeatures, bfeatures, mfeatures, rparams, j);
           // we have to manually set this variable
           is_viscous = sim.get_diffuse();
 
@@ -673,7 +559,8 @@ int main(int argc, char const *argv[]) {
       mfeatures.clear();
 
       command_line_input = argv[1];
-      read_json(sim, ffeatures, bfeatures, mfeatures, rparams, command_line_input);
+      nlohmann::json j = read_json(command_line_input);
+      parse_json(sim, ffeatures, bfeatures, mfeatures, rparams, j);
 
       // we have to manually set this variable
       is_viscous = sim.get_diffuse();

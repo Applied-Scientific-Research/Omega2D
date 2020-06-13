@@ -23,22 +23,26 @@ using json = nlohmann::json;
 //
 // create a json object from the file and apply it to the simulation
 //
-void read_json (Simulation& sim,
+// We should load the sim in a separate function. We pass values by reference and maybe have it
+// return a bool to indicate success (that might be overkill)
+json read_json (const std::string filename) {
+
+  // read a JSON file
+  std::cout << std::endl << "Loading simulation from " << filename << std::endl;
+  std::ifstream json_in(filename);
+  json j;
+  json_in >> j;
+  return j;
+}
+
+void parse_json(Simulation& sim,
                 std::vector<std::unique_ptr<FlowFeature>>& ffeatures,
                 std::vector<std::unique_ptr<BoundaryFeature>>& bfeatures,
                 std::vector<std::unique_ptr<MeasureFeature>>& mfeatures,
                 RenderParams& rp,
-                const std::string filename) {
-
-  // read a JSON file
-  std::ifstream json_in(filename);
-  json j;
-  json_in >> j;
-
-  std::cout << std::endl << "Loading simulation from " << filename << std::endl;
+                nlohmann::json j) {
 
   // march through the parameters and apply them
-
   if (j.count("description") == 1) {
     std::string this_desc = j["description"];
     sim.set_description(this_desc);

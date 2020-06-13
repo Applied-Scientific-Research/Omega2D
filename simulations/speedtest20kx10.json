@@ -1,0 +1,86 @@
+{
+  "bodies": [],
+  "description": "Speed Test 20kx10",
+  "drawparams": {
+    "backgroundColor": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "density": 0.3499999940395355,
+    "featureColor": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "negativeColor": [
+      0.250980406999588,
+      0.250980406999588,
+      1.0,
+      1.0
+    ],
+    "positiveColor": [
+      0.6941176652908325,
+      0.1568627506494522,
+      0.1568627506494522,
+      1.0
+    ],
+    "tracerScale": 0.15000000596046448,
+    "viewPoint": [
+      -0.04925914853811264,
+      0.02896098792552948
+    ],
+    "viewScale": 2.9913759231567383,
+    "vortonScale": 1.0,
+    "windowSize": [
+      1252,
+      988
+    ]
+  },
+  "flowparams": {
+    "Re": 100.0,
+    "Uinf": [
+      0.0,
+      0.0
+    ]
+  },
+  "flowstructures": [
+    {
+      "center": [
+        0.0,
+        0.0
+      ],
+      "num": 20000,
+      "size": [
+        2.0,
+        2.0
+      ],
+      "strength range": [
+        -1.0,
+        1.0
+      ],
+      "type": "block of random"
+    }
+  ],
+  "simparams": {
+    "AMR": {
+      "radiusGradient": 0.15000000596046448,
+      "spreadBelow": 0.0010000000474974513
+    },
+    "VRM": {
+      "ignoreBelow": 9.999999747378752e-06,
+      "relativeThresholds": true
+    },
+    "adaptiveSize": false,
+    "maxSteps": 10,
+    "nominalDt": 0.004999999888241291,
+    "outputDt": 0.0,
+    "viscous": "none"
+  },
+  "version": {
+    "Omega2D": 1,
+    "jsonInput": 1
+  }
+}
