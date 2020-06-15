@@ -16,6 +16,7 @@
 #else
   #include "VRM.h"
 #endif
+#include "PSE.h"
 #include "RVM.h"
 #include "CoreSpread.h"
 #include "BEM.h"
@@ -50,6 +51,7 @@ class Diffusion {
 public:
   Diffusion()
     : vrm(),
+      pse(),
       rvm(),
       coresp(),
       h_nu(0.1),
@@ -94,14 +96,14 @@ private:
   // the VRM algorithm, template params are storage, solver, max moments
   VRM<S,double,2> vrm;
 
+  // the particle-strength-exchange method
+  PSE<S,A> pse;
+
   // the random vortex method
   RVM<S> rvm;
 
   // the core spreading method
   CoreSpread<S> coresp;
-
-  // the particle-strength-exchange method
-  // PSE<S> pse;
 
   // other necessary variables
   S h_nu;
