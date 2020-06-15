@@ -696,90 +696,26 @@ int main(int argc, char const *argv[]) {
         // show different inputs based on what is selected
         switch(item) {
           case 0: {
-            // a single vortex particle
-            ImGui::SliderFloat("strength", &str, -1.0f, 1.0f, "%.4f");
-            ImGui::TextWrapped("This feature will add 1 particle");
-            if (ImGui::Button("Add single particle")) {
-              ffeatures.emplace_back(std::make_unique<SingleParticle>(xc[0], xc[1], str));
-              std::cout << "Added " << (*ffeatures.back()) << std::endl;
-              ImGui::CloseCurrentPopup();
-            }
-            ImGui::SameLine();
-            // it would be nice to be able to put this all in
-            //SingleParticle::draw_creation_gui();
-            } break;
-
+            SingleParticle::draw_creation_gui(ffeatures);
+          } break;
          case 1: {
-            // a blob of multiple vorticies
-            ImGui::SliderFloat("strength", &str, -5.0f, 5.0f, "%.4f");
-            ImGui::SliderFloat("radius", &rad, sim.get_ips(), 1.0f, "%.4f");
-            ImGui::SliderFloat("softness", &soft, sim.get_ips(), 1.0f, "%.4f");
-            ImGui::TextWrapped("This feature will add about %d particles", (int)(0.785398175*std::pow((2 * rad + soft) / sim.get_ips(), 2)));
-            if (ImGui::Button("Add vortex blob")) {
-              ffeatures.emplace_back(std::make_unique<VortexBlob>(xc[0], xc[1], str, rad, soft));
-              std::cout << "Added " << (*ffeatures.back()) << std::endl;
-              ImGui::CloseCurrentPopup();
-            }
-            ImGui::SameLine();
-            } break;
-
+              VortexBlob::draw_creation_gui(ffeatures, sim.get_ips());
+          } break;
           case 2: {
             // an asymmetric blob of multiple vorticies
-            static float minrad = 2.5 * sim.get_ips();
-            static float rotdeg = 90.0f;
-            ImGui::SliderFloat("strength", &str, -5.0f, 5.0f, "%.4f");
-            ImGui::SliderFloat("major radius", &rad, sim.get_ips(), 1.0f, "%.4f");
-            ImGui::SliderFloat("minor radius", &minrad, sim.get_ips(), 1.0f, "%.4f");
-            ImGui::SliderFloat("softness", &soft, sim.get_ips(), 1.0f, "%.4f");
-            ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 179.0f, "%.0f");
-            ImGui::TextWrapped("This feature will add about %d particles", (int)(0.785398175*std::pow((2*rad+soft)/sim.get_ips(), 2)));
-            if (ImGui::Button("Add asymmetric vortex blob")) {
-              ffeatures.emplace_back(std::make_unique<AsymmetricBlob>(xc[0], xc[1], str, rad, minrad, soft, rotdeg));
-              std::cout << "Added " << (*ffeatures.back()) << std::endl;
-              ImGui::CloseCurrentPopup();
-            }
-            ImGui::SameLine();
-            } break;
-
+            AsymmetricBlob::draw_creation_gui(ffeatures, sim.get_ips());
+          } break;
           case 3: {
-            // random particles in a rectangle
-            ImGui::SliderFloat("strength", &str, -5.0f, 5.0f, "%.4f");
-            ImGui::SliderFloat2("box size", xs, 0.01f, 10.0f, "%.4f", 2.0f);
-            ImGui::TextWrapped("This feature will add %d particles", (int)(xs[0]*xs[1]/std::pow(sim.get_ips(),2)));
-            if (ImGui::Button("Add block of vorticies")) {
-              ffeatures.emplace_back(std::make_unique<UniformBlock>(xc[0], xc[1], xs[0], xs[1], str));
-              std::cout << "Added " << (*ffeatures.back()) << std::endl;
-              ImGui::CloseCurrentPopup();
-            }
-            ImGui::SameLine();
-            } break;
-
+            // particles in a rectangle
+            UniformBlock::draw_creation_gui(ffeatures, sim.get_ips());
+          } break;
           case 4: {
             // random particles in a rectangle
-            ImGui::SliderInt("number", &npart, 1, 10000);
-            ImGui::SliderFloat2("box size", xs, 0.01f, 10.0f, "%.4f", 2.0f);
-            ImGui::DragFloatRange2("strength range", &strlo, &strhi, 0.001f, -0.1f, 0.1f);
-            ImGui::TextWrapped("This feature will add %d particles", npart);
-            if (ImGui::Button("Add random vorticies")) {
-              ffeatures.emplace_back(std::make_unique<BlockOfRandom>(xc[0], xc[1], xs[0], xs[1], strlo, strhi, npart));
-              std::cout << "Added " << (*ffeatures.back()) << std::endl;
-              ImGui::CloseCurrentPopup();
-            }
-            ImGui::SameLine();
-            } break;
-
+            BlockOfRandom::draw_creation_gui(ffeatures);
+          } break;
           case 5: {
             // create a particle emitter
-            static float estr = 0.1f;
-            ImGui::SliderFloat("strength", &estr, -0.1f, 0.1f, "%.4f");
-            ImGui::TextWrapped("This feature will add 1 particle per time step");
-            if (ImGui::Button("Add particle emitter")) {
-              // this is C++11
-              ffeatures.emplace_back(std::make_unique<ParticleEmitter>(xc[0], xc[1], estr));
-              std::cout << "Added " << (*ffeatures.back()) << std::endl;
-              ImGui::CloseCurrentPopup();
-            }
-            ImGui::SameLine();
+            ParticleEmitter::draw_creation_gui(ffeatures);
             } break;
         }
 

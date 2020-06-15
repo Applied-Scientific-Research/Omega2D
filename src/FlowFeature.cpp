@@ -8,6 +8,9 @@
 #include "FlowFeature.h"
 
 #include <cmath>
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
 #include <iostream>
 #include <sstream>
 #include <random>
@@ -99,6 +102,21 @@ SingleParticle::to_json() const {
   return j;
 }
 
+#ifdef USE_IMGUI
+void SingleParticle::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &ffeatures) {
+  // a single vortex particle
+  static float xc[2] = {0.0f, 0.0f};
+  static float str = 1.0f;
+  ImGui::SliderFloat("strength", &str, -1.0f, 1.0f, "%.4f");
+  ImGui::TextWrapped("This feature will add 1 particle");
+  if (ImGui::Button("Add single particle")) {
+    ffeatures.emplace_back(std::make_unique<SingleParticle>(xc[0], xc[1], str));
+    std::cout << "Added " << (*ffeatures.back()) << std::endl;
+    ImGui::CloseCurrentPopup();
+  }
+  ImGui::SameLine();
+}
+#endif
 
 //
 // make a circular vortex blob with soft transition
@@ -196,6 +214,25 @@ VortexBlob::to_json() const {
 }
 
 
+#ifdef USE_IMGUI
+void VortexBlob::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &ffeatures, const float simIps) {
+  // a blob of multiple vorticies
+  static float xc[2] = {0.0f, 0.0f};
+  static float stren = 1.0f;
+  static float rad = 5.0*simIps;
+  static float soft = simIps;
+  ImGui::SliderFloat("strength", &stren, -5.0f, 5.0f, "%.4f");
+  ImGui::SliderFloat("radius", &rad, simIps, 1.0f, "%.4f");
+  ImGui::SliderFloat("softness", &soft, simIps, 1.0f, "%.4f");
+  ImGui::TextWrapped("This feature will add about %d particles", (int)(0.785398175*std::pow((2 * rad + soft) / simIps, 2)));
+  if (ImGui::Button("Add vortex blob")) {
+    ffeatures.emplace_back(std::make_unique<VortexBlob>(xc[0], xc[1], stren, rad, soft));
+    std::cout << "Added " << (*ffeatures.back()) << std::endl;
+    ImGui::CloseCurrentPopup();
+  }
+  ImGui::SameLine();
+}
+#endif
 //
 // make an anymmetric vortex blob with soft transition
 //
@@ -302,6 +339,28 @@ AsymmetricBlob::to_json() const {
   return j;
 }
 
+#ifdef USE_IMGUI
+void AsymmetricBlob::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &ffeatures, const float simIps) {
+  static float xc[2] = {0.0f, 0.0f};
+  static float stren = 1.0f;
+  static float minrad = 2.5 * simIps;
+  static float rotdeg = 90.0f;
+  static float soft = simIps;
+  static float rad = 5.0 * simIps;
+  ImGui::SliderFloat("strength", &stren, -5.0f, 5.0f, "%.4f");
+  ImGui::SliderFloat("major radius", &rad, simIps, 1.0f, "%.4f");
+  ImGui::SliderFloat("minor radius", &minrad, simIps, 1.0f, "%.4f");
+  ImGui::SliderFloat("softness", &soft, simIps, 1.0f, "%.4f");
+  ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 179.0f, "%.0f");
+  ImGui::TextWrapped("This feature will add about %d particles", (int)(0.785398175*std::pow((2*rad+soft)/simIps, 2)));
+  if (ImGui::Button("Add asymmetric vortex blob")) {
+    ffeatures.emplace_back(std::make_unique<AsymmetricBlob>(xc[0], xc[1], stren, rad, minrad, soft, rotdeg));
+    std::cout << "Added " << (*ffeatures.back()) << std::endl;
+    ImGui::CloseCurrentPopup();
+  }
+  ImGui::SameLine();
+}
+#endif
 
 //
 // make the block of regular, and uniform-strength particles
@@ -376,6 +435,22 @@ UniformBlock::to_json() const {
   return j;
 }
 
+#ifdef USE_IMGUI
+void UniformBlock::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &ffeatures, const float simIps) {
+  static float stren = 1.0f;
+  static float xs[2] = {2.0f, 2.0f};
+  static float xc[2] = {0.0f, 0.0f};
+  ImGui::SliderFloat("strength", &stren, -5.0f, 5.0f, "%.4f");
+  ImGui::SliderFloat2("box size", xs, 0.01f, 10.0f, "%.4f", 2.0f);
+  ImGui::TextWrapped("This feature will add %d particles", (int)(xs[0]*xs[1]/std::pow(simIps,2)));
+  if (ImGui::Button("Add block of vorticies")) {
+    ffeatures.emplace_back(std::make_unique<UniformBlock>(xc[0], xc[1], xs[0], xs[1], stren));
+    std::cout << "Added " << (*ffeatures.back()) << std::endl;
+    ImGui::CloseCurrentPopup();
+  }
+  ImGui::SameLine();
+}
+#endif
 
 //
 // make the block of randomly-placed and random-strength particles
@@ -449,6 +524,24 @@ BlockOfRandom::to_json() const {
   return j;
 }
 
+#ifdef USE_IMGUI
+void BlockOfRandom::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &ffeatures) {
+  static int npart = 100;
+  static float xs[2] = {2.0f, 2.0f};
+  static float strenLo = -1.0f;
+  static float strenHi = 1.0f;
+  static float xc[2] = {0.0f, 0.0f};
+  ImGui::SliderInt("number", &npart, 1, 10000);
+  ImGui::SliderFloat2("box size", xs, 0.01f, 10.0f, "%.4f", 2.0f);
+  ImGui::DragFloatRange2("strength range", &strenLo, &strenHi, 0.001f, -0.1f, 0.1f);
+  ImGui::TextWrapped("This feature will add %d particles", npart);
+  if (ImGui::Button("Add random vorticies")) {
+    ffeatures.emplace_back(std::make_unique<BlockOfRandom>(xc[0], xc[1], xs[0], xs[1], strenLo, strenHi, npart));
+    std::cout << "Added " << (*ffeatures.back()) << std::endl;
+    ImGui::CloseCurrentPopup();
+  }
+}
+#endif
 
 //
 // drop a single particle from the emitter
@@ -495,27 +588,18 @@ ParticleEmitter::to_json() const {
   return j;
 }
 
-
-//
-// various GUI draw methods for the subclasses
-//
-/*
-void
-SingleParticle::draw_creation_gui(std::vector< std::unique_ptr<FlowFeature> >& features) {
+#ifdef USE_IMGUI
+void ParticleEmitter::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &ffeatures) {
+  static float eStren = 0.1f;
   static float xc[2] = {0.0f, 0.0f};
-  static float str = 1.0f;
-  ImGui::InputFloat2("center", xc);
-  ImGui::SliderFloat("strength", &str, -1.0f, 1.0f, "%.4f");
-  ImGui::TextWrapped("This feature will add 1 particle");
-  if (ImGui::Button("Add single particle")) {
-    // this is C++14
-    //features.emplace_back(std::make_unique<SingleParticle>(xc[0], xc[1], str));
+  ImGui::SliderFloat("strength", &eStren, -0.1f, 0.1f, "%.4f");
+  ImGui::TextWrapped("This feature will add 1 particle per time step");
+  if (ImGui::Button("Add particle emitter")) {
     // this is C++11
-    features.emplace_back(std::unique_ptr<SingleParticle>(new SingleParticle(xc[0], xc[1], str)));
-    std::cout << "Added " << (*features.back()) << std::endl;
+    ffeatures.emplace_back(std::make_unique<ParticleEmitter>(xc[0], xc[1], eStren));
+    std::cout << "Added " << (*ffeatures.back()) << std::endl;
     ImGui::CloseCurrentPopup();
   }
   ImGui::SameLine();
 }
-*/
-
+#endif
