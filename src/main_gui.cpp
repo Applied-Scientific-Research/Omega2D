@@ -681,18 +681,6 @@ int main(int argc, char const *argv[]) {
         const char* items[] = { "single particle", "round vortex blob", "asymmetric vortex blob", "block of vorticity", "random particles", "particle emitter" };
         ImGui::Combo("type", &item, items, 6);
 
-        static float xc[2] = {0.0f, 0.0f};
-        static float rad = 5.0 * sim.get_ips();
-        static float soft = sim.get_ips();
-        static float str = 1.0f;
-        static int npart = 100;
-        static float xs[2] = {2.0f, 2.0f};
-        static float strlo = -1.0f;
-        static float strhi = 1.0f;
-
-        // always ask for center
-        ImGui::InputFloat2("center", xc);
-
         // show different inputs based on what is selected
         switch(item) {
           case 0: {

@@ -106,6 +106,8 @@ SingleParticle::to_json() const {
 void SingleParticle::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &ffeatures) {
   // a single vortex particle
   static float xc[2] = {0.0f, 0.0f};
+  // always ask for center
+  ImGui::InputFloat2("center", xc);
   static float str = 1.0f;
   ImGui::SliderFloat("strength", &str, -1.0f, 1.0f, "%.4f");
   ImGui::TextWrapped("This feature will add 1 particle");
@@ -221,6 +223,8 @@ void VortexBlob::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &ff
   static float stren = 1.0f;
   static float rad = 5.0*simIps;
   static float soft = simIps;
+  // always ask for center
+  ImGui::InputFloat2("center", xc);
   ImGui::SliderFloat("strength", &stren, -5.0f, 5.0f, "%.4f");
   ImGui::SliderFloat("radius", &rad, simIps, 1.0f, "%.4f");
   ImGui::SliderFloat("softness", &soft, simIps, 1.0f, "%.4f");
@@ -233,6 +237,7 @@ void VortexBlob::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &ff
   ImGui::SameLine();
 }
 #endif
+
 //
 // make an anymmetric vortex blob with soft transition
 //
@@ -347,6 +352,8 @@ void AsymmetricBlob::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>>
   static float rotdeg = 90.0f;
   static float soft = simIps;
   static float rad = 5.0 * simIps;
+  // always ask for center
+  ImGui::InputFloat2("center", xc);
   ImGui::SliderFloat("strength", &stren, -5.0f, 5.0f, "%.4f");
   ImGui::SliderFloat("major radius", &rad, simIps, 1.0f, "%.4f");
   ImGui::SliderFloat("minor radius", &minrad, simIps, 1.0f, "%.4f");
@@ -440,6 +447,8 @@ void UniformBlock::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &
   static float stren = 1.0f;
   static float xs[2] = {2.0f, 2.0f};
   static float xc[2] = {0.0f, 0.0f};
+  // always ask for center
+  ImGui::InputFloat2("center", xc);
   ImGui::SliderFloat("strength", &stren, -5.0f, 5.0f, "%.4f");
   ImGui::SliderFloat2("box size", xs, 0.01f, 10.0f, "%.4f", 2.0f);
   ImGui::TextWrapped("This feature will add %d particles", (int)(xs[0]*xs[1]/std::pow(simIps,2)));
@@ -592,6 +601,8 @@ ParticleEmitter::to_json() const {
 void ParticleEmitter::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &ffeatures) {
   static float eStren = 0.1f;
   static float xc[2] = {0.0f, 0.0f};
+  // always ask for center
+  ImGui::InputFloat2("center", xc);
   ImGui::SliderFloat("strength", &eStren, -0.1f, 0.1f, "%.4f");
   ImGui::TextWrapped("This feature will add 1 particle per time step");
   if (ImGui::Button("Add particle emitter")) {
