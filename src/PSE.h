@@ -93,7 +93,7 @@ private:
   bool thresholds_are_relative = true;
 
   // calculate and use particle volumes? (increases accuracy)
-  const bool use_volumes = true;
+  bool use_volumes = true;
 
   // use nanoflann for nearest-neighbor searching? false uses direct search
   const bool use_tree = true;
@@ -170,11 +170,14 @@ size_t PSE<ST,CT>::add_new_boundary_parts(Vector<ST>& x,
   xp.col(1) = Eigen::Map<Eigen::Matrix<ST, Eigen::Dynamic, 1> >(y.data(), n);
   
   // generate the searchable data structure
-  typedef nanoflann::KDTreeEigenMatrixAdaptor< Eigen::Matrix<ST, Eigen::Dynamic, 2> >  my_kd_tree_t;
-  my_kd_tree_t mat_index(xp, 20 /* max leaf */ );
-  mat_index.index->buildIndex();
-  std::vector<std::pair<long int,ST> > ret_matches;
-  ret_matches.reserve(16);
+  typedef typename Eigen::Matrix<ST, Eigen::Dynamic, 2> EigenMatType;
+  typedef typename EigenMatType::Index EigenIndexType;
+  typedef nanoflann::KDTreeEigenMatrixAdaptor< EigenMatType >  my_kd_tree_t;
+  my_kd_tree_t mat_index(Dimensions, std::cref(xp));
+  if (use_tree) mat_index.index->buildIndex();
+
+  std::vector<std::pair<EigenIndexType,ST> > ret_matches;
+  ret_matches.reserve(max_near);
   nanoflann::SearchParams params;
   params.sorted = true;
 
@@ -376,7 +379,7 @@ void PSE<ST,CT>::diffuse_all(std::array<Vector<ST>,2>& pos,
     std::cout << "  Find volumes with n " << n << std::endl;
 
     // loop over every particle
-    for (int32_t i=0; i<n; ++i) {
+    for (size_t i=0; i<n; ++i) {
 
       // don't need to go out as far as for the derivative
       ST search_rad = r[i] * 2.4;
@@ -393,12 +396,12 @@ void PSE<ST,CT>::diffuse_all(std::array<Vector<ST>,2>& pos,
         (void) mat_index.index->radiusSearch(query_pt, distsq_thresh, ret_matches, params);
 
         // copy the indexes into my vector
-        for (int32_t j=0; j<ret_matches.size(); ++j) inear.push_back((int32_t)ret_matches[j].first);
+        for (size_t j=0; j<ret_matches.size(); ++j) inear.push_back((int32_t)ret_matches[j].first);
 
       } else {
         // direct search: look for all neighboring particles
         const ST distsq_thresh = std::pow(search_rad, 2);
-        for (int32_t j=0; j<n; ++j) {
+        for (size_t j=0; j<n; ++j) {
           ST distsq = std::pow(x[i]-x[j], 2) + std::pow(y[i]-y[j], 2);
           if (distsq < distsq_thresh) inear.push_back((int32_t)j);
         }
@@ -468,10 +471,10 @@ void PSE<ST,CT>::diffuse_all(std::array<Vector<ST>,2>& pos,
   //std::cout << "maxAbsStr " << maxAbsStr << std::endl;
 
   // for each particle (can parallelize this part)
-  int32_t nneibs = 0;
-  int32_t minneibs = 999999;
-  int32_t maxneibs = 0;
-  for (int32_t i=0; i<n; ++i) {
+  size_t nneibs = 0;
+  size_t minneibs = 999999;
+  size_t maxneibs = 0;
+  for (size_t i=0; i<n; ++i) {
 
     // find the nearest neighbor particles
     //std::cout << "\nDiffusing particle " << i << " with strength " << s[i] << std::endl;
@@ -500,12 +503,12 @@ void PSE<ST,CT>::diffuse_all(std::array<Vector<ST>,2>& pos,
       (void) mat_index.index->radiusSearch(query_pt, distsq_thresh, ret_matches, params);
 
       // copy the indexes into my vector
-      for (int32_t j=0; j<ret_matches.size(); ++j) inear.push_back((int32_t)ret_matches[j].first);
+      for (size_t j=0; j<ret_matches.size(); ++j) inear.push_back((int32_t)ret_matches[j].first);
 
     } else {
       // direct search: look for all neighboring particles
       const ST distsq_thresh = std::pow(search_rad, 2);
-      for (int32_t j=0; j<n; ++j) {
+      for (size_t j=0; j<n; ++j) {
         ST distsq = std::pow(x[i]-x[j], 2) + std::pow(y[i]-y[j], 2);
         if (distsq < distsq_thresh) inear.push_back((int32_t)j);
       }

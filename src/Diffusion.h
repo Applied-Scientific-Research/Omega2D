@@ -253,6 +253,19 @@ void Diffusion<S,A,I>::step(const double                _time,
         // resize the rest of the arrays
         pts.resize(pts.get_rad().size());
 
+      } else if (curr_pd_type==pd_pse) {
+        // vectors are not passed as const, because they may be extended with new particles
+        // this call also applies the changes, though we may want to save any changes into another
+        //   vector of derivatives to be applied later
+        pse.diffuse_all(pts.get_pos(),
+                        pts.get_str(),
+                        pts.get_rad(),
+                        h_nu, core_func,
+                        particle_overlap);
+
+        // resize the rest of the arrays
+        pts.resize(pts.get_rad().size());
+
       } else if (curr_pd_type==pd_core) {
         // core-spreading only changes the radii, nothing else
         coresp.diffuse_all(pts.get_pos(),
@@ -355,20 +368,22 @@ void Diffusion<S,A,I>::draw_advanced() {
 
 
   // select diffusion type among available
-  int diff_item = 2;		// default is VRM
+  int diff_item = 3;		// default is VRM
   if (pd_type==pd_core) diff_item = 0;
   else if (pd_type==pd_rvm) diff_item = 1;
-  else if (pd_type==pd_vrm) diff_item = 2;
+  else if (pd_type==pd_pse) diff_item = 2;
+  else if (pd_type==pd_vrm) diff_item = 3;
 
   // draw the selector box, with the current one selected
-  const char* diff_items[] = { "Core-spreading", "Random walk", "VRM solution" };
+  const char* diff_items[] = { "Core-spreading", "Random walk", "Particle strength exchange", "VRM solution" };
   ImGui::PushItemWidth(240);
-  ImGui::Combo("Select diffusion method", &diff_item, diff_items, 3);
+  ImGui::Combo("Select diffusion method", &diff_item, diff_items, 4);
   ImGui::PopItemWidth();
   switch(diff_item) {
       case 0: pd_type = pd_core; break;
       case 1: pd_type = pd_rvm; break;
-      case 2: pd_type = pd_vrm; break;
+      case 2: pd_type = pd_pse; break;
+      case 3: pd_type = pd_vrm; break;
   } // end switch
 
 
@@ -423,6 +438,28 @@ void Diffusion<S,A,I>::draw_advanced() {
   }
 #endif
 
+  } else if (pd_type == pd_pse) {
+
+    bool relative_thresh = pse.get_relative();
+    ImGui::Checkbox("Thresholds are relative to strongest particle", &relative_thresh);
+    ImGui::SameLine();
+    ShowHelpMarker("If unchecked, the thresholds defined here are absolute and unscaled to the strongest particle.");
+    pse.set_relative(relative_thresh);
+
+    ImGui::PushItemWidth(-270);
+    float ignore_thresh = std::log10(pse.get_ignore());
+    ImGui::SliderFloat("Threshold to ignore", &ignore_thresh, -12, 0, "%.1f");
+    ImGui::SameLine();
+    ShowHelpMarker("During diffusion, ignore any particles with strength magnitude less than this power of ten threshold.");
+    pse.set_ignore(std::pow(10.f,ignore_thresh));
+    ImGui::PopItemWidth();
+
+    bool pse_uses_vols = pse.get_volumes();
+    ImGui::Checkbox("Use volumes to weigh exchange", &pse_uses_vols);
+    ImGui::SameLine();
+    ShowHelpMarker("If unchecked, PSE will become inaccurate when particles are jumbled.");
+    pse.set_volumes(pse_uses_vols);
+
   } else if (pd_type == pd_core) {
     // no special parameters
 
@@ -446,6 +483,9 @@ void Diffusion<S,A,I>::from_json(const nlohmann::json j) {
     if (viscous == "vrm") {
       set_diffuse(true);
       pd_type = pd_vrm;
+    } else if (viscous == "pse") {
+      set_diffuse(true);
+      pd_type = pd_pse;
     } else if (viscous == "random") {
       set_diffuse(true);
       pd_type = pd_rvm;
@@ -461,8 +501,9 @@ void Diffusion<S,A,I>::from_json(const nlohmann::json j) {
   }
   std::cout << "  setting is_viscous= " << get_diffuse() << std::endl;
 
-  // regardless, load VRM settings as they were
+  // regardless, load some settings as they were
   vrm.from_json(j);
+  pse.from_json(j);
 
 #ifdef PLUGIN_AVRM
   // set adaptive-VRM-specific settings
@@ -486,6 +527,8 @@ void Diffusion<S,A,I>::add_to_json(nlohmann::json& j) const {
     j["viscous"] = "corespread";
   } else if (pd_type == pd_rvm) {
     j["viscous"] = "random";
+  } else if (pd_type == pd_pse) {
+    j["viscous"] = "pse";
   } else if (pd_type == pd_vrm) {
     j["viscous"] = "vrm";
   }
@@ -500,5 +543,7 @@ void Diffusion<S,A,I>::add_to_json(nlohmann::json& j) const {
 
   // VRM always writes "VRM" and "AMR" parameters
   vrm.add_to_json(j);
+  // PSE always writes its parameters too
+  pse.add_to_json(j);
 }
 
