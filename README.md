@@ -145,3 +145,4 @@ VRM code is functional thanks to jlblancoc for [Nanoflann](https://github.com/jl
 
 JSON reading and writing is thanks to [JSON for Modern C++](https://github.com/nlohmann/json) by [Niels Lohmann](http://nlohmann.me). XML output to VTK files is done using [tinyxml2](https://github.com/leethomason/tinyxml2) and [cppcodec](https://github.com/tplgy/cppcodec) for base64 encoding. And mathematical expression parsing came from [Lewis Van Winkle](https://codeplea.com/)'s [tinyexpr](https://github.com/codeplea/tinyexpr).
 
+Many thanks to NBL for valuable discussions of architecture and C++ syntax and idioms.
