@@ -540,6 +540,8 @@ void BlockOfRandom::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> 
   static float strenLo = -1.0f;
   static float strenHi = 1.0f;
   static float xc[2] = {0.0f, 0.0f};
+  // always ask for center
+  ImGui::InputFloat2("center", xc);
   ImGui::SliderInt("number", &npart, 1, 10000);
   ImGui::SliderFloat2("box size", xs, 0.01f, 10.0f, "%.4f", 2.0f);
   ImGui::DragFloatRange2("strength range", &strenLo, &strenHi, 0.001f, -0.1f, 0.1f);
