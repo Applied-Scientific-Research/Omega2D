@@ -579,8 +579,11 @@ void PSE<ST,CT>::diffuse_all(std::array<Vector<ST>,2>& pos,
 
       // scale the ds by the proper constant factor
       // this is 9/(2 pi Gamma(2/3))
-      ds[i] *= 1.057806300412662 * std::pow(r[i], -4);
+      ds[i] *= 2.0 * 1.057806300412662 * std::pow(r[i], -4);
 
+    }
+
+    if (not use_volumes) {
       // and correct for overlap
       ds[i] *= std::pow(nom_sep, 2);
     }
