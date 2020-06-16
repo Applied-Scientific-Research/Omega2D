@@ -541,13 +541,13 @@ void PSE<ST,CT>::diffuse_all(std::array<Vector<ST>,2>& pos,
         // eta_eps in PSE terminology is corefunc / -dist   but apply the constant later
         const CT eta = std::exp(-distsq/std::pow(r[i],2));
         //printf("  part %d w str %g has neib %d %g away, eta is %g and change is %g\n", i, s[i], jdx, std::sqrt(distsq), eta, 2.0*h_nu*str_diff*eta);
-        //if (i==525) printf("  part %d is %g from part %d eta is %g and str is %g\n", jdx, std::sqrt(distsq), i, eta, s[jdx]);
+        //if (i==525) printf("  part %d is %g from part %ld eta is %g and str is %g\n", jdx, std::sqrt(distsq), i, eta, s[jdx]);
         // compute the strength change
         ds[i] += str_diff * eta;
       }
 
       // scale the ds by the proper constant factor
-      ds[i] *= 2.0 / (M_PI * std::pow(r[i], 4));
+      ds[i] *= 4.0 * std::pow(r[i], -4) / M_PI;		// this should be correct, according to C&K VM pg 145
 
     // compute as if every particle were a compact Gaussian
     } else {
@@ -579,16 +579,14 @@ void PSE<ST,CT>::diffuse_all(std::array<Vector<ST>,2>& pos,
 
       // scale the ds by the proper constant factor
       // this is 9/(2 pi Gamma(2/3))
-      ds[i] *= 1.057806300412662 / std::pow(r[i], 4);
-    }
+      ds[i] *= 1.057806300412662 * std::pow(r[i], -4);
 
-    // scale the ds by the proper constant factor
-    ds[i] *= 2.0 * h_nu;
-
-    // seems to work only when we scale by the particle size - somebody's formulae are wrong
-    if (not use_volumes) {
+      // and correct for overlap
       ds[i] *= std::pow(nom_sep, 2);
     }
+
+    // always scale the ds by the proper constant factor
+    ds[i] *= std::pow(h_nu,2);
 
     // tally neighbor statistics
     nneibs += inear.size();
@@ -596,9 +594,9 @@ void PSE<ST,CT>::diffuse_all(std::array<Vector<ST>,2>& pos,
     if (inear.size() > maxneibs) maxneibs = inear.size();
 
     // is ds significantly larger than s?
-    if (std::abs(ds[i]) > 3.0 * std::abs(s[i]) and s[i] != 0.0) {
-      std::cout << "    part " << i << " at dist " << std::sqrt(x[i]*x[i]+y[i]*y[i]) << " had str before " << s[i] << " str after " << (s[i]+ds[i]) << std::endl;
-    }
+    //if (std::abs(ds[i]) > 3.0 * std::abs(s[i]) and s[i] != 0.0) {
+    //  std::cout << "    part " << i << " at dist " << std::sqrt(x[i]*x[i]+y[i]*y[i]) << " had str before " << s[i] << " str after " << (s[i]+ds[i]) << std::endl;
+    //}
 
   } // end loop over all current particles
 
