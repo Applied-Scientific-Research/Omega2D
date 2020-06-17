@@ -32,6 +32,7 @@ void parse_flow_json(std::vector<std::unique_ptr<FlowFeature>>& _flist,
 
   if      (ftype == "single particle") {  _flist.emplace_back(std::make_unique<SingleParticle>()); }
   else if (ftype == "vortex blob") {      _flist.emplace_back(std::make_unique<VortexBlob>()); }
+  else if (ftype == "gaussian blob") {    _flist.emplace_back(std::make_unique<GaussianBlob>()); }
   else if (ftype == "asymmetric blob") {  _flist.emplace_back(std::make_unique<AsymmetricBlob>()); }
   else if (ftype == "uniform block") {    _flist.emplace_back(std::make_unique<UniformBlock>()); }
   else if (ftype == "block of random") {  _flist.emplace_back(std::make_unique<BlockOfRandom>()); }
@@ -298,6 +299,96 @@ AsymmetricBlob::to_json() const {
   j["strength"] = m_str;
   j["scale"] = {m_rad, m_minrad};;
   j["rotation"] = m_theta;
+  j["enabled"] = m_enabled;
+  return j;
+}
+
+
+//
+// make a Gaussian vortex blob
+//
+std::vector<float>
+GaussianBlob::init_particles(float _ips) const {
+  // create a new vector to pass on
+  std::vector<float> x;
+
+  if (not this->is_enabled()) return x;
+
+  // what size 2D integer array will we loop over
+  int irad = 1 + (3.0*m_stddev) / _ips;
+  std::cout << "blob needs " << (-irad) << " to " << irad << " spaces" << std::endl;
+
+  // and a counter for the total circulation
+  double tot_circ = 0.0;
+
+  // loop over integer indices
+  for (int i=-irad; i<=irad; ++i) {
+  for (int j=-irad; j<=irad; ++j) {
+
+    // how far from the center are we?
+    float dr = std::sqrt((float)(i*i+j*j)) * _ips;
+    if (dr < 3.0*m_stddev) {
+
+      // create a particle here
+      x.emplace_back(m_x + _ips*(float)i);
+      x.emplace_back(m_y + _ips*(float)j);
+
+      // figure out the strength from another check
+      double this_str = std::exp(-std::pow(dr/m_stddev, 2.0));
+      x.emplace_back((float)this_str);
+      tot_circ += this_str;
+
+      // this is the radius - still zero for now
+      x.emplace_back(0.0f);
+    }
+  }
+  }
+
+  // finally, normalize all particle strengths so that the whole blob
+  //   has exactly the right strength
+  std::cout << "  blob had " << tot_circ << " initial circulation" << std::endl;
+  double str_scale = (double)m_str / tot_circ;
+  for (size_t i=2; i<x.size(); i+=4) {
+    x[i] = (float)((double)x[i] * str_scale);
+  }
+
+  return x;
+}
+
+std::vector<float>
+GaussianBlob::step_particles(float _ips) const {
+  return std::vector<float>();
+}
+
+void
+GaussianBlob::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+GaussianBlob::to_string() const {
+  std::stringstream ss;
+  ss << "gaussian blob at " << m_x << " " << m_y << ", stddev " << m_stddev << ", and strength " << m_str;
+  return ss.str();
+}
+
+void
+GaussianBlob::from_json(const nlohmann::json j) {
+  const std::vector<float> c = j["center"];
+  m_x = c[0];
+  m_y = c[1];
+  m_stddev = j["stddev"];
+  m_str = j["strength"];
+  m_enabled = j.value("enabled", true);
+}
+
+nlohmann::json
+GaussianBlob::to_json() const {
+  nlohmann::json j;
+  j["type"] = "gaussian blob";
+  j["center"] = {m_x, m_y};
+  j["stddev"] = m_stddev;
+  j["strength"] = m_str;
   j["enabled"] = m_enabled;
   return j;
 }
