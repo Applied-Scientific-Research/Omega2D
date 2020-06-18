@@ -179,6 +179,28 @@ void LoadJsonSims(std::vector<nlohmann::json> &sims, std::vector<std::string> &d
     descriptions.push_back(sims.back()["description"]);
   }
 }
+
+void obj_movement_gui(int &mitem, char* strx, char* stry, char* strrad) {
+  // fixed to ground      - this geometry is fixed (attached to inertial)
+  // attached to previous - this geometry is attached to the previous geometry
+  // according to formula - this geometry is attached to a new moving body
+  const char* mitems[] = { "fixed to ground", "attached to previous", "according to formula" };
+  //const char* mitems[] = { "fixed", "attached to previous", "according to formula", "dynamic" };
+  ImGui::Combo("movement", &mitem, mitems, 3);
+
+  // show different inputs based on what is selected
+  if (mitem == 2) {
+    ImGui::InputText("x position", strx, 512);
+    ImGui::SameLine();
+    ShowHelpMarker("Use C-style expressions, t is time\n+ - / * % ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
+    ImGui::InputText("y position", stry, 512);
+    ImGui::SameLine();
+    ShowHelpMarker("Use C-style expressions, t is time\n+ - / * % ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
+    ImGui::InputText("angular position", strrad, 512);
+    ImGui::SameLine();
+    ShowHelpMarker("In radians, use C-style expressions, t is time\n+ - / * % ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
+  }
+}
 // execution starts here
 
 int main(int argc, char const *argv[]) {
@@ -726,35 +748,11 @@ int main(int argc, char const *argv[]) {
       {
         // define movement first
         static int mitem = 0;
-        const char* mitems[] = { "fixed to ground", "attached to previous", "according to formula" };
-        //const char* mitems[] = { "fixed", "attached to previous", "according to formula", "dynamic" };
-        ImGui::Combo("movement", &mitem, mitems, 3);
         static char strx[512] = "0.0*t";
         static char stry[512] = "0.0*t";
         static char strrad[512] = "0.0*t";
-
-        // show different inputs based on what is selected
-        switch(mitem) {
-          case 0:
-            // this geometry is fixed (attached to inertial)
-            break;
-          case 1:
-            // this geometry is attached to the previous geometry
-            break;
-          case 2:
-            // this geometry is attached to a new moving body
-            ImGui::InputText("x position", strx, 512);
-            ImGui::SameLine();
-            ShowHelpMarker("Use C-style expressions, t is time\n+ - / * % ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
-            ImGui::InputText("y position", stry, 512);
-            ImGui::SameLine();
-            ShowHelpMarker("Use C-style expressions, t is time\n+ - / * % ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
-            ImGui::InputText("angular position", strrad, 512);
-            ImGui::SameLine();
-            ShowHelpMarker("In radians, use C-style expressions, t is time\n+ - / * % ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
-            break;
-        }
-
+        obj_movement_gui(mitem, strx, stry, strrad);
+        
         // define geometry second
         static int item = 0;
         static int numItems = 6;
@@ -1348,7 +1346,7 @@ int main(int argc, char const *argv[]) {
       if (ImGui::Button("ImGui Samples")) show_demo_window ^= 1;
       // use ASCII table for number: http://www.asciitable.com/
       // but use CAPITAL letter for a letter, jesus, really?!?
-      if (ImGui::IsKeyPressed(84) and not show_file_output_window) show_demo_window ^= 1;
+      //if (ImGui::IsKeyPressed(84) and not show_file_output_window) show_demo_window ^= 1;
 
       //ImGui::Text("Draw frame rate: %.2f ms/frame (%.1f FPS)",
       //            1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
