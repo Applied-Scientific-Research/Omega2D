@@ -216,8 +216,9 @@ int main(int argc, char const *argv[]) {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #else
-  const char* glsl_version = "#version 430 core";
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+  const char* glsl_version = "#version 150";
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #endif
   GLFWwindow* window = glfwCreateWindow(1280, 720, "Omega2D GUI", nullptr, nullptr);
@@ -476,13 +477,12 @@ int main(int argc, char const *argv[]) {
 
     // Select pre-populated simulations
     {
-      static int sim_item = 0;
       int currentItemIndex = 0;
       const char* currentItem = descriptions[currentItemIndex].c_str();
       static ImGuiComboFlags flags = 0;
       if (ImGui::BeginCombo("", currentItem, flags)) // The second parameter is the label previewed before opening the combo.
       {
-        for (int n = 0; n < descriptions.size(); n++)
+        for (size_t n = 0; n < descriptions.size(); n++)
         {
           bool is_selected = (currentItem == descriptions[n].c_str());
           if (ImGui::Selectable(descriptions[n].c_str(), is_selected)) {
@@ -678,33 +678,39 @@ int main(int argc, char const *argv[]) {
       if (ImGui::BeginPopupModal("New flow structure"))
       {
         static int item = 1;
-        const char* items[] = { "single particle", "round vortex blob", "asymmetric vortex blob", "block of vorticity", "random particles", "particle emitter" };
-        ImGui::Combo("type", &item, items, 6);
+        const char* items[] = { "single particle", "round vortex blob", "Gaussian vortex blob", "asymmetric vortex blob", "block of vorticity", "random particles", "particle emitter" };
+        ImGui::Combo("type", &item, items, 7);
 
         // show different inputs based on what is selected
         switch(item) {
           case 0: {
+            // creates a single particle
             SingleParticle::draw_creation_gui(ffeatures);
           } break;
          case 1: {
+              // creates a blob of vorticies
               VortexBlob::draw_creation_gui(ffeatures, sim.get_ips());
           } break;
           case 2: {
+            // a gaussian blob of multiple vorticies
+            GaussianBlob::draw_creation_gui(ffeatures, sim.get_ips());
+          } break;
+          case 3: {
             // an asymmetric blob of multiple vorticies
             AsymmetricBlob::draw_creation_gui(ffeatures, sim.get_ips());
           } break;
-          case 3: {
+          case 4: {
             // particles in a rectangle
             UniformBlock::draw_creation_gui(ffeatures, sim.get_ips());
           } break;
-          case 4: {
+          case 5: {
             // random particles in a rectangle
             BlockOfRandom::draw_creation_gui(ffeatures);
           } break;
-          case 5: {
+          case 6: {
             // create a particle emitter
             ParticleEmitter::draw_creation_gui(ffeatures);
-            } break;
+          } break;
         }
 
         if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }

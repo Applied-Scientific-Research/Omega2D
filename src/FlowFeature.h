@@ -141,6 +141,31 @@ protected:
 
 
 //
+// Concrete class for a vortex blob
+//
+class GaussianBlob : public SingleParticle {
+public:
+  GaussianBlob(float _x = 0.0,
+               float _y = 0.0,
+               float _str = 1.0,
+               float _stddev = 0.5)
+    : SingleParticle(_x, _y, _str),
+      m_stddev(_stddev)
+    {}
+
+  void debug(std::ostream& os) const override;
+  std::string to_string() const override;
+  void from_json(nlohmann::json) override;
+  nlohmann::json to_json() const override;
+  std::vector<float> init_particles(float) const override;
+  std::vector<float> step_particles(float) const override;
+
+protected:
+  float m_stddev;
+};
+
+
+//
 // Concrete class for a rectangle of constant-strength particles
 //
 class UniformBlock : public SingleParticle {
