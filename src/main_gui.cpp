@@ -477,13 +477,12 @@ int main(int argc, char const *argv[]) {
 
     // Select pre-populated simulations
     {
-      static int sim_item = 0;
       int currentItemIndex = 0;
       const char* currentItem = descriptions[currentItemIndex].c_str();
       static ImGuiComboFlags flags = 0;
       if (ImGui::BeginCombo("", currentItem, flags)) // The second parameter is the label previewed before opening the combo.
       {
-        for (int n = 0; n < descriptions.size(); n++)
+        for (size_t n = 0; n < descriptions.size(); n++)
         {
           bool is_selected = (currentItem == descriptions[n].c_str());
           if (ImGui::Selectable(descriptions[n].c_str(), is_selected)) {
