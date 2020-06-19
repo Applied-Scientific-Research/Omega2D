@@ -101,6 +101,9 @@ public:
   void from_json(nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
+#ifdef USE_IMGUI
+  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+#endif
 
 protected:
   float m_diam;

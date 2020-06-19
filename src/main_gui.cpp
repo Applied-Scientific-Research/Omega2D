@@ -787,45 +787,37 @@ int main(int argc, char const *argv[]) {
         static float sqside = 1.0;
         static float polySide = std::sqrt(2);
 
+        std::shared_ptr<Body> bp;
+	switch(mitem) {
+	  case 0:
+             // this geometry is fixed (attached to inertial)
+             bp = sim.get_pointer_to_body("ground");
+             break;
+	  case 1:
+	     // this geometry is attached to the previous geometry (or ground)
+	     bp = sim.get_last_body();
+	     break;
+	  case 2:
+	     // this geometry is attached to a new moving body
+	     bp = std::make_shared<Body>();
+	     bp->set_pos(0, std::string(strx));
+	     bp->set_pos(1, std::string(stry));
+	     bp->set_rot(std::string(strrad));
+	     break;
+	}
 
         // show different inputs based on what is selected
         switch(item) {
           case 0: {
             // create a circular boundary
-            ImGui::Checkbox("Object is in flow", &external_flow);
-            ImGui::SameLine();
-            ShowHelpMarker("Keep checked if object is immersed in flow,\nuncheck if flow is inside of object");
-            ImGui::InputFloat2("center", xc);
-            ImGui::SliderFloat("diameter", &circdiam, 0.01f, 10.0f, "%.4f", 2.0);
-            ImGui::TextWrapped("This feature will add a solid circular boundary centered at the given coordinates");
-            if (ImGui::Button("Add circular boundary")) {
-              std::shared_ptr<Body> bp;
-              switch(mitem) {
-                case 0:
-                  // this geometry is fixed (attached to inertial)
-                  bp = sim.get_pointer_to_body("ground");
-                  break;
-                case 1:
-                  // this geometry is attached to the previous geometry (or ground)
-                  bp = sim.get_last_body();
-                  break;
-                case 2:
-                  // this geometry is attached to a new moving body
-                  bp = std::make_shared<Body>();
-                  bp->set_pos(0, std::string(strx));
-                  bp->set_pos(1, std::string(stry));
-                  bp->set_rot(std::string(strrad));
-                  bp->set_name("circular cylinder");
-                  sim.add_body(bp);
-                  break;
+            if (SolidCircle::draw_creation_gui(bp, bfeatures)) {
+              if (mitem == 2) {
+	        bp->set_name("circular cylinder");
+	        sim.add_body(bp);
               }
-              bfeatures.emplace_back(std::make_unique<SolidCircle>(bp, external_flow, xc[0], xc[1], circdiam));
               std::cout << "Added " << (*bfeatures.back()) << std::endl;
-              ImGui::CloseCurrentPopup();
             }
-            ImGui::SameLine();
-            } break;
-
+          } break;
           case 1: {
             // create a square/rectangle boundary
             ImGui::Checkbox("Object is in flow", &external_flow);
@@ -1178,7 +1170,6 @@ int main(int argc, char const *argv[]) {
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Rendering controls")) { draw_render_gui(rparams); }
     
-
     // Solver parameters, under its own header
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Solver parameters (advanced)")) { sim.draw_advanced(); }
@@ -1186,14 +1177,12 @@ int main(int argc, char const *argv[]) {
     // Output buttons, under a header
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Save output")) {
-
       // save the simulation to a JSON or VTK file
       ImGui::Spacing();
       if (ImGui::Button("Save setup to JSON", ImVec2(20+12*fontSize,0))) show_file_output_window = true;
       ImGui::SameLine();
       // PNG output of the render frame
       if (ImGui::Button("Save screenshot to PNG", ImVec2(20+12*fontSize,0))) draw_this_frame = true;
-
       // next line: VTK output and record
       if (ImGui::Button("Save parts to VTU", ImVec2(20+12*fontSize,0))) export_vtk_this_frame = true;
       ImGui::SameLine();

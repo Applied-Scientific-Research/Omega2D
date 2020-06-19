@@ -7,6 +7,8 @@
  */
 
 #include "BoundaryFeature.h"
+#include "GuiHelper.h"
+#include "imgui/imgui.h"
 
 #define __STDCPP_WANT_MATH_SPEC_FUNCS__ 1
 #include <cmath>
@@ -132,6 +134,27 @@ SolidCircle::to_json() const {
   return mesh;
 }
 
+#ifdef USE_IMGUI
+bool SolidCircle::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::unique_ptr<BoundaryFeature>> &bfeatures) {
+  static bool external_flow = true;
+  static float xc[2] = {0.0f, 0.0f};
+  static float diam = 1.0;
+  bool add = false;
+
+  ImGui::Checkbox("Object is in flow", &external_flow);
+  ImGui::SameLine();
+  ShowHelpMarker("Keep checked if object is immersed in flow,\nuncheck if flow is inside of object");
+  ImGui::InputFloat2("center", xc);
+  ImGui::SliderFloat("diameter", &diam, 0.01f, 10.0f, "%.4f", 2.0);
+  ImGui::TextWrapped("This feature will add a solid circular boundary centered at the given coordinates");
+  if (ImGui::Button("Add circular boundary")) {
+    bfeatures.emplace_back(std::make_unique<SolidCircle>(bp, external_flow, xc[0], xc[1], diam));
+    ImGui::CloseCurrentPopup();
+    add = true;
+  }
+  return add;
+}
+#endif
 
 //
 // Create an oval
