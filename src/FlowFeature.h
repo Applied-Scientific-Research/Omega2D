@@ -159,6 +159,9 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+#ifdef USE_IMGUI
+  static void draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &, const float);
+#endif
 
 protected:
   float m_stddev;

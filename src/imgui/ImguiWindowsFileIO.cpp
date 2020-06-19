@@ -630,15 +630,15 @@ bool fileIOWindow(
     {
         vector<string> ext_filter_v = stringSplit( extension_cstrings[file_type_selected], '.');
         if( ext_filter_v.size() == 2 &&
-                ext_filter_v[1] != "*" )
-        {
+                ext_filter_v[1] != "*" ) {
             string ext_filter = ext_filter_v[1];
+          std::cout << "1 " << current_mini_path.extension() << std::endl << "2 " << ext_filter << std::endl << "3 " << current_mini_path.filePath() << std::endl;
             if( current_mini_path.extension() == ext_filter )
                 file_path = current_mini_path.filePath();
         } else {
             file_path = current_mini_path.filePath();
         }
-
+        std::cout << "4 " << file_path << std::endl;
         if( ensure_file_exists )
         {
             if( MiniPath::pathExists( file_path ) )
