@@ -790,7 +790,7 @@ int main(int argc, char const *argv[]) {
 
         // static bp prevents a bunch of pointers from being created during the same boundary creation
         // The switch prevents constant assignment (mainly to prevent the terminal from being flooded from messages)
-        static std::shared_ptr<Body> bp;
+        static std::shared_ptr<Body> bp = nullptr;
         if (tmp != mitem) {
 	  switch(mitem) {
 	    case 0:
