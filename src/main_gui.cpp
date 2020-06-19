@@ -202,6 +202,23 @@ void obj_movement_gui(int &mitem, char* strx, char* stry, char* strrad) {
   }
 }
 // execution starts here
+void draw_render_gui(RenderParams &rp) {
+  ImGui::ColorEdit3("positive circulation", rp.pos_circ_color);
+  ImGui::ColorEdit3("negative circulation", rp.neg_circ_color);
+  ImGui::ColorEdit3("feature color",        rp.default_color);
+  ImGui::ColorEdit3("background color",     rp.clear_color);
+  //ImGui::Checkbox("show origin", &show_origin);
+  ImGui::SliderFloat("particle brightness", &(rp.circ_density), 0.01f, 10.0f, "%.2f", 2.0f);
+  ImGui::SliderFloat("particle scale", &(rp.vorton_scale), 0.01f, 2.0f, "%.2f", 2.0f);
+
+  if (ImGui::Button("Recenter")) {
+    // put everything back to cente
+    rp.vcx = -0.5f;
+    rp.vcy = 0.0f;
+    rp.vsize = 2.0f;
+  }
+  // add button to recenter on all vorticity?
+}
 
 int main(int argc, char const *argv[]) {
   std::cout << std::endl << "Omega2D GUI" << std::endl;
@@ -1157,27 +1174,10 @@ int main(int argc, char const *argv[]) {
 
     } // end structure entry
 
-
     // Rendering parameters, under a header
     ImGui::Spacing();
-    if (ImGui::CollapsingHeader("Rendering controls")) {
-      ImGui::ColorEdit3("positive circulation", rparams.pos_circ_color);
-      ImGui::ColorEdit3("negative circulation", rparams.neg_circ_color);
-      ImGui::ColorEdit3("feature color",        rparams.default_color);
-      ImGui::ColorEdit3("background color",     rparams.clear_color);
-      //ImGui::Checkbox("show origin", &show_origin);
-      ImGui::SliderFloat("particle brightness", &(rparams.circ_density), 0.01f, 10.0f, "%.2f", 2.0f);
-      ImGui::SliderFloat("particle scale", &(rparams.vorton_scale), 0.01f, 2.0f, "%.2f", 2.0f);
-
-      if (ImGui::Button("Recenter")) {
-        // put everything back to center
-        rparams.vcx = -0.5f;
-        rparams.vcy = 0.0f;
-        rparams.vsize = 2.0f;
-      }
-
-      // add button to recenter on all vorticity?
-    }
+    if (ImGui::CollapsingHeader("Rendering controls")) { draw_render_gui(rparams); }
+    
 
     // Solver parameters, under its own header
     ImGui::Spacing();
