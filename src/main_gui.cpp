@@ -832,7 +832,8 @@ int main(int argc, char const *argv[]) {
 	        bp->set_name("oval cylinder");
 	        sim.add_body(bp);
               }
-            } std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              std::cout << "Added " << (*bfeatures.back()) << std::endl;
+            } 
           } break;
           case 3: {
             // create a rectangle boundary
@@ -841,7 +842,8 @@ int main(int argc, char const *argv[]) {
 	        bp->set_name("rectangular cylinder");
 	        sim.add_body(bp);
               }
-            } std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              std::cout << "Added " << (*bfeatures.back()) << std::endl;
+            } 
           } break;
           case 4: {
             // create a straight boundary segment
@@ -850,7 +852,8 @@ int main(int argc, char const *argv[]) {
 	        bp->set_name("segmented boundary");
 	        sim.add_body(bp);
               }
-            } std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              std::cout << "Added " << (*bfeatures.back()) << std::endl;
+            } 
           } break;
           case 5: {
             // create a polygon boundary
@@ -859,7 +862,8 @@ int main(int argc, char const *argv[]) {
 	        bp->set_name("polygon cylinder");
 	        sim.add_body(bp);
               }
-            } std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              std::cout << "Added " << (*bfeatures.back()) << std::endl;
+            } 
           }
         } // end switch for geometry
 
