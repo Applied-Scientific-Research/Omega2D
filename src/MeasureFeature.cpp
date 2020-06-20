@@ -3,6 +3,7 @@
  *
  * (c)2018-20 Applied Scientific Research, Inc.
  *            Mark J Stock <markjstock@gmail.com>
+ *            Blake B Hillier <blakehillier@mac.com>
  */
 
 #include "MeasureFeature.h"
