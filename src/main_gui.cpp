@@ -221,6 +221,24 @@ void draw_render_gui(RenderParams &rp) {
   // add button to recenter on all vorticity?
 }
 
+void draw_stats_window(const long int numPanels, const long int numFieldPts, const long int step, const float time,
+                       const long int numParticles, bool* showStatsWindow, const int fontSize, const float displayH) {
+  // std::cout << "Creating stats window: " << std::endl;
+  // there's no way to have this appear in the output png without the rest of the GUI
+  const int numrows = 4 + (numPanels > 0 ? 1 : 0) + (numFieldPts > 0 ? 1 : 0);
+  // std::cout << "   fontSize: " << fontSize << "\n   numrows: " << numrows << "\n   display_h: " << display_h << std::endl;
+  ImGui::SetNextWindowSize(ImVec2(10+fontSize*11, 10+1.1*fontSize*numrows));
+  ImGui::SetNextWindowPos(ImVec2(20, displayH-fontSize*(1.1*numrows+1)));
+  ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+  ImGui::Begin("Statistics", showStatsWindow, window_flags);
+  ImGui::Text("Step %13ld", step);
+  ImGui::Text("Time %13.4f", time);
+  if (numPanels > 0) { ImGui::Text("Panels %11ld", numPanels); }
+  ImGui::Text("Particles %8ld", numParticles);
+  if (numFieldPts > 0) { ImGui::Text("Field Pts %8ld", numFieldPts); }
+  ImGui::End();
+}
+
 int main(int argc, char const *argv[]) {
   std::cout << std::endl << "Omega2D GUI" << std::endl;
 
@@ -1161,22 +1179,9 @@ int main(int argc, char const *argv[]) {
 
     // Show the simulation stats in the corner
     //if (nframes < 10){ std::cout << "show_stats_window: " << show_stats_window << std::endl; }
-    if (show_stats_window) {
-      // std::cout << "Creating stats window: " << std::endl;
-      // there's no way to have this appear in the output png without the rest of the GUI
-      const int numrows = 4 + (sim.get_npanels()>0 ? 1 : 0) + (sim.get_nfldpts()>0 ? 1 : 0);
-      // std::cout << "   fontSize: " << fontSize << "\n   numrows: " << numrows << "\n   display_h: " << display_h << std::endl;
-      ImGui::SetNextWindowSize(ImVec2(10+fontSize*11, 10+1.1*fontSize*numrows));
-      ImGui::SetNextWindowPos(ImVec2(20, display_h-fontSize*(1.1*numrows+1)));
-      ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-      ImGui::Begin("Statistics", &show_stats_window, window_flags);
-      ImGui::Text("Step %13ld", sim.get_nstep());
-      ImGui::Text("Time %13.4f", sim.get_time());
-      if (sim.get_npanels() > 0) ImGui::Text("Panels %11ld", sim.get_npanels());
-      ImGui::Text("Particles %8ld", sim.get_nparts());
-      if (sim.get_nfldpts() > 0) ImGui::Text("Field Pts %8ld", sim.get_nfldpts());
-      ImGui::End();
-    }
+    if (show_stats_window) { draw_stats_window(sim.get_npanels(), sim.get_nfldpts(), sim.get_nstep(), 
+                                               sim.get_time(), sim.get_nparts(), &show_stats_window,
+                                               fontSize, display_h); }
 
     // Show the terminal output of the program
     if (show_terminal_window) {
