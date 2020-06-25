@@ -176,12 +176,9 @@ int main(int argc, char const *argv[]) {
   //feenableexcept(FE_DIVBYZERO);
 
   // Load file names and paths of pre-stored sims
-#ifdef SIMULATION_DIR
-  #define SIM_DIR SIMULATION_DIR
-#endif
   std::vector<nlohmann::json> sims;
   std::vector<std::string> descriptions = {"Select a Simulation"};
-  LoadJsonSims(sims, descriptions, SIM_DIR);
+  LoadJsonSims(sims, descriptions, EXAMPLES_DIR);
   
   // Main loop
   std::cout << "Starting main loop" << std::endl;
