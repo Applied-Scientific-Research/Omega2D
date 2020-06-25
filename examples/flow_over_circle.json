@@ -21,7 +21,7 @@
       ]
     }
   ],
-  "description": "Flow Over Circle",
+  "description": "Flow over circular cylinder, Re=250",
   "drawparams": {
     "backgroundColor": [
       0.0,

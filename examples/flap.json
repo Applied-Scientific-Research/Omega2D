@@ -18,7 +18,7 @@
       ]
     }
   ],
-  "description": "Flapping rectangle in freestream",
+  "description": "Flapping rectangle in flow",
   "drawparams": {
     "density": 0.6,
     "viewPoint": [ 2.5, 0.0 ],

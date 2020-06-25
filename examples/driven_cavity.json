@@ -67,7 +67,7 @@
       ]
     }
   ],
-  "description": "Driven Cavity",
+  "description": "Driven cavity, Re=250",
   "drawparams": {
     "backgroundColor": [
       0.0,
