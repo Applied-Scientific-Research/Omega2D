@@ -177,6 +177,7 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx, const 
   //printer.PushAttribute( "type", "PolyData" );
   printer.PushAttribute( "version", "0.1" );
   printer.PushAttribute( "byte_order", "LittleEndian" );
+  // note this is still unsigned even though all indices later are signed! thanks, Obama.
   printer.PushAttribute( "header_type", "UInt32" );
 
   // push comment with sim time?
@@ -198,16 +199,14 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx, const 
 
   printer.OpenElement( "Cells" );
 
+  // https://discourse.paraview.org/t/cannot-open-vtu-files-with-paraview-5-8/3759
+  // apparently the Vtk format documents indicate that connectivities and offsets
+  //   must be in Int32, not UIntAnything. Okay...
   printer.OpenElement( "DataArray" );
   printer.PushAttribute( "Name", "connectivity" );
-  if (pts.get_n() <= std::numeric_limits<uint16_t>::max()) {
-    printer.PushAttribute( "type", "UInt16" );
-    Vector<uint16_t> v(pts.get_n());
-    std::iota(v.begin(), v.end(), 0);
-    write_DataArray (printer, v, compress, asbase64);
-  } else {
-    printer.PushAttribute( "type", "UInt32" );
-    Vector<uint32_t> v(pts.get_n());
+  printer.PushAttribute( "type", "Int32" );
+  {
+    Vector<int32_t> v(pts.get_n());
     std::iota(v.begin(), v.end(), 0);
     write_DataArray (printer, v, compress, asbase64);
   }
@@ -215,25 +214,23 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx, const 
 
   printer.OpenElement( "DataArray" );
   printer.PushAttribute( "Name", "offsets" );
-  if (pts.get_n() <= std::numeric_limits<uint16_t>::max()) {
-    printer.PushAttribute( "type", "UInt16" );
-    Vector<uint16_t> v(pts.get_n());
-    std::iota(v.begin(), v.end(), 1);
-    write_DataArray (printer, v, compress, asbase64);
-  } else {
-    printer.PushAttribute( "type", "UInt32" );
-    Vector<uint32_t> v(pts.get_n());
+  printer.PushAttribute( "type", "Int32" );
+  {
+    Vector<int32_t> v(pts.get_n());
     std::iota(v.begin(), v.end(), 1);
     write_DataArray (printer, v, compress, asbase64);
   }
   printer.CloseElement();	// DataArray
 
+  // what about these? Int32 as well? hello? is there anybody there?
   printer.OpenElement( "DataArray" );
   printer.PushAttribute( "Name", "types" );
   printer.PushAttribute( "type", "UInt8" );
-  Vector<uint8_t> v(pts.get_n());
-  std::fill(v.begin(), v.end(), 1);
-  write_DataArray (printer, v, compress, asbase64);
+  {
+    Vector<uint8_t> v(pts.get_n());
+    std::fill(v.begin(), v.end(), 1);
+    write_DataArray (printer, v, compress, asbase64);
+  }
   printer.CloseElement();	// DataArray
 
   printer.CloseElement();	// Cells
