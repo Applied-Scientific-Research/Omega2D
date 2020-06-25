@@ -3,7 +3,7 @@
  *
  * (c)2017-20 Applied Scientific Research, Inc.
  *            Mark J Stock <markjstock@gmail.com>
- *            Blake Hillier <blakehillier@mac.com>
+ *            Blake B Hillier <blakehillier@mac.com>
  */
 
 #pragma once
@@ -101,6 +101,9 @@ public:
   void from_json(nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
+#ifdef USE_IMGUI
+  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+#endif
 
 protected:
   float m_diam;
@@ -129,6 +132,9 @@ public:
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
+#ifdef USE_IMGUI
+  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+#endif
 
 protected:
   float m_dmin;
@@ -157,6 +163,9 @@ public:
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
+#ifdef USE_IMGUI
+  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+#endif
 
 protected:
   float m_side;
@@ -185,6 +194,9 @@ public:
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
+#ifdef USE_IMGUI
+  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+#endif
 
 protected:
   float m_sidey;
@@ -216,6 +228,9 @@ public:
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
+#ifdef USE_IMGUI
+  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+#endif
 
 protected:
   float m_xe, m_ye;
@@ -248,6 +263,9 @@ public:
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
+#ifdef USE_IMGUI
+  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+#endif
 
 protected:
   int m_numSides;

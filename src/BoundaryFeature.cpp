@@ -3,10 +3,12 @@
  *
  * (c)2017-20 Applied Scientific Research, Inc.
  *            Mark J Stock <markjstock@gmail.com>
- *            Blake Hillier <blakehillier@mac.com>
+ *            Blake B Hillier <blakehillier@mac.com>
  */
 
 #include "BoundaryFeature.h"
+#include "GuiHelper.h"
+#include "imgui/imgui.h"
 
 #define __STDCPP_WANT_MATH_SPEC_FUNCS__ 1
 #include <cmath>
@@ -132,6 +134,28 @@ SolidCircle::to_json() const {
   return mesh;
 }
 
+#ifdef USE_IMGUI
+bool SolidCircle::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::unique_ptr<BoundaryFeature>> &bfeatures) {
+  static bool external_flow = true;
+  static float xc[2] = {0.0f, 0.0f};
+  static float diam = 1.0;
+  bool add = false;
+
+  ImGui::Checkbox("Object is in flow", &external_flow);
+  ImGui::SameLine();
+  ShowHelpMarker("Keep checked if object is immersed in flow,\nuncheck if flow is inside of object");
+  ImGui::InputFloat2("center", xc);
+  ImGui::SliderFloat("diameter", &diam, 0.01f, 10.0f, "%.4f", 2.0);
+  ImGui::TextWrapped("This feature will add a solid circular boundary centered at the given coordinates");
+  if (ImGui::Button("Add circular boundary")) {
+    bfeatures.emplace_back(std::make_unique<SolidCircle>(bp, external_flow, xc[0], xc[1], diam));
+    ImGui::CloseCurrentPopup();
+    add = true;
+  }
+  ImGui::SameLine();
+  return add;
+}
+#endif
 
 //
 // Create an oval
@@ -300,6 +324,34 @@ SolidOval::to_json() const {
   return mesh;
 }
 
+#ifdef USE_IMGUI
+bool SolidOval::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::unique_ptr<BoundaryFeature>> &bfeatures) {
+  static bool external_flow = true;
+  static float xc[2] = {0.0f, 0.0f};
+  static float diam = 1.0;
+  static float minordiam = 0.5;
+  static float rotdeg = 0.0f;
+  bool add = false;
+
+  ImGui::Checkbox("Object is in flow", &external_flow);
+  ImGui::SameLine();
+  ShowHelpMarker("Keep checked if object is immersed in flow,\nuncheck if flow is inside of object");
+  ImGui::InputFloat2("center", xc);
+  ImGui::SliderFloat("major diameter", &diam, 0.01f, 10.0f, "%.4f", 2.0);
+  ImGui::SliderFloat("minor diameter", &minordiam, 0.01f, 10.0f, "%.4f", 2.0);
+  ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 179.0f, "%.0f");
+  ImGui::TextWrapped("This feature will add a solid oval boundary centered at the given coordinates");
+  if (ImGui::Button("Add oval boundary")) {
+    bfeatures.emplace_back(std::make_unique<SolidOval>(bp, external_flow, xc[0], xc[1], diam, minordiam, rotdeg));
+    std::cout << "Added " << (*bfeatures.back()) << std::endl;
+    ImGui::CloseCurrentPopup();
+    add = true;
+  }
+  ImGui::SameLine();
+
+  return add;
+}
+#endif
 
 //
 // Create a square
@@ -411,6 +463,34 @@ SolidSquare::to_json() const {
   return mesh;
 }
 
+
+#ifdef USE_IMGUI
+bool SolidSquare::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::unique_ptr<BoundaryFeature>> &bfeatures) {
+  static bool external_flow = true;
+  static float xc[2] = {0.0f, 0.0f};
+  static float side = 1.0;
+  static float rotdeg = 0.0f;
+  bool add = false;
+  
+  ImGui::Checkbox("Object is in flow", &external_flow);
+  ImGui::SameLine();
+  ShowHelpMarker("Keep checked if object is immersed in flow,\nuncheck if flow is inside of object");
+  ImGui::InputFloat2("center", xc);
+  ImGui::SliderFloat("side length", &side, 0.1f, 10.0f, "%.4f");
+  ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 89.0f, "%.0f");
+  //ImGui::SliderAngle("orientation", &rotdeg);
+  ImGui::TextWrapped("This feature will add a solid square boundary centered at the given coordinates");
+  if (ImGui::Button("Add square boundary")) {
+    bfeatures.emplace_back(std::make_unique<SolidSquare>(bp, external_flow, xc[0], xc[1], side, rotdeg));
+    std::cout << "Added " << (*bfeatures.back()) << std::endl;
+    ImGui::CloseCurrentPopup();
+    add = true;
+  }
+  ImGui::SameLine();
+
+  return add;
+}
+#endif
 
 //
 // Create a rectangle
@@ -526,6 +606,34 @@ SolidRect::to_json() const {
   return mesh;
 }
 
+#ifdef USE_IMGUI
+bool SolidRect::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::unique_ptr<BoundaryFeature>> &bfeatures) {
+  static bool external_flow = true;
+  static float xc[2] = {0.0f, 0.0f};
+  static float side = 1.0;
+  static float rectside = 0.5;
+  static float rotdeg = 0.0f;
+  bool add = false;
+
+  ImGui::Checkbox("Object is in flow", &external_flow);
+  ImGui::SameLine();
+  ShowHelpMarker("Keep checked if object is immersed in flow,\nuncheck if flow is inside of object");
+  ImGui::InputFloat2("center", xc);
+  ImGui::SliderFloat("horizontal size", &side, 0.1f, 10.0f, "%.4f");
+  ImGui::SliderFloat("vertical size", &rectside, 0.1f, 10.0f, "%.4f");
+  ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 89.0f, "%.0f");
+  //ImGui::SliderAngle("orientation", &rotdeg);
+  ImGui::TextWrapped("This feature will add a solid rectangular boundary centered at the given coordinates");
+  if (ImGui::Button("Add rectangular boundary")) {
+    bfeatures.emplace_back(std::make_unique<SolidRect>(bp, external_flow, xc[0], xc[1], side, rectside, rotdeg));
+    std::cout << "Added " << (*bfeatures.back()) << std::endl;
+    ImGui::CloseCurrentPopup();
+    add = true;
+  }
+  ImGui::SameLine();
+  return add;
+}
+#endif
 
 //
 // Create a segment of a solid boundary
@@ -616,6 +724,27 @@ BoundarySegment::to_json() const {
   return mesh;
 }
 
+#ifdef USE_IMGUI
+bool BoundarySegment::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::unique_ptr<BoundaryFeature>> &bfeatures) {
+  static float xc[2] = {0.0f, 0.0f};
+  static float xe[2] = {1.0f, 0.0f};
+  static float tangbc = 0.0;
+  bool add = false;
+
+  ImGui::InputFloat2("start", xc);
+  ImGui::InputFloat2("end", xe);
+  ImGui::SliderFloat("force tangential flow", &tangbc, -2.0f, 2.0f, "%.1f");
+  ImGui::TextWrapped("This feature will add a solid boundary segment from start to end, where fluid is on the left when marching from start to end, and positive tangential flow is as if segment is moving along vector from start to end. Make sure enough segments are created to fully enclose a volume.");
+  if (ImGui::Button("Add boundary segment")) {
+    bfeatures.emplace_back(std::make_unique<BoundarySegment>(bp, true, xc[0], xc[1], xe[0], xe[1], 0.0, tangbc));
+    std::cout << "Added " << (*bfeatures.back()) << std::endl;
+    ImGui::CloseCurrentPopup();
+    add = true;
+  }
+
+  return add;
+}
+#endif
 
 // Create a Polygon 
 ElementPacket<float>
@@ -727,3 +856,50 @@ SolidPolygon::to_json() const {
   return mesh;
 }
 
+#ifdef USE_IMGUI
+bool SolidPolygon::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::unique_ptr<BoundaryFeature>> &bfeatures) {
+  static bool external_flow = true;
+  static float xc[2] = {0.0f, 0.0f};
+  static float rotdeg = 0.0f;
+  static int numSides = 4;
+  static float side = std::sqrt(2);
+  static float rad = 1.0;
+  bool add = false;
+  
+  ImGui::Checkbox("Object is in flow", &external_flow);
+  ImGui::SameLine();
+  ShowHelpMarker("Keep checked if object is immersed in flow,\nuncheck if flow is inside of object");
+  if (ImGui::InputInt("number of sides", &numSides)) {
+    // Must have at least 3 sides
+    if (numSides < 3) {
+      numSides = 3;
+      // Currently crashes if there are more than 17 sides
+    } else if (numSides > 17) {
+      numSides = 17;
+    }
+    // Set initial radius to 1 for number of sides
+    rad = 1.0;
+    // Set side length st radius is 1
+    side = std::sqrt(2*(1-std::cos(M_PI*2/numSides)));
+  }
+  ImGui::InputFloat2("center", xc);
+  if (ImGui::SliderFloat("side length", &side, 0.1f, 10.0f, "%.4f")) {
+    rad = side/std::sqrt(2*(1-std::cos(M_PI*2/numSides)));
+  }
+  if (ImGui::SliderFloat("radius", &rad, 0.1f, 10.0f, "%.4f")) { side = rad*std::sqrt(2*(1-std::cos(M_PI*2/numSides))); }
+  ImGui::SameLine();
+  ShowHelpMarker("Polygons with different numbers of sides will appear similar in size with the same radius");
+  ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 359.0f, "%.0f");
+  //ImGui::SliderAngle("orientation", &rotdeg);
+  ImGui::TextWrapped("This feature will add a solid polygon boundary with n sides centered at the given coordinates");
+  if (ImGui::Button("Add polygon boundary")) {
+    bfeatures.emplace_back(std::make_unique<SolidPolygon>(bp, external_flow, xc[0], xc[1], numSides, side, rad, rotdeg));
+    std::cout << "Added " << (*bfeatures.back()) << std::endl;
+    ImGui::CloseCurrentPopup();
+    add = true;
+  }
+  ImGui::SameLine();
+
+  return add;
+}
+#endif

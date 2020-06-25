@@ -2,7 +2,8 @@
  * MeasureFeature.h - GUI-side descriptions of flow measurement features
  *
  * (c)2018-9 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
+ *           Mark J Stock <markjstock@gmail.com>
+ *           Blake B Hillier <blakehillier@mac.com>
  */
 
 #pragma once
@@ -77,6 +78,9 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+#ifdef USE_IMGUI
+  static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &);
+#endif
 
 protected:
   //float m_str;
@@ -99,6 +103,9 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+#ifdef USE_IMGUI
+  static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &);
+#endif
 
 protected:
   // eventually implement frequency, but for now, once per step
@@ -124,6 +131,9 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+#ifdef USE_IMGUI
+  static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float &, float);
+#endif
 
 protected:
   float m_rad;
@@ -150,6 +160,9 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+#ifdef USE_IMGUI
+  static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float &, float);
+#endif
 
 protected:
   float m_xf, m_yf;
@@ -176,6 +189,9 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+#ifdef USE_IMGUI
+  static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float &, float);
+#endif
 
 protected:
   float m_xf, m_yf;
@@ -204,6 +220,9 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+#ifdef USE_IMGUI
+  static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, float);
+#endif
 
 protected:
   float m_xf, m_yf;

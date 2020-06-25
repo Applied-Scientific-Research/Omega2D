@@ -2,7 +2,8 @@
  * FlowFeature.h - GUI-side descriptions of flow features
  *
  * (c)2017-9 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
+ *           Mark J Stock <markjstock@gmail.com>
+             Blake B Hillier <blakehillier@mac.com>
  */
 
 #pragma once
@@ -67,6 +68,9 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+#ifdef USE_IMGUI
+  static void draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &);
+#endif
 
 protected:
   float m_str;
@@ -94,6 +98,9 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+#ifdef USE_IMGUI
+  static void draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &, const float);
+#endif
 
 protected:
   float m_rad;
@@ -124,6 +131,9 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+#ifdef USE_IMGUI
+  static void draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &, const float);
+#endif
 
 protected:
   float m_minrad;
@@ -150,6 +160,9 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+#ifdef USE_IMGUI
+  static void draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &, const float);
+#endif
 
 protected:
   float m_stddev;
@@ -177,6 +190,9 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+#ifdef USE_IMGUI
+  static void draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &, const float);
+#endif
 
 private:
   float m_xsize;
@@ -210,6 +226,9 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+#ifdef USE_IMGUI
+  static void draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &);
+#endif
 
 protected:
   float m_xsize;
@@ -237,6 +256,9 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+#ifdef USE_IMGUI
+  static void draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &);
+#endif
 
 protected:
 };
