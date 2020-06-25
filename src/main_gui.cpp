@@ -607,23 +607,23 @@ int main(int argc, char const *argv[]) {
         // The switch prevents constant assignment (mainly to prevent the terminal from being flooded from messages)
         static std::shared_ptr<Body> bp = nullptr;
         if (tmp != mitem) {
-	  switch(mitem) {
-	    case 0:
+          switch(mitem) {
+            case 0:
                // this geometry is fixed (attached to inertial)
                bp = sim.get_pointer_to_body("ground");
                break;
-	    case 1:
-	       // this geometry is attached to the previous geometry (or ground)
-	       bp = sim.get_last_body();
-	       break;
-	    case 2:
-	       // this geometry is attached to a new moving body
-	       bp = std::make_shared<Body>();
-	       bp->set_pos(0, std::string(strx));
-	       bp->set_pos(1, std::string(stry));
-	       bp->set_rot(std::string(strrad));
-	       break;
-	  }
+            case 1:
+               // this geometry is attached to the previous geometry (or ground)
+               bp = sim.get_last_body();
+               break;
+            case 2:
+               // this geometry is attached to a new moving body
+               bp = std::make_shared<Body>();
+               bp->set_pos(0, std::string(strx));
+               bp->set_pos(1, std::string(stry));
+               bp->set_rot(std::string(strrad));
+               break;
+          }
           tmp = mitem;
         }
 
