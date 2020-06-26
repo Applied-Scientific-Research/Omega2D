@@ -863,9 +863,9 @@ int main(int argc, char const *argv[]) {
 
     if (show_file_output_window) {
       bool try_it = false;
-      static std::string outfile = "output.json";
+      static std::string outfile = "file_name.json";
 
-      if (fileIOWindow( try_it, outfile, recent_json_files, "Save", {"*.json", "*.*"}, false, ImVec2(200+26*fontSize,300))) {
+      if (fileIOWindow( try_it, outfile, recent_json_files, "Save", {"*.json"}, false, ImVec2(200+26*fontSize,300))) {
         show_file_output_window = false;
 
         if (try_it) {
