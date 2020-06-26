@@ -42,6 +42,7 @@ public:
     std::string filePath()  const;
     std::string prefix()    const;
     std::string extension() const;
+    void addExtension(const std::string);
     std::string getName()   const;
     std::string getPath()   const;
     std::vector<std::string> getPathTokens() const;
