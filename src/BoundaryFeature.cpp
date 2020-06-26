@@ -49,6 +49,9 @@ void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
   // and pass the json object to the specific parser
   _flist.back()->from_json(_jin);
 
+  // finally, generate the draw information
+  //_flist.back()->generate_draw_geom();
+
   std::cout << "  found " << _flist.back()->to_string() << std::endl;
 }
 
@@ -463,7 +466,6 @@ SolidSquare::to_json() const {
   return mesh;
 }
 
-
 #ifdef USE_IMGUI
 bool SolidSquare::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::unique_ptr<BoundaryFeature>> &bfeatures) {
   static bool external_flow = true;
@@ -491,6 +493,12 @@ bool SolidSquare::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::
   return add;
 }
 #endif
+
+void SolidSquare::generate_draw_geom() {
+  m_draw = init_elements(m_side);
+  // transform according to body position at t=0?
+}
+
 
 //
 // Create a rectangle

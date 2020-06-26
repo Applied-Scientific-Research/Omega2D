@@ -2,7 +2,7 @@
  * GlState.h - Store general OpenGL state for drawing a Collection
  *
  * (c)2019 Applied Scientific Research, Inc.
- *         Written by Mark J Stock <markjstock@gmail.com>
+ *         Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -14,7 +14,7 @@
 #include <cassert>
 
 
-// 1-D elements
+// Hold state for OpenGL
 class GlState {
 public:
   GlState(const int _nvbo, const int _nspo) {
@@ -33,6 +33,8 @@ public:
 
     // finally the shader program array
     spo.resize(_nspo);
+
+    num_uploaded = 0;
   }
 
   // must specifically destroy buffers

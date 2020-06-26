@@ -14,6 +14,7 @@
 #include "JsonHelper.h"
 #include "Body.h"
 #include "RenderParams.h"
+#include "FeatureDraw.h"
 #include "json/json.hpp"
 #include "main_gui_functions.cpp"
 
@@ -53,6 +54,7 @@ int main(int argc, char const *argv[]) {
   std::vector< std::unique_ptr<FlowFeature> > ffeatures;
   std::vector< std::unique_ptr<BoundaryFeature> > bfeatures;
   std::vector< std::unique_ptr<MeasureFeature> > mfeatures;
+  FeatureDraw dfeature;
   size_t nframes = 0;
   static bool sim_is_running = false;
   static bool begin_single_step = false;

@@ -166,10 +166,12 @@ public:
 #ifdef USE_IMGUI
   static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
 #endif
+  void generate_draw_geom();
 
 protected:
   float m_side;
   float m_theta;
+  ElementPacket<float> m_draw;
 };
 
 

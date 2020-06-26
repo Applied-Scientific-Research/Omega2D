@@ -18,14 +18,17 @@ public:
   explicit
   Feature(bool _enabled)
     : m_enabled(_enabled)
+      //m_draw()
     {}
 
   void enable() { m_enabled = true; };
   void disable() { m_enabled = false; };
   bool is_enabled() const { return m_enabled; };
   bool* addr_enabled() { return &m_enabled; };
+  //void generate_draw_geom();
 
 protected:
   bool m_enabled;
+  //ElementPacket<float> m_draw;
 };
 
