@@ -50,7 +50,7 @@ void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
   _flist.back()->from_json(_jin);
 
   // finally, generate the draw information
-  //_flist.back()->generate_draw_geom();
+  _flist.back()->generate_draw_geom();
 
   std::cout << "  found " << _flist.back()->to_string() << std::endl;
 }
@@ -153,12 +153,18 @@ bool SolidCircle::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::
   if (ImGui::Button("Add circular boundary")) {
     bfeatures.emplace_back(std::make_unique<SolidCircle>(bp, external_flow, xc[0], xc[1], diam));
     ImGui::CloseCurrentPopup();
+    bfeatures.back()->generate_draw_geom();
     add = true;
   }
   ImGui::SameLine();
   return add;
 }
 #endif
+
+void SolidCircle::generate_draw_geom() {
+  m_draw = init_elements(m_diam/30.0);
+}
+
 
 //
 // Create an oval
@@ -355,6 +361,11 @@ bool SolidOval::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::un
   return add;
 }
 #endif
+
+void SolidOval::generate_draw_geom() {
+  m_draw = init_elements(m_diam*30);
+}
+
 
 //
 // Create a square
@@ -643,6 +654,11 @@ bool SolidRect::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::un
 }
 #endif
 
+void SolidRect::generate_draw_geom() {
+  m_draw = init_elements(m_side);
+}
+
+
 //
 // Create a segment of a solid boundary
 //
@@ -753,6 +769,11 @@ bool BoundarySegment::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<s
   return add;
 }
 #endif
+
+void BoundarySegment::generate_draw_geom() {
+  m_draw = init_elements(1.0);
+}
+
 
 // Create a Polygon 
 ElementPacket<float>
@@ -911,3 +932,8 @@ bool SolidPolygon::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std:
   return add;
 }
 #endif
+
+void SolidPolygon::generate_draw_geom() {
+  m_draw = init_elements(m_radius);
+}
+

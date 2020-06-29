@@ -2,10 +2,12 @@
  * Feature.h - Parent class to all features
  *
  * (c)2019-20 Applied Scientific Research, Inc.
- *            Written by Mark J Stock <markjstock@gmail.com>
+ *            Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
+
+//#include "ElementPacket.h"
 
 #include <iostream>
 #include <vector>
@@ -17,7 +19,7 @@ class Feature {
 public:
   explicit
   Feature(bool _enabled)
-    : m_enabled(_enabled)
+    : m_enabled(_enabled)//,
       //m_draw()
     {}
 
