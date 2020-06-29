@@ -5,7 +5,7 @@ uniform mat4 Projection;
 uniform vec4 pos_color;
 uniform vec4 neg_color;
 uniform vec4 def_color;
-in float2 pos;
+in vec2 pos;
 in float str;
 out vec4 base_color;
 
