@@ -22,14 +22,32 @@ const std::string frag_shader_source =
 
 // Control storage and drawing of features before Simulation takes over
 
+
+// add elements to the local list
+void FeatureDraw::add_elements(const ElementPacket<float> _in) {
+  // remember the number of points in the position array before appending
+  const Int np_old = m_geom.x.size() / 2;
+  m_geom.x.insert(std::end(m_geom.x), std::begin(_in.x), std::end(_in.x));
+  // append indices now
+  const Int ni_old = m_geom.idx.size();
+  m_geom.idx.insert(std::end(m_geom.idx), std::begin(_in.idx), std::end(_in.idx));
+  // but shift the new indices
+  for (auto it=m_geom.idx.begin()+ni_old; it!=m_geom.idx.end(); ++it) {
+    (*it) += np_old;
+  }
+  std::cout << "  FeatureDraw has " << (m_geom.x.size()/2) << " nodes and " << (m_geom.idx.size()/2) << " elements" << std::endl;
+}
+
+
 // helper function to clean up initGL
-void FeatureDraw::prepare_opengl_buffer(GLuint _prog, GLuint _idx, const GLchar* _name) {
+void FeatureDraw::prepare_opengl_buffer(const GLuint _prog, const GLuint _idx,
+                                        const GLchar* _name, const GLuint _nper) {
   glBindBuffer(GL_ARRAY_BUFFER, m_gl->vbo[_idx]);
-  const GLint position_attribute = glGetAttribLocation(_prog, _name);
+  const GLint attribute_pos = glGetAttribLocation(_prog, _name);
   // Specify how the data for position can be accessed
-  glVertexAttribPointer(position_attribute, 1, get_gl_type<float>, GL_FALSE, 0, 0);
+  glVertexAttribPointer(attribute_pos, _nper, get_gl_type<float>, GL_FALSE, 0, 0);
   // Enable the attribute
-  glEnableVertexAttribArray(position_attribute);
+  glEnableVertexAttribArray(attribute_pos);
 }
 
 void FeatureDraw::initGL(std::vector<float>& _projmat,
@@ -40,7 +58,7 @@ void FeatureDraw::initGL(std::vector<float>& _projmat,
   std::cout << "inside FeatureDraw::initGL" << std::endl;
 
   // generate the opengl state object and bind the vao
-  m_gl = std::make_shared<GlState>(2,1);
+  m_gl = std::make_unique<GlState>(2,1);
 
   // Allocate space, but don't upload the data from CPU to GPU yet
   glBindBuffer(GL_ARRAY_BUFFER, m_gl->vbo[0]);
@@ -54,8 +72,8 @@ void FeatureDraw::initGL(std::vector<float>& _projmat,
   m_gl->spo[0] = create_vertfrag_prog(vert_shader_source, frag_shader_source);
 
   // Now do the two arrays
-  prepare_opengl_buffer(m_gl->spo[0], 0, "pos");
-  prepare_opengl_buffer(m_gl->spo[0], 1, "str");
+  prepare_opengl_buffer(m_gl->spo[0], 0, "pos", 2);
+  //prepare_opengl_buffer(m_gl->spo[0], 1, "str", 1);
 
   // Get the location of the attributes that enters in the vertex shader
   m_gl->projmat_attribute = glGetUniformLocation(m_gl->spo[0], "Projection");

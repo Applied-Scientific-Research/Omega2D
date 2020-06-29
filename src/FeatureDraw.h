@@ -21,6 +21,9 @@ public:
   // deleting GlState will destroy buffers
   ~FeatureDraw() { }
 
+  // visible member functions
+  void add_elements(const ElementPacket<float>);
+
   void updateGL();
   void drawGL(std::vector<float>&, RenderParams&);
 
@@ -28,13 +31,13 @@ private:
   //
   // member variables
   //
-  void prepare_opengl_buffer(GLuint, GLuint, const GLchar*);
+  void prepare_opengl_buffer(const GLuint, const GLuint, const GLchar*, const GLuint);
   void initGL(std::vector<float>&, float*, float*, float*);
 
   // Collected geometry
   ElementPacket<float> m_geom;
 
   // VAO, VBOs, etc.
-  std::shared_ptr<GlState> m_gl;
+  std::unique_ptr<GlState> m_gl;
 };
 
