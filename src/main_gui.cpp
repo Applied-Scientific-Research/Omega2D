@@ -227,6 +227,8 @@ int main(int argc, char const *argv[]) {
         std::cout << std::endl << "ERROR: " << sim_err_msg;
         // stop the run
         sim_is_running = false;
+        // and reset
+        sim.reset();
       }
 
       begin_single_step = false;
@@ -606,23 +608,23 @@ int main(int argc, char const *argv[]) {
         // The switch prevents constant assignment (mainly to prevent the terminal from being flooded from messages)
         static std::shared_ptr<Body> bp = nullptr;
         if (tmp != mitem) {
-	  switch(mitem) {
-	    case 0:
+          switch(mitem) {
+            case 0:
                // this geometry is fixed (attached to inertial)
                bp = sim.get_pointer_to_body("ground");
                break;
-	    case 1:
-	       // this geometry is attached to the previous geometry (or ground)
-	       bp = sim.get_last_body();
-	       break;
-	    case 2:
-	       // this geometry is attached to a new moving body
-	       bp = std::make_shared<Body>();
-	       bp->set_pos(0, std::string(strx));
-	       bp->set_pos(1, std::string(stry));
-	       bp->set_rot(std::string(strrad));
-	       break;
-	  }
+            case 1:
+               // this geometry is attached to the previous geometry (or ground)
+               bp = sim.get_last_body();
+               break;
+            case 2:
+               // this geometry is attached to a new moving body
+               bp = std::make_shared<Body>();
+               bp->set_pos(0, std::string(strx));
+               bp->set_pos(1, std::string(stry));
+               bp->set_rot(std::string(strrad));
+               break;
+          }
           tmp = mitem;
         }
 
@@ -632,60 +634,60 @@ int main(int argc, char const *argv[]) {
             // create a circular boundary
             if (SolidCircle::draw_creation_gui(bp, bfeatures)) {
               if (mitem == 2) {
-	        bp->set_name("circular cylinder");
-	        sim.add_body(bp);
+                bp->set_name("circular cylinder");
+                sim.add_body(bp);
               }
-              std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              dfeature.add_elements( bfeatures.back()->get_draw_packet() );
             }
           } break;
           case 1: {
             // create a square boundary
             if (SolidSquare::draw_creation_gui(bp, bfeatures)) {
               if (mitem == 2) {
-	        bp->set_name("square cylinder");
-	        sim.add_body(bp);
+                bp->set_name("square cylinder");
+                sim.add_body(bp);
               }
-              std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              dfeature.add_elements( bfeatures.back()->get_draw_packet() );
             }
           } break;
           case 2: {
             // create an oval boundary
             if (SolidOval::draw_creation_gui(bp, bfeatures)) {
               if (mitem == 2) {
-	        bp->set_name("oval cylinder");
-	        sim.add_body(bp);
+                bp->set_name("oval cylinder");
+                sim.add_body(bp);
               }
-              std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              dfeature.add_elements( bfeatures.back()->get_draw_packet() );
             } 
           } break;
           case 3: {
             // create a rectangle boundary
             if (SolidRect::draw_creation_gui(bp, bfeatures)) {
               if (mitem == 2) {
-	        bp->set_name("rectangular cylinder");
-	        sim.add_body(bp);
+                bp->set_name("rectangular cylinder");
+                sim.add_body(bp);
               }
-              std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              dfeature.add_elements( bfeatures.back()->get_draw_packet() );
             } 
           } break;
           case 4: {
             // create a straight boundary segment
             if (SolidRect::draw_creation_gui(bp, bfeatures)) {
               if (mitem == 2) {
-	        bp->set_name("segmented boundary");
-	        sim.add_body(bp);
+                bp->set_name("segmented boundary");
+                sim.add_body(bp);
               }
-              std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              dfeature.add_elements( bfeatures.back()->get_draw_packet() );
             } 
           } break;
           case 5: {
             // create a polygon boundary
             if (SolidPolygon::draw_creation_gui(bp, bfeatures)) {
               if (mitem == 2) {
-	        bp->set_name("polygon cylinder");
-	        sim.add_body(bp);
+                bp->set_name("polygon cylinder");
+                sim.add_body(bp);
               }
-              std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              dfeature.add_elements( bfeatures.back()->get_draw_packet() );
             } 
           }
         } // end switch for geometry
@@ -991,7 +993,17 @@ int main(int argc, char const *argv[]) {
     sim.drawGL(gl_projection, rparams);
 
     // if simulation has not been initted, draw the features instead!
-    //for (auto const& bf : bfeatures) { bf.drawGL(gl_projection, rparams); }
+    if (not sim.is_initialized()) {
+      // append draw geometries to FeatureDraw object
+      for (auto const& bf : bfeatures) {
+        if (bf->is_enabled()) {
+          // what should we do differently?
+        }
+      }
+
+      // and draw
+      dfeature.drawGL(gl_projection, rparams);
+    }
 
     // here is where we write the buffer to a file
     if ((is_ready and record_all_frames and sim_is_running) or draw_this_frame) {

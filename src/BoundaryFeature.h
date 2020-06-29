@@ -44,6 +44,7 @@ public:
   //virtual std::vector<float> step_elements(const float) const = 0;
   std::shared_ptr<Body> get_body() { return m_bp; }
   virtual void generate_draw_geom() = 0;
+  virtual ElementPacket<float> get_draw_packet() { return m_draw; }
 
 protected:
   std::shared_ptr<Body> m_bp;
@@ -175,7 +176,6 @@ public:
 protected:
   float m_side;
   float m_theta;
-  ElementPacket<float> m_draw;
 };
 
 

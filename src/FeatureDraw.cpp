@@ -25,17 +25,22 @@ const std::string frag_shader_source =
 
 // add elements to the local list
 void FeatureDraw::add_elements(const ElementPacket<float> _in) {
+  //std::cout << "  FeatureDraw appending " << (_in.x.size()/2) << " nodes and " << (_in.idx.size()/2) << " elements" << std::endl;
+
   // remember the number of points in the position array before appending
   const Int np_old = m_geom.x.size() / 2;
   m_geom.x.insert(std::end(m_geom.x), std::begin(_in.x), std::end(_in.x));
+
   // append indices now
   const Int ni_old = m_geom.idx.size();
   m_geom.idx.insert(std::end(m_geom.idx), std::begin(_in.idx), std::end(_in.idx));
+
   // but shift the new indices
   for (auto it=m_geom.idx.begin()+ni_old; it!=m_geom.idx.end(); ++it) {
     (*it) += np_old;
   }
-  std::cout << "  FeatureDraw has " << (m_geom.x.size()/2) << " nodes and " << (m_geom.idx.size()/2) << " elements" << std::endl;
+
+  //std::cout << "  FeatureDraw now has " << (m_geom.x.size()/2) << " nodes and " << (m_geom.idx.size()/2) << " elements" << std::endl;
 }
 
 
@@ -100,6 +105,8 @@ void FeatureDraw::initGL(std::vector<float>& _projmat,
 
 void FeatureDraw::updateGL() {
 
+  //std::cout << "inside FeatureDraw::updateGL" << std::endl;
+
   // has this been init'd yet?
   if (not m_gl) return;
   if (glIsVertexArray(m_gl->vao) == GL_FALSE) return;
@@ -127,11 +134,17 @@ void FeatureDraw::updateGL() {
 void FeatureDraw::drawGL(std::vector<float>& _projmat,
                          RenderParams&       _rparams) {
 
+  //std::cout << "inside FeatureDraw::drawGL" << std::endl;
+
   // has this been init'd yet?
   if (not m_gl) {
     initGL(_projmat, _rparams.pos_circ_color,
                      _rparams.neg_circ_color,
                      _rparams.default_color);
+    updateGL();
+  }
+
+  if (m_gl->num_uploaded != (GLsizei)m_geom.idx.size()) {
     updateGL();
   }
 

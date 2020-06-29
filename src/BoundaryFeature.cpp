@@ -157,12 +157,13 @@ bool SolidCircle::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::
     add = true;
   }
   ImGui::SameLine();
+
   return add;
 }
 #endif
 
 void SolidCircle::generate_draw_geom() {
-  m_draw = init_elements(m_diam/30.0);
+  m_draw = init_elements(m_diam/25.0);
 }
 
 
@@ -353,6 +354,7 @@ bool SolidOval::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::un
   if (ImGui::Button("Add oval boundary")) {
     bfeatures.emplace_back(std::make_unique<SolidOval>(bp, external_flow, xc[0], xc[1], diam, minordiam, rotdeg));
     std::cout << "Added " << (*bfeatures.back()) << std::endl;
+    bfeatures.back()->generate_draw_geom();
     ImGui::CloseCurrentPopup();
     add = true;
   }
@@ -496,6 +498,7 @@ bool SolidSquare::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::
   if (ImGui::Button("Add square boundary")) {
     bfeatures.emplace_back(std::make_unique<SolidSquare>(bp, external_flow, xc[0], xc[1], side, rotdeg));
     std::cout << "Added " << (*bfeatures.back()) << std::endl;
+    bfeatures.back()->generate_draw_geom();
     ImGui::CloseCurrentPopup();
     add = true;
   }
@@ -646,10 +649,12 @@ bool SolidRect::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::un
   if (ImGui::Button("Add rectangular boundary")) {
     bfeatures.emplace_back(std::make_unique<SolidRect>(bp, external_flow, xc[0], xc[1], side, rectside, rotdeg));
     std::cout << "Added " << (*bfeatures.back()) << std::endl;
+    bfeatures.back()->generate_draw_geom();
     ImGui::CloseCurrentPopup();
     add = true;
   }
   ImGui::SameLine();
+
   return add;
 }
 #endif
@@ -762,6 +767,7 @@ bool BoundarySegment::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<s
   if (ImGui::Button("Add boundary segment")) {
     bfeatures.emplace_back(std::make_unique<BoundarySegment>(bp, true, xc[0], xc[1], xe[0], xe[1], 0.0, tangbc));
     std::cout << "Added " << (*bfeatures.back()) << std::endl;
+    bfeatures.back()->generate_draw_geom();
     ImGui::CloseCurrentPopup();
     add = true;
   }
@@ -924,6 +930,7 @@ bool SolidPolygon::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std:
   if (ImGui::Button("Add polygon boundary")) {
     bfeatures.emplace_back(std::make_unique<SolidPolygon>(bp, external_flow, xc[0], xc[1], numSides, side, rad, rotdeg));
     std::cout << "Added " << (*bfeatures.back()) << std::endl;
+    bfeatures.back()->generate_draw_geom();
     ImGui::CloseCurrentPopup();
     add = true;
   }
