@@ -31,7 +31,7 @@ void FeatureDraw::clear_elements() {
 }
 
 // add elements to the local list
-void FeatureDraw::add_elements(const ElementPacket<float> _in) {
+void FeatureDraw::add_elements(const ElementPacket<float> _in, const bool _enabled) {
   //std::cout << "  FeatureDraw appending " << (_in.x.size()/2) << " nodes and " << (_in.idx.size()/2) << " elements" << std::endl;
 
   // remember the number of points in the position array before appending
@@ -45,6 +45,15 @@ void FeatureDraw::add_elements(const ElementPacket<float> _in) {
   // but shift the new indices
   for (auto it=m_geom.idx.begin()+ni_old; it!=m_geom.idx.end(); ++it) {
     (*it) += np_old;
+  }
+
+  // and set the str/val array for per-element color/strength
+  const size_t vsize = m_geom.val.size();
+  m_geom.val.resize(vsize+_in.idx.size()/2);
+  if (_enabled) {
+    std::fill(m_geom.val.begin()+vsize, m_geom.val.end(), 1.0);
+  } else {
+    std::fill(m_geom.val.begin()+vsize, m_geom.val.end(), 0.3);
   }
 
   //std::cout << "  FeatureDraw now has " << (m_geom.x.size()/2) << " nodes and " << (m_geom.idx.size()/2) << " elements" << std::endl;
@@ -70,13 +79,16 @@ void FeatureDraw::initGL(std::vector<float>& _projmat,
   std::cout << "inside FeatureDraw::initGL" << std::endl;
 
   // generate the opengl state object and bind the vao
-  m_gl = std::make_unique<GlState>(2,1);
+  m_gl = std::make_unique<GlState>(3,1);
 
   // Allocate space, but don't upload the data from CPU to GPU yet
   glBindBuffer(GL_ARRAY_BUFFER, m_gl->vbo[0]);
   glBufferData(GL_ARRAY_BUFFER, 0, m_geom.x.data(), GL_STATIC_DRAW);
 
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_gl->vbo[1]);
+  glBindBuffer(GL_ARRAY_BUFFER, m_gl->vbo[1]);
+  glBufferData(GL_ARRAY_BUFFER, 0, m_geom.val.data(), GL_STATIC_DRAW);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_gl->vbo[2]);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, 0, m_geom.idx.data(), GL_STATIC_DRAW);
 
   // Load and create the line-drawing shader program
@@ -85,7 +97,7 @@ void FeatureDraw::initGL(std::vector<float>& _projmat,
 
   // Now do the two arrays
   prepare_opengl_buffer(m_gl->spo[0], 0, "pos", 2);
-  //prepare_opengl_buffer(m_gl->spo[0], 1, "str", 1);
+  prepare_opengl_buffer(m_gl->spo[0], 1, "str", 1);
 
   // Get the location of the attributes that enters in the vertex shader
   m_gl->projmat_attribute = glGetUniformLocation(m_gl->spo[0], "Projection");
@@ -128,8 +140,12 @@ void FeatureDraw::updateGL() {
     glBindBuffer(GL_ARRAY_BUFFER, m_gl->vbo[0]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float)*m_geom.x.size(), m_geom.x.data(), GL_DYNAMIC_DRAW);
 
+    // strengths
+    glBindBuffer(GL_ARRAY_BUFFER, m_gl->vbo[1]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*m_geom.val.size(), m_geom.val.data(), GL_DYNAMIC_DRAW);
+
     // and element indices
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_gl->vbo[1]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_gl->vbo[2]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Int)*m_geom.idx.size(), m_geom.idx.data(), GL_DYNAMIC_DRAW);
     glBindVertexArray(0);
 

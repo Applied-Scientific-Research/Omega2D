@@ -637,7 +637,7 @@ int main(int argc, char const *argv[]) {
                 bp->set_name("circular cylinder");
                 sim.add_body(bp);
               }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet() );
+              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
             }
           } break;
           case 1: {
@@ -647,7 +647,7 @@ int main(int argc, char const *argv[]) {
                 bp->set_name("square cylinder");
                 sim.add_body(bp);
               }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet() );
+              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
             }
           } break;
           case 2: {
@@ -657,7 +657,7 @@ int main(int argc, char const *argv[]) {
                 bp->set_name("oval cylinder");
                 sim.add_body(bp);
               }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet() );
+              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
             } 
           } break;
           case 3: {
@@ -667,7 +667,7 @@ int main(int argc, char const *argv[]) {
                 bp->set_name("rectangular cylinder");
                 sim.add_body(bp);
               }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet() );
+              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
             } 
           } break;
           case 4: {
@@ -677,7 +677,7 @@ int main(int argc, char const *argv[]) {
                 bp->set_name("segmented boundary");
                 sim.add_body(bp);
               }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet() );
+              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
             } 
           } break;
           case 5: {
@@ -687,7 +687,7 @@ int main(int argc, char const *argv[]) {
                 bp->set_name("polygon cylinder");
                 sim.add_body(bp);
               }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet() );
+              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
             } 
           }
         } // end switch for geometry
@@ -802,8 +802,7 @@ int main(int argc, char const *argv[]) {
         // clear out and re-make all boundary draw geometry
         bdraw.clear_elements();
         for (auto const& bf : bfeatures) {
-          bdraw.add_elements( bf->get_draw_packet() );
-          //bdraw.add_elements( bfeatures.back()->get_draw_packet(), bf->is_enabled() );
+          bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
         }
       }
 

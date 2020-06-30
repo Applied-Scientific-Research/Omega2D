@@ -23,7 +23,7 @@ public:
 
   // visible member functions
   void clear_elements();
-  void add_elements(const ElementPacket<float>);
+  void add_elements(const ElementPacket<float>, const bool);
 
   void updateGL();
   void drawGL(std::vector<float>&, RenderParams&);
