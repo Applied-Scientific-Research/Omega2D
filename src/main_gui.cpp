@@ -361,12 +361,18 @@ int main(int argc, char const *argv[]) {
         ImGui::EndCombo();
       }
 
-      if(currentItemIndex) {
+      if (currentItemIndex) {
         sim.reset();
         bfeatures.clear();
         ffeatures.clear();
         mfeatures.clear();
         parse_json(sim, ffeatures, bfeatures, mfeatures, rparams, sims[currentItemIndex-1]);
+        // clear and remake the draw geometry
+        bdraw.clear_elements();
+        for (auto const& bf : bfeatures) {
+          bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
+        }
+        // finish setting up and run
         is_viscous = sim.get_diffuse();
         currentItemIndex = 0;
         sim_is_running = true;
@@ -397,7 +403,14 @@ int main(int argc, char const *argv[]) {
           // load and report
           nlohmann::json j = read_json(infile);
           parse_json(sim, ffeatures, bfeatures, mfeatures, rparams, j);
-          // we have to manually set this variable
+
+          // clear and remake the draw geometry
+          bdraw.clear_elements();
+          for (auto const& bf : bfeatures) {
+            bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
+          }
+
+          // finish setting up and run
           is_viscous = sim.get_diffuse();
 
           // run one step so we know what we have, or autostart
