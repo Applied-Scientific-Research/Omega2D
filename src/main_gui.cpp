@@ -54,7 +54,7 @@ int main(int argc, char const *argv[]) {
   std::vector< std::unique_ptr<FlowFeature> > ffeatures;
   std::vector< std::unique_ptr<BoundaryFeature> > bfeatures;
   std::vector< std::unique_ptr<MeasureFeature> > mfeatures;
-  FeatureDraw dfeature;
+  FeatureDraw bdraw;
   size_t nframes = 0;
   static bool sim_is_running = false;
   static bool begin_single_step = false;
@@ -637,7 +637,7 @@ int main(int argc, char const *argv[]) {
                 bp->set_name("circular cylinder");
                 sim.add_body(bp);
               }
-              dfeature.add_elements( bfeatures.back()->get_draw_packet() );
+              bdraw.add_elements( bfeatures.back()->get_draw_packet() );
             }
           } break;
           case 1: {
@@ -647,7 +647,7 @@ int main(int argc, char const *argv[]) {
                 bp->set_name("square cylinder");
                 sim.add_body(bp);
               }
-              dfeature.add_elements( bfeatures.back()->get_draw_packet() );
+              bdraw.add_elements( bfeatures.back()->get_draw_packet() );
             }
           } break;
           case 2: {
@@ -657,7 +657,7 @@ int main(int argc, char const *argv[]) {
                 bp->set_name("oval cylinder");
                 sim.add_body(bp);
               }
-              dfeature.add_elements( bfeatures.back()->get_draw_packet() );
+              bdraw.add_elements( bfeatures.back()->get_draw_packet() );
             } 
           } break;
           case 3: {
@@ -667,7 +667,7 @@ int main(int argc, char const *argv[]) {
                 bp->set_name("rectangular cylinder");
                 sim.add_body(bp);
               }
-              dfeature.add_elements( bfeatures.back()->get_draw_packet() );
+              bdraw.add_elements( bfeatures.back()->get_draw_packet() );
             } 
           } break;
           case 4: {
@@ -677,7 +677,7 @@ int main(int argc, char const *argv[]) {
                 bp->set_name("segmented boundary");
                 sim.add_body(bp);
               }
-              dfeature.add_elements( bfeatures.back()->get_draw_packet() );
+              bdraw.add_elements( bfeatures.back()->get_draw_packet() );
             } 
           } break;
           case 5: {
@@ -687,7 +687,7 @@ int main(int argc, char const *argv[]) {
                 bp->set_name("polygon cylinder");
                 sim.add_body(bp);
               }
-              dfeature.add_elements( bfeatures.back()->get_draw_packet() );
+              bdraw.add_elements( bfeatures.back()->get_draw_packet() );
             } 
           }
         } // end switch for geometry
@@ -798,6 +798,13 @@ int main(int argc, char const *argv[]) {
       if (del_this_bdry > -1) {
         std::cout << "Asked to delete boundary feature " << del_this_bdry << std::endl;
         bfeatures.erase(bfeatures.begin()+del_this_bdry);
+
+        // clear out and re-make all boundary draw geometry
+        bdraw.clear_elements();
+        for (auto const& bf : bfeatures) {
+          bdraw.add_elements( bf->get_draw_packet() );
+          //bdraw.add_elements( bfeatures.back()->get_draw_packet(), bf->is_enabled() );
+        }
       }
 
       // list existing measurement features here
@@ -1002,7 +1009,7 @@ int main(int argc, char const *argv[]) {
       }
 
       // and draw
-      dfeature.drawGL(gl_projection, rparams);
+      bdraw.drawGL(gl_projection, rparams);
     }
 
     // here is where we write the buffer to a file

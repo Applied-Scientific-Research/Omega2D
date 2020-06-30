@@ -22,6 +22,7 @@ public:
   ~FeatureDraw() { }
 
   // visible member functions
+  void clear_elements();
   void add_elements(const ElementPacket<float>);
 
   void updateGL();

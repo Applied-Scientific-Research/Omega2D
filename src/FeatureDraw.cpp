@@ -23,6 +23,13 @@ const std::string frag_shader_source =
 // Control storage and drawing of features before Simulation takes over
 
 
+// empty out element packet
+void FeatureDraw::clear_elements() {
+  m_geom.x.clear();
+  m_geom.idx.clear();
+  m_geom.val.clear();
+}
+
 // add elements to the local list
 void FeatureDraw::add_elements(const ElementPacket<float> _in) {
   //std::cout << "  FeatureDraw appending " << (_in.x.size()/2) << " nodes and " << (_in.idx.size()/2) << " elements" << std::endl;
