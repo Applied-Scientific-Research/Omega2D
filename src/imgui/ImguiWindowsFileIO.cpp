@@ -166,6 +166,10 @@ string MiniPath::extension() const
     return name.substr (name.find_last_of ('.')+1);
 }
 
+void MiniPath::addExtension(const string ext) {
+   name += '.'+ext;
+}
+
 string MiniPath::getCurrentDir()
 {
     char cCurrentPath[FILENAME_MAX];
@@ -445,7 +449,7 @@ bool fileIOWindow(
     if( current_folder == "x" )
         current_folder = MiniPath::getCurrentDir();
 
-    static char current_file[ 256 ] = "select_a_file";
+    static char current_file[ 256 ] = "select_a_file.json";
     static int  file_type_selected = 0;
     static int  file_selected = 0;
     static int  directory_selected = 0;
@@ -459,7 +463,7 @@ bool fileIOWindow(
 
     string tmp = current_folder + sys_delim + current_file;
     MiniPath current_mini_path( tmp );
-
+    
     list<string> directories = MiniPath::listDirectories( current_mini_path.getPath() );
     std::vector<const char*> dir_list;
     for( const string& s : directories )
@@ -629,16 +633,9 @@ bool fileIOWindow(
     if( Button( button_text.c_str() ) )
     {
         vector<string> ext_filter_v = stringSplit( extension_cstrings[file_type_selected], '.');
-        if( ext_filter_v.size() == 2 &&
-                ext_filter_v[1] != "*" ) {
-            string ext_filter = ext_filter_v[1];
-          std::cout << "1 " << current_mini_path.extension() << std::endl << "2 " << ext_filter << std::endl << "3 " << current_mini_path.filePath() << std::endl;
-            if( current_mini_path.extension() == ext_filter )
-                file_path = current_mini_path.filePath();
-        } else {
-            file_path = current_mini_path.filePath();
-        }
-        std::cout << "4 " << file_path << std::endl;
+        if (current_mini_path.extension() != ext_filter_v[1]) { current_mini_path.addExtension(ext_filter_v[1]); }
+        file_path = current_mini_path.filePath();
+        std::cout << file_path << std::endl;
         if( ensure_file_exists )
         {
             if( MiniPath::pathExists( file_path ) )
