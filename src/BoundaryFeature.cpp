@@ -365,7 +365,7 @@ bool SolidOval::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::un
 #endif
 
 void SolidOval::generate_draw_geom() {
-  m_draw = init_elements(m_diam*30);
+  m_draw = init_elements(m_diam/25.0);
 }
 
 
