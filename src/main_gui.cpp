@@ -968,7 +968,7 @@ int main(int argc, char const *argv[]) {
     //if (nframes < 10){ std::cout << "show_stats_window: " << show_stats_window << std::endl; }
     if (show_stats_window) { draw_stats_window(sim.get_npanels(), sim.get_nfldpts(), sim.get_nstep(), 
                                                sim.get_time(), sim.get_nparts(), &show_stats_window,
-                                               fontSize, display_h, display_w); }
+                                               fontSize, display_h); }
 
     // Show the terminal output of the program
     if (show_terminal_window) {
