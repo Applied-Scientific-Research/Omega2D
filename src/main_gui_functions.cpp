@@ -193,15 +193,25 @@ void draw_render_gui(RenderParams &rp) {
 }
 
 void draw_stats_window(const long int numPanels, const long int numFieldPts, const long int step, const float time,
-                       const long int numParticles, bool* showStatsWindow, const int fontSize, const float displayH) {
-  // std::cout << "Creating stats window: " << std::endl;
+                       const long int numParticles, bool* showStatsWindow, const int fontSize, const float displayH, const float displayW) {
+  //std::cout << "Creating stats window: " << std::endl;
   // there's no way to have this appear in the output png without the rest of the GUI
   const int numrows = 4 + (numPanels > 0 ? 1 : 0) + (numFieldPts > 0 ? 1 : 0);
   // std::cout << "   fontSize: " << fontSize << "\n   numrows: " << numrows << "\n   display_h: " << display_h << std::endl;
-  ImGui::SetNextWindowSize(ImVec2(10+fontSize*11, 10+1.1*fontSize*numrows));
-  ImGui::SetNextWindowPos(ImVec2(20, displayH-fontSize*(1.1*numrows+1)));
+  static bool x = true;
+  if (x) {
+  std::cout << displayW << "  " << displayH << "  " << fontSize << "  " << numrows <<  std::endl;
+  x = false;
+  }
+  ImGui::SetNextWindowSize(ImVec2(10+fontSize*11,10+1.1*fontSize*numrows));
+  ImGui::SetNextWindowPos(ImVec2(10.0f, ((displayH-fontSize*(1.1*numrows))/2)-60.0));//(displayH/2)-(10+1.1*fontSize*numrows)));
+  //ImGui::SetNextWindowSize(ImVec2(10+fontSize*11,10+1.1*fontSize*numrows));
+  //ImGui::SetNextWindowPos(ImVec2(20, displayH-fontSize*(1.1*numrows+1)));
   ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-  ImGui::Begin("Statistics", showStatsWindow, window_flags);
+  bool h = ImGui::Begin("Statistics", showStatsWindow, window_flags);
+  if (!h) {
+    std::cout << "Uh oh" << std::endl;
+  }
   ImGui::Text("Step %13ld", step);
   ImGui::Text("Time %13.4f", time);
   if (numPanels > 0) { ImGui::Text("Panels %11ld", numPanels); }
