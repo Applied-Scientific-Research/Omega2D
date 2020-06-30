@@ -22,6 +22,10 @@ SET (USE_EXTERNAL_SUM FALSE CACHE BOOL "Enable external velocity solver")
 SET (CMAKE_VERBOSE_MAKEFILE on)
 SET (CMAKE_EXPORT_COMPILE_COMMANDS on)
 
+IF (APPLE)
+  SET (CMAKE_INSTALL_PREFIX /usr/local/share)
+ENDIF ()
+
 # Finds directory to pre-made sims
 IF (${CMAKE_BUILD_TYPE} STREQUAL "Release")
   ADD_DEFINITIONS(-DEXAMPLES_DIR="${CMAKE_INSTALL_PREFIX}/examples")
