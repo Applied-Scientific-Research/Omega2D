@@ -274,3 +274,40 @@ protected:
   float m_theta;
 };
 
+/*
+ NACA Class
+ This is a simple polygon with equa-length sides and angles.
+*/
+class SolidAirfoil: public BoundaryFeature {
+public:
+  SolidAirfoil(std::shared_ptr<Body> _bp = nullptr,
+               bool _ext = true,
+               float _x = 0.0,
+               float _y = 0.0,
+               int _maxCamber = 0,
+               int _chordLocation = 0,
+               int _thickness = 0,
+               float _theta = 0.0)
+    : BoundaryFeature(_bp, _ext, _x, _y),
+      m_maxCamber(_maxCamber),
+      m_chordLocation(_chordLocation),
+      m_thickness(_thickness),
+      m_theta(_theta)
+    {}
+
+  void debug(std::ostream& os) const override;
+  std::string to_string() const override;
+  void from_json(const nlohmann::json) override;
+  nlohmann::json to_json() const override;
+  ElementPacket<float> init_elements(const float) const override;
+#ifdef USE_IMGUI
+  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+#endif
+
+protected:
+  int m_maxCamber;
+  int m_chordLocation;
+  int m_thickness;
+  float m_theta;
+};
+

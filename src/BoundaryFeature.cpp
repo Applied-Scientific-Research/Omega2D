@@ -9,6 +9,7 @@
 #include "BoundaryFeature.h"
 #include "GuiHelper.h"
 #include "imgui/imgui.h"
+#include "imgui/imgui_stdlib.h"
 
 #define __STDCPP_WANT_MATH_SPEC_FUNCS__ 1
 #include <cmath>
@@ -895,6 +896,156 @@ bool SolidPolygon::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std:
   if (ImGui::Button("Add polygon boundary")) {
     bfeatures.emplace_back(std::make_unique<SolidPolygon>(bp, external_flow, xc[0], xc[1], numSides, side, rad, rotdeg));
     std::cout << "Added " << (*bfeatures.back()) << std::endl;
+    ImGui::CloseCurrentPopup();
+    add = true;
+  }
+  ImGui::SameLine();
+
+  return add;
+}
+#endif
+
+// Create a NACA Airfoil
+// THIS NEEDS TO BE REDONE
+ElementPacket<float>
+SolidAirfoil::init_elements(const float _ips) const {
+/*  // If object has been removed, return no elements?
+  if (not this->is_enabled()) return ElementPacket<float>();
+
+  // how many panels
+  const size_t panlsPerSide = std::min(10000, std::max(1, (int)(m_side / _ips)));
+  const size_t num_panels = panlsPerSide * m_numSides;
+ 
+  std::cout << "Creating " << m_numSides << "-sided polygon with " << num_panels << " panels" << std::endl;
+
+  // created once
+  std::vector<float>   x(num_panels*2);
+  std::vector<Int>   idx(num_panels*2);
+  std::vector<float> val(num_panels);
+
+  // Turning degrees into radians: deg*pi/180
+  float phi = 0;
+  if (m_numSides % 2 == 0) { phi = 360/(m_numSides*2.0); }
+  const float st = std::sin(M_PI * (m_theta - phi) / 180.0);
+  const float ct = std::cos(M_PI * (m_theta - phi) / 180.0);
+
+  // outside is to the left walking from one point to the next
+  // so go CW around the body
+  // m_side * i / panlsPerSide reflects distance between two adjacent panels
+  // If m_numSides is even, it seems to rotate CCW by 360/m_numSides/2 degrees in place
+  float vx = 0.0;
+  float vy = m_radius;
+  size_t icnt = 0;
+  for (int j=0; j<m_numSides; j++) {
+    // Find next vertex
+    const float nxtVx = m_radius * std::sin(2*M_PI*(float)(j+1)/(float)m_numSides);
+    const float nxtVy = m_radius * std::cos(2*M_PI*(float)(j+1)/(float)m_numSides);
+    // std::cout << '(' << vx << ',' << vy << ") -> (" << nxtVx << ',' << nxtVy << ')' << std::endl;
+    for (size_t i=0; i<panlsPerSide; i++) {
+      const float px = vx+(nxtVx-vx)*(float)i/(float)panlsPerSide;
+      const float py = vy+(nxtVy-vy)*(float)i/(float)panlsPerSide;
+      x[icnt++] = m_x + px*ct - py*st;
+      x[icnt++] = m_y + px*st + py*ct;
+    }
+    vx = nxtVx;
+    vy = nxtVy;
+  }
+
+  // outside is to the left walking from one point to the next
+  for (size_t i=0; i<num_panels; i++) {
+    idx[2*i]   = i;
+    idx[2*i+1] = i+1;
+    val[i]     = 0.0;
+  }
+
+  // correct the final index
+  idx[2*num_panels-1] = 0;
+
+  // flip the orientation of the panels
+  if (not m_external) {
+    for (size_t i=0; i<num_panels; i++) {
+      std::swap(idx[2*i], idx[2*i+1]);
+    }
+  }
+
+  return ElementPacket<float>({x, idx, val});
+  */
+}
+
+void
+SolidAirfoil::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+SolidAirfoil::to_string() const {
+  std::stringstream ss;
+  if (m_external) {
+    ss << "solid polygon";
+  } else {
+    ss << "polygon hole";
+  }
+  ss << " at " << m_x << " " << m_y << " with " << m_maxCamber << " max camber, " << m_chordLocation << " chord location, and " << m_thickness << " thickness rotated " << m_theta << " deg";
+  return ss.str();
+}
+
+void
+SolidAirfoil::from_json(const nlohmann::json j) {
+  const std::vector<float> tr = j["translation"];
+  m_x = tr[0];
+  m_y = tr[1];
+  m_maxCamber = j["maxCamber"];
+  m_chordLocation = j["chordLocation"];
+  m_thickness = j["thickness"];
+  m_theta = j.value("rotation", 0.0);
+  m_external = j.value("external", true);
+  m_enabled = j.value("enabled",true);
+}
+
+nlohmann::json
+SolidAirfoil::to_json() const {
+  // make an object for the mesh
+  nlohmann::json mesh = nlohmann::json::object();
+  mesh["geometry"] = "airfoil";
+  mesh["translation"] = {m_x, m_y};
+  mesh["maxCamber"] = m_maxCamber;
+  mesh["chordLocation"] = m_chordLocation;
+  mesh["thickness"] = m_thickness;
+  mesh["rotation"] = m_theta;
+  mesh["external"] = m_external;
+  mesh["enabled"] = m_enabled;
+  return mesh;
+}
+
+#ifdef USE_IMGUI
+bool SolidAirfoil::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::unique_ptr<BoundaryFeature>> &bfeatures) {
+  static bool external_flow = true;
+  static float xc[2] = {0.0f, 0.0f};
+  static float rotdeg = 0.0f;
+  static std::string naca = "0012";
+  static int maxCamber = 0;
+  static int chordLocation = 0;
+  static int thickness = 12;
+  bool add = false;
+  //ImGuiInputTextCallback textFlags = 0;
+ 
+  ImGui::Checkbox("Object is in flow", &external_flow);
+  ImGui::SameLine();
+  ShowHelpMarker("Keep checked if object is immersed in flow,\nuncheck if flow is inside of object");
+  if (ImGui::InputText("NACA 4-digit Number", &naca)) {
+    if (naca.size() > 4) {
+        naca = naca.substr(0, 4);
+    }
+  }
+  ImGui::InputFloat2("Center", xc);
+  ImGui::SliderFloat("Orientation", &rotdeg, 0.0f, 359.0f, "%.0f");
+  ImGui::TextWrapped("This feature will add a NACA Airfoil boundary centered at the given coordinates");
+  if (ImGui::Button("Add NACA Airfoil boundary")) {
+    maxCamber = std::stoi(naca.substr(0, 1));
+    chordLocation = std::stoi(naca.substr(1, 1));
+    thickness = std::stoi(naca.substr(2, 2));
+    //bfeatures.emplace_back(std::unique_ptr<SolidAirfoil>(bp, external_flow, xc[0], xc[1], maxCamber, chordLocation, thickness, rotdeg));
+    //std::cout << "Added " << (*bfeatures.back()) << std::endl;
     ImGui::CloseCurrentPopup();
     add = true;
   }
