@@ -909,67 +909,68 @@ bool SolidPolygon::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std:
 // THIS NEEDS TO BE REDONE
 ElementPacket<float>
 SolidAirfoil::init_elements(const float _ips) const {
-/*  // If object has been removed, return no elements?
+  // If object has been removed, return no elements?
   if (not this->is_enabled()) return ElementPacket<float>();
 
-  // how many panels
-  const size_t panlsPerSide = std::min(10000, std::max(1, (int)(m_side / _ips)));
-  const size_t num_panels = panlsPerSide * m_numSides;
- 
-  std::cout << "Creating " << m_numSides << "-sided polygon with " << num_panels << " panels" << std::endl;
-
   // created once
-  std::vector<float>   x(num_panels*2);
-  std::vector<Int>   idx(num_panels*2);
-  std::vector<float> val(num_panels);
-
-  // Turning degrees into radians: deg*pi/180
-  float phi = 0;
-  if (m_numSides % 2 == 0) { phi = 360/(m_numSides*2.0); }
-  const float st = std::sin(M_PI * (m_theta - phi) / 180.0);
-  const float ct = std::cos(M_PI * (m_theta - phi) / 180.0);
-
-  // outside is to the left walking from one point to the next
-  // so go CW around the body
-  // m_side * i / panlsPerSide reflects distance between two adjacent panels
-  // If m_numSides is even, it seems to rotate CCW by 360/m_numSides/2 degrees in place
-  float vx = 0.0;
-  float vy = m_radius;
-  size_t icnt = 0;
-  for (int j=0; j<m_numSides; j++) {
-    // Find next vertex
-    const float nxtVx = m_radius * std::sin(2*M_PI*(float)(j+1)/(float)m_numSides);
-    const float nxtVy = m_radius * std::cos(2*M_PI*(float)(j+1)/(float)m_numSides);
-    // std::cout << '(' << vx << ',' << vy << ") -> (" << nxtVx << ',' << nxtVy << ')' << std::endl;
-    for (size_t i=0; i<panlsPerSide; i++) {
-      const float px = vx+(nxtVx-vx)*(float)i/(float)panlsPerSide;
-      const float py = vy+(nxtVy-vy)*(float)i/(float)panlsPerSide;
-      x[icnt++] = m_x + px*ct - py*st;
-      x[icnt++] = m_y + px*st + py*ct;
-    }
-    vx = nxtVx;
-    vy = nxtVy;
-  }
-
-  // outside is to the left walking from one point to the next
-  for (size_t i=0; i<num_panels; i++) {
-    idx[2*i]   = i;
+  // This should be equivalent to the num_panels param other boundaries use 
+  const int numX = 30;
+  std::cout << "Creating NACA Airfoil " << m_maxCamber*100 << m_chordLocation*10 << m_thickness*100 << " with " << 2*numX-2 << " panels" << std::endl;
+  std::vector<float> x(4*numX);
+  std::vector<Int> idx(4*numX);
+  std::vector<float> val(2*numX, 0.0);
+  
+  const float c = 1.0;
+  // m_chordLocation is always in tenths (i.e. 0.1, 0.2, 0.3, ...)
+  const int ptsToCL = numX*m_chordLocation;
+  
+  // Go CW if flow is outside
+  // Points before chord location
+  std::cout << "Adding " << 2*ptsToCL << " points before the maximum camber line" << std::endl;
+  for (size_t i=0; i<ptsToCL; i++) {
+    const float xol = c*i/numX;
+    const float yc = (m_maxCamber/std::pow(m_chordLocation,2))*(2*m_chordLocation*xol-std::pow(xol,2));
+    const float yt = (m_thickness/0.2)*(0.2969*std::sqrt(xol)-0.1260*xol-0.3516*std::pow(xol,2)+0.2843*std::pow(xol,3)-0.1015*std::pow(xol,4));
+    
+    const float dyc = (m_maxCamber/std::pow(m_chordLocation,2))*2*(m_chordLocation-xol);
+    const float theta = find_theta(dyc, c/numX);
+    //std::cout << "theta: " << theta << std::endl;
+    x[2*i] = xol-yt*sin(theta);
+    x[2*i+1] = yc+yt*cos(theta);
+    x[2*(2*numX-1-i)] = xol+yt*sin(theta);
+    x[2*(2*numX-1-i)+1] = yc-yt*cos(theta);
+    idx[2*i] = i;
     idx[2*i+1] = i+1;
-    val[i]     = 0.0;
+    idx[2*(2*numX-1-i)] = 2*numX-1-i;
+    idx[2*(2*numX-1-i)+1] = 2*numX-i;
   }
-
-  // correct the final index
-  idx[2*num_panels-1] = 0;
-
-  // flip the orientation of the panels
-  if (not m_external) {
-    for (size_t i=0; i<num_panels; i++) {
-      std::swap(idx[2*i], idx[2*i+1]);
-    }
+ 
+  // Points after chord location 
+  std::cout << "Adding " << 2*(numX-ptsToCL) << " points after the maximum camber line" << std::endl;
+  for (size_t i=ptsToCL; i<numX+1; i++) {
+    const float xol = c*i/numX;
+    const float yc = (m_maxCamber/std::pow(1-m_chordLocation,2))*(1-2*m_chordLocation+2*m_chordLocation*xol-std::pow(xol,2));
+    const float yt = (m_thickness/0.2)*(0.2969*std::sqrt(xol)-0.1260*xol-0.3516*std::pow(xol,2)+0.2843*std::pow(xol,3)-0.1015*std::pow(xol,4));
+    
+    const float dyc = (m_maxCamber/std::pow(1-m_chordLocation,2))*2*(m_chordLocation-xol);
+    const float theta = find_theta(dyc, c/numX);
+    //std::cout << "theta: " << theta << std::endl;
+    x[2*i] =  xol-yt*sin(theta);
+    x[2*i+1] = yc+yt*cos(theta);
+    x[2*(2*numX-1-i)] = xol+yt*sin(theta);
+    x[2*(2*numX-1-i)+1] = yc-yt*cos(theta);
+    idx[2*i] = i;
+    idx[2*i+1] = i+1;
+    idx[2*(2*numX-1-i)] = 2*numX-1-i;
+    idx[2*(2*numX-1-i)+1] = 2*numX-i;
   }
+  idx[4*numX-1] = 0;
 
+  for (size_t i=0; i<2*numX; i++) {
+    const float xol = c*i/numX;
+    std::cout << i << " " << xol << " " << x[2*i] << " " << x[2*i+1] << std::endl;
+  } 
   return ElementPacket<float>({x, idx, val});
-  */
 }
 
 void
@@ -981,9 +982,9 @@ std::string
 SolidAirfoil::to_string() const {
   std::stringstream ss;
   if (m_external) {
-    ss << "solid polygon";
+    ss << "solid airfoil";
   } else {
-    ss << "polygon hole";
+    ss << "airfoil hole";
   }
   ss << " at " << m_x << " " << m_y << " with " << m_maxCamber << " max camber, " << m_chordLocation << " chord location, and " << m_thickness << " thickness rotated " << m_theta << " deg";
   return ss.str();
@@ -1022,7 +1023,8 @@ bool SolidAirfoil::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std:
   static bool external_flow = true;
   static float xc[2] = {0.0f, 0.0f};
   static float rotdeg = 0.0f;
-  static std::string naca = "0012";
+  //static std::string naca = "0012";
+  static std::string naca = "2415";
   static int maxCamber = 0;
   static int chordLocation = 0;
   static int thickness = 12;
@@ -1044,8 +1046,8 @@ bool SolidAirfoil::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std:
     maxCamber = std::stoi(naca.substr(0, 1));
     chordLocation = std::stoi(naca.substr(1, 1));
     thickness = std::stoi(naca.substr(2, 2));
-    //bfeatures.emplace_back(std::unique_ptr<SolidAirfoil>(bp, external_flow, xc[0], xc[1], maxCamber, chordLocation, thickness, rotdeg));
-    //std::cout << "Added " << (*bfeatures.back()) << std::endl;
+    bfeatures.emplace_back(std::make_unique<SolidAirfoil>(bp, external_flow, xc[0], xc[1], maxCamber/100.0, chordLocation/10.0, thickness/100.0, rotdeg));
+    std::cout << "Added " << (*bfeatures.back()) << std::endl;
     ImGui::CloseCurrentPopup();
     add = true;
   }

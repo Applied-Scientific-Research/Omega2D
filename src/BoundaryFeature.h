@@ -284,9 +284,9 @@ public:
                bool _ext = true,
                float _x = 0.0,
                float _y = 0.0,
-               int _maxCamber = 0,
-               int _chordLocation = 0,
-               int _thickness = 0,
+               float _maxCamber = 0,
+               float _chordLocation = 0,
+               float _thickness = 0,
                float _theta = 0.0)
     : BoundaryFeature(_bp, _ext, _x, _y),
       m_maxCamber(_maxCamber),
@@ -305,9 +305,12 @@ public:
 #endif
 
 protected:
-  int m_maxCamber;
-  int m_chordLocation;
-  int m_thickness;
+  float m_maxCamber;
+  float m_chordLocation;
+  float m_thickness;
   float m_theta;
+
+private:
+  float find_theta(float num, float denom) const { return atan2(num, denom); }
 };
 
