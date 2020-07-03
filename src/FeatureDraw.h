@@ -16,7 +16,7 @@
 class FeatureDraw {
 
 public:
-  FeatureDraw() { }
+  FeatureDraw() : m_vals_changed(false) { }
 
   // deleting GlState will destroy buffers
   ~FeatureDraw() { }
@@ -24,6 +24,7 @@ public:
   // visible member functions
   void clear_elements();
   void add_elements(const ElementPacket<float>, const bool);
+  void reset_enabled(const size_t, const bool);
 
   void updateGL();
   void drawGL(std::vector<float>&, RenderParams&);
@@ -37,6 +38,8 @@ private:
 
   // Collected geometry
   ElementPacket<float> m_geom;
+  std::vector<std::pair<int,int>> m_idx;
+  bool m_vals_changed;
 
   // VAO, VBOs, etc.
   std::unique_ptr<GlState> m_gl;

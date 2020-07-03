@@ -792,7 +792,7 @@ int main(int argc, char const *argv[]) {
       for (int i=0; i<(int)bfeatures.size(); ++i) {
 
         ImGui::PushID(++buttonIDs);
-        ImGui::Checkbox("", bfeatures[i]->addr_enabled());
+        const bool ischeck = ImGui::Checkbox("", bfeatures[i]->addr_enabled());
         ImGui::PopID();
         if (bfeatures[i]->is_enabled()) {
           ImGui::SameLine();
@@ -801,6 +801,9 @@ int main(int argc, char const *argv[]) {
           ImGui::SameLine();
           ImGui::TextColored(ImVec4(0.5f,0.5f,0.5f,1.0f), "%s", bfeatures[i]->to_string().c_str());
         }
+
+        // if the checkbox flipped positions this frame, ischeck is 1
+        if (ischeck) bdraw.reset_enabled(i,bfeatures[i]->is_enabled());
 
         // add a "remove" button at the end of the line (so it's not easy to accidentally hit)
         ImGui::SameLine();

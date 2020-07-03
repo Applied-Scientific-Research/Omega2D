@@ -28,6 +28,7 @@ void FeatureDraw::clear_elements() {
   m_geom.x.clear();
   m_geom.idx.clear();
   m_geom.val.clear();
+  m_idx.clear();
 }
 
 // add elements to the local list
@@ -48,15 +49,35 @@ void FeatureDraw::add_elements(const ElementPacket<float> _in, const bool _enabl
   }
 
   // and set the str/val array for per-element color/strength
-  const size_t vsize = m_geom.val.size();
-  m_geom.val.resize(vsize+_in.idx.size()/2);
+  const size_t nv_old = m_geom.val.size();
+  m_geom.val.resize(nv_old+_in.idx.size()/2);
   if (_enabled) {
-    std::fill(m_geom.val.begin()+vsize, m_geom.val.end(), 1.0);
+    std::fill(m_geom.val.begin()+nv_old, m_geom.val.end(), 1.0);
   } else {
-    std::fill(m_geom.val.begin()+vsize, m_geom.val.end(), 0.3);
+    std::fill(m_geom.val.begin()+nv_old, m_geom.val.end(), 0.3);
   }
 
+  // append to m_idx the start and end indices for this ElementPacket
+  m_idx.push_back(std::make_pair((int)nv_old, (int)m_geom.val.size()));
+
   //std::cout << "  FeatureDraw now has " << (m_geom.x.size()/2) << " nodes and " << (m_geom.idx.size()/2) << " elements" << std::endl;
+  //std::cout << "  FeatureDraw pushed pair " << m_idx.back().first << " and " << m_idx.back().second << std::endl;
+}
+
+
+// toggle a set of elements to a new "enabled" setting
+void FeatureDraw::reset_enabled(const size_t _ifeat, const bool _enabled) {
+  assert(_ifeat < m_idx.size() && "Enable feature index larger than number of features");
+  assert(m_idx[_ifeat].second <= (int)m_geom.val.size() && "Draw array sizes larger than expected");
+
+  // do the work here
+  if (_enabled) {
+    std::fill(m_geom.val.begin()+m_idx[_ifeat].first, m_geom.val.begin()+m_idx[_ifeat].second, 1.0);
+  } else {
+    std::fill(m_geom.val.begin()+m_idx[_ifeat].first, m_geom.val.begin()+m_idx[_ifeat].second, 0.3);
+  }
+
+  m_vals_changed = true;
 }
 
 
@@ -151,6 +172,16 @@ void FeatureDraw::updateGL() {
 
     // must tell draw call how many elements are there - or, really, how many indices
     m_gl->num_uploaded = m_geom.idx.size();
+
+  } else if (m_vals_changed) {
+    // just upload the new vals, nothing else
+    glBindVertexArray(m_gl->vao);
+
+    // strengths
+    glBindBuffer(GL_ARRAY_BUFFER, m_gl->vbo[1]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*m_geom.val.size(), m_geom.val.data(), GL_DYNAMIC_DRAW);
+
+    glBindVertexArray(0);
   }
 }
 
@@ -167,7 +198,7 @@ void FeatureDraw::drawGL(std::vector<float>& _projmat,
     updateGL();
   }
 
-  if (m_gl->num_uploaded != (GLsizei)m_geom.idx.size()) {
+  if (m_gl->num_uploaded != (GLsizei)m_geom.idx.size() || m_vals_changed) {
     updateGL();
   }
 
