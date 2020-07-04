@@ -550,54 +550,7 @@ int main(int argc, char const *argv[]) {
 
       ImGui::Spacing();
 
-      // button and modal window for adding new flow structures
-      if (ImGui::Button("Add flow")) ImGui::OpenPopup("New flow structure");
-      ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiCond_FirstUseEver);
-      if (ImGui::BeginPopupModal("New flow structure"))
-      {
-        static int item = 1;
-        const char* items[] = { "single particle", "round vortex blob", "Gaussian vortex blob", "asymmetric vortex blob", "block of vorticity", "random particles", "particle emitter" };
-        ImGui::Combo("type", &item, items, 7);
-
-        // show different inputs based on what is selected
-        switch(item) {
-          case 0: {
-            // creates a single particle
-            SingleParticle::draw_creation_gui(ffeatures);
-          } break;
-         case 1: {
-              // creates a blob of vorticies
-              VortexBlob::draw_creation_gui(ffeatures, sim.get_ips());
-          } break;
-          case 2: {
-            // a gaussian blob of multiple vorticies
-            GaussianBlob::draw_creation_gui(ffeatures, sim.get_ips());
-          } break;
-          case 3: {
-            // an asymmetric blob of multiple vorticies
-            AsymmetricBlob::draw_creation_gui(ffeatures, sim.get_ips());
-          } break;
-          case 4: {
-            // particles in a rectangle
-            UniformBlock::draw_creation_gui(ffeatures, sim.get_ips());
-          } break;
-          case 5: {
-            // random particles in a rectangle
-            BlockOfRandom::draw_creation_gui(ffeatures);
-          } break;
-          case 6: {
-            // create a particle emitter
-            ParticleEmitter::draw_creation_gui(ffeatures);
-          } break;
-        }
-
-        if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
-        ImGui::EndPopup();
-      } // end popup new flow structures
-
-
       // button and modal window for adding new boundary objects
-      ImGui::SameLine();
       if (ImGui::Button("Add boundary")) ImGui::OpenPopup("New boundary structure");
       ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New boundary structure"))
@@ -709,6 +662,53 @@ int main(int argc, char const *argv[]) {
         ImGui::EndPopup();
         
       } // end new boundary structures
+
+
+      // button and modal window for adding new flow structures
+      ImGui::SameLine();
+      if (ImGui::Button("Add vortex")) ImGui::OpenPopup("New flow structure");
+      ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiCond_FirstUseEver);
+      if (ImGui::BeginPopupModal("New flow structure"))
+      {
+        static int item = 1;
+        const char* items[] = { "single particle", "round vortex blob", "Gaussian vortex blob", "asymmetric vortex blob", "block of vorticity", "random particles", "particle emitter" };
+        ImGui::Combo("type", &item, items, 7);
+
+        // show different inputs based on what is selected
+        switch(item) {
+          case 0: {
+            // creates a single particle
+            SingleParticle::draw_creation_gui(ffeatures);
+          } break;
+         case 1: {
+              // creates a blob of vorticies
+              VortexBlob::draw_creation_gui(ffeatures, sim.get_ips());
+          } break;
+          case 2: {
+            // a gaussian blob of multiple vorticies
+            GaussianBlob::draw_creation_gui(ffeatures, sim.get_ips());
+          } break;
+          case 3: {
+            // an asymmetric blob of multiple vorticies
+            AsymmetricBlob::draw_creation_gui(ffeatures, sim.get_ips());
+          } break;
+          case 4: {
+            // particles in a rectangle
+            UniformBlock::draw_creation_gui(ffeatures, sim.get_ips());
+          } break;
+          case 5: {
+            // random particles in a rectangle
+            BlockOfRandom::draw_creation_gui(ffeatures);
+          } break;
+          case 6: {
+            // create a particle emitter
+            ParticleEmitter::draw_creation_gui(ffeatures);
+          } break;
+        }
+
+        if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
+        ImGui::EndPopup();
+      } // end popup new flow structures
 
 
       // button and modal window for adding new measurement objects
