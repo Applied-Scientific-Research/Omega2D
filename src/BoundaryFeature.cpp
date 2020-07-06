@@ -914,19 +914,15 @@ SolidAirfoil::init_elements(const float _ips) const {
 
   // created once
   // This should be equivalent to the num_panels param other boundaries use 
-  const int numX = 30;
+  const int numX = 60;
   std::cout << "Creating NACA Airfoil " << m_maxCamber*100 << m_chordLocation*10 << m_thickness*100 << " with " << 2*numX-2 << " panels" << std::endl;
   std::vector<float> x(4*numX);
   std::vector<Int> idx(4*numX);
-  std::vector<float> val(2*numX, 0.0);
+  std::vector<float> val(2*numX-1, 0.0);
   
   const float c = 1.0;
-  // m_chordLocation is always in tenths (i.e. 0.1, 0.2, 0.3, ...)
-  const int ptsToCL = numX*m_chordLocation;
   
   // Go CW if flow is outside
-  // Points before chord location
-  std::cout << "Adding " << 2*ptsToCL << " points before the maximum camber line" << std::endl;
   for (size_t i=0; i<numX+1; i++) {
     const float xol = c*i/numX;
     float yc;
@@ -950,11 +946,22 @@ SolidAirfoil::init_elements(const float _ips) const {
     idx[2*(2*numX-1-i)] = 2*numX-1-i;
     idx[2*(2*numX-1-i)+1] = 2*numX-i;
   }
-  idx[4*numX-1] = 0;
+  // The math above switches two points when i=numX, so we switch them back
+  const float tmp1 = x[2*(numX-1)];
+  const float tmp2 = x[2*(numX-1)+1];
+  x[2*(numX-1)] = x[2*numX];
+  x[2*(numX-1)+1] = x[2*numX+1];
+  x[2*numX] = tmp1;
+  x[2*numX+1] = tmp2;
+  // We remove the last point since it equals the first point
+  x.erase(x.end()-2, x.end());
+  idx.erase(idx.end()-2, idx.end());
+  idx[4*numX-3] = 0;
 
-  for (size_t i=0; i<2*numX; i++) {
+  for (size_t i=0; i<2*numX-1; i++) {
     std::cout << i << " " << x[2*i] << " " << x[2*i+1] << std::endl;
-  } 
+  }
+ 
   return ElementPacket<float>({x, idx, val});
 }
 
