@@ -927,35 +927,21 @@ SolidAirfoil::init_elements(const float _ips) const {
   // Go CW if flow is outside
   // Points before chord location
   std::cout << "Adding " << 2*ptsToCL << " points before the maximum camber line" << std::endl;
-  for (size_t i=0; i<ptsToCL; i++) {
+  for (size_t i=0; i<numX+1; i++) {
     const float xol = c*i/numX;
-    const float yc = (m_maxCamber/std::pow(m_chordLocation,2))*(2*m_chordLocation*xol-std::pow(xol,2));
+    float yc;
+    float dyc;
+    if (xol < m_chordLocation) {
+      yc = (m_maxCamber/std::pow(m_chordLocation,2))*(2*m_chordLocation*xol-std::pow(xol,2));
+      dyc = (m_maxCamber/std::pow(m_chordLocation,2))*2*(m_chordLocation-xol);
+    } else {
+      yc = (m_maxCamber/std::pow(1-m_chordLocation,2))*(1-2*m_chordLocation+2*m_chordLocation*xol-std::pow(xol,2));
+      dyc = (m_maxCamber/std::pow(1-m_chordLocation,2))*2*(m_chordLocation-xol);
+    }
     const float yt = (m_thickness/0.2)*(0.2969*std::sqrt(xol)-0.1260*xol-0.3516*std::pow(xol,2)+0.2843*std::pow(xol,3)-0.1015*std::pow(xol,4));
-    
-    const float dyc = (m_maxCamber/std::pow(m_chordLocation,2))*2*(m_chordLocation-xol);
-    const float theta = find_theta(dyc, c/numX);
+    const float theta = tan(dyc); //find_theta(dyc, c/numX);
     //std::cout << "theta: " << theta << std::endl;
     x[2*i] = xol-yt*sin(theta);
-    x[2*i+1] = yc+yt*cos(theta);
-    x[2*(2*numX-1-i)] = xol+yt*sin(theta);
-    x[2*(2*numX-1-i)+1] = yc-yt*cos(theta);
-    idx[2*i] = i;
-    idx[2*i+1] = i+1;
-    idx[2*(2*numX-1-i)] = 2*numX-1-i;
-    idx[2*(2*numX-1-i)+1] = 2*numX-i;
-  }
- 
-  // Points after chord location 
-  std::cout << "Adding " << 2*(numX-ptsToCL) << " points after the maximum camber line" << std::endl;
-  for (size_t i=ptsToCL; i<numX+1; i++) {
-    const float xol = c*i/numX;
-    const float yc = (m_maxCamber/std::pow(1-m_chordLocation,2))*(1-2*m_chordLocation+2*m_chordLocation*xol-std::pow(xol,2));
-    const float yt = (m_thickness/0.2)*(0.2969*std::sqrt(xol)-0.1260*xol-0.3516*std::pow(xol,2)+0.2843*std::pow(xol,3)-0.1015*std::pow(xol,4));
-    
-    const float dyc = (m_maxCamber/std::pow(1-m_chordLocation,2))*2*(m_chordLocation-xol);
-    const float theta = find_theta(dyc, c/numX);
-    //std::cout << "theta: " << theta << std::endl;
-    x[2*i] =  xol-yt*sin(theta);
     x[2*i+1] = yc+yt*cos(theta);
     x[2*(2*numX-1-i)] = xol+yt*sin(theta);
     x[2*(2*numX-1-i)+1] = yc-yt*cos(theta);
@@ -967,8 +953,7 @@ SolidAirfoil::init_elements(const float _ips) const {
   idx[4*numX-1] = 0;
 
   for (size_t i=0; i<2*numX; i++) {
-    const float xol = c*i/numX;
-    std::cout << i << " " << xol << " " << x[2*i] << " " << x[2*i+1] << std::endl;
+    std::cout << i << " " << x[2*i] << " " << x[2*i+1] << std::endl;
   } 
   return ElementPacket<float>({x, idx, val});
 }
