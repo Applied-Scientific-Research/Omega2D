@@ -179,7 +179,7 @@ int main(int argc, char const *argv[]) {
 
   // Load file names and paths of pre-stored sims
   std::vector<nlohmann::json> sims;
-  std::vector<std::string> descriptions = {"Select a Simulation"};
+  std::vector<std::string> descriptions = {"Select a simulation"};
   LoadJsonSims(sims, descriptions, EXAMPLES_DIR);
   
   // Main loop
