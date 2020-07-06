@@ -465,6 +465,7 @@ void GaussianBlob::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &
   static float stren = 1.0;
   static float rad = 5.0*simIps;
   static float xc[2] = {0.0, 0.0};
+  ImGui::InputFloat2("center", xc);
   ImGui::SliderFloat("strength", &stren, -5.0f, 5.0f, "%.4f");
   ImGui::SliderFloat("std dev", &rad, simIps, 1.0f, "%.4f");
   ImGui::TextWrapped("This feature will add about %d particles", (int)(0.785398175*std::pow((6*rad) / simIps, 2)));
