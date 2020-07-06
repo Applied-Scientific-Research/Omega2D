@@ -908,9 +908,7 @@ bool SolidPolygon::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std:
 // Create a NACA Airfoil
 // THIS NEEDS TO BE REDONE
 double chebeshev_node(double a, double b, double k, double n) {
-  const double pi = 3.14159265358979;
-  //return (a+b)*0.5+(b-a)*0.5*cos((2*(n-k)-1)*pi*0.5/n);
-  return (a+b)*0.5+(b-a)*0.5*cos((2*(n-k)-1)*pi*0.5/n);
+  return (a+b)*0.5+(b-a)*0.5*cos((2*(n-k)-1)*M_PI*0.5/n);
 }
 
 ElementPacket<float>
@@ -947,13 +945,13 @@ SolidAirfoil::init_elements(const float _ips) const {
     // The top half
     const float px = xol-yt*sin(theta);
     const float py = yc+yt*cos(theta);
-    x[2*i] = m_x+px*ct-py*st;
-    x[2*i+1] = m_y+px*st+py*ct;
+    x[2*i] = m_scale*(m_x+px*ct-py*st);
+    x[2*i+1] = m_scale*(m_y+px*st+py*ct);
     // The bottom half
     const float pxe = xol+yt*sin(theta);
     const float pye = yc-yt*cos(theta);
-    x[2*(2*numX-1-i)] = m_x+pxe*ct-pye*st;
-    x[2*(2*numX-1-i)+1] =m_y+pxe*st+pye*ct;
+    x[2*(2*numX-1-i)] = m_scale*(m_x+pxe*ct-pye*st);
+    x[2*(2*numX-1-i)+1] = m_scale*(m_y+pxe*st+pye*ct);
     // Indices
     idx[2*i] = i;
     idx[2*i+1] = i+1;
@@ -1010,6 +1008,7 @@ SolidAirfoil::from_json(const nlohmann::json j) {
   m_theta = j.value("rotation", 0.0);
   m_external = j.value("external", true);
   m_enabled = j.value("enabled",true);
+  m_scale = j.value("scale", 1.0f);
 }
 
 nlohmann::json
@@ -1022,6 +1021,7 @@ SolidAirfoil::to_json() const {
   mesh["chordLocation"] = m_chordLocation;
   mesh["thickness"] = m_thickness;
   mesh["rotation"] = m_theta;
+  mesh["scale"] = m_scale;
   mesh["external"] = m_external;
   mesh["enabled"] = m_enabled;
   return mesh;
@@ -1037,6 +1037,7 @@ bool SolidAirfoil::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std:
   static int maxCamber = 0;
   static int chordLocation = 0;
   static int thickness = 12;
+  static float scale = 1.0f;
   bool add = false;
   //ImGuiInputTextCallback textFlags = 0;
  
@@ -1050,12 +1051,13 @@ bool SolidAirfoil::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std:
   }
   ImGui::InputFloat2("Center", xc);
   ImGui::SliderFloat("Orientation", &rotdeg, 0.0f, 359.0f, "%.0f");
+  ImGui::SliderFloat("Scale", &scale, 0.1f, 5.0f, "%.1f");
   ImGui::TextWrapped("This feature will add a NACA Airfoil boundary centered at the given coordinates");
   if (ImGui::Button("Add NACA Airfoil boundary")) {
     maxCamber = std::stoi(naca.substr(0, 1));
     chordLocation = std::stoi(naca.substr(1, 1));
     thickness = std::stoi(naca.substr(2, 2));
-    bfeatures.emplace_back(std::make_unique<SolidAirfoil>(bp, external_flow, xc[0], xc[1], maxCamber/100.0, chordLocation/10.0, thickness/100.0, rotdeg));
+    bfeatures.emplace_back(std::make_unique<SolidAirfoil>(bp, external_flow, xc[0], xc[1], maxCamber/100.0, chordLocation/10.0, thickness/100.0, rotdeg, scale));
     std::cout << "Added " << (*bfeatures.back()) << std::endl;
     ImGui::CloseCurrentPopup();
     add = true;

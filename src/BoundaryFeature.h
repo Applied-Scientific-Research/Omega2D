@@ -287,12 +287,14 @@ public:
                float _maxCamber = 0,
                float _chordLocation = 0,
                float _thickness = 0,
-               float _theta = 0.0)
+               float _theta = 0.0,
+               float _scale = 1.0)
     : BoundaryFeature(_bp, _ext, _x, _y),
       m_maxCamber(_maxCamber),
       m_chordLocation(_chordLocation),
       m_thickness(_thickness),
-      m_theta(_theta)
+      m_theta(_theta),
+      m_scale(_scale)
     {}
 
   void debug(std::ostream& os) const override;
@@ -309,8 +311,6 @@ protected:
   float m_chordLocation;
   float m_thickness;
   float m_theta;
-
-private:
-  float find_theta(float num, float denom) const { return atan2(num, denom); }
+  float m_scale;
 };
 
