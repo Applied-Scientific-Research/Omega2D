@@ -181,7 +181,7 @@ int main(int argc, char const *argv[]) {
   std::vector<nlohmann::json> sims;
   std::vector<std::string> descriptions = {"Select a simulation"};
   LoadJsonSims(sims, descriptions, EXAMPLES_DIR);
-  
+
   // Main loop
   std::cout << "Starting main loop" << std::endl;
   while (!glfwWindowShouldClose(window)) {
@@ -457,7 +457,8 @@ int main(int argc, char const *argv[]) {
       show_welcome_window = false;
     }
 
-    //if (ImGui::CollapsingHeader("Simulation globals", ImGuiTreeNodeFlags_DefaultOpen)) 
+
+    //if (ImGui::CollapsingHeader("Simulation globals", ImGuiTreeNodeFlags_DefaultOpen)) {
     if (ImGui::CollapsingHeader("Simulation globals")) {
 
       // save current versions, so we know which changed
@@ -854,6 +855,7 @@ int main(int argc, char const *argv[]) {
 
     } // end structure entry
 
+
     // Rendering parameters, under a header
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Rendering controls")) { draw_render_gui(rparams); }
@@ -865,12 +867,14 @@ int main(int argc, char const *argv[]) {
     // Output buttons, under a header
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Save output")) {
+
       // save the simulation to a JSON or VTK file
       ImGui::Spacing();
       if (ImGui::Button("Save setup to JSON", ImVec2(20+12*fontSize,0))) show_file_output_window = true;
       ImGui::SameLine();
       // PNG output of the render frame
       if (ImGui::Button("Save screenshot to PNG", ImVec2(20+12*fontSize,0))) draw_this_frame = true;
+
       // next line: VTK output and record
       if (ImGui::Button("Save parts to VTU", ImVec2(20+12*fontSize,0))) export_vtk_this_frame = true;
       ImGui::SameLine();
