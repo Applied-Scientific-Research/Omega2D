@@ -639,7 +639,7 @@ int main(int argc, char const *argv[]) {
           } break;
           case 4: {
             // create a straight boundary segment
-            if (SolidRect::draw_creation_gui(bp, bfeatures)) {
+            if (BoundarySegment::draw_creation_gui(bp, bfeatures)) {
               if (mitem == 2) {
                 bp->set_name("segmented boundary");
                 sim.add_body(bp);
