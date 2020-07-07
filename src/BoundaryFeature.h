@@ -284,9 +284,9 @@ public:
                bool _ext = true,
                float _x = 0.0,
                float _y = 0.0,
-               float _maxCamber = 0,
-               float _maxCambLoc = 0,
-               float _thickness = 0,
+               int _maxCamber = 0,
+               int _maxCambLoc = 0,
+               int _thickness = 0,
                float _theta = 0.0,
                float _chordLength = 1.0)
     : BoundaryFeature(_bp, _ext, _x, _y),
@@ -307,9 +307,9 @@ public:
 #endif
 
 protected:
-  float m_maxCamber;
-  float m_maxCambLoc;
-  float m_thickness;
+  int m_maxCamber;
+  int m_maxCambLoc;
+  int m_thickness;
   float m_theta;
   float m_chordLength;
 };

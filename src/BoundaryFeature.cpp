@@ -920,7 +920,11 @@ SolidAirfoil::init_elements(const float _ips) const {
   // created once
   // This should be equivalent to the num_panels param other boundaries use 
   const int numX = 185;
-  std::cout << "Creating NACA Airfoil " << m_maxCamber*100 << m_maxCambLoc*10 << m_thickness*100 << " with an estimated " << m_chordLength*(2*numX-2) << " panels" << std::endl;
+  const float m = m_maxCamber/100.0f;
+  const float p = m_maxCambLoc/10.0f;
+  const float t = m_thickness/100.0f;
+  std::cout << m << " " << p << " " << t <<  std::endl;
+  std::cout << "Creating NACA Airfoil " << m_maxCamber << m_maxCambLoc << m_thickness << " with an estimated " << m_chordLength*(2*numX-2) << " panels" << std::endl;
   std::vector<float> x(4*numX);
   std::vector<Int> idx(4*numX);
   std::vector<float> val(2*numX-1, 0.0);
@@ -934,14 +938,14 @@ SolidAirfoil::init_elements(const float _ips) const {
     const float xol = chebeshev_node(0.0, maxX, i, numX);
     float yc;
     float dyc;
-    if (xol < m_maxCambLoc) {
-      yc = (m_maxCamber/std::pow(m_maxCambLoc,2))*(2*m_maxCambLoc*xol-std::pow(xol,2));
-      dyc = (m_maxCamber/std::pow(m_maxCambLoc,2))*2*(m_maxCambLoc-xol);
+    if (xol < p) {
+      yc = (m/std::pow(p,2))*(2*p*xol-std::pow(xol,2));
+      dyc = (m/std::pow(p,2))*2*(p-xol);
     } else {
-      yc = (m_maxCamber/std::pow(1-m_maxCambLoc,2))*(1-2*m_maxCambLoc+2*m_maxCambLoc*xol-std::pow(xol,2));
-      dyc = (m_maxCamber/std::pow(1-m_maxCambLoc,2))*2*(m_maxCambLoc-xol);
+      yc = (m/std::pow(1-p,2))*(1-2*p+2*p*xol-std::pow(xol,2));
+      dyc = (m/std::pow(1-p,2))*2*(p-xol);
     }
-    const float yt = (m_thickness/0.2)*(0.2969*std::sqrt(xol)-0.1260*xol-0.3516*std::pow(xol,2)+0.2843*std::pow(xol,3)-0.1015*std::pow(xol,4));
+    const float yt = (t/0.2)*(0.2969*std::sqrt(xol)-0.1260*xol-0.3516*std::pow(xol,2)+0.2843*std::pow(xol,3)-0.1015*std::pow(xol,4));
     const float theta = tan(dyc); //find_theta(dyc, c/numX);
     // The top half
     const float px = xol-yt*sin(theta);
@@ -989,12 +993,7 @@ SolidAirfoil::debug(std::ostream& os) const {
 std::string
 SolidAirfoil::to_string() const {
   std::stringstream ss;
-  if (m_external) {
-    ss << "solid airfoil";
-  } else {
-    ss << "airfoil hole";
-  }
-  ss << " at " << m_x << " " << m_y << " with " << m_maxCamber << " max camber, " << m_maxCambLoc << " chord location, and " << m_thickness << " thickness rotated " << m_theta << " deg";
+  ss << " NACA " << m_maxCamber << m_maxCambLoc << m_thickness << " at (" << m_x << ", " << m_y << ") with chord length " << m_chordLength << " and " << m_theta << " aoa";
   return ss.str();
 }
 
@@ -1057,7 +1056,7 @@ bool SolidAirfoil::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std:
     maxCamber = std::stoi(naca.substr(0, 1));
     chordLocation = std::stoi(naca.substr(1, 1));
     thickness = std::stoi(naca.substr(2, 2));
-    bfeatures.emplace_back(std::make_unique<SolidAirfoil>(bp, external_flow, xc[0], xc[1], maxCamber/100.0, chordLocation/10.0, thickness/100.0, rotdeg, chordLength));
+    bfeatures.emplace_back(std::make_unique<SolidAirfoil>(bp, external_flow, xc[0], xc[1], maxCamber, chordLocation, thickness, rotdeg, chordLength));
     std::cout << "Added " << (*bfeatures.back()) << std::endl;
     ImGui::CloseCurrentPopup();
     add = true;
