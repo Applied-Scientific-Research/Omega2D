@@ -42,6 +42,7 @@ void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
   else if (ftype == "rectangle") { _flist.emplace_back(std::make_unique<SolidRect>(_bp)); }
   else if (ftype == "segment") { _flist.emplace_back(std::make_unique<BoundarySegment>(_bp)); }
   else if (ftype == "polygon") { _flist.emplace_back(std::make_unique<SolidPolygon>(_bp)); }
+  else if (ftype == "airfoil") { _flist.emplace_back(std::make_unique<SolidAirfoil>(_bp)); }
   else {
     std::cout << "  type " << ftype << " does not name an available boundary feature, ignoring" << std::endl;
     return;
@@ -918,7 +919,7 @@ SolidAirfoil::init_elements(const float _ips) const {
 
   // created once
   // This should be equivalent to the num_panels param other boundaries use 
-  const int numX = 190;
+  const int numX = 185;
   std::cout << "Creating NACA Airfoil " << m_maxCamber*100 << m_chordLocation*10 << m_thickness*100 << " with " << 2*numX-2 << " panels" << std::endl;
   std::vector<float> x(4*numX);
   std::vector<Int> idx(4*numX);
