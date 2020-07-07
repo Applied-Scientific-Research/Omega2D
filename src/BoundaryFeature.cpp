@@ -906,12 +906,12 @@ bool SolidPolygon::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std:
 }
 #endif
 
-// Create a NACA Airfoil
-// THIS NEEDS TO BE REDONE
 double chebeshev_node(double a, double b, double k, double n) {
   return (a+b)*0.5+(b-a)*0.5*cos((2*(n-k)-1)*M_PI*0.5/n);
 }
 
+// Create a NACA Airfoil
+// THIS NEEDS TO BE REDONE
 ElementPacket<float>
 SolidAirfoil::init_elements(const float _ips) const {
   // If object has been removed, return no elements?
@@ -919,23 +919,22 @@ SolidAirfoil::init_elements(const float _ips) const {
 
   // created once
   // This should be equivalent to the num_panels param other boundaries use 
-  const int numX = 185;
   const float m = m_maxCamber/100.0f;
   const float p = m_maxCambLoc/10.0f;
   const float t = m_thickness/100.0f;
-  std::cout << m << " " << p << " " << t <<  std::endl;
+  
+  const int numX = std::ceil(m_chordLength*M_PI/_ips);
   std::cout << "Creating NACA Airfoil " << m_maxCamber << m_maxCambLoc << m_thickness << " with an estimated " << m_chordLength*(2*numX-2) << " panels" << std::endl;
   std::vector<float> x(4*numX);
   std::vector<Int> idx(4*numX);
   std::vector<float> val(2*numX-1, 0.0);
   
-  const float maxX = 1.0;
   // Rotating the airfoil
   const float st = std::sin(M_PI * m_theta / 180.0);
   const float ct = std::cos(M_PI * m_theta / 180.0);
   // Go CW if flow is outside
   for (size_t i=0; i<numX+1; i++) {
-    const float xol = chebeshev_node(0.0, maxX, i, numX);
+    const float xol = chebeshev_node(0.0, m_chordLength, i, numX);
     float yc;
     float dyc;
     if (xol < p) {
@@ -950,8 +949,8 @@ SolidAirfoil::init_elements(const float _ips) const {
     // The top half
     const float px = xol-yt*sin(theta);
     const float py = yc+yt*cos(theta);
-    x[2*i] = m_chordLength*(m_x+px*ct-py*st);
-    x[2*i+1] = m_chordLength*(m_y+px*st+py*ct);
+    x[2*i] = m_x+px*ct-py*st;
+    x[2*i+1] = m_y+px*st+py*ct;
     // The bottom half
     const float pxe = xol+yt*sin(theta);
     const float pye = yc-yt*cos(theta);
@@ -975,12 +974,14 @@ SolidAirfoil::init_elements(const float _ips) const {
   idx.erase(idx.end()-2, idx.end());
   idx[4*numX-3] = 0;
 
-  std::cout << "max panel size: " << _ips*1.2 << std::endl;
+  std::cout << _ips*0.1 << " < ideal panel size < " << _ips*1.2 << std::endl;
   float tmp = 0.0;
   for (size_t i=0; i<2*numX-1; i++) {
-    tmp += (x[2*i+3]-x[2*i+1])/(x[2*i+2]-x[2*i]);
+    const float tmp2 =std::sqrt(std::pow(x[2*i+3]-x[2*i+1], 2)+std::pow(x[2*i+2]-x[2*i], 2));
+    std::cout << tmp2 << std::endl;
+    tmp += tmp2;
   }
-  std::cout << tmp/(numX*2-1) << std::endl;
+  std::cout << "avg panel size: " << tmp/(numX*2-1) << std::endl;
  
   return ElementPacket<float>({x, idx, val});
 }
