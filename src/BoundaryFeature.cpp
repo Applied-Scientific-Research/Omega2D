@@ -925,15 +925,15 @@ SolidAirfoil::init_elements(const float _ips) const {
   
   const int numX = std::ceil(m_chordLength*M_PI/_ips);
   std::cout << "Creating NACA Airfoil " << m_maxCamber << m_maxCambLoc << m_thickness << " with an estimated " << m_chordLength*(2*numX-2) << " panels" << std::endl;
-  std::vector<float> x(4*numX);
-  std::vector<Int> idx(4*numX);
-  std::vector<float> val(2*numX-1, 0.0);
+  std::vector<float> x(4*numX+2);
+  std::vector<Int> idx(4*numX+2);
+  std::vector<float> val(2*numX, 0.0);
   
   // Rotating the airfoil
   const float st = std::sin(M_PI * m_theta / 180.0);
   const float ct = std::cos(M_PI * m_theta / 180.0);
   // Go CW if flow is outside
-  for (size_t i=0; i<numX+1; i++) {
+  for (size_t i=0; i<numX; i++) {
     const float xol = chebeshev_node(0.0, m_chordLength, i, numX);
     float yc;
     float dyc;
@@ -954,8 +954,8 @@ SolidAirfoil::init_elements(const float _ips) const {
     // The bottom half
     const float pxe = xol+yt*sin(theta);
     const float pye = yc-yt*cos(theta);
-    x[2*(2*numX-1-i)] = m_chordLength*(m_x+pxe*ct-pye*st);
-    x[2*(2*numX-1-i)+1] = m_chordLength*(m_y+pxe*st+pye*ct);
+    x[2*(2*numX-1-i)] = m_x+pxe*ct-pye*st;
+    x[2*(2*numX-1-i)+1] = m_y+pxe*st+pye*ct;
     // Indices
     idx[2*i] = i;
     idx[2*i+1] = i+1;
