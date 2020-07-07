@@ -285,16 +285,16 @@ public:
                float _x = 0.0,
                float _y = 0.0,
                float _maxCamber = 0,
-               float _chordLocation = 0,
+               float _maxCambLoc = 0,
                float _thickness = 0,
                float _theta = 0.0,
-               float _scale = 1.0)
+               float _chordLength = 1.0)
     : BoundaryFeature(_bp, _ext, _x, _y),
       m_maxCamber(_maxCamber),
-      m_chordLocation(_chordLocation),
+      m_maxCambLoc(_maxCambLoc),
       m_thickness(_thickness),
       m_theta(_theta),
-      m_scale(_scale)
+      m_chordLength(_chordLength)
     {}
 
   void debug(std::ostream& os) const override;
@@ -308,9 +308,9 @@ public:
 
 protected:
   float m_maxCamber;
-  float m_chordLocation;
+  float m_maxCambLoc;
   float m_thickness;
   float m_theta;
-  float m_scale;
+  float m_chordLength;
 };
 

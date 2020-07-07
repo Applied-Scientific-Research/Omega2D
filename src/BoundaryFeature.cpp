@@ -920,13 +920,13 @@ SolidAirfoil::init_elements(const float _ips) const {
   // created once
   // This should be equivalent to the num_panels param other boundaries use 
   const int numX = 185;
-  std::cout << "Creating NACA Airfoil " << m_maxCamber*100 << m_chordLocation*10 << m_thickness*100 << " with " << 2*numX-2 << " panels" << std::endl;
+  std::cout << "Creating NACA Airfoil " << m_maxCamber*100 << m_maxCambLoc*10 << m_thickness*100 << " with an estimated " << m_chordLength*(2*numX-2) << " panels" << std::endl;
   std::vector<float> x(4*numX);
   std::vector<Int> idx(4*numX);
   std::vector<float> val(2*numX-1, 0.0);
   
   const float maxX = 1.0;
-  // Rotating the airfoil 
+  // Rotating the airfoil
   const float st = std::sin(M_PI * m_theta / 180.0);
   const float ct = std::cos(M_PI * m_theta / 180.0);
   // Go CW if flow is outside
@@ -934,25 +934,25 @@ SolidAirfoil::init_elements(const float _ips) const {
     const float xol = chebeshev_node(0.0, maxX, i, numX);
     float yc;
     float dyc;
-    if (xol < m_chordLocation) {
-      yc = (m_maxCamber/std::pow(m_chordLocation,2))*(2*m_chordLocation*xol-std::pow(xol,2));
-      dyc = (m_maxCamber/std::pow(m_chordLocation,2))*2*(m_chordLocation-xol);
+    if (xol < m_maxCambLoc) {
+      yc = (m_maxCamber/std::pow(m_maxCambLoc,2))*(2*m_maxCambLoc*xol-std::pow(xol,2));
+      dyc = (m_maxCamber/std::pow(m_maxCambLoc,2))*2*(m_maxCambLoc-xol);
     } else {
-      yc = (m_maxCamber/std::pow(1-m_chordLocation,2))*(1-2*m_chordLocation+2*m_chordLocation*xol-std::pow(xol,2));
-      dyc = (m_maxCamber/std::pow(1-m_chordLocation,2))*2*(m_chordLocation-xol);
+      yc = (m_maxCamber/std::pow(1-m_maxCambLoc,2))*(1-2*m_maxCambLoc+2*m_maxCambLoc*xol-std::pow(xol,2));
+      dyc = (m_maxCamber/std::pow(1-m_maxCambLoc,2))*2*(m_maxCambLoc-xol);
     }
     const float yt = (m_thickness/0.2)*(0.2969*std::sqrt(xol)-0.1260*xol-0.3516*std::pow(xol,2)+0.2843*std::pow(xol,3)-0.1015*std::pow(xol,4));
     const float theta = tan(dyc); //find_theta(dyc, c/numX);
     // The top half
     const float px = xol-yt*sin(theta);
     const float py = yc+yt*cos(theta);
-    x[2*i] = m_scale*(m_x+px*ct-py*st);
-    x[2*i+1] = m_scale*(m_y+px*st+py*ct);
+    x[2*i] = m_chordLength*(m_x+px*ct-py*st);
+    x[2*i+1] = m_chordLength*(m_y+px*st+py*ct);
     // The bottom half
     const float pxe = xol+yt*sin(theta);
     const float pye = yc-yt*cos(theta);
-    x[2*(2*numX-1-i)] = m_scale*(m_x+pxe*ct-pye*st);
-    x[2*(2*numX-1-i)+1] = m_scale*(m_y+pxe*st+pye*ct);
+    x[2*(2*numX-1-i)] = m_chordLength*(m_x+pxe*ct-pye*st);
+    x[2*(2*numX-1-i)+1] = m_chordLength*(m_y+pxe*st+pye*ct);
     // Indices
     idx[2*i] = i;
     idx[2*i+1] = i+1;
@@ -994,7 +994,7 @@ SolidAirfoil::to_string() const {
   } else {
     ss << "airfoil hole";
   }
-  ss << " at " << m_x << " " << m_y << " with " << m_maxCamber << " max camber, " << m_chordLocation << " chord location, and " << m_thickness << " thickness rotated " << m_theta << " deg";
+  ss << " at " << m_x << " " << m_y << " with " << m_maxCamber << " max camber, " << m_maxCambLoc << " chord location, and " << m_thickness << " thickness rotated " << m_theta << " deg";
   return ss.str();
 }
 
@@ -1004,12 +1004,12 @@ SolidAirfoil::from_json(const nlohmann::json j) {
   m_x = tr[0];
   m_y = tr[1];
   m_maxCamber = j["maxCamber"];
-  m_chordLocation = j["chordLocation"];
+  m_maxCambLoc = j["maxCambLoc"];
   m_thickness = j["thickness"];
   m_theta = j.value("rotation", 0.0);
   m_external = j.value("external", true);
   m_enabled = j.value("enabled",true);
-  m_scale = j.value("scale", 1.0f);
+  m_chordLength = j.value("chordLength", 1.0f);
 }
 
 nlohmann::json
@@ -1019,10 +1019,10 @@ SolidAirfoil::to_json() const {
   mesh["geometry"] = "airfoil";
   mesh["translation"] = {m_x, m_y};
   mesh["maxCamber"] = m_maxCamber;
-  mesh["chordLocation"] = m_chordLocation;
+  mesh["maxCambLoc"] = m_maxCambLoc;
   mesh["thickness"] = m_thickness;
   mesh["rotation"] = m_theta;
-  mesh["scale"] = m_scale;
+  mesh["chordLength"] = m_chordLength;
   mesh["external"] = m_external;
   mesh["enabled"] = m_enabled;
   return mesh;
@@ -1038,9 +1038,8 @@ bool SolidAirfoil::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std:
   static int maxCamber = 0;
   static int chordLocation = 0;
   static int thickness = 12;
-  static float scale = 1.0f;
+  static float chordLength = 1.0f;
   bool add = false;
-  //ImGuiInputTextCallback textFlags = 0;
  
   ImGui::Checkbox("Object is in flow", &external_flow);
   ImGui::SameLine();
@@ -1050,15 +1049,15 @@ bool SolidAirfoil::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std:
         naca = naca.substr(0, 4);
     }
   }
-  ImGui::InputFloat2("Center", xc);
-  ImGui::SliderFloat("Orientation", &rotdeg, 0.0f, 359.0f, "%.0f");
-  ImGui::SliderFloat("Scale", &scale, 0.1f, 5.0f, "%.1f");
+  ImGui::InputFloat2("Leading Edge Position", xc);
+  ImGui::SliderFloat("Angle of Attack", &rotdeg, -180.0f, 180.0f, "%.0f");
+  ImGui::SliderFloat("Chord Length", &chordLength, 0.1f, 5.0f, "%.1f");
   ImGui::TextWrapped("This feature will add a NACA Airfoil boundary centered at the given coordinates");
   if (ImGui::Button("Add NACA Airfoil boundary")) {
     maxCamber = std::stoi(naca.substr(0, 1));
     chordLocation = std::stoi(naca.substr(1, 1));
     thickness = std::stoi(naca.substr(2, 2));
-    bfeatures.emplace_back(std::make_unique<SolidAirfoil>(bp, external_flow, xc[0], xc[1], maxCamber/100.0, chordLocation/10.0, thickness/100.0, rotdeg, scale));
+    bfeatures.emplace_back(std::make_unique<SolidAirfoil>(bp, external_flow, xc[0], xc[1], maxCamber/100.0, chordLocation/10.0, thickness/100.0, rotdeg, chordLength));
     std::cout << "Added " << (*bfeatures.back()) << std::endl;
     ImGui::CloseCurrentPopup();
     add = true;
