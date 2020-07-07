@@ -937,7 +937,7 @@ SolidAirfoil::init_elements(const float _ips) const {
     const float xol = chebeshev_node(0.0, m_chordLength, i, numX);
     float yc;
     float dyc;
-    if (xol < p) {
+    if (xol < p*m_chordLenght) {
       yc = (m/std::pow(p,2))*(2*p*xol-std::pow(xol,2));
       dyc = (m/std::pow(p,2))*2*(p-xol);
     } else {
@@ -977,7 +977,7 @@ SolidAirfoil::init_elements(const float _ips) const {
   std::cout << _ips*0.1 << " < ideal panel size < " << _ips*1.2 << std::endl;
   float tmp = 0.0;
   for (size_t i=0; i<2*numX-1; i++) {
-    const float tmp2 =std::sqrt(std::pow(x[2*i+3]-x[2*i+1], 2)+std::pow(x[2*i+2]-x[2*i], 2));
+    const float tmp2 = std::sqrt(std::pow(x[2*i+3]-x[2*i+1], 2)+std::pow(x[2*i+2]-x[2*i], 2));
     std::cout << tmp2 << std::endl;
     tmp += tmp2;
   }
