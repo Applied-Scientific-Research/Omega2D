@@ -924,10 +924,9 @@ SolidAirfoil::init_elements(const float _ips) const {
   const float t = m_thickness/100.0f;
   
   const int numX = std::ceil(m_chordLength*M_PI/_ips);
-  std::cout << "Creating NACA Airfoil " << m_maxCamber << m_maxCambLoc << m_thickness << " with an estimated " << m_chordLength*(2*numX-2) << " panels" << std::endl;
+  std::cout << "Creating NACA Airfoil " << m_maxCamber << m_maxCambLoc << m_thickness << " with an estimated " << m_chordLength*(2*numX) << " panels" << std::endl;
   std::vector<float> x(4*numX+2);
   std::vector<Int> idx(4*numX+2);
-  std::vector<float> val(2*numX, 0.0);
   
   // Rotating the airfoil
   const float st = std::sin(M_PI * m_theta / 180.0);
@@ -937,7 +936,7 @@ SolidAirfoil::init_elements(const float _ips) const {
     const float xol = chebeshev_node(0.0, m_chordLength, i, numX);
     float yc;
     float dyc;
-    if (xol < p*m_chordLenght) {
+    if (xol < p*m_chordLength) {
       yc = (m/std::pow(p,2))*(2*p*xol-std::pow(xol,2));
       dyc = (m/std::pow(p,2))*2*(p-xol);
     } else {
@@ -945,7 +944,7 @@ SolidAirfoil::init_elements(const float _ips) const {
       dyc = (m/std::pow(1-p,2))*2*(p-xol);
     }
     const float yt = (t/0.2)*(0.2969*std::sqrt(xol)-0.1260*xol-0.3516*std::pow(xol,2)+0.2843*std::pow(xol,3)-0.1015*std::pow(xol,4));
-    const float theta = tan(dyc); //find_theta(dyc, c/numX);
+    const float theta = tan(dyc);
     // The top half
     const float px = xol-yt*sin(theta);
     const float py = yc+yt*cos(theta);
@@ -954,34 +953,43 @@ SolidAirfoil::init_elements(const float _ips) const {
     // The bottom half
     const float pxe = xol+yt*sin(theta);
     const float pye = yc-yt*cos(theta);
-    x[2*(2*numX-1-i)] = m_x+pxe*ct-pye*st;
-    x[2*(2*numX-1-i)+1] = m_y+pxe*st+pye*ct;
+    x[2*(2*numX-i)] = m_x+pxe*ct-pye*st;
+    x[2*(2*numX-i)+1] = m_y+pxe*st+pye*ct;
     // Indices
     idx[2*i] = i;
     idx[2*i+1] = i+1;
-    idx[2*(2*numX-1-i)] = 2*numX-1-i;
-    idx[2*(2*numX-1-i)+1] = 2*numX-i;
+    idx[2*(2*numX-i)] = 2*numX-i;
+    idx[2*(2*numX-i)+1] = 2*numX-i+1;
   }
-  // The math above switches two points when i=numX, so we switch them back
-  const float tmp1 = x[2*(numX-1)];
-  const float tmp2 = x[2*(numX-1)+1];
-  x[2*(numX-1)] = x[2*numX];
-  x[2*(numX-1)+1] = x[2*numX+1];
-  x[2*numX] = tmp1;
-  x[2*numX+1] = tmp2;
-  // We remove the last point since it equals the first point
+  // Now we create a tail point by finding the intersection of the two halves
+  const float upperSlope = (x[2*(numX-2)+1]-x[2*(numX-1)+1])/(x[2*(numX-2)]-x[2*(numX-1)]);
+  const float lowerSlope = (x[2*(numX+1)+1]-x[2*(numX+2)+1])/(x[2*(numX+1)]-x[2*(numX+2)]);
+  x[2*numX] = (x[2*(numX-1)]*upperSlope-x[2*(numX-1)+1]-x[2*(numX+1)]*lowerSlope+x[2*(numX+1)+1])/(upperSlope-lowerSlope);
+  x[2*numX+1] = upperSlope*(x[2*numX]-x[2*(numX-1)])+x[2*(numX-1)+1];
+  // Add the indices
+  idx[2*numX] = numX;
+  idx[2*numX+1] = numX+1;
+  // The last point is the same as the first so we remove it
   x.erase(x.end()-2, x.end());
   idx.erase(idx.end()-2, idx.end());
-  idx[4*numX-3] = 0;
+  idx[idx.size()-1] = 0;
+  std::vector<float> val(idx.size()/2, 0.0);
 
   std::cout << _ips*0.1 << " < ideal panel size < " << _ips*1.2 << std::endl;
   float tmp = 0.0;
-  for (size_t i=0; i<2*numX-1; i++) {
+  for (size_t i=0; i<x.size()/2; i++) {
     const float tmp2 = std::sqrt(std::pow(x[2*i+3]-x[2*i+1], 2)+std::pow(x[2*i+2]-x[2*i], 2));
     std::cout << tmp2 << std::endl;
     tmp += tmp2;
   }
-  std::cout << "avg panel size: " << tmp/(numX*2-1) << std::endl;
+  std::cout << "avg panel size: " << tmp/(numX*2-1) << "\nidx:" << std::endl;
+  for (size_t i=0; i<idx.size()/2; i++) {
+    std::cout << idx[2*i] << " " << idx[2*i+1] << std::endl;
+  }
+  std::cout << "x: " << std::endl;
+  for (size_t i=0; i<x.size()/2; i++) {
+    std::cout << x[2*i] << " " << x[2*i+1] << std::endl;
+  }
  
   return ElementPacket<float>({x, idx, val});
 }
