@@ -43,12 +43,15 @@ public:
   virtual ElementPacket<float> init_elements(const float) const = 0;
   //virtual std::vector<float> step_elements(const float) const = 0;
   std::shared_ptr<Body> get_body() { return m_bp; }
+  virtual void generate_draw_geom() = 0;
+  virtual ElementPacket<float> get_draw_packet() { return m_draw; }
 
 protected:
   std::shared_ptr<Body> m_bp;
   bool m_external;
   float m_x;
   float m_y;
+  ElementPacket<float> m_draw;
 };
 
 std::ostream& operator<<(std::ostream& os, BoundaryFeature const& ff);
@@ -104,6 +107,7 @@ public:
 #ifdef USE_IMGUI
   static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
 #endif
+  void generate_draw_geom() override;
 
 protected:
   float m_diam;
@@ -135,6 +139,7 @@ public:
 #ifdef USE_IMGUI
   static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
 #endif
+  void generate_draw_geom() override;
 
 protected:
   float m_dmin;
@@ -166,6 +171,7 @@ public:
 #ifdef USE_IMGUI
   static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
 #endif
+  void generate_draw_geom() override;
 
 protected:
   float m_side;
@@ -197,6 +203,7 @@ public:
 #ifdef USE_IMGUI
   static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
 #endif
+  void generate_draw_geom() override;
 
 protected:
   float m_sidey;
@@ -231,6 +238,7 @@ public:
 #ifdef USE_IMGUI
   static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
 #endif
+  void generate_draw_geom() override;
 
 protected:
   float m_xe, m_ye;
@@ -266,6 +274,7 @@ public:
 #ifdef USE_IMGUI
   static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
 #endif
+  void generate_draw_geom() override;
 
 protected:
   int m_numSides;

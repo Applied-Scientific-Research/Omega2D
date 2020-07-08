@@ -51,6 +51,9 @@ void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
   // and pass the json object to the specific parser
   _flist.back()->from_json(_jin);
 
+  // finally, generate the draw information
+  _flist.back()->generate_draw_geom();
+
   std::cout << "  found " << _flist.back()->to_string() << std::endl;
 }
 
@@ -152,12 +155,19 @@ bool SolidCircle::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::
   if (ImGui::Button("Add circular boundary")) {
     bfeatures.emplace_back(std::make_unique<SolidCircle>(bp, external_flow, xc[0], xc[1], diam));
     ImGui::CloseCurrentPopup();
+    bfeatures.back()->generate_draw_geom();
     add = true;
   }
   ImGui::SameLine();
+
   return add;
 }
 #endif
+
+void SolidCircle::generate_draw_geom() {
+  m_draw = init_elements(m_diam/25.0);
+}
+
 
 //
 // Create an oval
@@ -346,6 +356,7 @@ bool SolidOval::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::un
   if (ImGui::Button("Add oval boundary")) {
     bfeatures.emplace_back(std::make_unique<SolidOval>(bp, external_flow, xc[0], xc[1], diam, minordiam, rotdeg));
     std::cout << "Added " << (*bfeatures.back()) << std::endl;
+    bfeatures.back()->generate_draw_geom();
     ImGui::CloseCurrentPopup();
     add = true;
   }
@@ -354,6 +365,11 @@ bool SolidOval::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::un
   return add;
 }
 #endif
+
+void SolidOval::generate_draw_geom() {
+  m_draw = init_elements(m_diam/60.0);
+}
+
 
 //
 // Create a square
@@ -465,7 +481,6 @@ SolidSquare::to_json() const {
   return mesh;
 }
 
-
 #ifdef USE_IMGUI
 bool SolidSquare::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::unique_ptr<BoundaryFeature>> &bfeatures) {
   static bool external_flow = true;
@@ -485,6 +500,7 @@ bool SolidSquare::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::
   if (ImGui::Button("Add square boundary")) {
     bfeatures.emplace_back(std::make_unique<SolidSquare>(bp, external_flow, xc[0], xc[1], side, rotdeg));
     std::cout << "Added " << (*bfeatures.back()) << std::endl;
+    bfeatures.back()->generate_draw_geom();
     ImGui::CloseCurrentPopup();
     add = true;
   }
@@ -493,6 +509,12 @@ bool SolidSquare::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::
   return add;
 }
 #endif
+
+void SolidSquare::generate_draw_geom() {
+  m_draw = init_elements(m_side);
+  // transform according to body position at t=0?
+}
+
 
 //
 // Create a rectangle
@@ -629,13 +651,20 @@ bool SolidRect::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::un
   if (ImGui::Button("Add rectangular boundary")) {
     bfeatures.emplace_back(std::make_unique<SolidRect>(bp, external_flow, xc[0], xc[1], side, rectside, rotdeg));
     std::cout << "Added " << (*bfeatures.back()) << std::endl;
+    bfeatures.back()->generate_draw_geom();
     ImGui::CloseCurrentPopup();
     add = true;
   }
   ImGui::SameLine();
+
   return add;
 }
 #endif
+
+void SolidRect::generate_draw_geom() {
+  m_draw = init_elements(m_side);
+}
+
 
 //
 // Create a segment of a solid boundary
@@ -740,6 +769,7 @@ bool BoundarySegment::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<s
   if (ImGui::Button("Add boundary segment")) {
     bfeatures.emplace_back(std::make_unique<BoundarySegment>(bp, true, xc[0], xc[1], xe[0], xe[1], 0.0, tangbc));
     std::cout << "Added " << (*bfeatures.back()) << std::endl;
+    bfeatures.back()->generate_draw_geom();
     ImGui::CloseCurrentPopup();
     add = true;
   }
@@ -747,6 +777,11 @@ bool BoundarySegment::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<s
   return add;
 }
 #endif
+
+void BoundarySegment::generate_draw_geom() {
+  m_draw = init_elements(1.0);
+}
+
 
 // Create a Polygon 
 ElementPacket<float>
@@ -897,6 +932,7 @@ bool SolidPolygon::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std:
   if (ImGui::Button("Add polygon boundary")) {
     bfeatures.emplace_back(std::make_unique<SolidPolygon>(bp, external_flow, xc[0], xc[1], numSides, side, rad, rotdeg));
     std::cout << "Added " << (*bfeatures.back()) << std::endl;
+    bfeatures.back()->generate_draw_geom();
     ImGui::CloseCurrentPopup();
     add = true;
   }
@@ -905,6 +941,10 @@ bool SolidPolygon::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std:
   return add;
 }
 #endif
+
+void SolidPolygon::generate_draw_geom() {
+  m_draw = init_elements(m_radius);
+}
 
 double chebeshev_node(double a, double b, double k, double n) {
   return (a+b)*0.5+(b-a)*0.5*cos((2*(n-k)-1)*M_PI*0.5/n);
@@ -1075,3 +1115,4 @@ bool SolidAirfoil::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std:
   return add;
 }
 #endif
+

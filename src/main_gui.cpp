@@ -14,6 +14,7 @@
 #include "JsonHelper.h"
 #include "Body.h"
 #include "RenderParams.h"
+#include "FeatureDraw.h"
 #include "json/json.hpp"
 #include "main_gui_functions.cpp"
 
@@ -53,6 +54,7 @@ int main(int argc, char const *argv[]) {
   std::vector< std::unique_ptr<FlowFeature> > ffeatures;
   std::vector< std::unique_ptr<BoundaryFeature> > bfeatures;
   std::vector< std::unique_ptr<MeasureFeature> > mfeatures;
+  FeatureDraw bdraw;
   size_t nframes = 0;
   static bool sim_is_running = false;
   static bool begin_single_step = false;
@@ -177,9 +179,9 @@ int main(int argc, char const *argv[]) {
 
   // Load file names and paths of pre-stored sims
   std::vector<nlohmann::json> sims;
-  std::vector<std::string> descriptions = {"Select a Simulation"};
+  std::vector<std::string> descriptions = {"Select a simulation"};
   LoadJsonSims(sims, descriptions, EXAMPLES_DIR);
-  
+
   // Main loop
   std::cout << "Starting main loop" << std::endl;
   while (!glfwWindowShouldClose(window)) {
@@ -225,6 +227,8 @@ int main(int argc, char const *argv[]) {
         std::cout << std::endl << "ERROR: " << sim_err_msg;
         // stop the run
         sim_is_running = false;
+        // and reset
+        sim.reset();
       }
 
       begin_single_step = false;
@@ -357,12 +361,18 @@ int main(int argc, char const *argv[]) {
         ImGui::EndCombo();
       }
 
-      if(currentItemIndex) {
+      if (currentItemIndex) {
         sim.reset();
         bfeatures.clear();
         ffeatures.clear();
         mfeatures.clear();
         parse_json(sim, ffeatures, bfeatures, mfeatures, rparams, sims[currentItemIndex-1]);
+        // clear and remake the draw geometry
+        bdraw.clear_elements();
+        for (auto const& bf : bfeatures) {
+          bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
+        }
+        // finish setting up and run
         is_viscous = sim.get_diffuse();
         currentItemIndex = 0;
         sim_is_running = true;
@@ -393,7 +403,14 @@ int main(int argc, char const *argv[]) {
           // load and report
           nlohmann::json j = read_json(infile);
           parse_json(sim, ffeatures, bfeatures, mfeatures, rparams, j);
-          // we have to manually set this variable
+
+          // clear and remake the draw geometry
+          bdraw.clear_elements();
+          for (auto const& bf : bfeatures) {
+            bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
+          }
+
+          // finish setting up and run
           is_viscous = sim.get_diffuse();
 
           // run one step so we know what we have, or autostart
@@ -440,7 +457,8 @@ int main(int argc, char const *argv[]) {
       show_welcome_window = false;
     }
 
-    //if (ImGui::CollapsingHeader("Simulation globals", ImGuiTreeNodeFlags_DefaultOpen)) 
+
+    //if (ImGui::CollapsingHeader("Simulation globals", ImGuiTreeNodeFlags_DefaultOpen)) {
     if (ImGui::CollapsingHeader("Simulation globals")) {
 
       // save current versions, so we know which changed
@@ -533,54 +551,7 @@ int main(int argc, char const *argv[]) {
 
       ImGui::Spacing();
 
-      // button and modal window for adding new flow structures
-      if (ImGui::Button("Add flow")) ImGui::OpenPopup("New flow structure");
-      ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiCond_FirstUseEver);
-      if (ImGui::BeginPopupModal("New flow structure"))
-      {
-        static int item = 1;
-        const char* items[] = { "single particle", "round vortex blob", "Gaussian vortex blob", "asymmetric vortex blob", "block of vorticity", "random particles", "particle emitter" };
-        ImGui::Combo("type", &item, items, 7);
-
-        // show different inputs based on what is selected
-        switch(item) {
-          case 0: {
-            // creates a single particle
-            SingleParticle::draw_creation_gui(ffeatures);
-          } break;
-         case 1: {
-              // creates a blob of vorticies
-              VortexBlob::draw_creation_gui(ffeatures, sim.get_ips());
-          } break;
-          case 2: {
-            // a gaussian blob of multiple vorticies
-            GaussianBlob::draw_creation_gui(ffeatures, sim.get_ips());
-          } break;
-          case 3: {
-            // an asymmetric blob of multiple vorticies
-            AsymmetricBlob::draw_creation_gui(ffeatures, sim.get_ips());
-          } break;
-          case 4: {
-            // particles in a rectangle
-            UniformBlock::draw_creation_gui(ffeatures, sim.get_ips());
-          } break;
-          case 5: {
-            // random particles in a rectangle
-            BlockOfRandom::draw_creation_gui(ffeatures);
-          } break;
-          case 6: {
-            // create a particle emitter
-            ParticleEmitter::draw_creation_gui(ffeatures);
-          } break;
-        }
-
-        if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
-        ImGui::EndPopup();
-      } // end popup new flow structures
-
-
       // button and modal window for adding new boundary objects
-      ImGui::SameLine();
       if (ImGui::Button("Add boundary")) ImGui::OpenPopup("New boundary structure");
       ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New boundary structure"))
@@ -630,60 +601,60 @@ int main(int argc, char const *argv[]) {
             // create a circular boundary
             if (SolidCircle::draw_creation_gui(bp, bfeatures)) {
               if (mitem == 2) {
-	        bp->set_name("circular cylinder");
-	        sim.add_body(bp);
+                bp->set_name("circular cylinder");
+                sim.add_body(bp);
               }
-              std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
             }
           } break;
           case 1: {
             // create a square boundary
             if (SolidSquare::draw_creation_gui(bp, bfeatures)) {
               if (mitem == 2) {
-	        bp->set_name("square cylinder");
-	        sim.add_body(bp);
+                bp->set_name("square cylinder");
+                sim.add_body(bp);
               }
-              std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
             }
           } break;
           case 2: {
             // create an oval boundary
             if (SolidOval::draw_creation_gui(bp, bfeatures)) {
               if (mitem == 2) {
-	        bp->set_name("oval cylinder");
-	        sim.add_body(bp);
+                bp->set_name("oval cylinder");
+                sim.add_body(bp);
               }
-              std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
             } 
           } break;
           case 3: {
             // create a rectangle boundary
             if (SolidRect::draw_creation_gui(bp, bfeatures)) {
               if (mitem == 2) {
-	        bp->set_name("rectangular cylinder");
-	        sim.add_body(bp);
+                bp->set_name("rectangular cylinder");
+                sim.add_body(bp);
               }
-              std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
             } 
           } break;
           case 4: {
             // create a straight boundary segment
-            if (SolidRect::draw_creation_gui(bp, bfeatures)) {
+            if (BoundarySegment::draw_creation_gui(bp, bfeatures)) {
               if (mitem == 2) {
-	        bp->set_name("segmented boundary");
-	        sim.add_body(bp);
+                bp->set_name("segmented boundary");
+                sim.add_body(bp);
               }
-              std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
             } 
           } break;
           case 5: {
             // create a polygon boundary
             if (SolidPolygon::draw_creation_gui(bp, bfeatures)) {
               if (mitem == 2) {
-	        bp->set_name("polygon cylinder");
-	        sim.add_body(bp);
+                bp->set_name("polygon cylinder");
+                sim.add_body(bp);
               }
-              std::cout << "Added " << (*bfeatures.back()) << std::endl;
+              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
             } 
           }
           case 6: {
@@ -700,6 +671,53 @@ int main(int argc, char const *argv[]) {
         ImGui::EndPopup();
         
       } // end new boundary structures
+
+
+      // button and modal window for adding new flow structures
+      ImGui::SameLine();
+      if (ImGui::Button("Add vortex")) ImGui::OpenPopup("New flow structure");
+      ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiCond_FirstUseEver);
+      if (ImGui::BeginPopupModal("New flow structure"))
+      {
+        static int item = 1;
+        const char* items[] = { "single particle", "round vortex blob", "Gaussian vortex blob", "asymmetric vortex blob", "block of vorticity", "random particles", "particle emitter" };
+        ImGui::Combo("type", &item, items, 7);
+
+        // show different inputs based on what is selected
+        switch(item) {
+          case 0: {
+            // creates a single particle
+            SingleParticle::draw_creation_gui(ffeatures);
+          } break;
+         case 1: {
+              // creates a blob of vorticies
+              VortexBlob::draw_creation_gui(ffeatures, sim.get_ips());
+          } break;
+          case 2: {
+            // a gaussian blob of multiple vorticies
+            GaussianBlob::draw_creation_gui(ffeatures, sim.get_ips());
+          } break;
+          case 3: {
+            // an asymmetric blob of multiple vorticies
+            AsymmetricBlob::draw_creation_gui(ffeatures, sim.get_ips());
+          } break;
+          case 4: {
+            // particles in a rectangle
+            UniformBlock::draw_creation_gui(ffeatures, sim.get_ips());
+          } break;
+          case 5: {
+            // random particles in a rectangle
+            BlockOfRandom::draw_creation_gui(ffeatures);
+          } break;
+          case 6: {
+            // create a particle emitter
+            ParticleEmitter::draw_creation_gui(ffeatures);
+          } break;
+        }
+
+        if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
+        ImGui::EndPopup();
+      } // end popup new flow structures
 
 
       // button and modal window for adding new measurement objects
@@ -783,7 +801,7 @@ int main(int argc, char const *argv[]) {
       for (int i=0; i<(int)bfeatures.size(); ++i) {
 
         ImGui::PushID(++buttonIDs);
-        ImGui::Checkbox("", bfeatures[i]->addr_enabled());
+        const bool ischeck = ImGui::Checkbox("", bfeatures[i]->addr_enabled());
         ImGui::PopID();
         if (bfeatures[i]->is_enabled()) {
           ImGui::SameLine();
@@ -792,6 +810,9 @@ int main(int argc, char const *argv[]) {
           ImGui::SameLine();
           ImGui::TextColored(ImVec4(0.5f,0.5f,0.5f,1.0f), "%s", bfeatures[i]->to_string().c_str());
         }
+
+        // if the checkbox flipped positions this frame, ischeck is 1
+        if (ischeck) bdraw.reset_enabled(i,bfeatures[i]->is_enabled());
 
         // add a "remove" button at the end of the line (so it's not easy to accidentally hit)
         ImGui::SameLine();
@@ -802,6 +823,12 @@ int main(int argc, char const *argv[]) {
       if (del_this_bdry > -1) {
         std::cout << "Asked to delete boundary feature " << del_this_bdry << std::endl;
         bfeatures.erase(bfeatures.begin()+del_this_bdry);
+
+        // clear out and re-make all boundary draw geometry
+        bdraw.clear_elements();
+        for (auto const& bf : bfeatures) {
+          bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
+        }
       }
 
       // list existing measurement features here
@@ -836,6 +863,7 @@ int main(int argc, char const *argv[]) {
 
     } // end structure entry
 
+
     // Rendering parameters, under a header
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Rendering controls")) { draw_render_gui(rparams); }
@@ -847,12 +875,14 @@ int main(int argc, char const *argv[]) {
     // Output buttons, under a header
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Save output")) {
+
       // save the simulation to a JSON or VTK file
       ImGui::Spacing();
       if (ImGui::Button("Save setup to JSON", ImVec2(20+12*fontSize,0))) show_file_output_window = true;
       ImGui::SameLine();
       // PNG output of the render frame
       if (ImGui::Button("Save screenshot to PNG", ImVec2(20+12*fontSize,0))) draw_this_frame = true;
+
       // next line: VTK output and record
       if (ImGui::Button("Save parts to VTU", ImVec2(20+12*fontSize,0))) export_vtk_this_frame = true;
       ImGui::SameLine();
@@ -997,7 +1027,17 @@ int main(int argc, char const *argv[]) {
     sim.drawGL(gl_projection, rparams);
 
     // if simulation has not been initted, draw the features instead!
-    //for (auto const& bf : bfeatures) { bf.drawGL(gl_projection, rparams); }
+    if (not sim.is_initialized()) {
+      // append draw geometries to FeatureDraw object
+      for (auto const& bf : bfeatures) {
+        if (bf->is_enabled()) {
+          // what should we do differently?
+        }
+      }
+
+      // and draw
+      bdraw.drawGL(gl_projection, rparams);
+    }
 
     // here is where we write the buffer to a file
     if ((is_ready and record_all_frames and sim_is_running) or draw_this_frame) {
