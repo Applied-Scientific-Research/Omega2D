@@ -962,8 +962,8 @@ SolidAirfoil::init_elements(const float _ips) const {
   const float p = m_maxCambLoc/10.0f;
   const float t = m_thickness/100.0f;
   
-  const int numX = std::ceil(M_PI/_ips);
-  std::cout << "Creating NACA Airfoil " << m_maxCamber << m_maxCambLoc << m_thickness << " with an estimated " << m_chordLength(2*numX) << " panels" << std::endl;
+  const int numX = std::ceil(m_chordLength*M_PI/_ips);
+  std::cout << "Creating NACA Airfoil " << m_maxCamber << m_maxCambLoc << m_thickness << " with an estimated " << 2*numX << " panels" << std::endl;
   std::vector<float> x(4*numX+2);
   std::vector<Int> idx(4*numX+2);
   
