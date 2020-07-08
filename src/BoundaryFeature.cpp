@@ -515,7 +515,6 @@ void SolidSquare::generate_draw_geom() {
   // transform according to body position at t=0?
 }
 
-
 //
 // Create a rectangle
 //
@@ -1116,3 +1115,6 @@ bool SolidAirfoil::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std:
 }
 #endif
 
+void SolidAirfoil::generate_draw_geom() {
+  m_draw = init_elements(0.03);
+}
