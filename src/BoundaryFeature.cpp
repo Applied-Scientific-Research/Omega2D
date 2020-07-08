@@ -1014,22 +1014,6 @@ SolidAirfoil::init_elements(const float _ips) const {
   idx[idx.size()-1] = 0;
   std::vector<float> val(idx.size()/2, 0.0);
 
-  std::cout << _ips*0.1 << " < ideal panel size < " << _ips*1.2 << std::endl;
-  float tmp = 0.0;
-  for (size_t i=0; i<x.size()/2; i++) {
-    const float tmp2 = std::sqrt(std::pow(x[2*i+3]-x[2*i+1], 2)+std::pow(x[2*i+2]-x[2*i], 2));
-    std::cout << tmp2 << std::endl;
-    tmp += tmp2;
-  }
-  std::cout << "avg panel size: " << tmp/(numX*2-1) << "\nidx:" << std::endl;
-  for (size_t i=0; i<idx.size()/2; i++) {
-    std::cout << idx[2*i] << " " << idx[2*i+1] << std::endl;
-  }
-  std::cout << "x: " << std::endl;
-  for (size_t i=0; i<x.size()/2; i++) {
-    std::cout << x[2*i] << " " << x[2*i+1] << std::endl;
-  }
- 
   return ElementPacket<float>({x, idx, val});
 }
 
