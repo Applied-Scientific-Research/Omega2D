@@ -9,6 +9,7 @@
 #include "BoundaryFeature.h"
 #include "GuiHelper.h"
 #include "imgui/imgui.h"
+#include "imgui/imgui_stdlib.h"
 
 #define __STDCPP_WANT_MATH_SPEC_FUNCS__ 1
 #include <cmath>
@@ -41,6 +42,7 @@ void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
   else if (ftype == "rectangle") { _flist.emplace_back(std::make_unique<SolidRect>(_bp)); }
   else if (ftype == "segment") { _flist.emplace_back(std::make_unique<BoundarySegment>(_bp)); }
   else if (ftype == "polygon") { _flist.emplace_back(std::make_unique<SolidPolygon>(_bp)); }
+  else if (ftype == "airfoil") { _flist.emplace_back(std::make_unique<SolidAirfoil>(_bp)); }
   else {
     std::cout << "  type " << ftype << " does not name an available boundary feature, ignoring" << std::endl;
     return;
@@ -513,7 +515,6 @@ void SolidSquare::generate_draw_geom() {
   // transform according to body position at t=0?
 }
 
-
 //
 // Create a rectangle
 //
@@ -944,3 +945,161 @@ void SolidPolygon::generate_draw_geom() {
   m_draw = init_elements(m_radius);
 }
 
+double chebeshev_node(double a, double b, double k, double n) {
+  return (a+b)*0.5+(b-a)*0.5*cos((2*(n-k)-1)*M_PI*0.5/n);
+}
+
+// Create a NACA Airfoil
+// THIS NEEDS TO BE REDONE
+ElementPacket<float>
+SolidAirfoil::init_elements(const float _ips) const {
+  // If object has been removed, return no elements?
+  if (not this->is_enabled()) return ElementPacket<float>();
+
+  // created once
+  // This should be equivalent to the num_panels param other boundaries use 
+  const float m = m_maxCamber/100.0f;
+  const float p = m_maxCambLoc/10.0f;
+  const float t = m_thickness/100.0f;
+  
+  const int numX = std::ceil(m_chordLength*M_PI/_ips);
+  std::cout << "Creating NACA Airfoil " << m_maxCamber << m_maxCambLoc << m_thickness << " with an estimated " << 2*numX << " panels" << std::endl;
+  std::vector<float> x(4*numX+2);
+  std::vector<Int> idx(4*numX+2);
+  
+  // Rotating the airfoil
+  const float st = std::sin(M_PI * m_theta / 180.0);
+  const float ct = std::cos(M_PI * m_theta / 180.0);
+  // Go CW if flow is outside
+  for (size_t i=0; i<numX; i++) {
+    const float xol = chebeshev_node(0.0, 1.0, i, numX);
+    float yc;
+    float dyc;
+    if (xol < p) {
+      yc = (m/std::pow(p,2))*(2*p*xol-std::pow(xol,2));
+      dyc = (m/std::pow(p,2))*2*(p-xol);
+    } else {
+      yc = (m/std::pow(1-p,2))*(1-2*p+2*p*xol-std::pow(xol,2));
+      dyc = (m/std::pow(1-p,2))*2*(p-xol);
+    }
+    const float yt = (t/0.2)*(0.2969*std::sqrt(xol)-0.1260*xol-0.3516*std::pow(xol,2)+0.2843*std::pow(xol,3)-0.1015*std::pow(xol,4));
+    const float theta = tan(dyc);
+    // The top half
+    const float px = xol-yt*sin(theta);
+    const float py = yc+yt*cos(theta);
+    x[2*i] = m_chordLength*(m_x+px*ct-py*st);
+    x[2*i+1] = m_chordLength*(m_y+px*st+py*ct);
+    // The bottom half
+    const float pxe = xol+yt*sin(theta);
+    const float pye = yc-yt*cos(theta);
+    x[2*(2*numX-i)] = m_chordLength*(m_x+pxe*ct-pye*st);
+    x[2*(2*numX-i)+1] = m_chordLength*(m_y+pxe*st+pye*ct);
+    // Indices
+    idx[2*i] = i;
+    idx[2*i+1] = i+1;
+    idx[2*(2*numX-i)] = 2*numX-i;
+    idx[2*(2*numX-i)+1] = 2*numX-i+1;
+  }
+  // Now we create a tail point by finding the intersection of the two halves
+  const float upperSlope = (x[2*(numX-2)+1]-x[2*(numX-1)+1])/(x[2*(numX-2)]-x[2*(numX-1)]);
+  const float lowerSlope = (x[2*(numX+1)+1]-x[2*(numX+2)+1])/(x[2*(numX+1)]-x[2*(numX+2)]);
+  x[2*numX] = (x[2*(numX-1)]*upperSlope-x[2*(numX-1)+1]-x[2*(numX+1)]*lowerSlope+x[2*(numX+1)+1])/(upperSlope-lowerSlope);
+  x[2*numX+1] = upperSlope*(x[2*numX]-x[2*(numX-1)])+x[2*(numX-1)+1];
+  // Add the indices
+  idx[2*numX] = numX;
+  idx[2*numX+1] = numX+1;
+  // The last point is the same as the first so we remove it
+  x.erase(x.end()-2, x.end());
+  idx.erase(idx.end()-2, idx.end());
+  idx[idx.size()-1] = 0;
+  std::vector<float> val(idx.size()/2, 0.0);
+
+  return ElementPacket<float>({x, idx, val});
+}
+
+void
+SolidAirfoil::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+SolidAirfoil::to_string() const {
+  std::stringstream ss;
+  ss << " NACA " << m_maxCamber << m_maxCambLoc << m_thickness << " at (" << m_x << ", " << m_y << ") with chord length " << m_chordLength << " and " << m_theta << " aoa";
+  return ss.str();
+}
+
+void
+SolidAirfoil::from_json(const nlohmann::json j) {
+  const std::vector<float> tr = j["translation"];
+  m_x = tr[0];
+  m_y = tr[1];
+  m_maxCamber = j["maxCamber"];
+  m_maxCambLoc = j["maxCambLoc"];
+  m_thickness = j["thickness"];
+  m_theta = j.value("rotation", 0.0);
+  m_external = j.value("external", true);
+  m_enabled = j.value("enabled",true);
+  m_chordLength = j.value("chordLength", 1.0f);
+}
+
+nlohmann::json
+SolidAirfoil::to_json() const {
+  // make an object for the mesh
+  nlohmann::json mesh = nlohmann::json::object();
+  mesh["geometry"] = "airfoil";
+  mesh["translation"] = {m_x, m_y};
+  mesh["maxCamber"] = m_maxCamber;
+  mesh["maxCambLoc"] = m_maxCambLoc;
+  mesh["thickness"] = m_thickness;
+  mesh["rotation"] = m_theta;
+  mesh["chordLength"] = m_chordLength;
+  mesh["external"] = m_external;
+  mesh["enabled"] = m_enabled;
+  return mesh;
+}
+
+#ifdef USE_IMGUI
+bool SolidAirfoil::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std::unique_ptr<BoundaryFeature>> &bfeatures) {
+  static bool external_flow = true;
+  static float xc[2] = {0.0f, 0.0f};
+  static float rotdeg = 0.0f;
+  //static std::string naca = "0012";
+  static std::string naca = "2415";
+  static int maxCamber = 0;
+  static int chordLocation = 0;
+  static int thickness = 12;
+  static float chordLength = 1.0f;
+  bool add = false;
+ 
+  ImGui::Checkbox("Object is in flow", &external_flow);
+  ImGui::SameLine();
+  ShowHelpMarker("Keep checked if object is immersed in flow,\nuncheck if flow is inside of object");
+  if (ImGui::InputText("NACA 4-digit Number", &naca)) {
+    if (naca.size() > 4) {
+        naca = naca.substr(0, 4);
+    }
+  }
+  ImGui::InputFloat2("Leading Edge Position", xc);
+  ImGui::SliderFloat("Angle of Attack", &rotdeg, -180.0f, 180.0f, "%.0f");
+  ImGui::SliderFloat("Chord Length", &chordLength, 0.1f, 5.0f, "%.1f");
+  ImGui::TextWrapped("This feature will add a NACA Airfoil boundary centered at the given coordinates");
+  if (ImGui::Button("Add NACA Airfoil boundary")) {
+    maxCamber = std::stoi(naca.substr(0, 1));
+    chordLocation = std::stoi(naca.substr(1, 1));
+    thickness = std::stoi(naca.substr(2, 2));
+    bfeatures.emplace_back(std::make_unique<SolidAirfoil>(bp, external_flow, xc[0], xc[1], maxCamber, chordLocation, thickness, -rotdeg, chordLength));
+    std::cout << "Added " << (*bfeatures.back()) << std::endl;
+    bfeatures.back()->generate_draw_geom();
+    ImGui::CloseCurrentPopup();
+    add = true;
+  }
+  ImGui::SameLine();
+
+  return add;
+}
+#endif
+
+void SolidAirfoil::generate_draw_geom() {
+  m_draw = init_elements(0.03);
+}

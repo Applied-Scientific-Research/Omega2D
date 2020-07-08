@@ -566,8 +566,8 @@ int main(int argc, char const *argv[]) {
 
         // define geometry second
         static int item = 0;
-        static int numItems = 6;
-        const char* items[] = { "circle", "square", "oval", "rectangle", "segment", "polygon" };
+        static int numItems = 7;
+        const char* items[] = { "circle", "square", "oval", "rectangle", "segment", "polygon", "NACA Airfoil" };
         ImGui::Spacing();
         ImGui::Combo("geometry type", &item, items, numItems);
 
@@ -656,6 +656,15 @@ int main(int argc, char const *argv[]) {
               }
               bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
             } 
+          } break;
+          case 6: {
+            if (SolidAirfoil::draw_creation_gui(bp, bfeatures)) {
+              if (mitem == 2) {
+                bp->set_name("airfoil cylinder");
+                sim.add_body(bp);
+              }
+            bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
+            }
           }
         } // end switch for geometry
 
