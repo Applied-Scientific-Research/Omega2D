@@ -146,11 +146,16 @@ int main(int argc, char const *argv[]) {
   std::string sim_err_msg;
 
   // GUI and drawing parameters
-  bool export_vtk_this_frame = false;	// write a vtk with the current data
+  bool save_all_bdry = false;		// save Boundary Features every step
+  bool save_all_flow = false;		// save Flow Features every step
+  bool save_all_meas = false;		// save Measure Features every step
+  bool save_all_vtus = false;		// save all collections the coming step
+  bool export_vtk_this_frame = false;	// write set of vtu files with the current data
   std::vector<std::string> vtk_out_files; // list of just-output files
-  bool draw_this_frame = false;		// draw the frame as soon as its done
+  bool save_all_imgs = false;		// save screenshot every step
+  bool export_png_when_ready = false;	// write frame to png as soon as its done
+  bool write_png_immediately = false;	// write frame to png right now
   std::string png_out_file;		// the name of the recently-written png
-  bool record_all_frames = false;	// save a frame when a new one is ready
   bool show_stats_window = true;
   bool show_welcome_window = true;
   bool show_terminal_window = false;
@@ -243,7 +248,20 @@ int main(int argc, char const *argv[]) {
 
     // before we start again, write the vtu output
     if (is_ready and export_vtk_this_frame) {
-      vtk_out_files = sim.write_vtk();
+
+      // split on which to write
+      if (save_all_vtus) {
+        // default is to save all collections to vtu files
+        vtk_out_files = sim.write_vtk();
+        // and don't do this next time
+        save_all_vtus = false;
+
+      } else if (save_all_bdry or save_all_flow or save_all_meas) {
+        // only write select vtu files and don't echo
+        (void) sim.write_vtk(-1, save_all_bdry, save_all_flow, save_all_meas);
+      }
+
+      // tell this routine next time around not to print
       export_vtk_this_frame = false;
     }
 
@@ -272,6 +290,9 @@ int main(int argc, char const *argv[]) {
 
     // see if we should start a new step
     if (is_ready and (sim_is_running || begin_single_step)) {
+
+      if (save_all_bdry or save_all_flow or save_all_meas) export_vtk_this_frame = true;
+      if (save_all_imgs) export_png_when_ready = true;
 
       // check flow for blow-up or dynamic errors
       sim_err_msg = sim.check_simulation();
@@ -868,27 +889,36 @@ int main(int argc, char const *argv[]) {
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Save output")) {
 
-      // save the simulation to a JSON or VTK file
+      // save setup
       ImGui::Spacing();
-      if (ImGui::Button("Save setup to JSON", ImVec2(20+12*fontSize,0))) show_file_output_window = true;
+      ImGui::Text("Save simulation setup:");
       ImGui::SameLine();
-      // PNG output of the render frame
-      if (ImGui::Button("Save screenshot to PNG", ImVec2(20+12*fontSize,0))) draw_this_frame = true;
+      if (ImGui::Button("to JSON", ImVec2(10+4*fontSize,0))) show_file_output_window = true;
 
-      // next line: VTK output and record
-      if (ImGui::Button("Save parts to VTU", ImVec2(20+12*fontSize,0))) export_vtk_this_frame = true;
+      // save current data
+      ImGui::Separator();
+      ImGui::Spacing();
+      ImGui::Text("Save current step:");
+
       ImGui::SameLine();
-      if (record_all_frames) {
-        if (ImGui::Button("STOP RECORDING", ImVec2(20+12*fontSize,0))) {
-          record_all_frames = false;
-          sim_is_running = false;
-        }
-      } else {
-        if (ImGui::Button("RECORD to PNG", ImVec2(20+12*fontSize,0))) {
-          record_all_frames = true;
-          sim_is_running = true;
-        }
+      if (ImGui::Button("All to VTU", ImVec2(10+7*fontSize,0))) {
+        save_all_vtus = true;
+        export_vtk_this_frame = true;
       }
+      ImGui::SameLine();
+      if (ImGui::Button("Screenshot to PNG", ImVec2(10+10*fontSize,0))) write_png_immediately = true;
+
+      // save data regularly
+      ImGui::Separator();
+      ImGui::Spacing();
+      ImGui::Text("Save every step:");
+
+      ImGui::Indent();
+      ImGui::Checkbox("Boundary features (to VTU)", &save_all_bdry);
+      ImGui::Checkbox("Flow features (to VTU)", &save_all_flow);
+      ImGui::Checkbox("Measure features (to VTU)", &save_all_meas);
+      ImGui::Checkbox("Window screenshot (to PNG)", &save_all_imgs);
+      ImGui::Unindent();
     }
 
     if (show_file_output_window) {
@@ -922,7 +952,7 @@ int main(int argc, char const *argv[]) {
       if (sim.quitonstop()) {
         if (is_ready) {
           // this simulation step has finished, write png and exit
-          draw_this_frame = true;
+          write_png_immediately = true;
 
           // tell glfw to close the window next time around
           glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -1032,15 +1062,16 @@ int main(int argc, char const *argv[]) {
     }
 
     // here is where we write the buffer to a file
-    if ((is_ready and record_all_frames and sim_is_running) or draw_this_frame) {
+    if ((is_ready and export_png_when_ready) or write_png_immediately) {
       static int frameno = 0;
       std::stringstream pngfn;
       pngfn << "img_" << std::setfill('0') << std::setw(5) << frameno << ".png";
       png_out_file = pngfn.str();
       (void) saveFramePNG(png_out_file);
-      std::cout << "Wrote screenshot to " << png_out_file << std::endl;
+      if (write_png_immediately) std::cout << "Wrote screenshot to " << png_out_file << std::endl;
       frameno++;
-      draw_this_frame = false;
+      write_png_immediately = false;
+      export_png_when_ready = false;
     }
 
     // if we're just drawing this one frame, then announce that we wrote it
