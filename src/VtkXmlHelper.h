@@ -155,7 +155,8 @@ void write_DataArray (tinyxml2::XMLPrinter& _p,
 
 //
 template <class S>
-std::string write_vtu_points(Points<S> const& pts, const size_t file_idx, const size_t frameno) {
+std::string write_vtu_points(Points<S> const& pts, const size_t file_idx,
+                             const size_t frameno, const double time) {
 
   assert(pts.get_n() > 0 && "Inside write_vtu_points with no points");
 
@@ -196,7 +197,18 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx, const 
   printer.OpenElement( "UnstructuredGrid" );
   //printer.OpenElement( "PolyData" );
 
-  // include time here as FieldData?
+  // include simulation time here
+  printer.OpenElement( "FieldData" );
+  printer.OpenElement( "DataArray" );
+  printer.PushAttribute( "type", "Float64" );
+  printer.PushAttribute( "Name", "TimeValue" );
+  printer.PushAttribute( "NumberOfTuples", "1" );
+  {
+    Vector<double> time_vec = {time};
+    write_DataArray (printer, time_vec, false, false);
+  }
+  printer.CloseElement();	// DataArray
+  printer.CloseElement();	// FieldData
 
   printer.OpenElement( "Piece" );
   printer.PushAttribute( "NumberOfPoints", std::to_string(pts.get_n()).c_str() );
@@ -334,7 +346,8 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx, const 
 // write surface/panel data to a .vtu file
 //
 template <class S>
-std::string write_vtu_panels(Surfaces<S> const& surf, const size_t file_idx, const size_t frameno) {
+std::string write_vtu_panels(Surfaces<S> const& surf, const size_t file_idx,
+                             const size_t frameno, const double time) {
 
   assert(surf.get_npanels() > 0 && "Inside write_vtu_panels with no panels");
 
@@ -373,7 +386,18 @@ std::string write_vtu_panels(Surfaces<S> const& surf, const size_t file_idx, con
   printer.OpenElement( "UnstructuredGrid" );
   //printer.OpenElement( "PolyData" );
 
-  // put time in here as FieldData?
+  // include simulation time here
+  printer.OpenElement( "FieldData" );
+  printer.OpenElement( "DataArray" );
+  printer.PushAttribute( "type", "Float64" );
+  printer.PushAttribute( "Name", "TimeValue" );
+  printer.PushAttribute( "NumberOfTuples", "1" );
+  {
+    Vector<double> time_vec = {time};
+    write_DataArray (printer, time_vec, false, false);
+  }
+  printer.CloseElement();	// DataArray
+  printer.CloseElement();	// FieldData
 
   printer.OpenElement( "Piece" );
   printer.PushAttribute( "NumberOfPoints", std::to_string(surf.get_n()).c_str() );
@@ -496,23 +520,24 @@ std::string write_vtu_panels(Surfaces<S> const& surf, const size_t file_idx, con
 // write a collection
 //
 template <class S>
-void write_vtk_files(std::vector<Collection> const& coll, const size_t _index, std::vector<std::string>& _files) {
+void write_vtk_files(std::vector<Collection> const& coll, const size_t _index, const double _time,
+                     std::vector<std::string>& _files) {
 
   size_t idx = 0;
   for (auto &elem : coll) {
-    // is there a way to simplyfy this code with a lambda?
+    // is there a way to simplify this code with a lambda?
     //std::visit([=](auto& elem) { elem.write_vtk(); }, coll);
 
     // split on collection type
     if (std::holds_alternative<Points<S>>(elem)) {
       Points<S> const & pts = std::get<Points<S>>(elem);
       if (pts.get_n() > 0) {
-        _files.emplace_back(write_vtu_points<S>(pts, idx++, _index));
+        _files.emplace_back(write_vtu_points<S>(pts, idx++, _index, _time));
       }
     } else if (std::holds_alternative<Surfaces<S>>(elem)) {
       Surfaces<S> const & surf = std::get<Surfaces<S>>(elem);
       if (surf.get_npanels() > 0) {
-        _files.emplace_back(write_vtu_panels<S>(surf, idx++, _index));
+        _files.emplace_back(write_vtu_panels<S>(surf, idx++, _index, _time));
       }
     }
   }

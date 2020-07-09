@@ -328,9 +328,9 @@ std::vector<std::string> Simulation::write_vtk(const int _index,
   }
 
   // ask Vtk to write files for each collection
-  if (_do_flow)    write_vtk_files<float>(vort, stepnum, files);
-  if (_do_measure) write_vtk_files<float>(fldpt, stepnum, files);
-  if (_do_bdry)    write_vtk_files<float>(bdry, stepnum, files);
+  if (_do_flow)    write_vtk_files<float>(vort, stepnum, time, files);
+  if (_do_measure) write_vtk_files<float>(fldpt, stepnum, time, files);
+  if (_do_bdry)    write_vtk_files<float>(bdry, stepnum, time, files);
 
   return files;
 }
