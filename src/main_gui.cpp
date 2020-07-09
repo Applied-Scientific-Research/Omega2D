@@ -582,8 +582,7 @@ int main(int argc, char const *argv[]) {
         static char strx[512] = "0.0*t";
         static char stry[512] = "0.0*t";
         static char strrad[512] = "0.0*t";
-        static int tmp = -1;
-        obj_movement_gui(mitem, strx, stry, strrad);
+        int changed = obj_movement_gui(mitem, strx, stry, strrad);
 
         // define geometry second
         static int item = 0;
@@ -595,7 +594,7 @@ int main(int argc, char const *argv[]) {
         // static bp prevents a bunch of pointers from being created during the same boundary creation
         // The switch prevents constant assignment (mainly to prevent the terminal from being flooded from messages)
         static std::shared_ptr<Body> bp = nullptr;
-        if (tmp != mitem) {
+        if (changed) {
           switch(mitem) {
             case 0:
                // this geometry is fixed (attached to inertial)
@@ -613,7 +612,6 @@ int main(int argc, char const *argv[]) {
                bp->set_rot(std::string(strrad));
                break;
           }
-          tmp = mitem;
         }
 
         // show different inputs based on what is selected
