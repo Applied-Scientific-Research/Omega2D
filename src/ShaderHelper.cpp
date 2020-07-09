@@ -4,15 +4,14 @@
  * These methods are from https://solarianprogrammer.com/2013/05/13/opengl-101-drawing-primitives/
  * and https://github.com/sol-prog/OpenGL-101
  *
- * (c)2017-8 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
+ * (c)2017-20 Applied Scientific Research, Inc.
+ *            Mark J Stock <markjstock@gmail.com>
  */
 
 #include "ShaderHelper.h"
 
 #include <GLFW/glfw3.h>
 
-#include <string>
 #include <vector>
 #include <iostream>
 //#include <fstream>
@@ -119,6 +118,31 @@ GLuint create_draw_surface_line_prog() {
   // Load and compile the vertex and fragment shaders
   GLuint vertexShader = load_and_compile_shader(surfline_vert_shader_source, GL_VERTEX_SHADER);
   GLuint fragmentShader = load_and_compile_shader(surfline_frag_shader_source, GL_FRAGMENT_SHADER);
+
+  // Attach the above shader to a program
+  GLuint shaderProgram = glCreateProgram();
+  glAttachShader(shaderProgram, vertexShader);
+  glAttachShader(shaderProgram, fragmentShader);
+
+  // Flag the shaders for deletion
+  glDeleteShader(vertexShader);
+  glDeleteShader(fragmentShader);
+
+  // Link and use the program
+  glLinkProgram(shaderProgram);
+  glUseProgram(shaderProgram);
+
+  return shaderProgram;
+}
+
+
+// Create a program from two shaders to render panels
+GLuint create_vertfrag_prog(const std::string vert_shader_src,
+                            const std::string frag_shader_src) {
+
+  // Load and compile the vertex and fragment shaders
+  GLuint vertexShader = load_and_compile_shader(vert_shader_src, GL_VERTEX_SHADER);
+  GLuint fragmentShader = load_and_compile_shader(frag_shader_src, GL_FRAGMENT_SHADER);
 
   // Attach the above shader to a program
   GLuint shaderProgram = glCreateProgram();

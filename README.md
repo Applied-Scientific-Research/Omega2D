@@ -12,10 +12,10 @@ This open-source code is aimed at users interested in understanding vortex metho
 
 
 ## Build the software
-This code uses some C++17 features, so should compile on GCC 7, Clang 4, and MSVC 19.10 (Visual Studio 15 2017) compilers.
+This code uses some C++17 features (like `std::variant` and `<filesystem>`, so requires GCC 8, Clang 4, and MSVC 19.10 (Visual Studio 15 2017) or newer compilers.
 
 #### Prerequisites
-Users will also need CMake, Eigen, and GLFW version 3 on their machines to build this, other requirements are included in this distribution. Get these on Fedora with
+Users will also need CMake, Eigen (version 3.3 or newer), and GLFW version 3 on their machines to build this, other requirements are included in this distribution. Get these on Fedora with
 
     sudo dnf install cmake glfw3-devel eigen3-devel
 
@@ -90,39 +90,37 @@ Generate an X.264-encoded video from a series of png images with the following c
 
     mencoder "mf://img*png" -mf w=1280:h=720:type=png:fps=30 -o video.mp4 -sws 9 -of lavf -lavfopts format=mp4 -nosub -vf softskip,harddup -nosound -ovc x264 -x264encopts bitrate=4000:vbv_maxrate=6000:vbv_bufsize=2000:nointerlaced:force_cfr:frameref=3:mixed_refs:bframes=1:b_adapt=2:weightp=1:direct_pred=auto:aq_mode=1:me=umh:me_range=16:subq=6:mbtree:psy_rd=0.8,0.2:chroma_me:trellis=1:nocabac:deblock:partitions=p8x8,b8x8,i8x8,i4x4:nofast_pskip:nodct_decimate:threads=auto:ssim:psnr:keyint=300:keyint_min=30:level_idc=30:global_header
 
-    ffmpeg -f image2 -pattern_type glob -i "img*png" -c:v libx264 -crf 20 -framerate 30 -profile:v baseline -level 3.0 -pix_fmt yuv420p -f mp4 driven_cavity_re1k.mp4
+    ffmpeg -f image2 -pattern_type glob -i "img*png" -c:v libx264 -crf 20 -framerate 30 -profile:v baseline -level 3.0 -pix_fmt yuv420p -f mp4 video_264.mp4
+
+    ffmpeg -f image2 -framerate 30 -pattern_type glob -i "img_*.png" -c:v libx265 -crf 25 -tune fastdecode -pix_fmt yuv420p -f mp4 video_265.mp4
 
 ## To do
 Tasks to consider or implement:
 
+* Add support for NACA wings, whether from a library or by reading geometry files in standard formats
+* Draw something when you add a feature (so we know it's doing something) - means that the \*Feature objects need draw calls
+* Add ability to edit features in the GUI, not just remove and re-add them
 * Add an openmp setting to the CPU execution environment, to show the effects of multithreading
-* Consider implementing PSE and RVM and add those as options (alongside VRM) in the advanced section
 * Bug: static field points should not be pushed out of bodies
 * Compute vel grad at each point (vortex or field pt) and write it to the vtu file
 * If we have velgrad, we can compute the elongation of any point - use this to determine when a field point has stretched too far, and replace it with two child field points, of half-brightness, in the correct places; this should be a toggleable behavior, as it would demand ever-increasing numbers of field points
-* Add support for NACA wings, whether from a library or by reading geometry files in standard formats
 * Add airfoils - read them from a text file or generate them algorithmically - this might mean enabling Kutta points (reactive Points)
 * Have method to tell batch and gui to dump vtu files periodically
 * Would be nice to have an option to have solid bodies randomly shed tracers (small chance per step per panel)
 * Consider a zlib implementation for both vtu and png files: [zstr](https://github.com/mateidavid/zstr), [miniz](https://github.com/richgel999/miniz), or [gzip-hpp](https://github.com/mapbox/gzip-hpp)
 * How awesome would it be to show the flow as a time-consistent LIC image? See UFLIC (Shen & Kao, IEEE ToVaCG 1999)
 * Add inlet and outlet surfaces to push flow around - the BC is that normal flow must equal some number
-* Add ability to edit features in the GUI, not just remove and re-add them
 * When background is white, nothing else shows up! Check blending mode. Need this to change so that we can make more attractive visuals. Like, presets for "technical (red/blue), b/w (white/grey), vibrant (??)
 * If I add a measurement structure in the middle of a simulation, it doesn't init - should it?
-* Allow Points to be able to draw not only blobs but dots at the middles, too, using same arrays but different draw programs (turn either on or off?)
 * Move some initialization back into ElementBase - like positions and such, keep radius in Points, then ElementBase can draw points?
-* Move the GUI parts of the various Features classes into their own class/file and out of main.cpp and Features.cpp
 * Add a "ms/frame" and "FPS" for the simulation component also
 * Add "got it" button to first section (the welcome section) to make it go away (forever?)
 * Ideal initial interface: lots of stuff hidden, just a graphical menu with circles, squares, vortex patches, etc. Each has handles that you can drag to resize and reposition the element; all sizes/locations quantized to 0.1 or 0.05. "Expert" box lets you change Re, dt, etc.
-* Add an animated GIF to the page to show how to set up a run? See [peek](https://github.com/phw/peek)
 * Have "status" line indicate when we're waiting for a step to finish after we've hit pause
 * Instead of manipulating the projection matrix, have the mouse change the view matrix (assume model matrix is unity), see [here](https://solarianprogrammer.com/2013/05/22/opengl-101-matrices-projection-view-model/) for a nice write-up on the three OpenGL matrices
 * Support 2nd order time accuracy in VRM by caching values from first half to use in second half
 * Make more of the sliders dynamic (like dt ~~and color~~) - be able to add new particles while a sim is running
 * Right-click on the draw screen to add features - hard? can imgui handle it?
-* Draw something when you add a feature (so we know it's doing something) - means that the \*Feature objects need draw calls
 * Create an OpenGL compute shader routine for the particle-particle influence
 * Add option to draw particles as thin white dots/lines "Draw elements"
 * Re-orient the VRM insertion points to align to the nearest boundary - should smooth out the shedding

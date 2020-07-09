@@ -22,6 +22,10 @@ SET (USE_EXTERNAL_SUM FALSE CACHE BOOL "Enable external velocity solver")
 SET (CMAKE_VERBOSE_MAKEFILE on)
 SET (CMAKE_EXPORT_COMPILE_COMMANDS on)
 
+IF (APPLE)
+  SET (CMAKE_INSTALL_PREFIX /usr/local/share)
+ENDIF ()
+
 # Finds directory to pre-made sims
 IF (${CMAKE_BUILD_TYPE} STREQUAL "Release")
   ADD_DEFINITIONS(-DEXAMPLES_DIR="${CMAKE_INSTALL_PREFIX}/examples")
@@ -236,6 +240,7 @@ SET(SOURCES ${HEADERS}
             "src/tinyexpr/tinyexpr.c" )
 SET(GUI_SOURCES "src/glad/glad.c"
                 "src/ShaderHelper.cpp"
+                "src/FeatureDraw.cpp"
                 "src/stb/FrameBufferToImage.cpp" )
 
 # create a binary for the GUI version

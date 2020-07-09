@@ -14,6 +14,7 @@
 #include "JsonHelper.h"
 #include "Body.h"
 #include "RenderParams.h"
+#include "FeatureDraw.h"
 #include "json/json.hpp"
 #include "main_gui_functions.cpp"
 
@@ -53,6 +54,7 @@ int main(int argc, char const *argv[]) {
   std::vector< std::unique_ptr<FlowFeature> > ffeatures;
   std::vector< std::unique_ptr<BoundaryFeature> > bfeatures;
   std::vector< std::unique_ptr<MeasureFeature> > mfeatures;
+  FeatureDraw bdraw;
   size_t nframes = 0;
   static bool sim_is_running = false;
   static bool begin_single_step = false;
@@ -144,11 +146,16 @@ int main(int argc, char const *argv[]) {
   std::string sim_err_msg;
 
   // GUI and drawing parameters
-  bool export_vtk_this_frame = false;	// write a vtk with the current data
+  bool save_all_bdry = false;		// save Boundary Features every step
+  bool save_all_flow = false;		// save Flow Features every step
+  bool save_all_meas = false;		// save Measure Features every step
+  bool save_all_vtus = false;		// save all collections the coming step
+  bool export_vtk_this_frame = false;	// write set of vtu files with the current data
   std::vector<std::string> vtk_out_files; // list of just-output files
-  bool draw_this_frame = false;		// draw the frame as soon as its done
+  bool save_all_imgs = false;		// save screenshot every step
+  bool export_png_when_ready = false;	// write frame to png as soon as its done
+  bool write_png_immediately = false;	// write frame to png right now
   std::string png_out_file;		// the name of the recently-written png
-  bool record_all_frames = false;	// save a frame when a new one is ready
   bool show_stats_window = true;
   bool show_welcome_window = true;
   bool show_terminal_window = false;
@@ -177,9 +184,9 @@ int main(int argc, char const *argv[]) {
 
   // Load file names and paths of pre-stored sims
   std::vector<nlohmann::json> sims;
-  std::vector<std::string> descriptions = {"Select a Simulation"};
+  std::vector<std::string> descriptions = {"Select a simulation"};
   LoadJsonSims(sims, descriptions, EXAMPLES_DIR);
-  
+
   // Main loop
   std::cout << "Starting main loop" << std::endl;
   while (!glfwWindowShouldClose(window)) {
@@ -225,6 +232,8 @@ int main(int argc, char const *argv[]) {
         std::cout << std::endl << "ERROR: " << sim_err_msg;
         // stop the run
         sim_is_running = false;
+        // and reset
+        sim.reset();
       }
 
       begin_single_step = false;
@@ -239,7 +248,20 @@ int main(int argc, char const *argv[]) {
 
     // before we start again, write the vtu output
     if (is_ready and export_vtk_this_frame) {
-      vtk_out_files = sim.write_vtk();
+
+      // split on which to write
+      if (save_all_vtus) {
+        // default is to save all collections to vtu files
+        vtk_out_files = sim.write_vtk();
+        // and don't do this next time
+        save_all_vtus = false;
+
+      } else if (save_all_bdry or save_all_flow or save_all_meas) {
+        // only write select vtu files and don't echo
+        (void) sim.write_vtk(-1, save_all_bdry, save_all_flow, save_all_meas);
+      }
+
+      // tell this routine next time around not to print
       export_vtk_this_frame = false;
     }
 
@@ -268,6 +290,9 @@ int main(int argc, char const *argv[]) {
 
     // see if we should start a new step
     if (is_ready and (sim_is_running || begin_single_step)) {
+
+      if (save_all_bdry or save_all_flow or save_all_meas) export_vtk_this_frame = true;
+      if (save_all_imgs) export_png_when_ready = true;
 
       // check flow for blow-up or dynamic errors
       sim_err_msg = sim.check_simulation();
@@ -357,12 +382,18 @@ int main(int argc, char const *argv[]) {
         ImGui::EndCombo();
       }
 
-      if(currentItemIndex) {
+      if (currentItemIndex) {
         sim.reset();
         bfeatures.clear();
         ffeatures.clear();
         mfeatures.clear();
         parse_json(sim, ffeatures, bfeatures, mfeatures, rparams, sims[currentItemIndex-1]);
+        // clear and remake the draw geometry
+        bdraw.clear_elements();
+        for (auto const& bf : bfeatures) {
+          bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
+        }
+        // finish setting up and run
         is_viscous = sim.get_diffuse();
         currentItemIndex = 0;
         sim_is_running = true;
@@ -393,7 +424,14 @@ int main(int argc, char const *argv[]) {
           // load and report
           nlohmann::json j = read_json(infile);
           parse_json(sim, ffeatures, bfeatures, mfeatures, rparams, j);
-          // we have to manually set this variable
+
+          // clear and remake the draw geometry
+          bdraw.clear_elements();
+          for (auto const& bf : bfeatures) {
+            bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
+          }
+
+          // finish setting up and run
           is_viscous = sim.get_diffuse();
 
           // run one step so we know what we have, or autostart
@@ -440,7 +478,8 @@ int main(int argc, char const *argv[]) {
       show_welcome_window = false;
     }
 
-    //if (ImGui::CollapsingHeader("Simulation globals", ImGuiTreeNodeFlags_DefaultOpen)) 
+
+    //if (ImGui::CollapsingHeader("Simulation globals", ImGuiTreeNodeFlags_DefaultOpen)) {
     if (ImGui::CollapsingHeader("Simulation globals")) {
 
       // save current versions, so we know which changed
@@ -533,8 +572,132 @@ int main(int argc, char const *argv[]) {
 
       ImGui::Spacing();
 
+      // button and modal window for adding new boundary objects
+      if (ImGui::Button("Add boundary")) ImGui::OpenPopup("New boundary structure");
+      ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
+      if (ImGui::BeginPopupModal("New boundary structure"))
+      {
+        // define movement first
+        static int mitem = 0;
+        static char strx[512] = "0.0*t";
+        static char stry[512] = "0.0*t";
+        static char strrad[512] = "0.0*t";
+        static int tmp = -1;
+        obj_movement_gui(mitem, strx, stry, strrad);
+
+        // define geometry second
+        static int item = 0;
+        static int numItems = 7;
+        const char* items[] = { "circle", "square", "oval", "rectangle", "segment", "polygon", "NACA 4-digit" };
+        ImGui::Spacing();
+        ImGui::Combo("geometry type", &item, items, numItems);
+
+        // static bp prevents a bunch of pointers from being created during the same boundary creation
+        // The switch prevents constant assignment (mainly to prevent the terminal from being flooded from messages)
+        static std::shared_ptr<Body> bp = nullptr;
+        if (tmp != mitem) {
+          switch(mitem) {
+            case 0:
+               // this geometry is fixed (attached to inertial)
+               bp = sim.get_pointer_to_body("ground");
+               break;
+            case 1:
+               // this geometry is attached to the previous geometry (or ground)
+               bp = sim.get_last_body();
+               break;
+            case 2:
+               // this geometry is attached to a new moving body
+               bp = std::make_shared<Body>();
+               bp->set_pos(0, std::string(strx));
+               bp->set_pos(1, std::string(stry));
+               bp->set_rot(std::string(strrad));
+               break;
+          }
+          tmp = mitem;
+        }
+
+        // show different inputs based on what is selected
+        switch(item) {
+          case 0: {
+            // create a circular boundary
+            if (SolidCircle::draw_creation_gui(bp, bfeatures)) {
+              if (mitem == 2) {
+                bp->set_name("circular cylinder");
+                sim.add_body(bp);
+              }
+              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
+            }
+          } break;
+          case 1: {
+            // create a square boundary
+            if (SolidSquare::draw_creation_gui(bp, bfeatures)) {
+              if (mitem == 2) {
+                bp->set_name("square cylinder");
+                sim.add_body(bp);
+              }
+              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
+            }
+          } break;
+          case 2: {
+            // create an oval boundary
+            if (SolidOval::draw_creation_gui(bp, bfeatures)) {
+              if (mitem == 2) {
+                bp->set_name("oval cylinder");
+                sim.add_body(bp);
+              }
+              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
+            } 
+          } break;
+          case 3: {
+            // create a rectangle boundary
+            if (SolidRect::draw_creation_gui(bp, bfeatures)) {
+              if (mitem == 2) {
+                bp->set_name("rectangular cylinder");
+                sim.add_body(bp);
+              }
+              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
+            } 
+          } break;
+          case 4: {
+            // create a straight boundary segment
+            if (BoundarySegment::draw_creation_gui(bp, bfeatures)) {
+              if (mitem == 2) {
+                bp->set_name("segmented boundary");
+                sim.add_body(bp);
+              }
+              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
+            } 
+          } break;
+          case 5: {
+            // create a polygon boundary
+            if (SolidPolygon::draw_creation_gui(bp, bfeatures)) {
+              if (mitem == 2) {
+                bp->set_name("polygon cylinder");
+                sim.add_body(bp);
+              }
+              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
+            } 
+          } break;
+          case 6: {
+            if (SolidAirfoil::draw_creation_gui(bp, bfeatures)) {
+              if (mitem == 2) {
+                bp->set_name("airfoil cylinder");
+                sim.add_body(bp);
+              }
+            bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
+            }
+          }
+        } // end switch for geometry
+
+        if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
+        ImGui::EndPopup();
+        
+      } // end new boundary structures
+
+
       // button and modal window for adding new flow structures
-      if (ImGui::Button("Add flow")) ImGui::OpenPopup("New flow structure");
+      ImGui::SameLine();
+      if (ImGui::Button("Add vortex")) ImGui::OpenPopup("New flow structure");
       ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New flow structure"))
       {
@@ -577,121 +740,6 @@ int main(int argc, char const *argv[]) {
         if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
         ImGui::EndPopup();
       } // end popup new flow structures
-
-
-      // button and modal window for adding new boundary objects
-      ImGui::SameLine();
-      if (ImGui::Button("Add boundary")) ImGui::OpenPopup("New boundary structure");
-      ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
-      if (ImGui::BeginPopupModal("New boundary structure"))
-      {
-        // define movement first
-        static int mitem = 0;
-        static char strx[512] = "0.0*t";
-        static char stry[512] = "0.0*t";
-        static char strrad[512] = "0.0*t";
-        static int tmp = -1;
-        obj_movement_gui(mitem, strx, stry, strrad);
-
-        // define geometry second
-        static int item = 0;
-        static int numItems = 6;
-        const char* items[] = { "circle", "square", "oval", "rectangle", "segment", "polygon" };
-        ImGui::Spacing();
-        ImGui::Combo("geometry type", &item, items, numItems);
-
-        // static bp prevents a bunch of pointers from being created during the same boundary creation
-        // The switch prevents constant assignment (mainly to prevent the terminal from being flooded from messages)
-        static std::shared_ptr<Body> bp = nullptr;
-        if (tmp != mitem) {
-	  switch(mitem) {
-	    case 0:
-               // this geometry is fixed (attached to inertial)
-               bp = sim.get_pointer_to_body("ground");
-               break;
-	    case 1:
-	       // this geometry is attached to the previous geometry (or ground)
-	       bp = sim.get_last_body();
-	       break;
-	    case 2:
-	       // this geometry is attached to a new moving body
-	       bp = std::make_shared<Body>();
-	       bp->set_pos(0, std::string(strx));
-	       bp->set_pos(1, std::string(stry));
-	       bp->set_rot(std::string(strrad));
-	       break;
-	  }
-          tmp = mitem;
-        }
-
-        // show different inputs based on what is selected
-        switch(item) {
-          case 0: {
-            // create a circular boundary
-            if (SolidCircle::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-	        bp->set_name("circular cylinder");
-	        sim.add_body(bp);
-              }
-              std::cout << "Added " << (*bfeatures.back()) << std::endl;
-            }
-          } break;
-          case 1: {
-            // create a square boundary
-            if (SolidSquare::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-	        bp->set_name("square cylinder");
-	        sim.add_body(bp);
-              }
-              std::cout << "Added " << (*bfeatures.back()) << std::endl;
-            }
-          } break;
-          case 2: {
-            // create an oval boundary
-            if (SolidOval::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-	        bp->set_name("oval cylinder");
-	        sim.add_body(bp);
-              }
-              std::cout << "Added " << (*bfeatures.back()) << std::endl;
-            } 
-          } break;
-          case 3: {
-            // create a rectangle boundary
-            if (SolidRect::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-	        bp->set_name("rectangular cylinder");
-	        sim.add_body(bp);
-              }
-              std::cout << "Added " << (*bfeatures.back()) << std::endl;
-            } 
-          } break;
-          case 4: {
-            // create a straight boundary segment
-            if (SolidRect::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-	        bp->set_name("segmented boundary");
-	        sim.add_body(bp);
-              }
-              std::cout << "Added " << (*bfeatures.back()) << std::endl;
-            } 
-          } break;
-          case 5: {
-            // create a polygon boundary
-            if (SolidPolygon::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-	        bp->set_name("polygon cylinder");
-	        sim.add_body(bp);
-              }
-              std::cout << "Added " << (*bfeatures.back()) << std::endl;
-            } 
-          }
-        } // end switch for geometry
-
-        if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
-        ImGui::EndPopup();
-        
-      } // end new boundary structures
 
 
       // button and modal window for adding new measurement objects
@@ -775,7 +823,7 @@ int main(int argc, char const *argv[]) {
       for (int i=0; i<(int)bfeatures.size(); ++i) {
 
         ImGui::PushID(++buttonIDs);
-        ImGui::Checkbox("", bfeatures[i]->addr_enabled());
+        const bool ischeck = ImGui::Checkbox("", bfeatures[i]->addr_enabled());
         ImGui::PopID();
         if (bfeatures[i]->is_enabled()) {
           ImGui::SameLine();
@@ -784,6 +832,9 @@ int main(int argc, char const *argv[]) {
           ImGui::SameLine();
           ImGui::TextColored(ImVec4(0.5f,0.5f,0.5f,1.0f), "%s", bfeatures[i]->to_string().c_str());
         }
+
+        // if the checkbox flipped positions this frame, ischeck is 1
+        if (ischeck) bdraw.reset_enabled(i,bfeatures[i]->is_enabled());
 
         // add a "remove" button at the end of the line (so it's not easy to accidentally hit)
         ImGui::SameLine();
@@ -794,6 +845,12 @@ int main(int argc, char const *argv[]) {
       if (del_this_bdry > -1) {
         std::cout << "Asked to delete boundary feature " << del_this_bdry << std::endl;
         bfeatures.erase(bfeatures.begin()+del_this_bdry);
+
+        // clear out and re-make all boundary draw geometry
+        bdraw.clear_elements();
+        for (auto const& bf : bfeatures) {
+          bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
+        }
       }
 
       // list existing measurement features here
@@ -828,6 +885,7 @@ int main(int argc, char const *argv[]) {
 
     } // end structure entry
 
+
     // Rendering parameters, under a header
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Rendering controls")) { draw_render_gui(rparams); }
@@ -839,33 +897,44 @@ int main(int argc, char const *argv[]) {
     // Output buttons, under a header
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Save output")) {
-      // save the simulation to a JSON or VTK file
+
+      // save setup
       ImGui::Spacing();
-      if (ImGui::Button("Save setup to JSON", ImVec2(20+12*fontSize,0))) show_file_output_window = true;
+      ImGui::Text("Save simulation setup:");
       ImGui::SameLine();
-      // PNG output of the render frame
-      if (ImGui::Button("Save screenshot to PNG", ImVec2(20+12*fontSize,0))) draw_this_frame = true;
-      // next line: VTK output and record
-      if (ImGui::Button("Save parts to VTU", ImVec2(20+12*fontSize,0))) export_vtk_this_frame = true;
+      if (ImGui::Button("to JSON", ImVec2(10+4*fontSize,0))) show_file_output_window = true;
+
+      // save current data
+      ImGui::Separator();
+      ImGui::Spacing();
+      ImGui::Text("Save current step:");
+
       ImGui::SameLine();
-      if (record_all_frames) {
-        if (ImGui::Button("STOP RECORDING", ImVec2(20+12*fontSize,0))) {
-          record_all_frames = false;
-          sim_is_running = false;
-        }
-      } else {
-        if (ImGui::Button("RECORD to PNG", ImVec2(20+12*fontSize,0))) {
-          record_all_frames = true;
-          sim_is_running = true;
-        }
+      if (ImGui::Button("All to VTU", ImVec2(10+7*fontSize,0))) {
+        save_all_vtus = true;
+        export_vtk_this_frame = true;
       }
+      ImGui::SameLine();
+      if (ImGui::Button("Screenshot to PNG", ImVec2(10+10*fontSize,0))) write_png_immediately = true;
+
+      // save data regularly
+      ImGui::Separator();
+      ImGui::Spacing();
+      ImGui::Text("Save every step:");
+
+      ImGui::Indent();
+      ImGui::Checkbox("Boundary features (to VTU)", &save_all_bdry);
+      ImGui::Checkbox("Flow features (to VTU)", &save_all_flow);
+      ImGui::Checkbox("Measure features (to VTU)", &save_all_meas);
+      ImGui::Checkbox("Window screenshot (to PNG)", &save_all_imgs);
+      ImGui::Unindent();
     }
 
     if (show_file_output_window) {
       bool try_it = false;
-      static std::string outfile = "output.json";
+      static std::string outfile = "file_name.json";
 
-      if (fileIOWindow( try_it, outfile, recent_json_files, "Save", {"*.json", "*.*"}, false, ImVec2(200+26*fontSize,300))) {
+      if (fileIOWindow( try_it, outfile, recent_json_files, "Save", {"*.json"}, false, ImVec2(200+26*fontSize,300))) {
         show_file_output_window = false;
 
         if (try_it) {
@@ -892,7 +961,7 @@ int main(int argc, char const *argv[]) {
       if (sim.quitonstop()) {
         if (is_ready) {
           // this simulation step has finished, write png and exit
-          draw_this_frame = true;
+          write_png_immediately = true;
 
           // tell glfw to close the window next time around
           glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -989,10 +1058,20 @@ int main(int argc, char const *argv[]) {
     sim.drawGL(gl_projection, rparams);
 
     // if simulation has not been initted, draw the features instead!
-    //for (auto const& bf : bfeatures) { bf.drawGL(gl_projection, rparams); }
+    if (not sim.is_initialized()) {
+      // append draw geometries to FeatureDraw object
+      for (auto const& bf : bfeatures) {
+        if (bf->is_enabled()) {
+          // what should we do differently?
+        }
+      }
+
+      // and draw
+      bdraw.drawGL(gl_projection, rparams);
+    }
 
     // here is where we write the buffer to a file
-    if ((is_ready and record_all_frames and sim_is_running) or draw_this_frame) {
+    if ((is_ready and export_png_when_ready) or write_png_immediately) {
       static int frameno = 0;
       std::stringstream pngfn;
       pngfn << "img_" << std::setfill('0') << std::setw(5) << frameno << ".png";
@@ -1000,7 +1079,10 @@ int main(int argc, char const *argv[]) {
       (void) saveFramePNG(png_out_file);
       std::cout << "Wrote screenshot to " << png_out_file << std::endl;
       frameno++;
-      draw_this_frame = false;
+      // no need to tell the user every frame
+      if (export_png_when_ready) png_out_file.clear();
+      write_png_immediately = false;
+      export_png_when_ready = false;
     }
 
     // if we're just drawing this one frame, then announce that we wrote it

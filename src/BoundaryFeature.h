@@ -43,12 +43,15 @@ public:
   virtual ElementPacket<float> init_elements(const float) const = 0;
   //virtual std::vector<float> step_elements(const float) const = 0;
   std::shared_ptr<Body> get_body() { return m_bp; }
+  virtual void generate_draw_geom() = 0;
+  virtual ElementPacket<float> get_draw_packet() { return m_draw; }
 
 protected:
   std::shared_ptr<Body> m_bp;
   bool m_external;
   float m_x;
   float m_y;
+  ElementPacket<float> m_draw;
 };
 
 std::ostream& operator<<(std::ostream& os, BoundaryFeature const& ff);
@@ -104,6 +107,7 @@ public:
 #ifdef USE_IMGUI
   static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
 #endif
+  void generate_draw_geom() override;
 
 protected:
   float m_diam;
@@ -135,6 +139,7 @@ public:
 #ifdef USE_IMGUI
   static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
 #endif
+  void generate_draw_geom() override;
 
 protected:
   float m_dmin;
@@ -166,6 +171,7 @@ public:
 #ifdef USE_IMGUI
   static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
 #endif
+  void generate_draw_geom() override;
 
 protected:
   float m_side;
@@ -197,6 +203,7 @@ public:
 #ifdef USE_IMGUI
   static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
 #endif
+  void generate_draw_geom() override;
 
 protected:
   float m_sidey;
@@ -231,6 +238,7 @@ public:
 #ifdef USE_IMGUI
   static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
 #endif
+  void generate_draw_geom() override;
 
 protected:
   float m_xe, m_ye;
@@ -266,11 +274,52 @@ public:
 #ifdef USE_IMGUI
   static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
 #endif
+  void generate_draw_geom() override;
 
 protected:
   int m_numSides;
   float m_side;
   float m_radius;
   float m_theta;
+};
+
+/*
+ NACA Class
+ This is a simple polygon with equa-length sides and angles.
+*/
+class SolidAirfoil: public BoundaryFeature {
+public:
+  SolidAirfoil(std::shared_ptr<Body> _bp = nullptr,
+               bool _ext = true,
+               float _x = 0.0,
+               float _y = 0.0,
+               int _maxCamber = 0,
+               int _maxCambLoc = 0,
+               int _thickness = 0,
+               float _theta = 0.0,
+               float _chordLength = 1.0)
+    : BoundaryFeature(_bp, _ext, _x, _y),
+      m_maxCamber(_maxCamber),
+      m_maxCambLoc(_maxCambLoc),
+      m_thickness(_thickness),
+      m_theta(_theta),
+      m_chordLength(_chordLength)
+    {}
+
+  void debug(std::ostream& os) const override;
+  std::string to_string() const override;
+  void from_json(const nlohmann::json) override;
+  nlohmann::json to_json() const override;
+  ElementPacket<float> init_elements(const float) const override;
+#ifdef USE_IMGUI
+  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+#endif
+  void generate_draw_geom() override;
+protected:
+  int m_maxCamber;
+  int m_maxCambLoc;
+  int m_thickness;
+  float m_theta;
+  float m_chordLength;
 };
 
