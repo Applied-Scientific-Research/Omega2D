@@ -567,7 +567,7 @@ int main(int argc, char const *argv[]) {
         // define geometry second
         static int item = 0;
         static int numItems = 7;
-        const char* items[] = { "circle", "square", "oval", "rectangle", "segment", "polygon", "NACA Airfoil" };
+        const char* items[] = { "circle", "square", "oval", "rectangle", "segment", "polygon", "NACA 4-digit" };
         ImGui::Spacing();
         ImGui::Combo("geometry type", &item, items, numItems);
 
