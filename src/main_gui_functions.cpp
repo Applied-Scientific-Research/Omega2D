@@ -151,26 +151,33 @@ void LoadJsonSims(std::vector<nlohmann::json> &sims, std::vector<std::string> &d
   }
 }
 
-void obj_movement_gui(int &mitem, char* strx, char* stry, char* strrad) {
+int obj_movement_gui(int &mitem, char* strx, char* stry, char* strrad) {
   // fixed to ground      - this geometry is fixed (attached to inertial)
   // attached to previous - this geometry is attached to the previous geometry
   // according to formula - this geometry is attached to a new moving body
   const char* mitems[] = { "fixed to ground", "attached to previous", "according to formula" };
+  int changed = 0;
+  static int tmp = -1;
   //const char* mitems[] = { "fixed", "attached to previous", "according to formula", "dynamic" };
   ImGui::Combo("movement", &mitem, mitems, 3);
-
+  if (tmp != mitem) { 
+    tmp = mitem;
+    changed += 1;
+  }
   // show different inputs based on what is selected
   if (mitem == 2) {
-    ImGui::InputText("x position", strx, 512);
+    changed += ImGui::InputText("x position", strx, 512);
     ImGui::SameLine();
     ShowHelpMarker("Use C-style expressions, t is time\n+ - / * % ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
-    ImGui::InputText("y position", stry, 512);
+    changed += ImGui::InputText("y position", stry, 512);
     ImGui::SameLine();
     ShowHelpMarker("Use C-style expressions, t is time\n+ - / * % ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
-    ImGui::InputText("angular position", strrad, 512);
+    changed += ImGui::InputText("angular position", strrad, 512);
     ImGui::SameLine();
     ShowHelpMarker("In radians, use C-style expressions, t is time\n+ - / * % ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
   }
+  
+  return changed;
 }
 
 // execution starts here

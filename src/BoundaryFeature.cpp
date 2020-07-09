@@ -1075,7 +1075,6 @@ bool SolidAirfoil::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std:
   static bool external_flow = true;
   static float xc[2] = {0.0f, 0.0f};
   static float rotdeg = 0.0f;
-  //static std::string naca = "0012";
   static std::string naca = "2415";
   static int maxCamber = 0;
   static int chordLocation = 0;
