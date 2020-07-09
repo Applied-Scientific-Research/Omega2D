@@ -949,7 +949,7 @@ double chebeshev_node(double a, double b, double k, double n) {
   return (a+b)*0.5+(b-a)*0.5*cos((2*(n-k)-1)*M_PI*0.5/n);
 }
 
-// Create a NACA Airfoil
+// Create a NACA 4-digit airfoil
 // THIS NEEDS TO BE REDONE
 ElementPacket<float>
 SolidAirfoil::init_elements(const float _ips) const {
@@ -962,16 +962,23 @@ SolidAirfoil::init_elements(const float _ips) const {
   const float p = m_maxCambLoc/10.0f;
   const float t = m_thickness/100.0f;
   
-  const int numX = std::ceil(m_chordLength*M_PI/_ips);
-  std::cout << "Creating NACA Airfoil " << m_maxCamber << m_maxCambLoc << m_thickness << " with an estimated " << 2*numX << " panels" << std::endl;
-  std::vector<float> x(4*numX+2);
-  std::vector<Int> idx(4*numX+2);
+  // number of panels on top surface
+  const size_t numX = std::ceil(m_chordLength*M_PI/_ips);
+  std::cout << "Creating NACA airfoil " << m_maxCamber << m_maxCambLoc << m_thickness << " with an estimated " << 2*numX << " panels" << std::endl;
+  std::vector<float> x(4*numX);
+  std::vector<Int> idx(4*numX);
   
-  // Rotating the airfoil
-  const float st = std::sin(M_PI * m_theta / 180.0);
-  const float ct = std::cos(M_PI * m_theta / 180.0);
-  // Go CW if flow is outside
-  for (size_t i=0; i<numX; i++) {
+  // first node (leading edge)
+  x[0] = 0.0;
+  x[1] = 0.0;
+  // middle node (trailing edge)
+  x[2*numX] = 1.0;
+  x[2*numX+1] = 0.0;
+  // formula thickness at TE (xol=1.0)
+  const float yt_trail = (t/0.2)*(0.2969-0.1260-0.3516+0.2843-0.1015);
+
+  // march along the chord, generating nodes and panels
+  for (size_t i=1; i<=numX; i++) {
     const float xol = chebeshev_node(0.0, 1.0, i, numX);
     float yc;
     float dyc;
@@ -982,36 +989,40 @@ SolidAirfoil::init_elements(const float _ips) const {
       yc = (m/std::pow(1-p,2))*(1-2*p+2*p*xol-std::pow(xol,2));
       dyc = (m/std::pow(1-p,2))*2*(p-xol);
     }
-    const float yt = (t/0.2)*(0.2969*std::sqrt(xol)-0.1260*xol-0.3516*std::pow(xol,2)+0.2843*std::pow(xol,3)-0.1015*std::pow(xol,4));
-    const float theta = tan(dyc);
-    // The top half
-    const float px = xol-yt*sin(theta);
-    const float py = yc+yt*cos(theta);
-    x[2*i] = m_chordLength*(m_x+px*ct-py*st);
-    x[2*i+1] = m_chordLength*(m_y+px*st+py*ct);
-    // The bottom half
-    const float pxe = xol+yt*sin(theta);
-    const float pye = yc-yt*cos(theta);
-    x[2*(2*numX-i)] = m_chordLength*(m_x+pxe*ct-pye*st);
-    x[2*(2*numX-i)+1] = m_chordLength*(m_y+pxe*st+pye*ct);
-    // Indices
-    idx[2*i] = i;
-    idx[2*i+1] = i+1;
-    idx[2*(2*numX-i)] = 2*numX-i;
+    float yt = (t/0.2)*(0.2969*std::sqrt(xol)-0.1260*xol-0.3516*std::pow(xol,2)+0.2843*std::pow(xol,3)-0.1015*std::pow(xol,4));
+    // correct yt so that top and bottom meet at a single point
+    yt -= xol*yt_trail;
+    const float theta = std::tan(dyc);
+    // add nodes
+    if (i < numX) {
+      // The top half
+      x[2*i]   = xol-yt*std::sin(theta);
+      x[2*i+1] = yc +yt*std::cos(theta);
+      // The bottom half
+      x[2*(2*numX-i)]   = xol+yt*std::sin(theta);
+      x[2*(2*numX-i)+1] = yc -yt*std::cos(theta);
+    }
+    // Indices (arranged CW around the section because the it is solid)
+    idx[2*(i-1)]   = i-1;
+    idx[2*(i-1)+1] = i;
+    idx[2*(2*numX-i)]   = 2*numX-i;
     idx[2*(2*numX-i)+1] = 2*numX-i+1;
   }
-  // Now we create a tail point by finding the intersection of the two halves
-  const float upperSlope = (x[2*(numX-2)+1]-x[2*(numX-1)+1])/(x[2*(numX-2)]-x[2*(numX-1)]);
-  const float lowerSlope = (x[2*(numX+1)+1]-x[2*(numX+2)+1])/(x[2*(numX+1)]-x[2*(numX+2)]);
-  x[2*numX] = (x[2*(numX-1)]*upperSlope-x[2*(numX-1)+1]-x[2*(numX+1)]*lowerSlope+x[2*(numX+1)+1])/(upperSlope-lowerSlope);
-  x[2*numX+1] = upperSlope*(x[2*numX]-x[2*(numX-1)])+x[2*(numX-1)+1];
-  // Add the indices
-  idx[2*numX] = numX;
-  idx[2*numX+1] = numX+1;
-  // The last point is the same as the first so we remove it
-  x.erase(x.end()-2, x.end());
-  idx.erase(idx.end()-2, idx.end());
-  idx[idx.size()-1] = 0;
+
+  // the last panel needs to point to the first node
+  idx[4*numX-1] = 0;
+
+  // scale, translate, and rotate into place
+  const float st = std::sin(M_PI * m_theta / 180.0);
+  const float ct = std::cos(M_PI * m_theta / 180.0);
+  for (size_t i=0; i<2*numX; i++) {
+    const float px = x[2*i];
+    const float py = x[2*i+1];
+    x[2*i]   = m_x + m_chordLength * (px*ct - py*st);
+    x[2*i+1] = m_y + m_chordLength * (px*st + py*ct);
+  }
+
+  // val is bc, which is 0.0
   std::vector<float> val(idx.size()/2, 0.0);
 
   return ElementPacket<float>({x, idx, val});
@@ -1083,8 +1094,8 @@ bool SolidAirfoil::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std:
   ImGui::InputFloat2("Leading Edge Position", xc);
   ImGui::SliderFloat("Angle of Attack", &rotdeg, -180.0f, 180.0f, "%.0f");
   ImGui::SliderFloat("Chord Length", &chordLength, 0.1f, 5.0f, "%.1f");
-  ImGui::TextWrapped("This feature will add a NACA Airfoil boundary centered at the given coordinates");
-  if (ImGui::Button("Add NACA Airfoil boundary")) {
+  ImGui::TextWrapped("This feature will add a NACA airfoil with LE at the given coordinates");
+  if (ImGui::Button("Add NACA airfoil")) {
     maxCamber = std::stoi(naca.substr(0, 1));
     chordLocation = std::stoi(naca.substr(1, 1));
     thickness = std::stoi(naca.substr(2, 2));
@@ -1101,5 +1112,5 @@ bool SolidAirfoil::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std:
 #endif
 
 void SolidAirfoil::generate_draw_geom() {
-  m_draw = init_elements(0.03);
+  m_draw = init_elements(m_chordLength/20.0);
 }
