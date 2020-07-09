@@ -124,7 +124,10 @@ public:
   bool do_any_bodies_move();
   bool any_nonzero_bcs();
   bool test_for_new_results();
-  std::vector<std::string> write_vtk(const int _index = -1);
+  std::vector<std::string> write_vtk(const int _index = -1,
+                                     const bool _do_bdry = true,
+                                     const bool _do_flow = true,
+                                     const bool _do_measure = true);
   bool test_vs_stop();
   bool test_vs_stop_async();
 

@@ -25,7 +25,7 @@
 
 
 //
-// compress a byte stream
+// compress a byte stream - TO DO
 //
 
 
@@ -144,6 +144,16 @@ void write_DataArray (tinyxml2::XMLPrinter& _p,
 // see the full vtk spec here:
 // https://vtk.org/wp-content/uploads/2015/04/file-formats.pdf
 //
+// time can be written to a vtk file:
+// https://gitlab.kitware.com/vtk/vtk/commit/6e0acf3b773f120c3b8319c4078a4eac9ed31ce1
+//
+// <PolyData>
+//      <FieldData>
+//        <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1">1.24
+//        </DataArray>
+//      </FieldData>
+
+//
 template <class S>
 std::string write_vtu_points(Points<S> const& pts, const size_t file_idx, const size_t frameno) {
 
@@ -182,8 +192,12 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx, const 
 
   // push comment with sim time?
 
+  // must choose one of these two formats
   printer.OpenElement( "UnstructuredGrid" );
   //printer.OpenElement( "PolyData" );
+
+  // include time here as FieldData?
+
   printer.OpenElement( "Piece" );
   printer.PushAttribute( "NumberOfPoints", std::to_string(pts.get_n()).c_str() );
   printer.PushAttribute( "NumberOfCells", std::to_string(pts.get_n()).c_str() );
@@ -355,8 +369,12 @@ std::string write_vtu_panels(Surfaces<S> const& surf, const size_t file_idx, con
 
   // push comment with sim time?
 
+  // must choose one of these two formats
   printer.OpenElement( "UnstructuredGrid" );
   //printer.OpenElement( "PolyData" );
+
+  // put time in here as FieldData?
+
   printer.OpenElement( "Piece" );
   printer.PushAttribute( "NumberOfPoints", std::to_string(surf.get_n()).c_str() );
   printer.PushAttribute( "NumberOfCells", std::to_string(surf.get_npanels()).c_str() );
