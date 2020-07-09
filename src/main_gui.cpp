@@ -1077,8 +1077,10 @@ int main(int argc, char const *argv[]) {
       pngfn << "img_" << std::setfill('0') << std::setw(5) << frameno << ".png";
       png_out_file = pngfn.str();
       (void) saveFramePNG(png_out_file);
-      if (write_png_immediately) std::cout << "Wrote screenshot to " << png_out_file << std::endl;
+      std::cout << "Wrote screenshot to " << png_out_file << std::endl;
       frameno++;
+      // no need to tell the user every frame
+      if (export_png_when_ready) png_out_file.clear();
       write_png_immediately = false;
       export_png_when_ready = false;
     }
