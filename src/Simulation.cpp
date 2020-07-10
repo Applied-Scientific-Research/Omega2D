@@ -653,17 +653,31 @@ void Simulation::add_fldpts(std::vector<float> _invec, const bool _moves) {
     // make a new collection
     fldpt.push_back(Points<float>(_invec, inert, move_type, nullptr));
 
-  } else {
-    // THIS MUST USE A VISITOR
-    // HACK - add all particles to first collection
-    //std::visit([&](auto& elem) { elem.add_new(_invec); }, fldpt.back());
-    auto& coll = fldpt.back();
-    // eventually we will want to check every collection for matching element and move types
-    // only proceed if the collection is Points
-    if (std::holds_alternative<Points<float>>(coll)) {
-      Points<float>& pts = std::get<Points<float>>(coll);
-      pts.add_new(_invec);
+  } else if (move_type == lagrangian) {
+    // add this to the existing collection of tracers (keep them together)
+
+    // loop over all collections looking for a match
+    bool was_added = false;
+    for (auto &coll : fldpt) {
+      //std::visit([&](auto& elem) { elem.add_new(_invec); }, fldpt.back());
+      // eventually we will want to check every collection for matching element and move types
+      // only proceed if the collection is Points
+      if (std::holds_alternative<Points<float>>(coll)) {
+        Points<float>& pts = std::get<Points<float>>(coll);
+        if (pts.get_movet() == lagrangian) {
+          pts.add_new(_invec);
+          was_added = true;
+          break;
+        }
+      }
     }
+
+    if (not was_added) fldpt.push_back(Points<float>(_invec, inert, move_type, nullptr));
+
+  } else {
+    // bodybound or fixed
+    // always create this as a new collection (keep separate)
+    fldpt.push_back(Points<float>(_invec, inert, move_type, nullptr));
   }
 }
 
