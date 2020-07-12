@@ -1,6 +1,8 @@
 # Omega2D
 Two-dimensional flow solver with GUI using vortex particle and boundary element methods
 
+*NOTE: This program currrently uses O(N^2) calculations for velocity, so runs more slowly than desired. A O(N log N) treecode is being prepared to alleviate this.*
+
 ![startupvideo](media/IntroCircle1.gif?raw=true "Session sample")
 
 ## Overview
