@@ -837,7 +837,9 @@ int main(int argc, char const *argv[]) {
         // add a "remove" button at the end of the line (so it's not easy to accidentally hit)
         ImGui::SameLine();
         ImGui::PushID(++buttonIDs);
-        if (ImGui::SmallButton("remove")) del_this_bdry = i;
+        if (ImGui::SmallButton("edit")) { /*edit boundary*/ }
+        ImGui::SameLine();
+        if (ImGui::SmallButton("remove")) { del_this_bdry = i; }
         ImGui::PopID();
       }
       if (del_this_bdry > -1) {
