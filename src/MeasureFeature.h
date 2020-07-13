@@ -38,11 +38,14 @@ public:
   virtual nlohmann::json to_json() const = 0;
   virtual std::vector<float> init_particles(float) const = 0;
   virtual std::vector<float> step_particles(float) const = 0;
+  virtual void generate_draw_geom() = 0;
+  virtual std::vector<float> get_draw_packet() { return m_draw; }
 
 protected:
   float m_x;
   float m_y;
   bool  m_is_lagrangian;
+  std::vector<float> m_draw;
 };
 
 std::ostream& operator<<(std::ostream& os, MeasureFeature const& ff);
@@ -59,7 +62,6 @@ std::ostream& operator<<(std::ostream& os, MeasureFeature const& ff);
 // solid block (square, circle) of tracers
 // single streamline (save all positions of a single point, draw as a line)
 //
-
 
 
 //
@@ -80,8 +82,9 @@ public:
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 #ifdef USE_IMGUI
-  static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &);
+  static bool draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &);
 #endif
+  //void generate_draw_geom() override;
 
 protected:
   //float m_str;
@@ -105,8 +108,9 @@ public:
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 #ifdef USE_IMGUI
-  static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &);
+  static bool draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &);
 #endif
+  //void generate_draw_geom() override;
 
 protected:
   // eventually implement frequency, but for now, once per step
@@ -133,8 +137,9 @@ public:
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 #ifdef USE_IMGUI
-  static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float &, float);
+  static bool draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float &, float);
 #endif
+  //void generate_draw_geom() override;
 
 protected:
   float m_rad;
@@ -162,8 +167,9 @@ public:
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 #ifdef USE_IMGUI
-  static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float &, float);
+  static bool draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float &, float);
 #endif
+  //void generate_draw_geom() override;
 
 protected:
   float m_xf, m_yf;
@@ -191,8 +197,9 @@ public:
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 #ifdef USE_IMGUI
-  static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float &, float);
+  static bool draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float &, float);
 #endif
+  //void generate_draw_geom() override;
 
 protected:
   float m_xf, m_yf;
@@ -222,8 +229,9 @@ public:
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 #ifdef USE_IMGUI
-  static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, float);
+  static bool draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, float);
 #endif
+  //void generate_draw_geom() override;
 
 protected:
   float m_xf, m_yf;

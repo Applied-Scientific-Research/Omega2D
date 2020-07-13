@@ -55,6 +55,7 @@ int main(int argc, char const *argv[]) {
   std::vector< std::unique_ptr<BoundaryFeature> > bfeatures;
   std::vector< std::unique_ptr<MeasureFeature> > mfeatures;
   FeatureDraw bdraw;
+  FeatureDraw mdraw;
   size_t nframes = 0;
   static bool sim_is_running = false;
   static bool begin_single_step = false;
@@ -393,6 +394,10 @@ int main(int argc, char const *argv[]) {
         for (auto const& bf : bfeatures) {
           bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
         }
+        mdraw.clear_elements();
+        for (auto const& mf : mfeatures) {
+          //mdraw.add_elements( mf->get_draw_packet(), mf->is_enabled() );
+        }
         // finish setting up and run
         is_viscous = sim.get_diffuse();
         currentItemIndex = 0;
@@ -429,6 +434,10 @@ int main(int argc, char const *argv[]) {
           bdraw.clear_elements();
           for (auto const& bf : bfeatures) {
             bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
+          }
+          mdraw.clear_elements();
+          for (auto const& mf : mfeatures) {
+            //mdraw.add_elements( mf->get_draw_packet(), mf->is_enabled() );
           }
 
           // finish setting up and run
@@ -751,33 +760,34 @@ int main(int argc, char const *argv[]) {
         ImGui::Combo("type", &item, items, 6);
 
         // show different inputs based on what is selected
+        bool create = false;
         switch(item) {
           case 0: {
             // a single measurement point
-            SinglePoint::draw_creation_gui(mfeatures);
+            create = SinglePoint::draw_creation_gui(mfeatures);
           } break;
           case 1: {
             // a tracer emitter
-            TracerEmitter::draw_creation_gui(mfeatures);
+            create = TracerEmitter::draw_creation_gui(mfeatures);
           } break;
           case 2: {
             // a tracer circle
-            TracerBlob::draw_creation_gui(mfeatures, rparams.tracer_scale, sim.get_ips());
+            create = TracerBlob::draw_creation_gui(mfeatures, rparams.tracer_scale, sim.get_ips());
           } break;
           case 3: {
             // a tracer line
-            TracerLine::draw_creation_gui(mfeatures, rparams.tracer_scale, sim.get_ips());
+            create = TracerLine::draw_creation_gui(mfeatures, rparams.tracer_scale, sim.get_ips());
           } break;
           case 4: {
             // a static, measurement line
-            MeasurementLine::draw_creation_gui(mfeatures, rparams.tracer_scale, sim.get_ips());
+            create = MeasurementLine::draw_creation_gui(mfeatures, rparams.tracer_scale, sim.get_ips());
           } break;
           case 5: {
             // a static grid of measurement points
-            GridPoints::draw_creation_gui(mfeatures, sim.get_ips());
+            create = GridPoints::draw_creation_gui(mfeatures, sim.get_ips());
           } break;
         }
-
+        //if (create) { mdraw.add_elements( mfeatures.back()->get_draw_packet(), mfeatures.back()->is_enabled() ); }
         if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
         ImGui::EndPopup();
       } // end measurement structures 
@@ -832,7 +842,10 @@ int main(int argc, char const *argv[]) {
         }
 
         // if the checkbox flipped positions this frame, ischeck is 1
-        if (ischeck) bdraw.reset_enabled(i,bfeatures[i]->is_enabled());
+        if (ischeck) {
+          bdraw.reset_enabled(i,bfeatures[i]->is_enabled());
+          mdraw.reset_enabled(i,bfeatures[i]->is_enabled());
+        }
 
         // add a "remove" button at the end of the line (so it's not easy to accidentally hit)
         ImGui::SameLine();
@@ -848,6 +861,10 @@ int main(int argc, char const *argv[]) {
         bdraw.clear_elements();
         for (auto const& bf : bfeatures) {
           bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
+        }
+        mdraw.clear_elements();
+        for (auto const& mf : mfeatures) {
+          //mdraw.add_elements( mf->get_draw_packet(), mf->is_enabled() );
         }
       }
 
@@ -1059,6 +1076,7 @@ int main(int argc, char const *argv[]) {
     if (not sim.is_initialized()) {
       // append draw geometries to FeatureDraw object
       for (auto const& bf : bfeatures) {
+        // Whatever happens here should happen with measure/flow features
         if (bf->is_enabled()) {
           // what should we do differently?
         }
@@ -1066,6 +1084,7 @@ int main(int argc, char const *argv[]) {
 
       // and draw
       bdraw.drawGL(gl_projection, rparams);
+      mdraw.drawGL(gl_projection, rparams);
     }
 
     // here is where we write the buffer to a file
