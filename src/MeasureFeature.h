@@ -29,6 +29,7 @@ public:
       m_y(_y),
       m_is_lagrangian(_moves)
     {}
+  virtual ~MeasureFeature() {}
 
   bool moves() const { return m_is_lagrangian; }
   virtual void debug(std::ostream& os) const = 0;
