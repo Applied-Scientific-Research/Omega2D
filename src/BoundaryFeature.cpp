@@ -12,6 +12,7 @@
 #include "imgui/imgui_stdlib.h"
 
 #define __STDCPP_WANT_MATH_SPEC_FUNCS__ 1
+#include <cassert>
 #include <cmath>
 #include <algorithm>
 #include <iostream>
@@ -945,12 +946,48 @@ void SolidPolygon::generate_draw_geom() {
   m_draw = init_elements(m_radius);
 }
 
+// node distribution with dense points at each end
 double chebeshev_node(double a, double b, double k, double n) {
-  return (a+b)*0.5+(b-a)*0.5*cos((2*(n-k)-1)*M_PI*0.5/n);
+  return (a+b)*0.5+(b-a)*0.5*std::cos((2*(n-k)-1)*M_PI*0.5/n);
+}
+
+// node distribution with tunable density at each end
+// first, a measure of how many panels are needed given densities at each end and relative panel size
+size_t chebeshev_node_2_count(const double dens_left, const double dens_right, const double rel_pan_size) {
+  // first, compute theta bounds given node densities
+  assert(dens_left > 0.0 && dens_left < 1.0 && dens_right > 0.0 && dens_right < 1.0 && "Panel densities out of range");
+  const double theta_left = M_PI - std::asin(dens_left);
+  const double theta_right = std::asin(dens_right);
+  // theta range
+  const double theta_range = theta_left - theta_right;
+  // x range from these
+  const double x_range = std::cos(theta_right) - std::cos(theta_left);
+  // now, size of the middle panel
+  const double x_panel = x_range * rel_pan_size;
+  // convert that to an angle
+  const double theta_panel = 2.0 * std::asin(0.5*x_panel);
+  // finally, find panel count
+  return std::max((int)3, (int)(0.5 + theta_range/theta_panel));
+}
+// then the mathematics itself to generate the node positions
+double chebeshev_node_2(const double dens_left, const double dens_right, const size_t k, const size_t n) {
+  // first, compute theta bounds given node densities
+  assert(dens_left > 0.0 && dens_left < 1.0 && dens_right > 0.0 && dens_right < 1.0 && "Panel densities out of range");
+  const double theta_left = M_PI - std::asin(dens_left);
+  const double theta_right = std::asin(dens_right);
+  // theta range
+  const double theta_range = theta_left - theta_right;
+  // x range from these
+  const double x_range = std::cos(theta_right) - std::cos(theta_left);
+
+  // now, find test theta from input indices
+  const double theta = theta_right + theta_range*k/(double)n;
+
+  // finally, compute and scale the return value (from 0..1)
+  return (std::cos(theta_right) - std::cos(theta)) / x_range;
 }
 
 // Create a NACA 4-digit airfoil
-// THIS NEEDS TO BE REDONE
 ElementPacket<float>
 SolidAirfoil::init_elements(const float _ips) const {
   // If object has been removed, return no elements?
@@ -963,8 +1000,9 @@ SolidAirfoil::init_elements(const float _ips) const {
   const float t = m_thickness/100.0f;
   
   // number of panels on top surface
-  const size_t numX = std::ceil(m_chordLength*M_PI/_ips);
-  std::cout << "Creating NACA airfoil " << m_maxCamber << m_maxCambLoc << m_thickness << " with an estimated " << 2*numX << " panels" << std::endl;
+  //const size_t numX = std::ceil(m_chordLength*M_PI/_ips);
+  const size_t numX = chebeshev_node_2_count(0.75, 0.1, _ips/m_chordLength);
+  std::cout << "Creating NACA airfoil " << m_maxCamber << m_maxCambLoc << m_thickness << " with " << 2*numX << " panels" << std::endl;
   std::vector<float> x(4*numX);
   std::vector<Int> idx(4*numX);
   
@@ -979,7 +1017,8 @@ SolidAirfoil::init_elements(const float _ips) const {
 
   // march along the chord, generating nodes and panels
   for (size_t i=1; i<=numX; i++) {
-    const float xol = chebeshev_node(0.0, 1.0, i, numX);
+    //const float xol = chebeshev_node(0.0, 1.0, i, numX);
+    const float xol = chebeshev_node_2(0.75, 0.1, i, numX);
     float yc;
     float dyc;
     if (xol < p) {
@@ -1075,7 +1114,6 @@ bool SolidAirfoil::draw_creation_gui(std::shared_ptr<Body> &bp, std::vector<std:
   static bool external_flow = true;
   static float xc[2] = {0.0f, 0.0f};
   static float rotdeg = 0.0f;
-  //static std::string naca = "0012";
   static std::string naca = "2415";
   static int maxCamber = 0;
   static int chordLocation = 0;
