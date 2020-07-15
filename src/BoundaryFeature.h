@@ -13,6 +13,7 @@
 #include "Feature.h"
 #include "json/json.hpp"
 #include "Omega2D.h"
+#include "Simulation.h"
 
 #include <iostream>
 #include <memory>
@@ -34,7 +35,7 @@ public:
       m_x(_x),
       m_y(_y)
     {}
-  virtual ~BoundaryFeature() {}
+  virtual ~BoundaryFeature() = default;
 
   virtual void debug(std::ostream& os) const = 0;
   virtual std::string to_string() const = 0;
@@ -45,6 +46,9 @@ public:
   std::shared_ptr<Body> get_body() { return m_bp; }
   virtual void generate_draw_geom() = 0;
   virtual ElementPacket<float> get_draw_packet() { return m_draw; }
+#ifdef USE_IMGUI
+  static bool draw_creation_gui(const int, const int, const float, std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+#endif
 
 protected:
   std::shared_ptr<Body> m_bp;
@@ -98,6 +102,8 @@ public:
     : BoundaryFeature(_bp, _ext, _x, _y),
       m_diam(_diam)
     {}
+  SolidCircle(const SolidCircle&) = default;
+  ~SolidCircle() = default;
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -105,7 +111,7 @@ public:
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+  bool draw_info_gui();
 #endif
   void generate_draw_geom() override;
 
@@ -137,7 +143,7 @@ public:
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+  bool draw_info_gui();
 #endif
   void generate_draw_geom() override;
 
@@ -169,7 +175,7 @@ public:
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+  bool draw_info_gui();
 #endif
   void generate_draw_geom() override;
 
@@ -201,7 +207,7 @@ public:
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+  bool draw_info_gui();
 #endif
   void generate_draw_geom() override;
 
@@ -236,7 +242,7 @@ public:
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+  bool draw_info_gui();
 #endif
   void generate_draw_geom() override;
 
@@ -272,7 +278,7 @@ public:
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+  bool draw_info_gui();
 #endif
   void generate_draw_geom() override;
 
@@ -293,9 +299,9 @@ public:
                bool _ext = true,
                float _x = 0.0,
                float _y = 0.0,
-               int _maxCamber = 0,
-               int _maxCambLoc = 0,
-               int _thickness = 0,
+               int _maxCamber = 2,
+               int _maxCambLoc = 4,
+               int _thickness = 15,
                float _theta = 0.0,
                float _chordLength = 1.0)
     : BoundaryFeature(_bp, _ext, _x, _y),
@@ -312,7 +318,7 @@ public:
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+  bool draw_info_gui();
 #endif
   void generate_draw_geom() override;
 protected:

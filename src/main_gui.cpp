@@ -614,84 +614,13 @@ int main(int argc, char const *argv[]) {
           }
         }
 
-        // show different inputs based on what is selected
-        switch(item) {
-          case 0: {
-            // create a circular boundary
-            if (SolidCircle::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-                bp->set_name("circular cylinder");
-                sim.add_body(bp);
-              }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
-            }
-          } break;
-          case 1: {
-            // create a square boundary
-            if (SolidSquare::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-                bp->set_name("square cylinder");
-                sim.add_body(bp);
-              }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
-            }
-          } break;
-          case 2: {
-            // create an oval boundary
-            if (SolidOval::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-                bp->set_name("oval cylinder");
-                sim.add_body(bp);
-              }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
-            } 
-          } break;
-          case 3: {
-            // create a rectangle boundary
-            if (SolidRect::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-                bp->set_name("rectangular cylinder");
-                sim.add_body(bp);
-              }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
-            } 
-          } break;
-          case 4: {
-            // create a straight boundary segment
-            if (BoundarySegment::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-                bp->set_name("segmented boundary");
-                sim.add_body(bp);
-              }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
-            } 
-          } break;
-          case 5: {
-            // create a polygon boundary
-            if (SolidPolygon::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-                bp->set_name("polygon cylinder");
-                sim.add_body(bp);
-              }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
-            } 
-          } break;
-          case 6: {
-            if (SolidAirfoil::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-                bp->set_name("airfoil cylinder");
-                sim.add_body(bp);
-              }
-            bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
-            }
-          }
-        } // end switch for geometry
-
-        if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
+        if (BoundaryFeature::draw_creation_gui(item, mitem, sim.get_ips(), bp, bfeatures)) {
+          if (mitem == 2) { sim.add_body(bp); }
+          bfeatures.back()->generate_draw_geom();
+          bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
+        }
         ImGui::EndPopup();
-        
-      } // end new boundary structures
-
+      } // end new boundary structure
 
       // button and modal window for adding new flow structures
       ImGui::SameLine();
