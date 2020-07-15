@@ -577,45 +577,7 @@ int main(int argc, char const *argv[]) {
       ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New boundary structure"))
       {
-        // define movement first
-        static int mitem = 0;
-        static char strx[512] = "0.0*t";
-        static char stry[512] = "0.0*t";
-        static char strrad[512] = "0.0*t";
-        int changed = obj_movement_gui(mitem, strx, stry, strrad);
-
-        // define geometry second
-        static int item = 0;
-        static int numItems = 7;
-        const char* items[] = { "circle", "square", "oval", "rectangle", "segment", "polygon", "NACA 4-digit" };
-        ImGui::Spacing();
-        ImGui::Combo("geometry type", &item, items, numItems);
-
-        // static bp prevents a bunch of pointers from being created during the same boundary creation
-        // The switch prevents constant assignment (mainly to prevent the terminal from being flooded from messages)
-        static std::shared_ptr<Body> bp = nullptr;
-        if (changed) {
-          switch(mitem) {
-            case 0:
-               // this geometry is fixed (attached to inertial)
-               bp = sim.get_pointer_to_body("ground");
-               break;
-            case 1:
-               // this geometry is attached to the previous geometry (or ground)
-               bp = sim.get_last_body();
-               break;
-            case 2:
-               // this geometry is attached to a new moving body
-               bp = std::make_shared<Body>();
-               bp->set_pos(0, std::string(strx));
-               bp->set_pos(1, std::string(stry));
-               bp->set_rot(std::string(strrad));
-               break;
-          }
-        }
-
-        if (BoundaryFeature::draw_creation_gui(item, mitem, sim.get_ips(), bp, bfeatures)) {
-          if (mitem == 2) { sim.add_body(bp); }
+        if (BoundaryFeature::draw_creation_gui(bfeatures, sim)) {
           bfeatures.back()->generate_draw_geom();
           bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
         }

@@ -10,6 +10,7 @@
 #include "GuiHelper.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_stdlib.h"
+#include "Simulation.h"
 
 #define __STDCPP_WANT_MATH_SPEC_FUNCS__ 1
 #include <cassert>
@@ -59,7 +60,73 @@ void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
 }
 
 #ifdef USE_IMGUI
-bool BoundaryFeature::draw_creation_gui(const int item, const int mitem, const float ips, std::shared_ptr<Body>& bp, std::vector<std::unique_ptr<BoundaryFeature>>& bf) {
+int BoundaryFeature::obj_movement_gui(int &mitem, char* strx, char* stry, char* strrad) {
+  // fixed to ground      - this geometry is fixed (attached to inertial)
+  // attached to previous - this geometry is attached to the previous geometry
+  // according to formula - this geometry is attached to a new moving body
+  const char* mitems[] = { "fixed to ground", "attached to previous", "according to formula" };
+  int changed = 0;
+  static int tmp = -1;
+  //const char* mitems[] = { "fixed", "attached to previous", "according to formula", "dynamic" };
+  ImGui::Combo("movement", &mitem, mitems, 3);
+  if (tmp != mitem) { 
+    tmp = mitem;
+    changed += 1;
+  }
+  // show different inputs based on what is selected
+  if (mitem == 2) {
+    changed += ImGui::InputText("x position", strx, 512);
+    ImGui::SameLine();
+    ShowHelpMarker("Use C-style expressions, t is time\n+ - / * % ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
+    changed += ImGui::InputText("y position", stry, 512);
+    ImGui::SameLine();
+    ShowHelpMarker("Use C-style expressions, t is time\n+ - / * % ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
+    changed += ImGui::InputText("angular position", strrad, 512);
+    ImGui::SameLine();
+    ShowHelpMarker("In radians, use C-style expressions, t is time\n+ - / * % ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
+  }
+  
+  return changed;
+}
+
+bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeature>>& bf, Simulation& sim) {
+  // define movement first
+  static int mitem = 0;
+  static char strx[512] = "0.0*t";
+  static char stry[512] = "0.0*t";
+  static char strrad[512] = "0.0*t";
+  int changed = BoundaryFeature::obj_movement_gui(mitem, strx, stry, strrad);
+
+  // define geometry second
+  static int item = 0;
+  static int numItems = 7;
+  const char* items[] = { "circle", "square", "oval", "rectangle", "segment", "polygon", "NACA 4-digit" };
+
+  ImGui::Combo("geometry type", &item, items, numItems);
+
+  // static bp prevents a bunch of pointers from being created during the same boundary creation
+  // The switch prevents constant assignment (mainly to prevent the terminal from being flooded from messages)
+  static std::shared_ptr<Body> bp = nullptr;
+  if (changed) {
+    switch(mitem) {
+      case 0:
+         // this geometry is fixed (attached to inertial)
+         bp = sim.get_pointer_to_body("ground");
+         break;
+      case 1:
+         // this geometry is attached to the previous geometry (or ground)
+         bp = sim.get_last_body();
+         break;
+      case 2:
+         // this geometry is attached to a new moving body
+         bp = std::make_shared<Body>();
+         bp->set_pos(0, std::string(strx));
+         bp->set_pos(1, std::string(stry));
+         bp->set_rot(std::string(strrad));
+         break;
+    }
+  }
+
   // show different inputs based on what is selected
   bool created = false;
   switch(item) {
@@ -143,7 +210,13 @@ bool BoundaryFeature::draw_creation_gui(const int item, const int mitem, const f
   } // end switch for geometry
 
   ImGui::SameLine();
-  if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
+  if (ImGui::Button("Cancel", ImVec2(120,0))) {
+    ImGui::CloseCurrentPopup();
+    created = false;
+  }
+  
+  if ((mitem == 2) && (created)) { sim.add_body(bp); }
+  
   return created;
 }
 #endif

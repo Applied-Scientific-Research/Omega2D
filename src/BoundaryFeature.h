@@ -47,7 +47,8 @@ public:
   virtual void generate_draw_geom() = 0;
   virtual ElementPacket<float> get_draw_packet() { return m_draw; }
 #ifdef USE_IMGUI
-  static bool draw_creation_gui(const int, const int, const float, std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+  static int obj_movement_gui(int &, char* , char* , char* );
+  static bool draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeature>> &, Simulation&);
 #endif
 
 protected:
