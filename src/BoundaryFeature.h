@@ -49,6 +49,7 @@ public:
 #ifdef USE_IMGUI
   static int obj_movement_gui(int &, char* , char* , char* );
   static bool draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeature>> &, Simulation&);
+  virtual bool draw_info_gui() = 0;
 #endif
 
 protected:
@@ -112,7 +113,7 @@ public:
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  bool draw_info_gui();
+  bool draw_info_gui() override;
 #endif
   void generate_draw_geom() override;
 
@@ -137,6 +138,7 @@ public:
       m_dmin(_dmin),
       m_theta(_theta)
     {}
+  ~SolidOval() = default;
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -144,7 +146,7 @@ public:
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  bool draw_info_gui();
+  bool draw_info_gui() override;
 #endif
   void generate_draw_geom() override;
 
@@ -169,6 +171,7 @@ public:
       m_side(_side),
       m_theta(_theta)
     {}
+  ~SolidSquare() = default;
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -176,7 +179,7 @@ public:
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  bool draw_info_gui();
+  bool draw_info_gui() override;
 #endif
   void generate_draw_geom() override;
 
@@ -201,6 +204,7 @@ public:
     : SolidSquare(_bp, _ext, _x, _y, _sidex, _theta),
       m_sidey(_sidey)
     {}
+  ~SolidRect() = default;
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -208,7 +212,7 @@ public:
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  bool draw_info_gui();
+  bool draw_info_gui() override;
 #endif
   void generate_draw_geom() override;
 
@@ -236,6 +240,7 @@ public:
       m_normflow(_normflow),
       m_tangflow(_tangflow)
     {}
+  ~BoundarySegment() = default;
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -243,7 +248,7 @@ public:
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  bool draw_info_gui();
+  bool draw_info_gui() override;
 #endif
   void generate_draw_geom() override;
 
@@ -272,6 +277,7 @@ public:
       m_radius(_radius),
       m_theta(_theta)
     {}
+  ~SolidPolygon() = default;
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -279,7 +285,7 @@ public:
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  bool draw_info_gui();
+  bool draw_info_gui() override;
 #endif
   void generate_draw_geom() override;
 
@@ -312,6 +318,7 @@ public:
       m_theta(_theta),
       m_chordLength(_chordLength)
     {}
+  ~SolidAirfoil() = default;
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -319,7 +326,7 @@ public:
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  bool draw_info_gui();
+  bool draw_info_gui() override;
 #endif
   void generate_draw_geom() override;
 protected:
