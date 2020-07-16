@@ -40,7 +40,7 @@ public:
   virtual std::vector<float> step_particles(float) const = 0;
 #ifdef USE_IMGUI
   static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float, const float &);
-  //virtual bool draw_info_gui() = 0;
+  virtual bool draw_info_gui(const float &, const float) = 0;
 #endif
 
 
@@ -85,7 +85,7 @@ public:
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 #ifdef USE_IMGUI
-  static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &);
+  bool draw_info_gui(const float&, const float) override;
 #endif
 
 protected:
@@ -110,7 +110,7 @@ public:
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 #ifdef USE_IMGUI
-  static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &);
+  bool draw_info_gui(const float&, const float) override;
 #endif
 
 protected:
@@ -138,7 +138,7 @@ public:
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 #ifdef USE_IMGUI
-  static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float &, float);
+  bool draw_info_gui(const float &, const float) override;
 #endif
 
 protected:
@@ -167,7 +167,7 @@ public:
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 #ifdef USE_IMGUI
-  static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float &, float);
+  bool draw_info_gui(const float &, const float) override;
 #endif
 
 protected:
@@ -196,7 +196,7 @@ public:
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 #ifdef USE_IMGUI
-  static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float &, float);
+  bool draw_info_gui(const float &, const float) override;
 #endif
 
 protected:
@@ -227,7 +227,7 @@ public:
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 #ifdef USE_IMGUI
-  static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, float);
+  bool draw_info_gui(const float&, const float) override;
 #endif
 
 protected:
