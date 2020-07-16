@@ -1184,8 +1184,8 @@ SolidAirfoil::init_elements(const float _ips) const {
   idx[4*numX-1] = 0;
 
   // scale, translate, and rotate into place
-  const float st = std::sin(M_PI * m_theta / 180.0);
-  const float ct = std::cos(M_PI * m_theta / 180.0);
+  const float st = std::sin(-M_PI * m_theta / 180.0);
+  const float ct = std::cos(-M_PI * m_theta / 180.0);
   for (size_t i=0; i<2*numX; i++) {
     const float px = x[2*i];
     const float py = x[2*i+1];
