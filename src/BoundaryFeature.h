@@ -39,6 +39,7 @@ public:
 
   virtual void debug(std::ostream& os) const = 0;
   virtual std::string to_string() const = 0;
+  virtual std::string to_short_string() const = 0;
   virtual void from_json(const nlohmann::json) = 0;
   virtual nlohmann::json to_json() const = 0;
   virtual ElementPacket<float> init_elements(const float) const = 0;
@@ -109,6 +110,7 @@ public:
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  std::string to_short_string() const override { return "circular cylinder"; }
   void from_json(nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
@@ -142,6 +144,7 @@ public:
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  std::string to_short_string() const override { return "oval cylinder"; }
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
@@ -175,6 +178,7 @@ public:
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  std::string to_short_string() const override { return "square cylinder"; }
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
@@ -208,6 +212,7 @@ public:
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  std::string to_short_string() const override { return "rectangular cylinder"; }
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
@@ -244,6 +249,7 @@ public:
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  std::string to_short_string() const override { return "segmented boundary"; }
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
@@ -281,6 +287,7 @@ public:
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  std::string to_short_string() const override { return "polygon cylinder"; }
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
@@ -322,6 +329,7 @@ public:
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  std::string to_short_string() const override { return "airfoil cylinder"; }
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;

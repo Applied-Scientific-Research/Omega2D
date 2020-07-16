@@ -132,95 +132,25 @@ bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeat
   static std::unique_ptr<BoundaryFeature> bf = nullptr; 
   switch(item) {
     case 0: {
-      // create a circular boundary
-      //std::unique_ptr<SolidCircle> sc = std::make_unique<SolidCircle>(bp);
       bf = std::make_unique<SolidCircle>(bp);
-      if (bf->draw_info_gui()) {
-      //if (sc->draw_info_gui()) {
-        //bfs.emplace_back(std::move(sc));
-        if (mitem == 2) {
-          bp->set_name("circular cylinder");
-        }
-        created = true;
-      }
     } break;
     case 1: {
-      // create a square boundary
-      //std::unique_ptr<SolidSquare> ssq = std::make_unique<SolidSquare>(bp);
-      //if (ssq->draw_info_gui()) {
       bf = std::make_unique<SolidSquare>(bp);
-      if (bf->draw_info_gui()) {
-        //bfs.emplace_back(std::move(ssq));
-        if (mitem == 2) {
-          bp->set_name("square cylinder");
-        }
-        created = true;
-      }
     } break;
     case 2: {
-      // create an oval boundary
-      //std::unique_ptr<SolidOval> so = std::make_unique<SolidOval>(bp);
-      //if (so->draw_info_gui()) {
       bf = std::make_unique<SolidOval>(bp);
-      if (bf->draw_info_gui()) {
-        //bfs.emplace_back(std::move(so));
-        if (mitem == 2) {
-          bp->set_name("oval cylinder");
-        }
-        created = true;
-      }
     } break;
     case 3: {
-      // create a rectangle boundary
-      //std::unique_ptr<SolidRect> sr = std::make_unique<SolidRect>(bp);
-      //if (sr->draw_info_gui()) {
       bf = std::make_unique<SolidRect>(bp);
-      if (bf->draw_info_gui()) {
-        //bfs.emplace_back(std::move(sr));
-        if (mitem == 2) {
-          bp->set_name("rectangular cylinder");
-        }
-        created = true;
-      }
     } break;
     case 4: {
-      // create a straight boundary segment
-      //std::unique_ptr<BoundarySegment> bs = std::make_unique<BoundarySegment>(bp);
-      //if (bs->draw_info_gui()) {
       bf = std::make_unique<BoundarySegment>(bp);
-      if (bf->draw_info_gui()) {
-        //bfs.emplace_back(std::move(bs));
-        if (mitem == 2) {
-          bp->set_name("segmented boundary");
-        }
-        created = true;
-      }
     } break;
     case 5: {
-      // create a polygon boundary
-      //std::unique_ptr<SolidPolygon> sp = std::make_unique<SolidPolygon>(bp);
-      //if (sp->draw_info_gui()) {
       bf = std::make_unique<SolidPolygon>(bp);
-      if (bf->draw_info_gui()) {
-        //bfs.emplace_back(std::move(sp));
-        if (mitem == 2) {
-          bp->set_name("polygon cylinder");
-        }
-        created = true;
-      }
     } break;
     case 6: {
-      // create an airfoil boundary
-      //std::unique_ptr<SolidAirfoil> sa = std::make_unique<SolidAirfoil>(bp);
-      //if (sa->draw_info_gui()) {
       bf = std::make_unique<SolidAirfoil>(bp);
-      if (bf->draw_info_gui()) {
-        //bfs.emplace_back(std::move(sa));
-        if (mitem == 2) {
-          bp->set_name("airfoil cylinder");
-        }
-        created = true;
-      }
     }
   } // end switch for geometry
 
@@ -230,13 +160,22 @@ bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeat
     created = false;
   }
   
-  if ((mitem == 2) && (created)){
-    sim.add_body(bp);
-  } else if (created) {
+  if (bf->draw_info_gui()) {
+    if (mitem == 2) {
+      bp->set_name(bf->to_short_string());
+      sim.add_body(bp);
+    }
     bfs.emplace_back(std::move(bf));
     bf = nullptr;
+    created = true;
   }
   
+  ImGui::SameLine();
+  if (ImGui::Button("Cancel", ImVec2(120,0))) {
+    ImGui::CloseCurrentPopup();
+    created = false;
+  }
+ 
   return created;
 }
 #endif
