@@ -600,40 +600,7 @@ int main(int argc, char const *argv[]) {
       ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New measurement structure"))
       {
-        static int item = 0;
-        const char* items[] = { "single point/tracer", "streakline", "circle of tracers", "line of tracers", "measurement line", "measurement grid" };
-        ImGui::Combo("type", &item, items, 6);
-
-        // show different inputs based on what is selected
-        switch(item) {
-          case 0: {
-            // a single measurement point
-            SinglePoint::draw_creation_gui(mfeatures);
-          } break;
-          case 1: {
-            // a tracer emitter
-            TracerEmitter::draw_creation_gui(mfeatures);
-          } break;
-          case 2: {
-            // a tracer circle
-            TracerBlob::draw_creation_gui(mfeatures, rparams.tracer_scale, sim.get_ips());
-          } break;
-          case 3: {
-            // a tracer line
-            TracerLine::draw_creation_gui(mfeatures, rparams.tracer_scale, sim.get_ips());
-          } break;
-          case 4: {
-            // a static, measurement line
-            MeasurementLine::draw_creation_gui(mfeatures, rparams.tracer_scale, sim.get_ips());
-          } break;
-          case 5: {
-            // a static grid of measurement points
-            GridPoints::draw_creation_gui(mfeatures, sim.get_ips());
-          } break;
-        }
-
-        if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
-        ImGui::EndPopup();
+        MeasureFeature::draw_creation_gui(mfeatures, sim.get_ips(), rparams.tracer_scale);
       } // end measurement structures 
 
       ImGui::Spacing();

@@ -38,6 +38,11 @@ public:
   virtual nlohmann::json to_json() const = 0;
   virtual std::vector<float> init_particles(float) const = 0;
   virtual std::vector<float> step_particles(float) const = 0;
+#ifdef USE_IMGUI
+  static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float, const float &);
+  //virtual bool draw_info_gui() = 0;
+#endif
+
 
 protected:
   float m_x;
