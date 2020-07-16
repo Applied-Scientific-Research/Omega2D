@@ -178,7 +178,8 @@ void draw_stats_window(const long int numPanels, const long int numFieldPts, con
   // std::cout << "   fontSize: " << fontSize << "\n   numrows: " << numrows << "\n   display_h: " << display_h << std::endl;
 #ifdef __APPLE__
   ImGui::SetNextWindowSize(ImVec2(10+fontSize*11,10+1.1*fontSize*numrows));
-  ImGui::SetNextWindowPos(ImVec2(10.0f, ((displayH-fontSize*(1.1*numrows))/2)-60.0));
+  //ImGui::SetNextWindowPos(ImVec2(10.0f, (displayH-34*numrows-1.1*fontSize*4)/2));
+  ImGui::SetNextWindowPos(ImVec2(20, (displayH-fontSize*(1.1*numrows+1)-30*numrows)/2));
 #else
   ImGui::SetNextWindowSize(ImVec2(10+fontSize*11,10+1.1*fontSize*numrows));
   ImGui::SetNextWindowPos(ImVec2(20, displayH-fontSize*(1.1*numrows+1)));
