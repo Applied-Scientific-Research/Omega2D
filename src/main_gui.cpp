@@ -649,7 +649,7 @@ int main(int argc, char const *argv[]) {
         ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
         if (ImGui::BeginPopupModal("Edit flow feature")) {
           bool fin = false;
-          if (ffeatures[edit_item_index]->draw_info_gui(sim.get_ips())) { fin = true; }
+          if (ffeatures[edit_item_index]->draw_info_gui("Edit", sim.get_ips())) { fin = true; }
           ImGui::SameLine();
           if (ImGui::Button("Cancel", ImVec2(120,0))) { fin = true; }
           if (fin) {
@@ -707,7 +707,7 @@ int main(int argc, char const *argv[]) {
         ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
         if (ImGui::BeginPopupModal("Edit boundary feature")) {
           bool fin = false;
-          if (bfeatures[edit_item_index]->draw_info_gui()) { fin = true; }
+          if (bfeatures[edit_item_index]->draw_info_gui("Edit")) { fin = true; }
           ImGui::SameLine();
           if (ImGui::Button("Cancel", ImVec2(120,0))) { fin = true; }
           if (fin) {
@@ -768,7 +768,9 @@ int main(int argc, char const *argv[]) {
         ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
         if (ImGui::BeginPopupModal("Edit boundary feature")) {
           bool fin = false;
-          if (mfeatures[edit_item_index]->draw_info_gui(rparams.tracer_scale, sim.get_ips())) { fin = true; }
+          if (mfeatures[edit_item_index]->draw_info_gui("Edit", rparams.tracer_scale, sim.get_ips())) {
+              fin = true;
+          }
           ImGui::SameLine();
           if (ImGui::Button("Cancel", ImVec2(120,0))) { fin = true; }
           if (fin) {

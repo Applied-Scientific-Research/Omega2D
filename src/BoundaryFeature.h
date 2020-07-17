@@ -18,6 +18,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <string>
 
 //
 // Abstract class for any boundary feature present initially
@@ -50,7 +51,7 @@ public:
 #ifdef USE_IMGUI
   static int obj_movement_gui(int &, char* , char* , char* );
   static bool draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeature>> &, Simulation&);
-  virtual bool draw_info_gui() = 0;
+  virtual bool draw_info_gui(const std::string) = 0;
 #endif
 
 protected:
@@ -115,7 +116,7 @@ public:
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  bool draw_info_gui() override;
+  bool draw_info_gui(const std::string) override;
 #endif
   void generate_draw_geom() override;
 
@@ -149,7 +150,7 @@ public:
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  bool draw_info_gui() override;
+  bool draw_info_gui(const std::string) override;
 #endif
   void generate_draw_geom() override;
 
@@ -183,7 +184,7 @@ public:
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  bool draw_info_gui() override;
+  bool draw_info_gui(const std::string) override;
 #endif
   void generate_draw_geom() override;
 
@@ -217,7 +218,7 @@ public:
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  bool draw_info_gui() override;
+  bool draw_info_gui(const std::string) override;
 #endif
   void generate_draw_geom() override;
 
@@ -254,7 +255,7 @@ public:
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  bool draw_info_gui() override;
+  bool draw_info_gui(const std::string) override;
 #endif
   void generate_draw_geom() override;
 
@@ -292,7 +293,7 @@ public:
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  bool draw_info_gui() override;
+  bool draw_info_gui(const std::string) override;
 #endif
   void generate_draw_geom() override;
 
@@ -334,7 +335,7 @@ public:
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  bool draw_info_gui() override;
+  bool draw_info_gui(const std::string) override;
 #endif
   void generate_draw_geom() override;
 protected:

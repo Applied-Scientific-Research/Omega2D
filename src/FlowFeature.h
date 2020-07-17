@@ -14,6 +14,7 @@
 
 #include <iostream>
 #include <vector>
+#include <string>
 
 //
 // Abstract class for any flow feature present initially
@@ -36,7 +37,7 @@ public:
   virtual std::vector<float> init_particles(float) const = 0;
 #ifdef USE_IMGUI
   static void draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &, const float);
-  virtual bool draw_info_gui(const float) = 0;
+  virtual bool draw_info_gui(const std::string, const float) = 0;
 #endif
   virtual std::vector<float> step_particles(float) const = 0;
 
@@ -74,7 +75,7 @@ public:
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 #ifdef USE_IMGUI
-  bool draw_info_gui(const float) override;
+  bool draw_info_gui(const std::string, const float) override;
 #endif
 
 protected:
@@ -104,7 +105,7 @@ public:
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 #ifdef USE_IMGUI
-  bool draw_info_gui(const float) override;
+  bool draw_info_gui(const std::string, const float) override;
 #endif
 
 protected:
@@ -137,7 +138,7 @@ public:
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 #ifdef USE_IMGUI
-  bool draw_info_gui(const float) override;
+  bool draw_info_gui(const std::string, const float) override;
 #endif
 
 protected:
@@ -166,7 +167,7 @@ public:
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 #ifdef USE_IMGUI
-  bool draw_info_gui(const float) override;
+  bool draw_info_gui(const std::string, const float) override;
 #endif
 
 protected:
@@ -196,7 +197,7 @@ public:
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 #ifdef USE_IMGUI
-  bool draw_info_gui(const float) override;
+  bool draw_info_gui(const std::string, const float) override;
 #endif
 
 private:
@@ -232,7 +233,7 @@ public:
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 #ifdef USE_IMGUI
-  bool draw_info_gui(const float) override;
+  bool draw_info_gui(const std::string, const float) override;
 #endif
 
 protected:
@@ -262,7 +263,7 @@ public:
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
 #ifdef USE_IMGUI
-  bool draw_info_gui(const float) override;
+  bool draw_info_gui(const std::string, const float) override;
 #endif
 
 protected:

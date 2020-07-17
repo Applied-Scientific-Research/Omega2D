@@ -160,7 +160,7 @@ bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeat
     created = false;
   }
   
-  if (bf->draw_info_gui()) {
+  if (bf->draw_info_gui("Add")) {
     if (mitem == 2) {
       bp->set_name(bf->to_short_string());
       sim.add_body(bp);
@@ -262,11 +262,12 @@ SolidCircle::to_json() const {
 }
 
 #ifdef USE_IMGUI
-bool SolidCircle::draw_info_gui() {
+bool SolidCircle::draw_info_gui(const std::string action) {
   static bool external = m_external;
   static float xc[2] = {m_x, m_y};
   static float diam = m_diam;
   bool add = false;
+  const std::string buttonText = action+" circular boundary";
 
   ImGui::Checkbox("Object is in flow", &external);
   ImGui::SameLine();
@@ -274,7 +275,7 @@ bool SolidCircle::draw_info_gui() {
   ImGui::InputFloat2("center", xc);
   ImGui::SliderFloat("diameter", &diam, 0.01f, 10.0f, "%.4f", 2.0);
   ImGui::TextWrapped("This feature will add a solid circular boundary centered at the given coordinates");
-  if (ImGui::Button("Add circular boundary")) {
+  if (ImGui::Button(buttonText.c_str())) {
     m_external = external;
     m_x = xc[0];
     m_y = xc[1];
@@ -460,13 +461,14 @@ SolidOval::to_json() const {
 }
 
 #ifdef USE_IMGUI
-bool SolidOval::draw_info_gui() {
+bool SolidOval::draw_info_gui(const std::string action) {
   static bool external = m_external;
   static float xc[2] = {m_x, m_y};
   static float diam = m_diam;
   static float minordiam = m_dmin;
   static float rotdeg = m_theta;
   bool add = false;
+  const std::string buttonText = action+" oval boundary";
 
   ImGui::Checkbox("Object is in flow", &external);
   ImGui::SameLine();
@@ -476,7 +478,7 @@ bool SolidOval::draw_info_gui() {
   ImGui::SliderFloat("minor diameter", &minordiam, 0.01f, 10.0f, "%.4f", 2.0);
   ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 179.0f, "%.0f");
   ImGui::TextWrapped("This feature will add a solid oval boundary centered at the given coordinates");
-  if (ImGui::Button("Add oval boundary")) {
+  if (ImGui::Button(buttonText.c_str())) {
     m_external = external;
     m_x = xc[0];
     m_y = xc[1];
@@ -607,12 +609,13 @@ SolidSquare::to_json() const {
 }
 
 #ifdef USE_IMGUI
-bool SolidSquare::draw_info_gui() {
+bool SolidSquare::draw_info_gui(const std::string action) {
   static bool external = m_external;
   static float xc[2] = {m_x, m_y};
   static float side = m_side;
   static float rotdeg = m_theta;
   bool add = false;
+  const std::string buttonText = action+" square boundary";
   
   ImGui::Checkbox("Object is in flow", &external);
   ImGui::SameLine();
@@ -622,7 +625,7 @@ bool SolidSquare::draw_info_gui() {
   ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 89.0f, "%.0f");
   //ImGui::SliderAngle("orientation", &rotdeg);
   ImGui::TextWrapped("This feature will add a solid square boundary centered at the given coordinates");
-  if (ImGui::Button("Add square boundary")) {
+  if (ImGui::Button(buttonText.c_str())) {
     m_external = external;
     m_x = xc[0];
     m_y = xc[1];
@@ -756,13 +759,14 @@ SolidRect::to_json() const {
 }
 
 #ifdef USE_IMGUI
-bool SolidRect::draw_info_gui() {
+bool SolidRect::draw_info_gui(const std::string action) {
   static bool external = m_external;
   static float xc[2] = {m_x, m_y};
   static float side = m_side;
   static float rectside = m_sidey;
   static float rotdeg = m_theta;
   bool add = false;
+  const std::string buttonText = action+" rectangular boundary";
 
   ImGui::Checkbox("Object is in flow", &external);
   ImGui::SameLine();
@@ -773,7 +777,7 @@ bool SolidRect::draw_info_gui() {
   ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 89.0f, "%.0f");
   //ImGui::SliderAngle("orientation", &rotdeg);
   ImGui::TextWrapped("This feature will add a solid rectangular boundary centered at the given coordinates");
-  if (ImGui::Button("Add rectangular boundary")) {
+  if (ImGui::Button(buttonText.c_str())) {
     m_external = external;
     m_x = xc[0];
     m_y = xc[1];
@@ -883,17 +887,18 @@ BoundarySegment::to_json() const {
 }
 
 #ifdef USE_IMGUI
-bool BoundarySegment::draw_info_gui() {
+bool BoundarySegment::draw_info_gui(const std::string action) {
   static float xc[2] = {m_x, m_y};
   static float xe[2] = {m_xe, m_ye};
   static float tangbc = m_tangflow;
   bool add = false;
+  const std::string buttonText = action+" boundary segment";
 
   ImGui::InputFloat2("start", xc);
   ImGui::InputFloat2("end", xe);
   ImGui::SliderFloat("force tangential flow", &tangbc, -2.0f, 2.0f, "%.1f");
   ImGui::TextWrapped("This feature will add a solid boundary segment from start to end, where fluid is on the left when marching from start to end, and positive tangential flow is as if segment is moving along vector from start to end. Make sure enough segments are created to fully enclose a volume.");
-  if (ImGui::Button("Add boundary segment")) {
+  if (ImGui::Button(buttonText.c_str())) {
     m_x = xc[0];
     m_y = xc[1];
     m_xe = xe[0];
@@ -1023,7 +1028,7 @@ SolidPolygon::to_json() const {
 }
 
 #ifdef USE_IMGUI
-bool SolidPolygon::draw_info_gui() {
+bool SolidPolygon::draw_info_gui(const std::string action) {
   static bool external = m_external;
   static float xc[2] = {m_x, m_y};
   static float rotdeg = m_theta;
@@ -1031,6 +1036,7 @@ bool SolidPolygon::draw_info_gui() {
   static float side = m_side;
   static float rad = m_radius;
   bool add = false;
+  const std::string buttonText = action+" polygon boundary";
   
   ImGui::Checkbox("Object is in flow", &external);
   ImGui::SameLine();
@@ -1058,7 +1064,7 @@ bool SolidPolygon::draw_info_gui() {
   ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 359.0f, "%.0f");
   //ImGui::SliderAngle("orientation", &rotdeg);
   ImGui::TextWrapped("This feature will add a solid polygon boundary with n sides centered at the given coordinates");
-  if (ImGui::Button("Add polygon boundary")) {
+  if (ImGui::Button(buttonText.c_str())) {
     m_external = external;
     m_x = xc[0];
     m_y = xc[1];
@@ -1242,13 +1248,14 @@ SolidAirfoil::to_json() const {
 }
 
 #ifdef USE_IMGUI
-bool SolidAirfoil::draw_info_gui() {
+bool SolidAirfoil::draw_info_gui(const std::string action) {
   static bool external = m_external;
   static float xc[2] = {m_x, m_y};
   static float rotdeg = m_theta;
   static std::string naca = std::to_string(m_maxCamber)+std::to_string(m_maxCambLoc)+std::to_string(m_thickness);
   static float chordLength = m_chordLength;
   bool add = false;
+  const std::string buttonText = action+" naca airfoil boundary";
  
   ImGui::Checkbox("Object is in flow", &external);
   ImGui::SameLine();
@@ -1262,7 +1269,7 @@ bool SolidAirfoil::draw_info_gui() {
   ImGui::SliderFloat("Angle of Attack", &rotdeg, -180.0f, 180.0f, "%.0f");
   ImGui::SliderFloat("Chord Length", &chordLength, 0.1f, 5.0f, "%.1f");
   ImGui::TextWrapped("This feature will add a NACA airfoil with LE at the given coordinates");
-  if (ImGui::Button("Add NACA airfoil")) {
+  if (ImGui::Button(buttonText.c_str())) {
     m_external = external;
     m_x = xc[0];
     m_y = xc[1];

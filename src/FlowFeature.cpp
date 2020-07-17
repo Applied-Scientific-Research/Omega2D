@@ -98,7 +98,7 @@ void FlowFeature::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &f
     } break;
   }
 
-  if (ff->draw_info_gui(ips)) {
+  if (ff->draw_info_gui("Add", ips)) {
     ffs.emplace_back(std::move(ff));
     ff = nullptr;
     ImGui::CloseCurrentPopup();
@@ -164,16 +164,17 @@ SingleParticle::to_json() const {
 }
 
 #ifdef USE_IMGUI
-bool SingleParticle::draw_info_gui(const float ips) {
+bool SingleParticle::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
   // a single vortex particle
   static float xc[2] = {m_x, m_y};
   static float stren = m_str;
-  // always ask for center
+  const std::string buttonText = action+" single particle";
+ 
   ImGui::InputFloat2("center", xc);
   ImGui::SliderFloat("strength", &stren, -1.0f, 1.0f, "%.4f");
   ImGui::TextWrapped("This feature will add 1 particle");
-  if (ImGui::Button("Add single particle")) {
+  if (ImGui::Button(buttonText.c_str())) {
     m_x = xc[0];
     m_y = xc[1];
     m_str = stren;
@@ -280,20 +281,20 @@ VortexBlob::to_json() const {
 
 
 #ifdef USE_IMGUI
-bool VortexBlob::draw_info_gui(const float ips) {
+bool VortexBlob::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
-  // a blob of multiple vorticies
   static float xc[2] = {m_x, m_y};
   static float stren = m_str;
   static float rad = m_rad;
   static float soft = m_softness;
-  // always ask for center
+  const std::string buttonText = action+" vortex blob";
+
   ImGui::InputFloat2("center", xc);
   ImGui::SliderFloat("strength", &stren, -5.0f, 5.0f, "%.4f");
   ImGui::SliderFloat("radius", &rad, ips, 1.0f, "%.4f");
   ImGui::SliderFloat("softness", &soft, ips, 1.0f, "%.4f");
   ImGui::TextWrapped("This feature will add about %d particles", (int)(0.785398175*std::pow((2 * rad + soft) / ips, 2)));
-  if (ImGui::Button("Add vortex blob")) {
+  if (ImGui::Button(buttonText.c_str())) {
     m_x = xc[0];
     m_y = xc[1];
     m_str = stren;
@@ -412,7 +413,7 @@ AsymmetricBlob::to_json() const {
 }
 
 #ifdef USE_IMGUI
-bool AsymmetricBlob::draw_info_gui(const float ips) {
+bool AsymmetricBlob::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
   static float xc[2] = {m_x, m_y};
   static float stren = m_str;
@@ -420,7 +421,8 @@ bool AsymmetricBlob::draw_info_gui(const float ips) {
   static float rotdeg = m_theta;
   static float soft = m_softness;
   static float rad = m_rad;
-  // always ask for center
+  const std::string buttonText = action+" asymmetric vortex blob";
+
   ImGui::InputFloat2("center", xc);
   ImGui::SliderFloat("strength", &stren, -5.0f, 5.0f, "%.4f");
   ImGui::SliderFloat("major radius", &rad, ips, 1.0f, "%.4f");
@@ -428,7 +430,7 @@ bool AsymmetricBlob::draw_info_gui(const float ips) {
   ImGui::SliderFloat("softness", &soft, ips, 1.0f, "%.4f");
   ImGui::SliderFloat("orientation", &rotdeg, 0.0f, 179.0f, "%.0f");
   ImGui::TextWrapped("This feature will add about %d particles", (int)(0.785398175*std::pow((2*rad+soft)/ips, 2)));
-  if (ImGui::Button("Add asymmetric vortex blob")) {
+  if (ImGui::Button(buttonText.c_str())) {
     m_x = xc[0];
     m_y = xc[1];
     m_str = stren;
@@ -532,16 +534,18 @@ GaussianBlob::to_json() const {
 }
 
 #ifdef USE_IMGUI
-bool GaussianBlob::draw_info_gui(const float ips) {
+bool GaussianBlob::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
   static float stren = m_str;
   static float stddev = m_stddev;
   static float xc[2] = {m_x, m_y};
+  const std::string buttonText = action+" gaussian blob";
+  
   ImGui::InputFloat2("center", xc);
   ImGui::SliderFloat("strength", &stren, -5.0f, 5.0f, "%.4f");
   ImGui::SliderFloat("std dev", &stddev, ips, 1.0f, "%.4f");
   ImGui::TextWrapped("This feature will add about %d particles", (int)(0.785398175*std::pow((6*stddev) / ips, 2)));
-  if (ImGui::Button("Add gaussian blob")) {
+  if (ImGui::Button(buttonText.c_str())) {
     m_str = stren;
     m_stddev = stddev;
     m_x = xc[0];
@@ -626,17 +630,18 @@ UniformBlock::to_json() const {
 }
 
 #ifdef USE_IMGUI
-bool UniformBlock::draw_info_gui(const float ips) {
+bool UniformBlock::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
   static float stren = m_str;
   static float xs[2] = {m_xsize, m_ysize};
   static float xc[2] = {m_x, m_y};
-  // always ask for center
+  const std::string buttonText = action+" block of vorticies";
+
   ImGui::InputFloat2("center", xc);
   ImGui::SliderFloat("strength", &stren, -5.0f, 5.0f, "%.4f");
   ImGui::SliderFloat2("box size", xs, 0.01f, 10.0f, "%.4f", 2.0f);
   ImGui::TextWrapped("This feature will add %d particles", (int)(xs[0]*xs[1]/std::pow(ips,2)));
-  if (ImGui::Button("Add block of vorticies")) {
+  if (ImGui::Button(buttonText.c_str())) {
     m_str = stren;
     m_xsize = xs[0];
     m_ysize = xs[1];
@@ -721,20 +726,21 @@ BlockOfRandom::to_json() const {
 }
 
 #ifdef USE_IMGUI
-bool BlockOfRandom::draw_info_gui(const float ips) {
+bool BlockOfRandom::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
   static int npart = m_num;
   static float xs[2] = {m_xsize, m_ysize};
   static float strenLo = m_minstr;
   static float strenHi = m_maxstr;
   static float xc[2] = {m_x, m_y};
-  // always ask for center
+  const std::string buttonText = action+" random vorticies";
+
   ImGui::InputFloat2("center", xc);
   ImGui::SliderInt("number", &npart, 1, 10000);
   ImGui::SliderFloat2("box size", xs, 0.01f, 10.0f, "%.4f", 2.0f);
   ImGui::DragFloatRange2("strength range", &strenLo, &strenHi, 0.001f, -0.1f, 0.1f);
   ImGui::TextWrapped("This feature will add %d particles", npart);
-  if (ImGui::Button("Add random vorticies")) {
+  if (ImGui::Button(buttonText.c_str())) {
     m_num = npart;
     m_xsize = xs[0];
     m_ysize = xs[1];
@@ -794,15 +800,16 @@ ParticleEmitter::to_json() const {
 }
 
 #ifdef USE_IMGUI
-bool ParticleEmitter::draw_info_gui(const float ips) {
+bool ParticleEmitter::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
   static float eStren = m_str;
   static float xc[2] = {m_x, m_y};
-  // always ask for center
+  const std::string buttonText = action+" particle emitter";
+
   ImGui::InputFloat2("center", xc);
   ImGui::SliderFloat("strength", &eStren, -0.1f, 0.1f, "%.4f");
   ImGui::TextWrapped("This feature will add 1 particle per time step");
-  if (ImGui::Button("Add particle emitter")) {
+  if (ImGui::Button(buttonText.c_str())) {
     m_str = eStren;
     m_x = xc[0];
     m_y = xc[1];
