@@ -577,121 +577,12 @@ int main(int argc, char const *argv[]) {
       ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New boundary structure"))
       {
-        // define movement first
-        static int mitem = 0;
-        static char strx[512] = "0.0*t";
-        static char stry[512] = "0.0*t";
-        static char strrad[512] = "0.0*t";
-        int changed = obj_movement_gui(mitem, strx, stry, strrad);
-
-        // define geometry second
-        static int item = 0;
-        static int numItems = 7;
-        const char* items[] = { "circle", "square", "oval", "rectangle", "segment", "polygon", "NACA 4-digit" };
-        ImGui::Spacing();
-        ImGui::Combo("geometry type", &item, items, numItems);
-
-        // static bp prevents a bunch of pointers from being created during the same boundary creation
-        // The switch prevents constant assignment (mainly to prevent the terminal from being flooded from messages)
-        static std::shared_ptr<Body> bp = nullptr;
-        if (changed) {
-          switch(mitem) {
-            case 0:
-               // this geometry is fixed (attached to inertial)
-               bp = sim.get_pointer_to_body("ground");
-               break;
-            case 1:
-               // this geometry is attached to the previous geometry (or ground)
-               bp = sim.get_last_body();
-               break;
-            case 2:
-               // this geometry is attached to a new moving body
-               bp = std::make_shared<Body>();
-               bp->set_pos(0, std::string(strx));
-               bp->set_pos(1, std::string(stry));
-               bp->set_rot(std::string(strrad));
-               break;
-          }
+        if (BoundaryFeature::draw_creation_gui(bfeatures, sim)) {
+          bfeatures.back()->generate_draw_geom();
+          bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
         }
-
-        // show different inputs based on what is selected
-        switch(item) {
-          case 0: {
-            // create a circular boundary
-            if (SolidCircle::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-                bp->set_name("circular cylinder");
-                sim.add_body(bp);
-              }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
-            }
-          } break;
-          case 1: {
-            // create a square boundary
-            if (SolidSquare::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-                bp->set_name("square cylinder");
-                sim.add_body(bp);
-              }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
-            }
-          } break;
-          case 2: {
-            // create an oval boundary
-            if (SolidOval::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-                bp->set_name("oval cylinder");
-                sim.add_body(bp);
-              }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
-            } 
-          } break;
-          case 3: {
-            // create a rectangle boundary
-            if (SolidRect::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-                bp->set_name("rectangular cylinder");
-                sim.add_body(bp);
-              }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
-            } 
-          } break;
-          case 4: {
-            // create a straight boundary segment
-            if (BoundarySegment::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-                bp->set_name("segmented boundary");
-                sim.add_body(bp);
-              }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
-            } 
-          } break;
-          case 5: {
-            // create a polygon boundary
-            if (SolidPolygon::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-                bp->set_name("polygon cylinder");
-                sim.add_body(bp);
-              }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
-            } 
-          } break;
-          case 6: {
-            if (SolidAirfoil::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-                bp->set_name("airfoil cylinder");
-                sim.add_body(bp);
-              }
-            bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
-            }
-          }
-        } // end switch for geometry
-
-        if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
         ImGui::EndPopup();
-        
-      } // end new boundary structures
-
+      } // end new boundary structure
 
       // button and modal window for adding new flow structures
       ImGui::SameLine();
@@ -699,44 +590,7 @@ int main(int argc, char const *argv[]) {
       ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New flow structure"))
       {
-        static int item = 1;
-        const char* items[] = { "single particle", "round vortex blob", "Gaussian vortex blob", "asymmetric vortex blob", "block of vorticity", "random particles", "particle emitter" };
-        ImGui::Combo("type", &item, items, 7);
-
-        // show different inputs based on what is selected
-        switch(item) {
-          case 0: {
-            // creates a single particle
-            SingleParticle::draw_creation_gui(ffeatures);
-          } break;
-         case 1: {
-              // creates a blob of vorticies
-              VortexBlob::draw_creation_gui(ffeatures, sim.get_ips());
-          } break;
-          case 2: {
-            // a gaussian blob of multiple vorticies
-            GaussianBlob::draw_creation_gui(ffeatures, sim.get_ips());
-          } break;
-          case 3: {
-            // an asymmetric blob of multiple vorticies
-            AsymmetricBlob::draw_creation_gui(ffeatures, sim.get_ips());
-          } break;
-          case 4: {
-            // particles in a rectangle
-            UniformBlock::draw_creation_gui(ffeatures, sim.get_ips());
-          } break;
-          case 5: {
-            // random particles in a rectangle
-            BlockOfRandom::draw_creation_gui(ffeatures);
-          } break;
-          case 6: {
-            // create a particle emitter
-            ParticleEmitter::draw_creation_gui(ffeatures);
-          } break;
-        }
-
-        if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
-        ImGui::EndPopup();
+        FlowFeature::draw_creation_gui(ffeatures, sim.get_ips());
       } // end popup new flow structures
 
 
@@ -746,40 +600,7 @@ int main(int argc, char const *argv[]) {
       ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New measurement structure"))
       {
-        static int item = 0;
-        const char* items[] = { "single point/tracer", "streakline", "circle of tracers", "line of tracers", "measurement line", "measurement grid" };
-        ImGui::Combo("type", &item, items, 6);
-
-        // show different inputs based on what is selected
-        switch(item) {
-          case 0: {
-            // a single measurement point
-            SinglePoint::draw_creation_gui(mfeatures);
-          } break;
-          case 1: {
-            // a tracer emitter
-            TracerEmitter::draw_creation_gui(mfeatures);
-          } break;
-          case 2: {
-            // a tracer circle
-            TracerBlob::draw_creation_gui(mfeatures, rparams.tracer_scale, sim.get_ips());
-          } break;
-          case 3: {
-            // a tracer line
-            TracerLine::draw_creation_gui(mfeatures, rparams.tracer_scale, sim.get_ips());
-          } break;
-          case 4: {
-            // a static, measurement line
-            MeasurementLine::draw_creation_gui(mfeatures, rparams.tracer_scale, sim.get_ips());
-          } break;
-          case 5: {
-            // a static grid of measurement points
-            GridPoints::draw_creation_gui(mfeatures, sim.get_ips());
-          } break;
-        }
-
-        if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
-        ImGui::EndPopup();
+        MeasureFeature::draw_creation_gui(mfeatures, sim.get_ips(), rparams.tracer_scale);
       } // end measurement structures 
 
       ImGui::Spacing();
