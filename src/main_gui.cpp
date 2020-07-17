@@ -608,7 +608,7 @@ int main(int argc, char const *argv[]) {
 
       // list existing flow features here
       static int edit_item_index = -1;
-      static bool edit = false;
+      static bool editF = false;
       int del_this_item = -1;
       for (int i=0; i<(int)ffeatures.size(); ++i) {
 
@@ -621,7 +621,7 @@ int main(int argc, char const *argv[]) {
         ImGui::PushID(++buttonIDs);
         if (ImGui::SmallButton("edit")) { 
           edit_item_index = i;
-          edit = true;
+          editF = true;
           // Ideally we call OpenPopup here and then catch it after the forloop,
           // But OpenPopup has to be called everytime, which gives us this messy flag system
           // I may create an issue over there to make a case about having openpopup only need
@@ -644,7 +644,7 @@ int main(int argc, char const *argv[]) {
         ImGui::PopID();
       }
 
-      if (edit) {
+      if (editF) {
         ImGui::OpenPopup("Edit flow feature");
         ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
         if (ImGui::BeginPopupModal("Edit flow feature")) {
@@ -654,7 +654,7 @@ int main(int argc, char const *argv[]) {
           if (ImGui::Button("Cancel", ImVec2(120,0))) { fin = true; }
           if (fin) {
             edit_item_index = -1;
-            edit = false;
+            editF = false;
             ImGui::CloseCurrentPopup();
           }
         ImGui::EndPopup();
@@ -667,12 +667,22 @@ int main(int argc, char const *argv[]) {
       }
 
       // list existing boundary features here
+      static bool editB = false;
       int del_this_bdry = -1;
       for (int i=0; i<(int)bfeatures.size(); ++i) {
 
         ImGui::PushID(++buttonIDs);
         const bool ischeck = ImGui::Checkbox("", bfeatures[i]->addr_enabled());
         ImGui::PopID();
+      
+        ImGui::SameLine(); 
+        ImGui::PushID(++buttonIDs); 
+        if (ImGui::SmallButton("edit")) { 
+          edit_item_index = i;
+          editB = true;
+        }
+        ImGui::PopID();
+ 
         if (bfeatures[i]->is_enabled()) {
           ImGui::SameLine();
           ImGui::Text("%s", bfeatures[i]->to_string().c_str());
@@ -687,11 +697,28 @@ int main(int argc, char const *argv[]) {
         // add a "remove" button at the end of the line (so it's not easy to accidentally hit)
         ImGui::SameLine();
         ImGui::PushID(++buttonIDs);
-        if (ImGui::SmallButton("edit")) { /*edit boundary*/ }
         ImGui::SameLine();
         if (ImGui::SmallButton("remove")) { del_this_bdry = i; }
         ImGui::PopID();
       }
+      
+      if (editB) {
+        ImGui::OpenPopup("Edit boundary feature");
+        ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
+        if (ImGui::BeginPopupModal("Edit boundary feature")) {
+          bool fin = false;
+          if (bfeatures[edit_item_index]->draw_info_gui()) { fin = true; }
+          ImGui::SameLine();
+          if (ImGui::Button("Cancel", ImVec2(120,0))) { fin = true; }
+          if (fin) {
+            edit_item_index = -1;
+            editB = false;
+            ImGui::CloseCurrentPopup();
+          }
+        ImGui::EndPopup();
+        }
+      }
+
       if (del_this_bdry > -1) {
         std::cout << "Asked to delete boundary feature " << del_this_bdry << std::endl;
         bfeatures.erase(bfeatures.begin()+del_this_bdry);
@@ -702,6 +729,7 @@ int main(int argc, char const *argv[]) {
           bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
         }
       }
+      
 
       // list existing measurement features here
       int del_this_measure = -1;
