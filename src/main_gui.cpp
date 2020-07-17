@@ -732,12 +732,22 @@ int main(int argc, char const *argv[]) {
       
 
       // list existing measurement features here
+      static bool editM = false;
       int del_this_measure = -1;
       for (int i=0; i<(int)mfeatures.size(); ++i) {
 
         ImGui::PushID(++buttonIDs);
         ImGui::Checkbox("", mfeatures[i]->addr_enabled());
         ImGui::PopID();
+        
+        ImGui::SameLine(); 
+        ImGui::PushID(++buttonIDs); 
+        if (ImGui::SmallButton("edit")) { 
+          edit_item_index = i;
+          editM = true;
+        }
+        ImGui::PopID();
+        
         if (mfeatures[i]->is_enabled()) {
           ImGui::SameLine();
           ImGui::Text("%s", mfeatures[i]->to_string().c_str());
@@ -752,6 +762,24 @@ int main(int argc, char const *argv[]) {
         if (ImGui::SmallButton("remove")) del_this_measure = i;
         ImGui::PopID();
       }
+      
+      if (editM) {
+        ImGui::OpenPopup("Edit boundary feature");
+        ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
+        if (ImGui::BeginPopupModal("Edit boundary feature")) {
+          bool fin = false;
+          if (mfeatures[edit_item_index]->draw_info_gui(rparams.tracer_scale, sim.get_ips())) { fin = true; }
+          ImGui::SameLine();
+          if (ImGui::Button("Cancel", ImVec2(120,0))) { fin = true; }
+          if (fin) {
+            edit_item_index = -1;
+            editM = false;
+            ImGui::CloseCurrentPopup();
+          }
+        ImGui::EndPopup();
+        }
+      }
+
       if (del_this_measure > -1) {
         std::cout << "Asked to delete measurement feature " << del_this_measure << std::endl;
         mfeatures.erase(mfeatures.begin()+del_this_measure);
