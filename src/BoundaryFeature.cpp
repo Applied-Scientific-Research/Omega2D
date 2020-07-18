@@ -153,13 +153,7 @@ bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeat
       bf = std::make_unique<SolidAirfoil>(bp);
     }
   } // end switch for geometry
-
-  ImGui::SameLine();
-  if (ImGui::Button("Cancel", ImVec2(120,0))) {
-    ImGui::CloseCurrentPopup();
-    created = false;
-  }
-  
+ 
   if (bf->draw_info_gui()) {
     if (mitem == 2) {
       bp->set_name(bf->to_short_string());
@@ -169,13 +163,13 @@ bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeat
     bf = nullptr;
     created = true;
   }
-  
+
   ImGui::SameLine();
   if (ImGui::Button("Cancel", ImVec2(120,0))) {
     ImGui::CloseCurrentPopup();
     created = false;
   }
- 
+  
   return created;
 }
 #endif
