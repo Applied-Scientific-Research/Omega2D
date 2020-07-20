@@ -708,7 +708,14 @@ int main(int argc, char const *argv[]) {
         if (ImGui::BeginPopupModal("Edit boundary feature")) {
           bool fin = false;
           // Currently cannot edit body. This will require rethinking on how we manage the Body Class.
-          if (bfeatures[edit_item_index]->draw_info_gui("Edit")) { fin = true; }
+          if (bfeatures[edit_item_index]->draw_info_gui("Edit")) {
+            std::cout << "Modified " << bfeatures[edit_item_index]->to_short_string() << std::endl;
+            fin = true;
+            bdraw.clear_elements();
+            for (auto const& bf : bfeatures) {
+              bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
+            }
+          }
           ImGui::SameLine();
           if (ImGui::Button("Cancel", ImVec2(120,0))) { fin = true; }
           if (fin) {
@@ -716,7 +723,7 @@ int main(int argc, char const *argv[]) {
             editB = false;
             ImGui::CloseCurrentPopup();
           }
-        ImGui::EndPopup();
+          ImGui::EndPopup();
         }
       }
 

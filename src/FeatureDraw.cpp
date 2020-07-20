@@ -59,7 +59,7 @@ void FeatureDraw::add_elements(const ElementPacket<float> _in, const bool _enabl
 
   // append to m_idx the start and end indices for this ElementPacket
   m_idx.push_back(std::make_pair((int)nv_old, (int)m_geom.val.size()));
-
+  //m_vals_changed = true;
   //std::cout << "  FeatureDraw now has " << (m_geom.x.size()/2) << " nodes and " << (m_geom.idx.size()/2) << " elements" << std::endl;
   //std::cout << "  FeatureDraw pushed pair " << m_idx.back().first << " and " << m_idx.back().second << std::endl;
 }
@@ -198,7 +198,7 @@ void FeatureDraw::drawGL(std::vector<float>& _projmat,
     updateGL();
   }
 
-  if (m_gl->num_uploaded != (GLsizei)m_geom.idx.size() || m_vals_changed) {
+  if ((m_gl->num_uploaded != (GLsizei)m_geom.idx.size()) || m_vals_changed) {
     updateGL();
   }
 
