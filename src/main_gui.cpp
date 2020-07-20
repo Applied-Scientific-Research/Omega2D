@@ -707,6 +707,7 @@ int main(int argc, char const *argv[]) {
         ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
         if (ImGui::BeginPopupModal("Edit boundary feature")) {
           bool fin = false;
+          // Currently cannot edit body. This will require rethinking on how we manage the Body Class.
           if (bfeatures[edit_item_index]->draw_info_gui("Edit")) { fin = true; }
           ImGui::SameLine();
           if (ImGui::Button("Cancel", ImVec2(120,0))) { fin = true; }
