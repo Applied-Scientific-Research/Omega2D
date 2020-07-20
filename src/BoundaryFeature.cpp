@@ -275,6 +275,7 @@ bool SolidCircle::draw_info_gui(const std::string action) {
     m_y = xc[1];
     m_diam = diam;
     add = true;
+    generate_draw_geom();
     ImGui::CloseCurrentPopup();
   }
 
@@ -283,6 +284,7 @@ bool SolidCircle::draw_info_gui(const std::string action) {
 #endif
 
 void SolidCircle::generate_draw_geom() {
+  std::cout << "generating geom" << std::endl;
   m_draw = init_elements(m_diam/25.0);
 }
 
@@ -479,6 +481,7 @@ bool SolidOval::draw_info_gui(const std::string action) {
     m_diam = diam;
     m_dmin = minordiam;
     m_theta = rotdeg;
+    generate_draw_geom();
     add = true;
     ImGui::CloseCurrentPopup();
   }
@@ -626,6 +629,7 @@ bool SolidSquare::draw_info_gui(const std::string action) {
     m_side = side;
     m_theta = rotdeg;
     add = true;
+    generate_draw_geom();
     ImGui::CloseCurrentPopup();
   }
 
@@ -779,6 +783,7 @@ bool SolidRect::draw_info_gui(const std::string action) {
     m_sidey = rectside;
     m_theta = rotdeg;
     add = true;
+    generate_draw_geom();
     ImGui::CloseCurrentPopup();
   }
 
@@ -899,6 +904,7 @@ bool BoundarySegment::draw_info_gui(const std::string action) {
     m_ye = xe[1];
     m_tangflow = tangbc;
     add = true;
+    generate_draw_geom();
     ImGui::CloseCurrentPopup();
   }
 
@@ -1067,6 +1073,7 @@ bool SolidPolygon::draw_info_gui(const std::string action) {
     m_side = side;
     m_radius = rad;
     add = true;
+    generate_draw_geom();
     ImGui::CloseCurrentPopup();
   }
 
@@ -1273,6 +1280,7 @@ bool SolidAirfoil::draw_info_gui(const std::string action) {
     m_thickness = std::stoi(naca.substr(2, 2));
     m_chordLength = chordLength;
     add = true;
+    generate_draw_geom();
     ImGui::CloseCurrentPopup();
   }
 

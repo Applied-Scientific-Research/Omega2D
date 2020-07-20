@@ -578,7 +578,6 @@ int main(int argc, char const *argv[]) {
       if (ImGui::BeginPopupModal("New boundary structure"))
       {
         if (BoundaryFeature::draw_creation_gui(bfeatures, sim)) {
-          bfeatures.back()->generate_draw_geom();
           bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
         }
         ImGui::EndPopup();
