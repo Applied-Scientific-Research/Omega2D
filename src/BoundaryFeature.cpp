@@ -154,12 +154,6 @@ bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeat
     }
   } // end switch for geometry
 
-  ImGui::SameLine();
-  if (ImGui::Button("Cancel", ImVec2(120,0))) {
-    ImGui::CloseCurrentPopup();
-    created = false;
-  }
-  
   if (bf->draw_info_gui("Add")) {
     if (mitem == 2) {
       bp->set_name(bf->to_short_string());

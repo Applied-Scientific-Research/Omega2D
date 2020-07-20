@@ -765,9 +765,9 @@ int main(int argc, char const *argv[]) {
       }
       
       if (editM) {
-        ImGui::OpenPopup("Edit boundary feature");
+        ImGui::OpenPopup("Edit measure feature");
         ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
-        if (ImGui::BeginPopupModal("Edit boundary feature")) {
+        if (ImGui::BeginPopupModal("Edit measure feature")) {
           bool fin = false;
           if (mfeatures[edit_item_index]->draw_info_gui("Edit", rparams.tracer_scale, sim.get_ips())) {
               fin = true;
