@@ -1,8 +1,8 @@
 /*
  * VtkXmlHelper.h - Write an XML-format VTK data file using TinyXML2
  *
- * (c)2019 Applied Scientific Research, Inc.
- *         Written by Mark J Stock <markjstock@gmail.com>
+ * (c)2019-20 Applied Scientific Research, Inc.
+ *            Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -118,7 +118,7 @@ void write_DataArray (tinyxml2::XMLPrinter& _p,
                       bool _compress = false,
                       bool _asbase64 = false) {
 
-  // interleave the two vectors into a new one
+  // interleave the three vectors into a new one
   Vector<S> newvec;
   newvec.resize(3 * _data[0].size());
   for (size_t i=0; i<_data[0].size(); ++i) {
@@ -188,7 +188,7 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx,
   //printer.PushAttribute( "type", "PolyData" );
   printer.PushAttribute( "version", "0.1" );
   printer.PushAttribute( "byte_order", "LittleEndian" );
-  // note this is still unsigned even though all indices later are signed! thanks, Obama.
+  // note this is still unsigned even though all indices later are signed!
   printer.PushAttribute( "header_type", "UInt32" );
 
   // push comment with sim time?
@@ -248,7 +248,7 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx,
   }
   printer.CloseElement();	// DataArray
 
-  // what about these? Int32 as well? hello? is there anybody there?
+  // except these, they can be chars
   printer.OpenElement( "DataArray" );
   printer.PushAttribute( "Name", "types" );
   printer.PushAttribute( "type", "UInt8" );
@@ -414,36 +414,25 @@ std::string write_vtu_panels(Surfaces<S> const& surf, const size_t file_idx,
 
   printer.OpenElement( "Cells" );
 
+  // again, all connectivities and offsets must be Int32!
   printer.OpenElement( "DataArray" );
   printer.PushAttribute( "Name", "connectivity" );
-  if (surf.get_n() <= std::numeric_limits<uint16_t>::max()) {
-    printer.PushAttribute( "type", "UInt16" );
+  printer.PushAttribute( "type", "Int32" );
+  {
     std::vector<Int> const & idx = surf.get_idx();
-    Vector<uint16_t> v(std::begin(idx), std::end(idx));
-    write_DataArray (printer, v, compress, asbase64);
-  } else {
-    printer.PushAttribute( "type", "UInt32" );
-    std::vector<Int> const & idx = surf.get_idx();
-    Vector<uint32_t> v(std::begin(idx), std::end(idx));
+    Vector<int32_t> v(std::begin(idx), std::end(idx));
     write_DataArray (printer, v, compress, asbase64);
   }
   printer.CloseElement();	// DataArray
 
   printer.OpenElement( "DataArray" );
   printer.PushAttribute( "Name", "offsets" );
-  if (surf.get_n() <= std::numeric_limits<uint16_t>::max()) {
-    printer.PushAttribute( "type", "UInt16" );
-    Vector<uint16_t> v(surf.get_npanels());
+  printer.PushAttribute( "type", "Int32" );
+  {
+    Vector<int32_t> v(surf.get_npanels());
     std::iota(v.begin(), v.end(), 1);
     std::transform(v.begin(), v.end(), v.begin(),
-                   std::bind(std::multiplies<uint16_t>(), std::placeholders::_1, 2));
-    write_DataArray (printer, v, compress, asbase64);
-  } else {
-    printer.PushAttribute( "type", "UInt32" );
-    Vector<uint32_t> v(surf.get_npanels());
-    std::iota(v.begin(), v.end(), 1);
-    std::transform(v.begin(), v.end(), v.begin(),
-                   std::bind(std::multiplies<uint32_t>(), std::placeholders::_1, 2));
+                   std::bind(std::multiplies<int32_t>(), std::placeholders::_1, 2));
     write_DataArray (printer, v, compress, asbase64);
   }
   printer.CloseElement();	// DataArray
@@ -478,7 +467,6 @@ std::string write_vtu_panels(Surfaces<S> const& surf, const size_t file_idx,
   }
 
   if (has_vort_str) {
-    // put sheet strengths in here
     printer.OpenElement( "DataArray" );
     printer.PushAttribute( "Name", "vortex sheet strength" );
     printer.PushAttribute( "type", "Float32" );
@@ -487,7 +475,6 @@ std::string write_vtu_panels(Surfaces<S> const& surf, const size_t file_idx,
   }
 
   if (has_src_str) {
-    // put sheet strengths in here
     printer.OpenElement( "DataArray" );
     printer.PushAttribute( "Name", "source sheet strength" );
     printer.PushAttribute( "type", "Float32" );

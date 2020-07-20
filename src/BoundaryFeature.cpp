@@ -169,13 +169,13 @@ bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeat
     bf = nullptr;
     created = true;
   }
-  
+
   ImGui::SameLine();
   if (ImGui::Button("Cancel", ImVec2(120,0))) {
     ImGui::CloseCurrentPopup();
     created = false;
   }
- 
+  
   return created;
 }
 #endif
