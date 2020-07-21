@@ -59,7 +59,7 @@ void FeatureDraw::add_elements(const ElementPacket<float> _in, const bool _enabl
 
   // append to m_idx the start and end indices for this ElementPacket
   m_idx.push_back(std::make_pair((int)nv_old, (int)m_geom.val.size()));
-
+  m_vals_changed = true;
   //std::cout << "  FeatureDraw now has " << (m_geom.x.size()/2) << " nodes and " << (m_geom.idx.size()/2) << " elements" << std::endl;
   //std::cout << "  FeatureDraw pushed pair " << m_idx.back().first << " and " << m_idx.back().second << std::endl;
 }
@@ -152,7 +152,7 @@ void FeatureDraw::updateGL() {
   if (glIsVertexArray(m_gl->vao) == GL_FALSE) return;
 
   // has the number of elements changed?
-  if (m_gl->num_uploaded != (GLsizei)m_geom.idx.size()) {
+  //if (m_vals_changed) {//if (m_gl->num_uploaded != (GLsizei)m_geom.idx.size()) {
     glBindVertexArray(m_gl->vao);
 
     // Indicate and upload the data from CPU to GPU
@@ -173,7 +173,7 @@ void FeatureDraw::updateGL() {
     // must tell draw call how many elements are there - or, really, how many indices
     m_gl->num_uploaded = m_geom.idx.size();
 
-  } else if (m_vals_changed) {
+  /*} else if (m_vals_changed) {
     // just upload the new vals, nothing else
     glBindVertexArray(m_gl->vao);
 
@@ -182,7 +182,7 @@ void FeatureDraw::updateGL() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(float)*m_geom.val.size(), m_geom.val.data(), GL_DYNAMIC_DRAW);
 
     glBindVertexArray(0);
-  }
+  }*/
 }
 
 void FeatureDraw::drawGL(std::vector<float>& _projmat,
@@ -198,7 +198,7 @@ void FeatureDraw::drawGL(std::vector<float>& _projmat,
     updateGL();
   }
 
-  if (m_gl->num_uploaded != (GLsizei)m_geom.idx.size() || m_vals_changed) {
+  if (/*(m_gl->num_uploaded != (GLsizei)m_geom.idx.size()) ||*/ m_vals_changed) {
     updateGL();
   }
 
