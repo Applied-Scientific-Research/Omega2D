@@ -7,6 +7,7 @@
  */
 
 #include "MeasureFeature.h"
+#include "BoundaryFeature.h"
 
 #include <cmath>
 #include "imgui/imgui.h"
@@ -51,7 +52,7 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
 }
 
 #ifdef USE_IMGUI
-void MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &mfs, const float ips, const float &tracerScale) {
+bool MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &mfs, const float ips, const float &tracerScale) {
   static int item = 0;
   const char* items[] = { "single point/tracer", "streakline", "circle of tracers", "line of tracers", "measurement line", "measurement grid" };
   ImGui::Combo("type", &item, items, 6);
@@ -91,9 +92,11 @@ void MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeatur
     } break;
   }
 
+  bool created = false;
   if (mf->draw_info_gui("Add", tracerScale, ips)) {
     mfs.emplace_back(std::move(mf));
     mf = nullptr;
+    created = true;
     ImGui::CloseCurrentPopup();
   }
   
@@ -104,6 +107,7 @@ void MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeatur
   }
 
   ImGui::EndPopup();
+  return created;
 }
 #endif
 
@@ -152,6 +156,12 @@ SinglePoint::to_json() const {
   return j;
 }
 
+void SinglePoint::generate_draw_geom() {
+  const float diam = 0.02;
+  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, diam);
+  m_draw = tmp->init_elements(diam/25.0);
+}
+
 #ifdef USE_IMGUI
 bool SinglePoint::draw_info_gui(const std::string action, const float &tracer_scale, const float ips) {
   static float xc[2] = {m_x, m_y};
@@ -166,16 +176,13 @@ bool SinglePoint::draw_info_gui(const std::string action, const float &tracer_sc
     m_x = xc[0];
     m_y = xc[1];
     m_is_lagrangian = is_lagrangian;
+    generate_draw_geom();
     add = true;
   }
   
   return add;
 }
 #endif
-
-/*void SinglePoint::generate_draw_geom() {
-  m_draw = init_particles(1.0);
-}*/
 
 //
 // Create a single, stable point which emits Lagrangian points
@@ -231,6 +238,12 @@ TracerEmitter::to_json() const {
   return j;
 }
 
+void TracerEmitter::generate_draw_geom() {
+  const float diam = 0.02;
+  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, diam);
+  m_draw = tmp->init_elements(diam/25.0);
+}
+
 #ifdef USE_IMGUI
 bool TracerEmitter::draw_info_gui(const std::string action, const float &tracer_scale, const float ips) {
   static float xc[2] = {m_x, m_y};
@@ -242,16 +255,13 @@ bool TracerEmitter::draw_info_gui(const std::string action, const float &tracer_
   if (ImGui::Button(buttonText.c_str())) {
     m_x = xc[0];
     m_y = xc[1];
+    generate_draw_geom();
     add = true;
   }
   
   return add;
 }
 #endif
-
-/*void TracerEmitter::generate_draw_geom() {
-  m_draw = init_particles(0.3);
-}*/
 
 //
 // Create a circle of tracer points
@@ -327,6 +337,11 @@ TracerBlob::to_json() const {
   return j;
 }
 
+void TracerBlob::generate_draw_geom() {
+  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, m_rad*2.0);
+  m_draw = tmp->init_elements(m_rad/12.5);
+}
+
 #ifdef USE_IMGUI
 bool TracerBlob::draw_info_gui(const std::string action, const float &tracerScale, float ips) {
   static float xc[2] = {m_x, m_y};
@@ -342,16 +357,13 @@ bool TracerBlob::draw_info_gui(const std::string action, const float &tracerScal
     m_x = xc[0];
     m_y = xc[1];
     m_rad = rad;
+    generate_draw_geom();
     add = true;
   }
 
   return add;
 }
 #endif
-
-/*void TracerBlob::generate_draw_geom() {
-  m_draw = init_particles(0.3);
-}*/
 
 //
 // Create a line of tracer points
@@ -421,6 +433,12 @@ TracerLine::to_json() const {
   return j;
 }
 
+void TracerLine::generate_draw_geom() {
+  std::unique_ptr<BoundarySegment> tmp = std::make_unique<BoundarySegment>(nullptr, true, m_x, m_y,
+                                                                           m_xf, m_yf, 0.0, 0.0);
+  m_draw = tmp->init_elements(1.0);
+}
+
 #ifdef USE_IMGUI
 bool TracerLine::draw_info_gui(const std::string action, const float &tracerScale, float ips) {
   static float xc[2] = {m_x, m_y};
@@ -437,16 +455,13 @@ bool TracerLine::draw_info_gui(const std::string action, const float &tracerScal
     m_y = xc[1];
     m_xf = xf[0];
     m_yf = xf[1];
+    generate_draw_geom();
     add = true;
   }
 
   return add;
 }
 #endif
-
-/*void TracerLine::generate_draw_geom() {
-  m_draw = init_particles(0.3);
-}*/
 
 //
 // Create a line of static measurement points
@@ -516,6 +531,12 @@ MeasurementLine::to_json() const {
   return j;
 }
 
+void MeasurementLine::generate_draw_geom() {
+  std::unique_ptr<BoundarySegment> tmp = std::make_unique<BoundarySegment>(nullptr, true, m_x, m_y,
+                                                                           m_xf, m_yf, 0.0, 0.0);
+  m_draw = tmp->init_elements(1.0);
+}
+
 #ifdef USE_IMGUI
 bool MeasurementLine::draw_info_gui(const std::string action, const float &tracerScale, float ips) {
   static float xc[2] = {m_x, m_y};
@@ -532,6 +553,7 @@ bool MeasurementLine::draw_info_gui(const std::string action, const float &trace
     m_y = xc[1];
     m_xf = xf[0];
     m_yf = xf[1];
+    generate_draw_geom();
     add = true;
   }
 
@@ -539,9 +561,6 @@ bool MeasurementLine::draw_info_gui(const std::string action, const float &trace
 }
 #endif
 
-/*void MeasurementLine::generate_draw_geom() {
-  m_draw = init_particles(0.3);
-}*/
 
 //
 // Create a grid of static measurement points
@@ -609,6 +628,14 @@ GridPoints::to_json() const {
   return j;
 }
 
+void GridPoints::generate_draw_geom() {
+  const float xc = (m_x+m_xf)/2;
+  const float yc = (m_y+m_yf)/2;
+  std::unique_ptr<SolidRect> tmp = std::make_unique<SolidRect>(nullptr, true, xc, yc,
+                                                               m_xf-m_x, m_yf-m_y, 0.0);          
+  m_draw = tmp->init_elements(m_xf-m_x);
+}
+
 #ifdef USE_IMGUI
 bool GridPoints::draw_info_gui(const std::string action, const float &tracer_scale, const float ips) {
   static float xc[2] = {m_x, m_y};
@@ -628,13 +655,10 @@ bool GridPoints::draw_info_gui(const std::string action, const float &tracer_sca
     m_xf = xf[0];
     m_yf = xf[1];
     m_dx = dx;
+    generate_draw_geom();
     add = true;
   }
 
   return add;
 }
 #endif  
-
-/*void GridPoints::generate_draw_geom() {
-  m_draw = init_particles(0.3);
-}*/

@@ -396,7 +396,7 @@ int main(int argc, char const *argv[]) {
         }
         mdraw.clear_elements();
         for (auto const& mf : mfeatures) {
-          //mdraw.add_elements( mf->get_draw_packet(), mf->is_enabled() );
+          mdraw.add_elements( mf->get_draw_packet(), mf->is_enabled() );
         }
         // finish setting up and run
         is_viscous = sim.get_diffuse();
@@ -437,7 +437,7 @@ int main(int argc, char const *argv[]) {
           }
           mdraw.clear_elements();
           for (auto const& mf : mfeatures) {
-            //mdraw.add_elements( mf->get_draw_packet(), mf->is_enabled() );
+            mdraw.add_elements( mf->get_draw_packet(), mf->is_enabled() );
           }
 
           // finish setting up and run
@@ -608,7 +608,9 @@ int main(int argc, char const *argv[]) {
       ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New measurement structure"))
       {
-        MeasureFeature::draw_creation_gui(mfeatures, sim.get_ips(), rparams.tracer_scale);
+        if (MeasureFeature::draw_creation_gui(mfeatures, sim.get_ips(), rparams.tracer_scale)) {
+          mdraw.add_elements( mfeatures.back()->get_draw_packet(), mfeatures.back()->is_enabled() );
+        }
       }
 
       ImGui::Spacing();
@@ -702,7 +704,7 @@ int main(int argc, char const *argv[]) {
         // if the checkbox flipped positions this frame, ischeck is 1
         if (ischeck) {
           bdraw.reset_enabled(i,bfeatures[i]->is_enabled());
-          mdraw.reset_enabled(i,bfeatures[i]->is_enabled());
+          mdraw.reset_enabled(i,mfeatures[i]->is_enabled());
         }
 
         // add a "remove" button at the end of the line (so it's not easy to accidentally hit)
@@ -746,10 +748,6 @@ int main(int argc, char const *argv[]) {
         bdraw.clear_elements();
         for (auto const& bf : bfeatures) {
           bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
-        }
-        mdraw.clear_elements();
-        for (auto const& mf : mfeatures) {
-          //mdraw.add_elements( mf->get_draw_packet(), mf->is_enabled() );
         }
       }
       
@@ -808,6 +806,10 @@ int main(int argc, char const *argv[]) {
       if (del_this_measure > -1) {
         std::cout << "Asked to delete measurement feature " << del_this_measure << std::endl;
         mfeatures.erase(mfeatures.begin()+del_this_measure);
+        mdraw.clear_elements();
+        for (auto const& mf : mfeatures) {
+          mdraw.add_elements( mf->get_draw_packet(), mf->is_enabled() );
+        }
       }
 
       //if (ffeatures.size() + bfeatures.size() + mfeatures.size() == 0) {

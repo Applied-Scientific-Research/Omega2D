@@ -9,7 +9,7 @@
 #pragma once
 
 #include "Feature.h"
-
+#include "ElementPacket.h"
 #include "json/json.hpp"
 
 #include <iostream>
@@ -30,7 +30,7 @@ public:
       m_y(_y),
       m_is_lagrangian(_moves)
     {}
-  virtual ~MeasureFeature() {}
+  virtual ~MeasureFeature() = default;
 
   bool moves() const { return m_is_lagrangian; }
   virtual void debug(std::ostream& os) const = 0;
@@ -39,8 +39,10 @@ public:
   virtual nlohmann::json to_json() const = 0;
   virtual std::vector<float> init_particles(float) const = 0;
   virtual std::vector<float> step_particles(float) const = 0;
+  virtual void generate_draw_geom() = 0;
+  virtual ElementPacket<float> get_draw_packet() { return m_draw; }
 #ifdef USE_IMGUI
-  static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float, const float &);
+  static bool draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float, const float &);
   virtual bool draw_info_gui(const std::string, const float &, const float) = 0;
 #endif
 
@@ -48,11 +50,10 @@ protected:
   float m_x;
   float m_y;
   bool  m_is_lagrangian;
-  std::vector<float> m_draw;
+  ElementPacket<float> m_draw;
 };
 
 std::ostream& operator<<(std::ostream& os, MeasureFeature const& ff);
-
 
 //
 // types of measurement features:
@@ -77,17 +78,18 @@ public:
               bool _moves = true)
     : MeasureFeature(_x, _y, _moves)
     {}
-
+  ~SinglePoint() = default;
+  
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+  void generate_draw_geom() override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string, const float&, const float) override;
 #endif
-  //void generate_draw_geom() override;
 
 protected:
   //float m_str;
@@ -103,6 +105,7 @@ public:
                 float _y = 0.0)
     : SinglePoint(_x, _y, false)
     {}
+  ~TracerEmitter() = default;
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -110,6 +113,7 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+  void generate_draw_geom() override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string, const float&, const float) override;
 #endif
@@ -132,6 +136,7 @@ public:
     : SinglePoint(_x, _y, true),
       m_rad(_rad)
     {}
+  ~TracerBlob() = default;
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -139,10 +144,10 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+  void generate_draw_geom() override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string, const float&, const float) override;
 #endif
-  //void generate_draw_geom() override;
 
 protected:
   float m_rad;
@@ -162,6 +167,7 @@ public:
       m_xf(_xf),
       m_yf(_yf)
     {}
+  ~TracerLine() = default;
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -169,10 +175,10 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+  void generate_draw_geom() override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string, const float&, const float) override;
 #endif
-  //void generate_draw_geom() override;
 
 protected:
   float m_xf, m_yf;
@@ -192,6 +198,7 @@ public:
       m_xf(_xf),
       m_yf(_yf)
     {}
+  ~MeasurementLine() = default;
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -199,10 +206,10 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+  void generate_draw_geom() override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string, const float&, const float) override;
 #endif
-  //void generate_draw_geom() override;
 
 protected:
   float m_xf, m_yf;
@@ -224,6 +231,7 @@ public:
       m_yf(_yf),
       m_dx(_dx)
     {}
+  ~GridPoints() = default;
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -231,10 +239,10 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+  void generate_draw_geom() override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string, const float&, const float) override;
 #endif
-  //void generate_draw_geom() override;
 
 protected:
   float m_xf, m_yf;
