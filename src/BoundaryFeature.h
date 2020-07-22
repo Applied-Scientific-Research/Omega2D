@@ -13,10 +13,12 @@
 #include "Feature.h"
 #include "json/json.hpp"
 #include "Omega2D.h"
+#include "Simulation.h"
 
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <string>
 
 //
 // Abstract class for any boundary feature present initially
@@ -34,10 +36,11 @@ public:
       m_x(_x),
       m_y(_y)
     {}
-  virtual ~BoundaryFeature() {}
+  virtual ~BoundaryFeature() = default;
 
   virtual void debug(std::ostream& os) const = 0;
   virtual std::string to_string() const = 0;
+  virtual std::string to_short_string() const = 0;
   virtual void from_json(const nlohmann::json) = 0;
   virtual nlohmann::json to_json() const = 0;
   virtual ElementPacket<float> init_elements(const float) const = 0;
@@ -45,6 +48,11 @@ public:
   std::shared_ptr<Body> get_body() { return m_bp; }
   virtual void generate_draw_geom() = 0;
   virtual ElementPacket<float> get_draw_packet() { return m_draw; }
+#ifdef USE_IMGUI
+  static int obj_movement_gui(int &, char* , char* , char* );
+  static bool draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeature>> &, Simulation&);
+  virtual bool draw_info_gui(const std::string) = 0;
+#endif
 
 protected:
   std::shared_ptr<Body> m_bp;
@@ -98,14 +106,17 @@ public:
     : BoundaryFeature(_bp, _ext, _x, _y),
       m_diam(_diam)
     {}
+  SolidCircle(const SolidCircle&) = default;
+  ~SolidCircle() = default;
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  std::string to_short_string() const override { return "circular cylinder"; }
   void from_json(nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+  bool draw_info_gui(const std::string) override;
 #endif
   void generate_draw_geom() override;
 
@@ -130,14 +141,16 @@ public:
       m_dmin(_dmin),
       m_theta(_theta)
     {}
+  ~SolidOval() = default;
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  std::string to_short_string() const override { return "oval cylinder"; }
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+  bool draw_info_gui(const std::string) override;
 #endif
   void generate_draw_geom() override;
 
@@ -162,14 +175,16 @@ public:
       m_side(_side),
       m_theta(_theta)
     {}
+  ~SolidSquare() = default;
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  std::string to_short_string() const override { return "square cylinder"; }
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+  bool draw_info_gui(const std::string) override;
 #endif
   void generate_draw_geom() override;
 
@@ -194,14 +209,16 @@ public:
     : SolidSquare(_bp, _ext, _x, _y, _sidex, _theta),
       m_sidey(_sidey)
     {}
+  ~SolidRect() = default;
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  std::string to_short_string() const override { return "rectangular cylinder"; }
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+  bool draw_info_gui(const std::string) override;
 #endif
   void generate_draw_geom() override;
 
@@ -229,14 +246,16 @@ public:
       m_normflow(_normflow),
       m_tangflow(_tangflow)
     {}
+  ~BoundarySegment() = default;
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  std::string to_short_string() const override { return "segmented boundary"; }
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+  bool draw_info_gui(const std::string) override;
 #endif
   void generate_draw_geom() override;
 
@@ -265,14 +284,16 @@ public:
       m_radius(_radius),
       m_theta(_theta)
     {}
+  ~SolidPolygon() = default;
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  std::string to_short_string() const override { return "polygon cylinder"; }
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+  bool draw_info_gui(const std::string) override;
 #endif
   void generate_draw_geom() override;
 
@@ -293,9 +314,9 @@ public:
                bool _ext = true,
                float _x = 0.0,
                float _y = 0.0,
-               int _maxCamber = 0,
-               int _maxCambLoc = 0,
-               int _thickness = 0,
+               int _maxCamber = 2,
+               int _maxCambLoc = 4,
+               int _thickness = 15,
                float _theta = 0.0,
                float _chordLength = 1.0)
     : BoundaryFeature(_bp, _ext, _x, _y),
@@ -305,14 +326,16 @@ public:
       m_theta(_theta),
       m_chordLength(_chordLength)
     {}
+  ~SolidAirfoil() = default;
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
+  std::string to_short_string() const override { return "airfoil cylinder"; }
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
-  static bool draw_creation_gui(std::shared_ptr<Body> &, std::vector<std::unique_ptr<BoundaryFeature>> &);
+  bool draw_info_gui(const std::string) override;
 #endif
   void generate_draw_geom() override;
 protected:

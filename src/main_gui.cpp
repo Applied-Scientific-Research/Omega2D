@@ -586,121 +586,11 @@ int main(int argc, char const *argv[]) {
       ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New boundary structure"))
       {
-        // define movement first
-        static int mitem = 0;
-        static char strx[512] = "0.0*t";
-        static char stry[512] = "0.0*t";
-        static char strrad[512] = "0.0*t";
-        int changed = obj_movement_gui(mitem, strx, stry, strrad);
-
-        // define geometry second
-        static int item = 0;
-        static int numItems = 7;
-        const char* items[] = { "circle", "square", "oval", "rectangle", "segment", "polygon", "NACA 4-digit" };
-        ImGui::Spacing();
-        ImGui::Combo("geometry type", &item, items, numItems);
-
-        // static bp prevents a bunch of pointers from being created during the same boundary creation
-        // The switch prevents constant assignment (mainly to prevent the terminal from being flooded from messages)
-        static std::shared_ptr<Body> bp = nullptr;
-        if (changed) {
-          switch(mitem) {
-            case 0:
-               // this geometry is fixed (attached to inertial)
-               bp = sim.get_pointer_to_body("ground");
-               break;
-            case 1:
-               // this geometry is attached to the previous geometry (or ground)
-               bp = sim.get_last_body();
-               break;
-            case 2:
-               // this geometry is attached to a new moving body
-               bp = std::make_shared<Body>();
-               bp->set_pos(0, std::string(strx));
-               bp->set_pos(1, std::string(stry));
-               bp->set_rot(std::string(strrad));
-               break;
-          }
+        if (BoundaryFeature::draw_creation_gui(bfeatures, sim)) {
+          bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
         }
-
-        // show different inputs based on what is selected
-        switch(item) {
-          case 0: {
-            // create a circular boundary
-            if (SolidCircle::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-                bp->set_name("circular cylinder");
-                sim.add_body(bp);
-              }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
-            }
-          } break;
-          case 1: {
-            // create a square boundary
-            if (SolidSquare::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-                bp->set_name("square cylinder");
-                sim.add_body(bp);
-              }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
-            }
-          } break;
-          case 2: {
-            // create an oval boundary
-            if (SolidOval::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-                bp->set_name("oval cylinder");
-                sim.add_body(bp);
-              }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
-            } 
-          } break;
-          case 3: {
-            // create a rectangle boundary
-            if (SolidRect::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-                bp->set_name("rectangular cylinder");
-                sim.add_body(bp);
-              }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
-            } 
-          } break;
-          case 4: {
-            // create a straight boundary segment
-            if (BoundarySegment::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-                bp->set_name("segmented boundary");
-                sim.add_body(bp);
-              }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
-            } 
-          } break;
-          case 5: {
-            // create a polygon boundary
-            if (SolidPolygon::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-                bp->set_name("polygon cylinder");
-                sim.add_body(bp);
-              }
-              bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
-            } 
-          } break;
-          case 6: {
-            if (SolidAirfoil::draw_creation_gui(bp, bfeatures)) {
-              if (mitem == 2) {
-                bp->set_name("airfoil cylinder");
-                sim.add_body(bp);
-              }
-            bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
-            }
-          }
-        } // end switch for geometry
-
-        if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
         ImGui::EndPopup();
-        
-      } // end new boundary structures
-
+      } // end new boundary structure
 
       // button and modal window for adding new flow structures
       ImGui::SameLine();
@@ -708,44 +598,7 @@ int main(int argc, char const *argv[]) {
       ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New flow structure"))
       {
-        static int item = 1;
-        const char* items[] = { "single particle", "round vortex blob", "Gaussian vortex blob", "asymmetric vortex blob", "block of vorticity", "random particles", "particle emitter" };
-        ImGui::Combo("type", &item, items, 7);
-
-        // show different inputs based on what is selected
-        switch(item) {
-          case 0: {
-            // creates a single particle
-            SingleParticle::draw_creation_gui(ffeatures);
-          } break;
-         case 1: {
-              // creates a blob of vorticies
-              VortexBlob::draw_creation_gui(ffeatures, sim.get_ips());
-          } break;
-          case 2: {
-            // a gaussian blob of multiple vorticies
-            GaussianBlob::draw_creation_gui(ffeatures, sim.get_ips());
-          } break;
-          case 3: {
-            // an asymmetric blob of multiple vorticies
-            AsymmetricBlob::draw_creation_gui(ffeatures, sim.get_ips());
-          } break;
-          case 4: {
-            // particles in a rectangle
-            UniformBlock::draw_creation_gui(ffeatures, sim.get_ips());
-          } break;
-          case 5: {
-            // random particles in a rectangle
-            BlockOfRandom::draw_creation_gui(ffeatures);
-          } break;
-          case 6: {
-            // create a particle emitter
-            ParticleEmitter::draw_creation_gui(ffeatures);
-          } break;
-        }
-
-        if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
-        ImGui::EndPopup();
+        FlowFeature::draw_creation_gui(ffeatures, sim.get_ips());
       } // end popup new flow structures
 
 
@@ -755,53 +608,35 @@ int main(int argc, char const *argv[]) {
       ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiCond_FirstUseEver);
       if (ImGui::BeginPopupModal("New measurement structure"))
       {
-        static int item = 0;
-        const char* items[] = { "single point/tracer", "streakline", "circle of tracers", "line of tracers", "measurement line", "measurement grid" };
-        ImGui::Combo("type", &item, items, 6);
-
-        // show different inputs based on what is selected
-        bool create = false;
-        switch(item) {
-          case 0: {
-            // a single measurement point
-            create = SinglePoint::draw_creation_gui(mfeatures);
-          } break;
-          case 1: {
-            // a tracer emitter
-            create = TracerEmitter::draw_creation_gui(mfeatures);
-          } break;
-          case 2: {
-            // a tracer circle
-            create = TracerBlob::draw_creation_gui(mfeatures, rparams.tracer_scale, sim.get_ips());
-          } break;
-          case 3: {
-            // a tracer line
-            create = TracerLine::draw_creation_gui(mfeatures, rparams.tracer_scale, sim.get_ips());
-          } break;
-          case 4: {
-            // a static, measurement line
-            create = MeasurementLine::draw_creation_gui(mfeatures, rparams.tracer_scale, sim.get_ips());
-          } break;
-          case 5: {
-            // a static grid of measurement points
-            create = GridPoints::draw_creation_gui(mfeatures, sim.get_ips());
-          } break;
-        }
-        //if (create) { mdraw.add_elements( mfeatures.back()->get_draw_packet(), mfeatures.back()->is_enabled() ); }
-        if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
-        ImGui::EndPopup();
-      } // end measurement structures 
+        MeasureFeature::draw_creation_gui(mfeatures, sim.get_ips(), rparams.tracer_scale);
+      }
 
       ImGui::Spacing();
       int buttonIDs = 10;
 
       // list existing flow features here
+      static int edit_item_index = -1;
+      static bool editF = false;
       int del_this_item = -1;
       for (int i=0; i<(int)ffeatures.size(); ++i) {
 
         ImGui::PushID(++buttonIDs);
         ImGui::Checkbox("", ffeatures[i]->addr_enabled());
         ImGui::PopID();
+        
+        // add an "edit" button after the checkbox (so it's not easy to accidentally hit remove)
+        ImGui::SameLine();
+        ImGui::PushID(++buttonIDs);
+        if (ImGui::SmallButton("edit")) { 
+          edit_item_index = i;
+          editF = true;
+          // Ideally we call OpenPopup here and then catch it after the forloop,
+          // But OpenPopup has to be called everytime, which gives us this messy flag system
+          // I may create an issue over there to make a case about having openpopup only need
+          // to be called once, because once it's open it's open
+        }
+        ImGui::PopID();
+        
         if (ffeatures[i]->is_enabled()) {
           ImGui::SameLine();
           ImGui::Text("%s", ffeatures[i]->to_string().c_str());
@@ -815,24 +650,47 @@ int main(int argc, char const *argv[]) {
         ImGui::PushID(++buttonIDs);
         if (ImGui::SmallButton("remove")) del_this_item = i;
         ImGui::PopID();
-
-        //ImGui::SameLine();
-        //ImGui::PushID(++buttonIDs);
-        //if (ImGui::SmallButton("edit", ImVec2(60,0))) edit_this_item = i;
-        //ImGui::PopID();
       }
+
+      if (editF) {
+        ImGui::OpenPopup("Edit flow feature");
+        ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
+        if (ImGui::BeginPopupModal("Edit flow feature")) {
+          bool fin = false;
+          if (ffeatures[edit_item_index]->draw_info_gui("Edit", sim.get_ips())) { fin = true; }
+          ImGui::SameLine();
+          if (ImGui::Button("Cancel", ImVec2(120,0))) { fin = true; }
+          if (fin) {
+            edit_item_index = -1;
+            editF = false;
+            ImGui::CloseCurrentPopup();
+          }
+        ImGui::EndPopup();
+        }
+      }
+      
       if (del_this_item > -1) {
         std::cout << "Asked to delete flow feature " << del_this_item << std::endl;
         ffeatures.erase(ffeatures.begin()+del_this_item);
       }
 
       // list existing boundary features here
+      static bool editB = false;
       int del_this_bdry = -1;
       for (int i=0; i<(int)bfeatures.size(); ++i) {
 
         ImGui::PushID(++buttonIDs);
         const bool ischeck = ImGui::Checkbox("", bfeatures[i]->addr_enabled());
         ImGui::PopID();
+      
+        ImGui::SameLine(); 
+        ImGui::PushID(++buttonIDs); 
+        if (ImGui::SmallButton("edit")) { 
+          edit_item_index = i;
+          editB = true;
+        }
+        ImGui::PopID();
+ 
         if (bfeatures[i]->is_enabled()) {
           ImGui::SameLine();
           ImGui::Text("%s", bfeatures[i]->to_string().c_str());
@@ -850,9 +708,36 @@ int main(int argc, char const *argv[]) {
         // add a "remove" button at the end of the line (so it's not easy to accidentally hit)
         ImGui::SameLine();
         ImGui::PushID(++buttonIDs);
-        if (ImGui::SmallButton("remove")) del_this_bdry = i;
+        ImGui::SameLine();
+        if (ImGui::SmallButton("remove")) { del_this_bdry = i; }
         ImGui::PopID();
       }
+      
+      if (editB) {
+        ImGui::OpenPopup("Edit boundary feature");
+        ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
+        if (ImGui::BeginPopupModal("Edit boundary feature")) {
+          bool fin = false;
+          // Currently cannot edit body. This will require rethinking on how we manage the Body Class.
+          if (bfeatures[edit_item_index]->draw_info_gui("Edit")) {
+            std::cout << "Modified " << bfeatures[edit_item_index]->to_short_string() << std::endl;
+            fin = true;
+            bdraw.clear_elements();
+            for (auto const& bf : bfeatures) {
+              bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
+            }
+          }
+          ImGui::SameLine();
+          if (ImGui::Button("Cancel", ImVec2(120,0))) { fin = true; }
+          if (fin) {
+            edit_item_index = -1;
+            editB = false;
+            ImGui::CloseCurrentPopup();
+          }
+          ImGui::EndPopup();
+        }
+      }
+
       if (del_this_bdry > -1) {
         std::cout << "Asked to delete boundary feature " << del_this_bdry << std::endl;
         bfeatures.erase(bfeatures.begin()+del_this_bdry);
@@ -867,14 +752,25 @@ int main(int argc, char const *argv[]) {
           //mdraw.add_elements( mf->get_draw_packet(), mf->is_enabled() );
         }
       }
+      
 
       // list existing measurement features here
+      static bool editM = false;
       int del_this_measure = -1;
       for (int i=0; i<(int)mfeatures.size(); ++i) {
 
         ImGui::PushID(++buttonIDs);
         ImGui::Checkbox("", mfeatures[i]->addr_enabled());
         ImGui::PopID();
+        
+        ImGui::SameLine(); 
+        ImGui::PushID(++buttonIDs); 
+        if (ImGui::SmallButton("edit")) { 
+          edit_item_index = i;
+          editM = true;
+        }
+        ImGui::PopID();
+        
         if (mfeatures[i]->is_enabled()) {
           ImGui::SameLine();
           ImGui::Text("%s", mfeatures[i]->to_string().c_str());
@@ -889,6 +785,26 @@ int main(int argc, char const *argv[]) {
         if (ImGui::SmallButton("remove")) del_this_measure = i;
         ImGui::PopID();
       }
+      
+      if (editM) {
+        ImGui::OpenPopup("Edit measure feature");
+        ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
+        if (ImGui::BeginPopupModal("Edit measure feature")) {
+          bool fin = false;
+          if (mfeatures[edit_item_index]->draw_info_gui("Edit", rparams.tracer_scale, sim.get_ips())) {
+              fin = true;
+          }
+          ImGui::SameLine();
+          if (ImGui::Button("Cancel", ImVec2(120,0))) { fin = true; }
+          if (fin) {
+            edit_item_index = -1;
+            editM = false;
+            ImGui::CloseCurrentPopup();
+          }
+        ImGui::EndPopup();
+        }
+      }
+
       if (del_this_measure > -1) {
         std::cout << "Asked to delete measurement feature " << del_this_measure << std::endl;
         mfeatures.erase(mfeatures.begin()+del_this_measure);

@@ -151,35 +151,6 @@ void LoadJsonSims(std::vector<nlohmann::json> &sims, std::vector<std::string> &d
   }
 }
 
-int obj_movement_gui(int &mitem, char* strx, char* stry, char* strrad) {
-  // fixed to ground      - this geometry is fixed (attached to inertial)
-  // attached to previous - this geometry is attached to the previous geometry
-  // according to formula - this geometry is attached to a new moving body
-  const char* mitems[] = { "fixed to ground", "attached to previous", "according to formula" };
-  int changed = 0;
-  static int tmp = -1;
-  //const char* mitems[] = { "fixed", "attached to previous", "according to formula", "dynamic" };
-  ImGui::Combo("movement", &mitem, mitems, 3);
-  if (tmp != mitem) { 
-    tmp = mitem;
-    changed += 1;
-  }
-  // show different inputs based on what is selected
-  if (mitem == 2) {
-    changed += ImGui::InputText("x position", strx, 512);
-    ImGui::SameLine();
-    ShowHelpMarker("Use C-style expressions, t is time\n+ - / * % ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
-    changed += ImGui::InputText("y position", stry, 512);
-    ImGui::SameLine();
-    ShowHelpMarker("Use C-style expressions, t is time\n+ - / * % ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
-    changed += ImGui::InputText("angular position", strrad, 512);
-    ImGui::SameLine();
-    ShowHelpMarker("In radians, use C-style expressions, t is time\n+ - / * % ^ ( ) pi e\nabs, sin, cos, tan, exp, log, log10, sqrt, floor, pow");
-  }
-  
-  return changed;
-}
-
 // execution starts here
 void draw_render_gui(RenderParams &rp) {
   ImGui::ColorEdit3("positive circulation", rp.pos_circ_color);
@@ -207,7 +178,8 @@ void draw_stats_window(const long int numPanels, const long int numFieldPts, con
   // std::cout << "   fontSize: " << fontSize << "\n   numrows: " << numrows << "\n   display_h: " << display_h << std::endl;
 #ifdef __APPLE__
   ImGui::SetNextWindowSize(ImVec2(10+fontSize*11,10+1.1*fontSize*numrows));
-  ImGui::SetNextWindowPos(ImVec2(10.0f, ((displayH-fontSize*(1.1*numrows))/2)-60.0));
+  //ImGui::SetNextWindowPos(ImVec2(10.0f, (displayH-34*numrows-1.1*fontSize*4)/2));
+  ImGui::SetNextWindowPos(ImVec2(20, (displayH-fontSize*(1.1*numrows+1)-30*numrows)/2));
 #else
   ImGui::SetNextWindowSize(ImVec2(10+fontSize*11,10+1.1*fontSize*numrows));
   ImGui::SetNextWindowPos(ImVec2(20, displayH-fontSize*(1.1*numrows+1)));
