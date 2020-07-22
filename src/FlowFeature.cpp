@@ -7,11 +7,12 @@
  */
 
 #include "FlowFeature.h"
-
-#include <cmath>
+#include "BoundaryFeature.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
+
+#include <cmath>
 #include <iostream>
 #include <sstream>
 #include <random>
@@ -53,7 +54,7 @@ void parse_flow_json(std::vector<std::unique_ptr<FlowFeature>>& _flist,
 }
 
 #ifdef USE_IMGUI
-void FlowFeature::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &ffs, const float ips) {
+bool FlowFeature::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &ffs, const float ips) {
   static int item = 1;
   const char* items[] = { "single particle", "round vortex blob", "Gaussian vortex blob", "asymmetric vortex blob", "block of vorticity", "random particles", "particle emitter" };
   ImGui::Combo("type", &item, items, 7);
@@ -98,9 +99,11 @@ void FlowFeature::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &f
     } break;
   }
 
+  bool created = false;
   if (ff->draw_info_gui("Add", ips)) {
     ffs.emplace_back(std::move(ff));
     ff = nullptr;
+    created = true;
     ImGui::CloseCurrentPopup();
   }
  
@@ -108,7 +111,9 @@ void FlowFeature::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &f
   if (ImGui::Button("Cancel", ImVec2(120,0))) { 
     ImGui::CloseCurrentPopup();
   }
+
   ImGui::EndPopup();
+  return created;
 }
 #endif
 
@@ -163,6 +168,12 @@ SingleParticle::to_json() const {
   return j;
 }
 
+void SingleParticle::generate_draw_geom() {
+  const float diam = 0.01;
+  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, diam);
+  m_draw = tmp->init_elements(diam/25.0);
+}
+
 #ifdef USE_IMGUI
 bool SingleParticle::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
@@ -178,6 +189,7 @@ bool SingleParticle::draw_info_gui(const std::string action, const float ips) {
     m_x = xc[0];
     m_y = xc[1];
     m_str = stren;
+    generate_draw_geom();
     add = true;
   }
   return add;
@@ -279,6 +291,10 @@ VortexBlob::to_json() const {
   return j;
 }
 
+void VortexBlob::generate_draw_geom() {
+  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, m_rad*2);
+  m_draw = tmp->init_elements(m_rad/12.5);
+}
 
 #ifdef USE_IMGUI
 bool VortexBlob::draw_info_gui(const std::string action, const float ips) {
@@ -300,6 +316,7 @@ bool VortexBlob::draw_info_gui(const std::string action, const float ips) {
     m_str = stren;
     m_rad = rad;
     m_softness = soft;
+    generate_draw_geom();
     add = true;
   }
   return add;
@@ -412,6 +429,11 @@ AsymmetricBlob::to_json() const {
   return j;
 }
 
+void AsymmetricBlob::generate_draw_geom() {
+  std::unique_ptr<SolidOval> tmp = std::make_unique<SolidOval>(nullptr, true, m_x, m_y, m_rad*2, m_minrad*2);
+  m_draw = tmp->init_elements(m_rad/12.5);
+}
+
 #ifdef USE_IMGUI
 bool AsymmetricBlob::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
@@ -438,6 +460,7 @@ bool AsymmetricBlob::draw_info_gui(const std::string action, const float ips) {
     m_theta = rotdeg;
     m_softness = soft;
     m_rad = rad;
+    generate_draw_geom();
     add = true;
   }
   return add;
@@ -533,6 +556,11 @@ GaussianBlob::to_json() const {
   return j;
 }
 
+void GaussianBlob::generate_draw_geom() {
+  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, m_stddev*6);
+  m_draw = tmp->init_elements(m_stddev*6/25);
+}
+
 #ifdef USE_IMGUI
 bool GaussianBlob::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
@@ -550,6 +578,7 @@ bool GaussianBlob::draw_info_gui(const std::string action, const float ips) {
     m_stddev = stddev;
     m_x = xc[0];
     m_y = xc[1];
+    generate_draw_geom();
     add = true;
   }
   return add;
@@ -629,6 +658,11 @@ UniformBlock::to_json() const {
   return j;
 }
 
+void UniformBlock::generate_draw_geom() {
+  std::unique_ptr<SolidRect> tmp = std::make_unique<SolidRect>(nullptr, true, m_x, m_y, m_xsize, m_ysize);
+  m_draw = tmp->init_elements(m_xsize);
+}
+
 #ifdef USE_IMGUI
 bool UniformBlock::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
@@ -647,6 +681,7 @@ bool UniformBlock::draw_info_gui(const std::string action, const float ips) {
     m_ysize = xs[1];
     m_x = xc[0];
     m_y = xc[1];
+    generate_draw_geom();
     add = true;
   }
   return add;
@@ -725,6 +760,11 @@ BlockOfRandom::to_json() const {
   return j;
 }
 
+void BlockOfRandom::generate_draw_geom() {
+  std::unique_ptr<SolidRect> tmp = std::make_unique<SolidRect>(nullptr, true, m_x, m_y, m_xsize*2, m_ysize*2);
+  m_draw = tmp->init_elements(m_xsize*2);
+}
+
 #ifdef USE_IMGUI
 bool BlockOfRandom::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
@@ -748,6 +788,7 @@ bool BlockOfRandom::draw_info_gui(const std::string action, const float ips) {
     m_maxstr = strenHi;
     m_x = xc[0];
     m_y = xc[1];
+    generate_draw_geom();
     add = true;
   }
   return add;
@@ -799,6 +840,12 @@ ParticleEmitter::to_json() const {
   return j;
 }
 
+void ParticleEmitter::generate_draw_geom() {
+  const float diam = 0.01;
+  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, diam);
+  m_draw = tmp->init_elements(diam/25.0);
+}
+
 #ifdef USE_IMGUI
 bool ParticleEmitter::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
@@ -813,6 +860,7 @@ bool ParticleEmitter::draw_info_gui(const std::string action, const float ips) {
     m_str = eStren;
     m_x = xc[0];
     m_y = xc[1];
+    generate_draw_geom();
     add = true;
   }
   return add;
