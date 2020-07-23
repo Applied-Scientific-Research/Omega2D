@@ -161,7 +161,7 @@ bool SinglePoint::draw_info_gui(const std::string action, const float &tracer_sc
 
   ImGui::InputFloat2("position", xc);
   ImGui::Checkbox("Point follows flow", &is_lagrangian);
-  ImGui::TextWrapped("This feature will add 1 point");
+  ImGui::TextWrapped("\nThis feature will add 1 point");
   if (ImGui::Button(buttonText.c_str())) {
     m_x = xc[0];
     m_y = xc[1];
