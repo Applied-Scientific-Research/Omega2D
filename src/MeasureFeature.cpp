@@ -33,7 +33,7 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
 
   const std::string ftype = _jin["type"];
 
-  if      (ftype == "tracer") {           _flist.emplace_back(std::make_unique<SinglePoint>()); }
+  /*if      (ftype == "tracer") {           _flist.emplace_back(std::make_unique<SinglePoint>()); }
   else if (ftype == "tracer emitter") {   _flist.emplace_back(std::make_unique<TracerEmitter>()); }
   else if (ftype == "tracer blob") {      _flist.emplace_back(std::make_unique<TracerBlob>()); }
   else if (ftype == "tracer line") {      _flist.emplace_back(std::make_unique<TracerLine>()); }
@@ -42,7 +42,7 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
   else {
     std::cout << "  type " << ftype << " does not name an available measurement feature, ignoring" << std::endl;
     return;
-  }
+  }*/
 
   // and pass the json object to the specific parser
   _flist.back()->from_json(_jin);
@@ -53,18 +53,16 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
 #ifdef USE_IMGUI
 void MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &mfs, const float ips, const float &tracerScale) {
   static int item = 0;
-  const char* items[] = { "single point/tracer", "streakline", "circle of tracers", "line of tracers", "measurement line", "measurement grid" };
+  const char* items[] = { "single point", "streakline", "circle of tracers", "line of tracers", "measurement line", "measurement grid" };
   ImGui::Combo("type", &item, items, 6);
 
   // show different inputs based on what is selected
   std::unique_ptr<MeasureFeature> mf = nullptr;
   switch(item) {
     case 0: {
-      // a single measurement point
       mf = std::make_unique<SinglePoint>();
-      //SinglePoint::draw_creation_gui(mf);
     } break;
-    case 1: {
+    /*case 1: {
       // a tracer emitter
       mf = std::make_unique<TracerEmitter>();
       //TracerEmitter::draw_creation_gui(mf);
@@ -88,7 +86,7 @@ void MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeatur
       // a static grid of measurement points
       mf = std::make_unique<GridPoints>();
       //GridPoints::draw_creation_gui(mf, ips);
-    } break;
+    } break;*/
   }
 
   if (mf->draw_info_gui("Add", tracerScale, ips)) {
@@ -119,8 +117,16 @@ SinglePoint::init_particles(float _ips) const {
 
 std::vector<float>
 SinglePoint::step_particles(float _ips) const {
-  // does not emit
-  return std::vector<float>();
+  if ((m_enabled) && (m_emits)) {
+    // set up the random number generator
+    static std::random_device rd;  //Will be used to obtain a seed for the random number engine
+    static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+    static std::uniform_real_distribution<float> zmean_dist(-0.5, 0.5);
+    // emits one per step, jittered slightly
+    return std::vector<float>({m_x + _ips*zmean_dist(gen), m_y + _ips*zmean_dist(gen)});
+  } else {
+    return std::vector<float>();
+  }
 }
 
 void
@@ -131,7 +137,14 @@ SinglePoint::debug(std::ostream& os) const {
 std::string
 SinglePoint::to_string() const {
   std::stringstream ss;
-  ss << "single field point at " << m_x << " " << m_y;
+  if (m_emits) {
+    ss << "emiter";
+  } else if (m_is_lagrangian) {
+    ss << "tracer";
+  } else {
+    ss << "stationary";
+  }
+  ss << " point at " << m_x << " " << m_y;
   return ss.str();
 }
 
@@ -141,38 +154,51 @@ SinglePoint::from_json(const nlohmann::json j) {
   m_x = c[0];
   m_y = c[1];
   m_enabled = j.value("enabled", true);
+  m_is_lagrangian = j.value("lagrangian", false);
+  m_emits = j.value("emits", false);
 }
 
 nlohmann::json
 SinglePoint::to_json() const {
   nlohmann::json j;
-  j["type"] = "tracer";
+  j["type"] = "point";
   j["center"] = {m_x, m_y};
   j["enabled"] = m_enabled;
+  j["lagrangian"] = m_is_lagrangian;
+  j["emits"] = m_emits;
   return j;
 }
 
 #ifdef USE_IMGUI
-bool SinglePoint::draw_info_gui(const std::string action, const float &tracer_scale, const float ips) {
+bool SinglePoint::draw_info_gui(const std::string action, const float &tracerScale,
+                                const float ips) {
   static float xc[2] = {m_x, m_y};
-  static bool is_lagrangian = m_is_lagrangian;
+  static bool lagrangian = m_is_lagrangian;
+  static bool emiter = m_emits;
   bool add = false;
   const std::string buttonText = action+" single point";
 
   ImGui::InputFloat2("position", xc);
-  ImGui::Checkbox("Point follows flow", &is_lagrangian);
+  if (!emiter) {
+    ImGui::Checkbox("Point follows flow", &lagrangian);
+  }
+  if (!lagrangian) {
+    ImGui::Checkbox("Point emits particles", &emiter);
+  }
   ImGui::TextWrapped("\nThis feature will add 1 point");
   if (ImGui::Button(buttonText.c_str())) {
     m_x = xc[0];
     m_y = xc[1];
-    m_is_lagrangian = is_lagrangian;
+    m_is_lagrangian = lagrangian;
+    m_emits = emiter;
     add = true;
+  std::cout << "Enabled: " << m_enabled << " Emits: " << m_emits << std::endl;
   }
   
   return add;
 }
 #endif
-
+/*
 //
 // Create a single, stable point which emits Lagrangian points
 //
@@ -613,4 +639,4 @@ bool GridPoints::draw_info_gui(const std::string action, const float &tracer_sca
 
   return add;
 }
-#endif  
+#endif */ 

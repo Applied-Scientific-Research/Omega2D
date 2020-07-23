@@ -24,15 +24,18 @@ public:
   explicit
   MeasureFeature(float _x,
                  float _y,
-                 bool _moves)
+                 bool _moves,
+                 bool _emits)
     : Feature(true),
       m_x(_x),
       m_y(_y),
-      m_is_lagrangian(_moves)
+      m_is_lagrangian(_moves),
+      m_emits(_emits)
     {}
   virtual ~MeasureFeature() {}
 
   bool moves() const { return m_is_lagrangian; }
+  bool emits() const { return m_emits; }
   virtual void debug(std::ostream& os) const = 0;
   virtual std::string to_string() const = 0;
   virtual void from_json(const nlohmann::json) = 0;
@@ -48,7 +51,8 @@ public:
 protected:
   float m_x;
   float m_y;
-  bool  m_is_lagrangian;
+  bool m_is_lagrangian;
+  bool m_emits;
 };
 
 std::ostream& operator<<(std::ostream& os, MeasureFeature const& ff);
@@ -75,8 +79,9 @@ class SinglePoint : public MeasureFeature {
 public:
   SinglePoint(float _x = 0.0,
               float _y = 0.0,
-              bool _moves = true)
-    : MeasureFeature(_x, _y, _moves)
+              bool _moves = false,
+              bool _emits = false)
+    : MeasureFeature(_x, _y, _moves, _emits)
     {}
 
   void debug(std::ostream& os) const override;
@@ -93,7 +98,7 @@ protected:
   //float m_str;
 };
 
-
+/*
 //
 // Concrete class for an immobile particle emitter (one per frame)
 //
@@ -119,16 +124,19 @@ protected:
   //float m_frequency;
 };
 
-
 //
 // Concrete class for a circle of tracer points
 //
-class TracerBlob : public SinglePoint {
+//class TracerBlob : public SinglePoint {
+class MeasurementBlob : public SinglePoint {
 public:
-  TracerBlob(float _x = 0.0,
+  //TracerBlob(float _x = 0.0,
+  MeasurementBlob(float _x = 0.0,
              float _y = 0.0,
+             bool _moves = true,
+             bool _emits = false,
              float _rad = 0.1)
-    : SinglePoint(_x, _y, true),
+    : SinglePoint(_x, _y, _moves, _emits),
       m_rad(_rad)
     {}
 
@@ -145,7 +153,6 @@ public:
 protected:
   float m_rad;
 };
-
 
 //
 // Concrete class for a tracer line
@@ -175,7 +182,6 @@ protected:
   float m_xf, m_yf;
 };
 
-
 //
 // Concrete class for a line of static measurement points
 //
@@ -183,9 +189,11 @@ class MeasurementLine : public SinglePoint {
 public:
   MeasurementLine(float _x = 0.0,
                   float _y = 0.0,
+                  bool _moves = false,
+                  bool _emits = false,
                   float _xf = 1.0,
                   float _yf = 0.0)
-    : SinglePoint(_x, _y, false),
+    : SinglePoint(_x, _y, _moves, _emits),
       m_xf(_xf),
       m_yf(_yf)
     {}
@@ -236,7 +244,7 @@ protected:
   float m_dx;
 };
 
-
+*/
 //
 // Parser for converting json object to new feature
 //
