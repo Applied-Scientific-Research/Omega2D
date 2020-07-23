@@ -636,7 +636,9 @@ int main(int argc, char const *argv[]) {
       for (int i=0; i<(int)ffeatures.size(); ++i) {
 
         ImGui::PushID(++buttonIDs);
-        ImGui::Checkbox("", ffeatures[i]->addr_enabled());
+        if (ImGui::Checkbox("", ffeatures[i]->addr_enabled())) {
+          fdraw.reset_enabled(i, ffeatures[i]->is_enabled());
+        }
         ImGui::PopID();
         
         // add an "edit" button after the checkbox (so it's not easy to accidentally hit remove)
@@ -678,6 +680,10 @@ int main(int argc, char const *argv[]) {
           if (fin) {
             edit_item_index = -1;
             editF = false;
+            fdraw.clear_elements();
+            for (auto const& ff : ffeatures) {
+              fdraw.add_elements( ff->get_draw_packet(), ff->is_enabled() );
+            }
             ImGui::CloseCurrentPopup();
           }
         ImGui::EndPopup();
@@ -721,8 +727,6 @@ int main(int argc, char const *argv[]) {
         // if the checkbox flipped positions this frame, ischeck is 1
         if (ischeck) {
           bdraw.reset_enabled(i, bfeatures[i]->is_enabled());
-          fdraw.reset_enabled(i, ffeatures[i]->is_enabled());
-          mdraw.reset_enabled(i, mfeatures[i]->is_enabled());
         }
 
         // add a "remove" button at the end of the line (so it's not easy to accidentally hit)
@@ -776,7 +780,9 @@ int main(int argc, char const *argv[]) {
       for (int i=0; i<(int)mfeatures.size(); ++i) {
 
         ImGui::PushID(++buttonIDs);
-        ImGui::Checkbox("", mfeatures[i]->addr_enabled());
+        if (ImGui::Checkbox("", mfeatures[i]->addr_enabled())) {
+          mdraw.reset_enabled(i, mfeatures[i]->is_enabled());
+        }
         ImGui::PopID();
         
         ImGui::SameLine(); 
@@ -808,6 +814,10 @@ int main(int argc, char const *argv[]) {
         if (ImGui::BeginPopupModal("Edit measure feature")) {
           bool fin = false;
           if (mfeatures[edit_item_index]->draw_info_gui("Edit", rparams.tracer_scale, sim.get_ips())) {
+            mdraw.clear_elements();
+            for (auto const& mf : mfeatures) {
+              mdraw.add_elements( mf->get_draw_packet(), mf->is_enabled() );
+             }
               fin = true;
           }
           ImGui::SameLine();
