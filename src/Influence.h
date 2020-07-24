@@ -2,7 +2,7 @@
  * Influence.h - Non-class influence calculations
  *
  * (c)2017-20 Applied Scientific Research, Inc.
- *            Written by Mark J Stock <markjstock@gmail.com>
+ *            Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -390,6 +390,17 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ, ExecEnv& env
   printf("    panels_affect_points: [%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);
 }
 
+//
+// Vc and x86 versions of Volumes affecting Points/Particles
+//
+template <class S, class A>
+void bricks_affect_points (Volumes<S> const& src, Points<S>& targ, ExecEnv& env) {
+  std::cout << "    2_0 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
+  assert (false && "Volume elements cannot affect points yet.");
+}
+
+
+// ==========================================================================================================
 
 //
 // Vc and x86 versions of Points/Particles affecting Panels/Surfaces
@@ -556,6 +567,37 @@ void panels_affect_panels (Surfaces<S> const& src, Surfaces<S>& targ, ExecEnv& e
 }
 
 
+template <class S, class A>
+void bricks_affect_panels (Volumes<S> const& src, Surfaces<S>& targ, ExecEnv& env) {
+  std::cout << "    2_1 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
+  assert (false && "Volume elements cannot affect panels yet.");
+}
+
+
+// ==========================================================================================================
+
+
+template <class S, class A>
+void points_affect_bricks (Points<S> const& src, Volumes<S>& targ, ExecEnv& env) {
+  std::cout << "    0_2 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
+  assert (false && "Points cannot affect Volumes yet.");
+}
+
+template <class S, class A>
+void panels_affect_bricks (Surfaces<S> const& src, Volumes<S>& targ, ExecEnv& env) {
+  std::cout << "    1_2 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
+  assert (false && "Surfaces cannot affect Volumes yet.");
+}
+
+template <class S, class A>
+void bricks_affect_bricks (Volumes<S> const& src, Volumes<S>& targ, ExecEnv& env) {
+  std::cout << "    2_2 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
+  assert (false && "Volume elements cannot affect themselves yet.");
+}
+
+
+// ==========================================================================================================
+
 //
 // helper struct for dispatching through a variant
 //
@@ -564,8 +606,13 @@ struct InfluenceVisitor {
   // source collection, target collection, execution environment
   void operator()(Points<float> const& src,   Points<float>& targ)   { points_affect_points<float,A>(src, targ, env); }
   void operator()(Surfaces<float> const& src, Points<float>& targ)   { panels_affect_points<float,A>(src, targ, env); }
+  void operator()(Volumes<float> const& src,  Points<float>& targ)   { bricks_affect_points<float,A>(src, targ, env); }
   void operator()(Points<float> const& src,   Surfaces<float>& targ) { points_affect_panels<float,A>(src, targ, env); }
   void operator()(Surfaces<float> const& src, Surfaces<float>& targ) { panels_affect_panels<float,A>(src, targ, env); }
+  void operator()(Volumes<float> const& src,  Surfaces<float>& targ) { bricks_affect_panels<float,A>(src, targ, env); }
+  void operator()(Points<float> const& src,   Volumes<float>& targ)  { points_affect_bricks<float,A>(src, targ, env); }
+  void operator()(Surfaces<float> const& src, Volumes<float>& targ)  { panels_affect_bricks<float,A>(src, targ, env); }
+  void operator()(Volumes<float> const& src,  Volumes<float>& targ)  { bricks_affect_bricks<float,A>(src, targ, env); }
 
   ExecEnv env;
 };

@@ -1,8 +1,8 @@
 /*
  * Coefficients.h - Non-class influence coefficients calculations
  *
- * (c)2017-9 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
+ * (c)2017-20 Applied Scientific Research, Inc.
+ *            Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -86,6 +86,14 @@ Vector<S> panels_on_points_coeff (Surfaces<S> const& src, Points<S>& targ) {
 */
 }
 
+template <class S>
+Vector<S> bricks_on_points_coeff (Volumes<S> const& src, Points<S>& targ) {
+  std::cout << "    2_0 compute coefficients of" << src.to_string() << " on" << targ.to_string() << std::endl;
+  Vector<S> coeffs;
+  return coeffs;
+}
+
+// ===========================================================================================================
 
 template <class S>
 Vector<S> points_on_panels_coeff (Points<S> const& src, Surfaces<S>& targ) {
@@ -551,13 +559,52 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
   return augcoeff;
 }
 
+template <class S>
+Vector<S> bricks_on_panels_coeff (Volumes<S> const& src, Surfaces<S>& targ) {
+  std::cout << "    2_1 compute coefficients of" << src.to_string() << " on" << targ.to_string() << std::endl;
+  Vector<S> coeffs;
+  return coeffs;
+}
+
+// ===========================================================================================================
+
+// bricks (volume elements) do not participate in BEM yet
+template <class S>
+Vector<S> points_on_bricks_coeff (Points<S> const& src, Volumes<S>& targ) {
+  std::cout << "    0_2 compute coefficients of" << src.to_string() << " on" << targ.to_string() << std::endl;
+  Vector<S> coeffs;
+  return coeffs;
+}
+
+template <class S>
+Vector<S> panels_on_bricks_coeff (Surfaces<S> const& src, Volumes<S>& targ) {
+  std::cout << "    1_2 compute coefficients of" << src.to_string() << " on" << targ.to_string() << std::endl;
+  Vector<S> coeffs;
+  return coeffs;
+}
+
+template <class S>
+Vector<S> bricks_on_bricks_coeff (Volumes<S> const& src, Volumes<S>& targ) {
+  std::cout << "    2_2 compute coefficients of" << src.to_string() << " on" << targ.to_string() << std::endl;
+  Vector<S> coeffs;
+  return coeffs;
+}
+
+
+// ===========================================================================================================
+
 
 // helper struct for dispatching through a variant
 struct CoefficientVisitor {
   // source collection, target collection
   Vector<float> operator()(Points<float> const& src,   Points<float>& targ)   { return points_on_points_coeff<float>(src, targ); } 
   Vector<float> operator()(Surfaces<float> const& src, Points<float>& targ)   { return panels_on_points_coeff<float>(src, targ); } 
+  Vector<float> operator()(Volumes<float> const& src,  Points<float>& targ)   { return bricks_on_points_coeff<float>(src, targ); } 
   Vector<float> operator()(Points<float> const& src,   Surfaces<float>& targ) { return points_on_panels_coeff<float>(src, targ); } 
   Vector<float> operator()(Surfaces<float> const& src, Surfaces<float>& targ) { return panels_on_panels_coeff<float>(src, targ); } 
+  Vector<float> operator()(Volumes<float> const& src,  Surfaces<float>& targ) { return bricks_on_panels_coeff<float>(src, targ); } 
+  Vector<float> operator()(Points<float> const& src,   Volumes<float>& targ)  { return points_on_bricks_coeff<float>(src, targ); } 
+  Vector<float> operator()(Surfaces<float> const& src, Volumes<float>& targ)  { return panels_on_bricks_coeff<float>(src, targ); } 
+  Vector<float> operator()(Volumes<float> const& src,  Volumes<float>& targ)  { return bricks_on_bricks_coeff<float>(src, targ); } 
 };
 

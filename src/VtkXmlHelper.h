@@ -12,6 +12,7 @@
 #include "Collection.h"
 #include "Points.h"
 #include "Surfaces.h"
+#include "Volumes.h"
 
 #include "tinyxml2.h"
 #include "cppcodec/base64_rfc4648.hpp"
@@ -504,6 +505,25 @@ std::string write_vtu_panels(Surfaces<S> const& surf, const size_t file_idx,
 
 
 //
+// write grid data to a .vtk file
+//
+template <class S>
+std::string write_vtk_grid(Volumes<S> const& grid, const size_t file_idx,
+                           const size_t frameno, const double time) {
+
+  assert(grid.get_nelems() > 0 && "Inside write_vtk_grid with no elements");
+
+  // generate file name
+  std::string prefix = "grid_";
+  std::stringstream vtkfn;
+  vtkfn << prefix << std::setfill('0') << std::setw(2) << file_idx << "_" << std::setw(5) << frameno << ".vtu";
+
+  std::cout << "Wrote " << grid.get_nelems() << " elements to " << vtkfn.str() << std::endl;
+  return vtkfn.str();
+}
+
+
+//
 // write a collection
 //
 template <class S>
@@ -525,6 +545,11 @@ void write_vtk_files(std::vector<Collection> const& coll, const size_t _index, c
       Surfaces<S> const & surf = std::get<Surfaces<S>>(elem);
       if (surf.get_npanels() > 0) {
         _files.emplace_back(write_vtu_panels<S>(surf, idx++, _index, _time));
+      }
+    } else if (std::holds_alternative<Volumes<S>>(elem)) {
+      Volumes<S> const & cells = std::get<Volumes<S>>(elem);
+      if (cells.get_nelems() > 0) {
+        _files.emplace_back(write_vtk_grid<S>(cells, idx++, _index, _time));
       }
     }
   }
