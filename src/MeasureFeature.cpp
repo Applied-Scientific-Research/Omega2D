@@ -333,7 +333,14 @@ MeasurementBlob::debug(std::ostream& os) const {
 std::string
 MeasurementBlob::to_string() const {
   std::stringstream ss;
-  ss << "tracer blob at " << m_x << " " << m_y << " with radius " << m_rad;
+  if (m_emits) {
+    ss << "emiter";
+  } else if (m_is_lagrangian) {
+    ss << "tracer";
+  } else {
+    ss << "stationary";
+  }
+  ss << " blob at " << m_x << " " << m_y << " with radius " << m_rad;
   return ss.str();
 }
 
