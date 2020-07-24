@@ -42,7 +42,7 @@ public:
   virtual nlohmann::json to_json() const = 0;
   virtual std::vector<float> init_particles(float) const = 0;
   virtual std::vector<float> step_particles(float) const = 0;
-  float emit(const float, const float) const;
+  float jitter(const float, const float) const;
 #ifdef USE_IMGUI
   static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float, const float &);
   virtual bool draw_info_gui(const std::string, const float &, const float) = 0;
@@ -125,6 +125,7 @@ protected:
   //float m_frequency;
 };
 
+*/
 //
 // Concrete class for a circle of tracer points
 //
@@ -134,7 +135,7 @@ public:
   //TracerBlob(float _x = 0.0,
   MeasurementBlob(float _x = 0.0,
              float _y = 0.0,
-             bool _moves = true,
+             bool _moves = false,
              bool _emits = false,
              float _rad = 0.1)
     : SinglePoint(_x, _y, _moves, _emits),
@@ -154,7 +155,7 @@ public:
 protected:
   float m_rad;
 };
-
+/*
 //
 // Concrete class for a tracer line
 //
@@ -213,7 +214,6 @@ protected:
   float m_xf, m_yf;
 };
 
-/*
 //
 // Concrete class for a grid of measurement points
 //
@@ -224,7 +224,7 @@ public:
              float _xf = 1.0,
              float _yf = 1.0,
              float _dx = 0.1)
-    : MeasureFeature(_xs, _ys, false),
+    : MeasureFeature(_xs, _ys, false, false),
       m_xf(_xf),
       m_yf(_yf),
       m_dx(_dx)
@@ -245,7 +245,6 @@ protected:
   float m_dx;
 };
 
-*/
 //
 // Parser for converting json object to new feature
 //

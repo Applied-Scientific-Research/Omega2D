@@ -33,16 +33,16 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
 
   const std::string ftype = _jin["type"];
 
-  /*if      (ftype == "tracer") {           _flist.emplace_back(std::make_unique<SinglePoint>()); }
-  else if (ftype == "tracer emitter") {   _flist.emplace_back(std::make_unique<TracerEmitter>()); }
-  else if (ftype == "tracer blob") {      _flist.emplace_back(std::make_unique<TracerBlob>()); }
-  else if (ftype == "tracer line") {      _flist.emplace_back(std::make_unique<TracerLine>()); }
+  if      (ftype == "tracer") {           _flist.emplace_back(std::make_unique<SinglePoint>()); }
+  else if (ftype == "tracer emitter") {   _flist.emplace_back(std::make_unique<SinglePoint>(0.0, 0.0, false, true)); }
+  else if (ftype == "tracer blob") {      _flist.emplace_back(std::make_unique<MeasurementBlob>()); }
+  else if (ftype == "tracer line") {      _flist.emplace_back(std::make_unique<MeasurementLine>(0.0, 0.0, false, true)); }
   else if (ftype == "measurement line") { _flist.emplace_back(std::make_unique<MeasurementLine>()); }
   else if (ftype == "measurement grid") { _flist.emplace_back(std::make_unique<GridPoints>()); }
   else {
     std::cout << "  type " << ftype << " does not name an available measurement feature, ignoring" << std::endl;
     return;
-  }*/
+  }
 
   // and pass the json object to the specific parser
   _flist.back()->from_json(_jin);
@@ -53,7 +53,7 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
 #ifdef USE_IMGUI
 void MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &mfs, const float ips, const float &tracerScale) {
   static int item = 0;
-  const char* items[] = { "single point", "streakline", "circle of tracers", "line of tracers", "measurement line", "measurement grid" };
+  const char* items[] = { "single point", "streakline", "measurement circle", "line of tracers", "measurement line", "measurement grid" };
   ImGui::Combo("type", &item, items, 6);
 
   // show different inputs based on what is selected
@@ -67,12 +67,12 @@ void MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeatur
       mf = std::make_unique<TracerEmitter>();
       //TracerEmitter::draw_creation_gui(mf);
     } break;
-    case 2: {
+    */case 2: {
       // a tracer circle
-      mf = std::make_unique<TracerBlob>();
+      mf = std::make_unique<MeasurementBlob>();
       //TracerBlob::draw_creation_gui(mf, tracerScale, ips);
     } break;
-    case 3: {
+    /*case 3: {
       // a tracer line
       mf = std::make_unique<TracerLine>();
       //TracerLine::draw_creation_gui(mf, tracerScale, ips);
@@ -81,12 +81,12 @@ void MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeatur
       // a static, measurement line
       mf = std::make_unique<MeasurementLine>();
       //MeasurementLine::draw_creation_gui(mf, tracerScale, ips);
-    } break;/*
+    } break;
     case 5: {
       // a static grid of measurement points
       mf = std::make_unique<GridPoints>();
       //GridPoints::draw_creation_gui(mf, ips);
-    } break;*/
+    } break;
   }
 
   if (mf->draw_info_gui("Add", tracerScale, ips)) {
@@ -105,7 +105,7 @@ void MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeatur
 }
 #endif
 
-float MeasureFeature::emit(const float _z, const float _ips) const {
+float MeasureFeature::jitter(const float _z, const float _ips) const {
   // set up the random number generator
   static std::random_device rd;  //Will be used to obtain a seed for the random number engine
   static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
@@ -127,7 +127,7 @@ SinglePoint::init_particles(float _ips) const {
 std::vector<float>
 SinglePoint::step_particles(float _ips) const {
   if ((m_enabled) && (m_emits)) {
-    return std::vector<float>({emit(m_x, _ips), emit(m_y, _ips)});
+    return std::vector<float>({jitter(m_x, _ips), jitter(m_y, _ips)});
   } else {
     return std::vector<float>();
   }
@@ -158,8 +158,8 @@ SinglePoint::from_json(const nlohmann::json j) {
   m_x = c[0];
   m_y = c[1];
   m_enabled = j.value("enabled", true);
-  m_is_lagrangian = j.value("lagrangian", false);
-  m_emits = j.value("emits", false);
+  m_is_lagrangian = j.value("lagrangian", m_is_lagrangian);
+  m_emits = j.value("emits", m_emits);
 }
 
 nlohmann::json
@@ -274,11 +274,12 @@ bool TracerEmitter::draw_info_gui(const std::string action, const float &tracer_
 }
 #endif
 
+*/
 //
 // Create a circle of tracer points
 //
 std::vector<float>
-TracerBlob::init_particles(float _ips) const {
+MeasurementBlob::init_particles(float _ips) const {
 
   if (not this->is_enabled()) return std::vector<float>();
 
@@ -312,64 +313,85 @@ TracerBlob::init_particles(float _ips) const {
 }
 
 std::vector<float>
-TracerBlob::step_particles(float _ips) const {
-  // does not emit
-  return std::vector<float>();
+MeasurementBlob::step_particles(float _ips) const {
+  if ((m_enabled) && (m_emits)) {
+    std::vector <float> blob = init_particles(_ips);
+    for (int i=0; i<blob.size(); i++) {
+      blob[i] = jitter(blob[i], _ips);
+    }
+    return blob;
+  } else {
+    return std::vector<float>();
+  }
 }
 
 void
-TracerBlob::debug(std::ostream& os) const {
+MeasurementBlob::debug(std::ostream& os) const {
   os << to_string();
 }
 
 std::string
-TracerBlob::to_string() const {
+MeasurementBlob::to_string() const {
   std::stringstream ss;
   ss << "tracer blob at " << m_x << " " << m_y << " with radius " << m_rad;
   return ss.str();
 }
 
 void
-TracerBlob::from_json(const nlohmann::json j) {
+MeasurementBlob::from_json(const nlohmann::json j) {
   const std::vector<float> c = j["center"];
   m_x = c[0];
   m_y = c[1];
   m_rad = j["rad"];
   m_enabled = j.value("enabled", true);
+  m_is_lagrangian = j.value("lagrangian", m_is_lagrangian);
+  m_emits = j.value("emits", m_emits);
 }
 
 nlohmann::json
-TracerBlob::to_json() const {
+MeasurementBlob::to_json() const {
   nlohmann::json j;
   j["type"] = "tracer blob";
   j["center"] = {m_x, m_y};
   j["rad"] = m_rad;
   j["enabled"] = m_enabled;
+  j["lagrangian"] = m_is_lagrangian;
+  j["emits"] = m_emits;
   return j;
 }
 
 #ifdef USE_IMGUI
-bool TracerBlob::draw_info_gui(const std::string action, const float &tracerScale, float ips) {
+bool MeasurementBlob::draw_info_gui(const std::string action, const float &tracerScale, float ips) {
   static float xc[2] = {m_x, m_y};
   static float rad = m_rad;
+  static bool lagrangian = m_is_lagrangian;
+  static bool emits = m_emits;
   bool add = false;
   const std::string buttonText = action+" circle of tracers";
  
   ImGui::InputFloat2("center", xc);
   ImGui::SliderFloat("radius", &rad, ips, 1.0f, "%.4f");
+  if (!emits) {
+    ImGui::Checkbox("Point follows flow", &lagrangian);
+  }
+  if (!lagrangian) {
+    ImGui::Checkbox("Point emits particles", &emits);
+  }
   ImGui::TextWrapped("This feature will add about %d field points",
                      (int)(0.785398175*std::pow(2*rad/(tracerScale*ips), 2)));
   if (ImGui::Button(buttonText.c_str())) {
     m_x = xc[0];
     m_y = xc[1];
     m_rad = rad;
+    m_is_lagrangian = lagrangian;
+    m_emits = emits;
     add = true;
   }
 
   return add;
 }
 #endif
-
+/*
 //
 // Create a line of tracer points
 //
@@ -496,7 +518,7 @@ MeasurementLine::step_particles(float _ips) const {
   if ((m_enabled) && (m_emits)) {
     std::vector<float> line = init_particles(_ips);
     for (int i=0; i<line.size(); i++) {
-      line[i] = emit(line[i], _ips);
+      line[i] = jitter(line[i], _ips);
     }
     return line;
   } else {
@@ -532,8 +554,8 @@ MeasurementLine::from_json(const nlohmann::json j) {
   m_xf = e[0];
   m_yf = e[1];
   m_enabled = j.value("enabled", true);
-  m_is_lagrangian = j.value("lagrangian", true);
-  m_emits= j.value("emits", true);
+  m_is_lagrangian = j.value("lagrangian", m_is_lagrangian);
+  m_emits= j.value("emits", m_emits);
 }
 
 nlohmann::json
@@ -581,7 +603,6 @@ bool MeasurementLine::draw_info_gui(const std::string action, const float &trace
 }
 #endif
 
-/*
 //
 // Create a grid of static measurement points
 //
@@ -635,6 +656,8 @@ GridPoints::from_json(const nlohmann::json j) {
   m_yf = e[1];
   m_dx = j["dx"];
   m_enabled = j.value("enabled", true);
+  m_is_lagrangian = j.value("lagrangian", m_is_lagrangian);
+  m_emits= j.value("emits", m_emits);
 }
 
 nlohmann::json
@@ -645,6 +668,8 @@ GridPoints::to_json() const {
   j["end"] = {m_xf, m_yf};
   j["dx"] = m_dx;
   j["enabled"] = m_enabled;
+  j["lagrangian"] = m_is_lagrangian;
+  j["emits"] = m_emits;
   return j;
 }
 
@@ -672,4 +697,4 @@ bool GridPoints::draw_info_gui(const std::string action, const float &tracer_sca
 
   return add;
 }
-#endif */ 
+#endif
