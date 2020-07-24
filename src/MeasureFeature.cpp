@@ -53,8 +53,8 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
 #ifdef USE_IMGUI
 void MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &mfs, const float ips, const float &tracerScale) {
   static int item = 0;
-  const char* items[] = { "single point", "streakline", "measurement circle", "line of tracers", "measurement line", "measurement grid" };
-  ImGui::Combo("type", &item, items, 6);
+  const char* items[] = { "single point", /*"streakline",*/ "measurement circle", /*"line of tracers",*/ "measurement line", "measurement grid" };
+  ImGui::Combo("type", &item, items, 4);
 
   // show different inputs based on what is selected
   std::unique_ptr<MeasureFeature> mf = nullptr;
@@ -67,7 +67,7 @@ void MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeatur
       mf = std::make_unique<TracerEmitter>();
       //TracerEmitter::draw_creation_gui(mf);
     } break;
-    */case 2: {
+    */case 1: {
       // a tracer circle
       mf = std::make_unique<MeasurementBlob>();
       //TracerBlob::draw_creation_gui(mf, tracerScale, ips);
@@ -77,12 +77,12 @@ void MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeatur
       mf = std::make_unique<TracerLine>();
       //TracerLine::draw_creation_gui(mf, tracerScale, ips);
     } break;
-    */case 4: {
+    */case 2: {
       // a static, measurement line
       mf = std::make_unique<MeasurementLine>();
       //MeasurementLine::draw_creation_gui(mf, tracerScale, ips);
     } break;
-    case 5: {
+    case 3: {
       // a static grid of measurement points
       mf = std::make_unique<GridPoints>();
       //GridPoints::draw_creation_gui(mf, ips);
@@ -316,7 +316,7 @@ std::vector<float>
 MeasurementBlob::step_particles(float _ips) const {
   if ((m_enabled) && (m_emits)) {
     std::vector <float> blob = init_particles(_ips);
-    for (int i=0; i<blob.size(); i++) {
+    for (size_t i=0; i<blob.size(); i++) {
       blob[i] = jitter(blob[i], _ips);
     }
     return blob;
@@ -517,7 +517,7 @@ std::vector<float>
 MeasurementLine::step_particles(float _ips) const {
   if ((m_enabled) && (m_emits)) {
     std::vector<float> line = init_particles(_ips);
-    for (int i=0; i<line.size(); i++) {
+    for (size_t i=0; i<line.size(); i++) {
       line[i] = jitter(line[i], _ips);
     }
     return line;
