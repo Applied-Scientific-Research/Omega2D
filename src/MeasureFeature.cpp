@@ -77,11 +77,11 @@ void MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeatur
       mf = std::make_unique<TracerLine>();
       //TracerLine::draw_creation_gui(mf, tracerScale, ips);
     } break;
-    case 4: {
+    */case 4: {
       // a static, measurement line
       mf = std::make_unique<MeasurementLine>();
       //MeasurementLine::draw_creation_gui(mf, tracerScale, ips);
-    } break;
+    } break;/*
     case 5: {
       // a static grid of measurement points
       mf = std::make_unique<GridPoints>();
@@ -105,6 +105,15 @@ void MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeatur
 }
 #endif
 
+float MeasureFeature::emit(const float _z, const float _ips) const {
+  // set up the random number generator
+  static std::random_device rd;  //Will be used to obtain a seed for the random number engine
+  static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+  static std::uniform_real_distribution<float> zmean_dist(-0.5, 0.5);
+  // emits one per step, jittered slightly
+  return _z+_ips*zmean_dist(gen);
+}
+
 //
 // Create a single measurement point
 //
@@ -118,12 +127,7 @@ SinglePoint::init_particles(float _ips) const {
 std::vector<float>
 SinglePoint::step_particles(float _ips) const {
   if ((m_enabled) && (m_emits)) {
-    // set up the random number generator
-    static std::random_device rd;  //Will be used to obtain a seed for the random number engine
-    static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
-    static std::uniform_real_distribution<float> zmean_dist(-0.5, 0.5);
-    // emits one per step, jittered slightly
-    return std::vector<float>({m_x + _ips*zmean_dist(gen), m_y + _ips*zmean_dist(gen)});
+    return std::vector<float>({emit(m_x, _ips), emit(m_y, _ips)});
   } else {
     return std::vector<float>();
   }
@@ -174,25 +178,24 @@ bool SinglePoint::draw_info_gui(const std::string action, const float &tracerSca
                                 const float ips) {
   static float xc[2] = {m_x, m_y};
   static bool lagrangian = m_is_lagrangian;
-  static bool emiter = m_emits;
+  static bool emits = m_emits;
   bool add = false;
   const std::string buttonText = action+" single point";
 
   ImGui::InputFloat2("position", xc);
-  if (!emiter) {
+  if (!emits) {
     ImGui::Checkbox("Point follows flow", &lagrangian);
   }
   if (!lagrangian) {
-    ImGui::Checkbox("Point emits particles", &emiter);
+    ImGui::Checkbox("Point emits particles", &emits);
   }
   ImGui::TextWrapped("\nThis feature will add 1 point");
   if (ImGui::Button(buttonText.c_str())) {
     m_x = xc[0];
     m_y = xc[1];
     m_is_lagrangian = lagrangian;
-    m_emits = emiter;
+    m_emits = emits;
     add = true;
-  std::cout << "Enabled: " << m_enabled << " Emits: " << m_emits << std::endl;
   }
   
   return add;
@@ -458,6 +461,7 @@ bool TracerLine::draw_info_gui(const std::string action, const float &tracerScal
 }
 #endif
 
+*/
 //
 // Create a line of static measurement points
 //
@@ -489,8 +493,15 @@ MeasurementLine::init_particles(float _ips) const {
 
 std::vector<float>
 MeasurementLine::step_particles(float _ips) const {
-  // does not emit
-  return std::vector<float>();
+  if ((m_enabled) && (m_emits)) {
+    std::vector<float> line = init_particles(_ips);
+    for (int i=0; i<line.size(); i++) {
+      line[i] = emit(line[i], _ips);
+    }
+    return line;
+  } else {
+    return std::vector<float>();
+  }
 }
 
 void
@@ -501,7 +512,14 @@ MeasurementLine::debug(std::ostream& os) const {
 std::string
 MeasurementLine::to_string() const {
   std::stringstream ss;
-  ss << "measurement line from " << m_x << " " << m_y << " to " << m_xf << " " << m_yf;
+  if (m_emits) {
+    ss << "emiter";
+  } else if (m_is_lagrangian) {
+    ss << "tracer";
+  } else {
+    ss << "stationary";
+  }
+  ss << " line from " << m_x << " " << m_y << " to " << m_xf << " " << m_yf;
   return ss.str();
 }
 
@@ -514,6 +532,8 @@ MeasurementLine::from_json(const nlohmann::json j) {
   m_xf = e[0];
   m_yf = e[1];
   m_enabled = j.value("enabled", true);
+  m_is_lagrangian = j.value("lagrangian", true);
+  m_emits= j.value("emits", true);
 }
 
 nlohmann::json
@@ -522,7 +542,9 @@ MeasurementLine::to_json() const {
   j["type"] = "measurement line";
   j["center"] = {m_x, m_y};
   j["end"] = {m_xf, m_yf};
-  j["enabled"] = j.value("enabled", true);
+  j["enabled"] = m_enabled;
+  j["lagrangian"] = m_is_lagrangian;
+  j["emits"] = m_emits;
   return j;
 }
 
@@ -530,11 +552,19 @@ MeasurementLine::to_json() const {
 bool MeasurementLine::draw_info_gui(const std::string action, const float &tracerScale, float ips) {
   static float xc[2] = {m_x, m_y};
   static float xf[2] = {m_xf, m_yf};
+  static bool lagrangian = m_is_lagrangian;
+  static bool emits = m_emits;
   bool add = false;
   const std::string buttonText = action+" line of measurement points";
  
   ImGui::InputFloat2("start", xc);
   ImGui::InputFloat2("finish", xf);
+  if (!emits) {
+    ImGui::Checkbox("Point follows flow", &lagrangian);
+  }
+  if (!lagrangian) {
+    ImGui::Checkbox("Point emits particles", &emits);
+  }
   ImGui::TextWrapped("This feature will add about %d field points",
 		     1+(int)(std::sqrt(std::pow(xf[0]-xc[0],2)+std::pow(xf[1]-xc[1],2))/(tracerScale*ips)));
   if (ImGui::Button(buttonText.c_str())) {
@@ -542,6 +572,8 @@ bool MeasurementLine::draw_info_gui(const std::string action, const float &trace
     m_y = xc[1];
     m_xf = xf[0];
     m_yf = xf[1];
+    m_is_lagrangian = lagrangian;
+    m_emits = emits;
     add = true;
   }
 
@@ -549,6 +581,7 @@ bool MeasurementLine::draw_info_gui(const std::string action, const float &trace
 }
 #endif
 
+/*
 //
 // Create a grid of static measurement points
 //
