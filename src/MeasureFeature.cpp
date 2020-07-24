@@ -62,22 +62,12 @@ void MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeatur
     case 0: {
       mf = std::make_unique<SinglePoint>();
     } break;
-    /*case 1: {
-      // a tracer emitter
-      mf = std::make_unique<TracerEmitter>();
-      //TracerEmitter::draw_creation_gui(mf);
-    } break;
-    */case 1: {
+    case 1: {
       // a tracer circle
       mf = std::make_unique<MeasurementBlob>();
       //TracerBlob::draw_creation_gui(mf, tracerScale, ips);
     } break;
-    /*case 3: {
-      // a tracer line
-      mf = std::make_unique<TracerLine>();
-      //TracerLine::draw_creation_gui(mf, tracerScale, ips);
-    } break;
-    */case 2: {
+    case 2: {
       // a static, measurement line
       mf = std::make_unique<MeasurementLine>();
       //MeasurementLine::draw_creation_gui(mf, tracerScale, ips);
@@ -201,80 +191,7 @@ bool SinglePoint::draw_info_gui(const std::string action, const float &tracerSca
   return add;
 }
 #endif
-/*
-//
-// Create a single, stable point which emits Lagrangian points
-//
-std::vector<float>
-TracerEmitter::init_particles(float _ips) const {
-  // is not a measurement point in itself
-  // but if it was, we could use the local velocity to help generate points at any given time
-  return std::vector<float>();
-}
 
-std::vector<float>
-TracerEmitter::step_particles(float _ips) const {
-
-  if (not this->is_enabled()) return std::vector<float>();
-
-  // set up the random number generator
-  static std::random_device rd;  //Will be used to obtain a seed for the random number engine
-  static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
-  static std::uniform_real_distribution<float> zmean_dist(-0.5, 0.5);
-
-  // emits one per step, jittered slightly
-  return std::vector<float>({m_x + _ips*zmean_dist(gen),
-                             m_y + _ips*zmean_dist(gen)});
-}
-
-void
-TracerEmitter::debug(std::ostream& os) const {
-  os << to_string();
-}
-
-std::string
-TracerEmitter::to_string() const {
-  std::stringstream ss;
-  ss << "tracer emitter at " << m_x << " " << m_y << " spawning tracers every step";
-  return ss.str();
-}
-
-void
-TracerEmitter::from_json(const nlohmann::json j) {
-  const std::vector<float> c = j["center"];
-  m_x = c[0];
-  m_y = c[1];
-  m_enabled = j.value("enabled", true);
-}
-
-nlohmann::json
-TracerEmitter::to_json() const {
-  nlohmann::json j;
-  j["type"] = "tracer emitter";
-  j["center"] = {m_x, m_y};
-  j["enabled"] = m_enabled;
-  return j;
-}
-
-#ifdef USE_IMGUI
-bool TracerEmitter::draw_info_gui(const std::string action, const float &tracer_scale, const float ips) {
-  static float xc[2] = {m_x, m_y};
-  bool add = false;
-  const std::string buttonText = action+" streakline";
-  
-  ImGui::InputFloat2("position", xc);
-  ImGui::TextWrapped("This feature will add 1 tracer emitter");
-  if (ImGui::Button(buttonText.c_str())) {
-    m_x = xc[0];
-    m_y = xc[1];
-    add = true;
-  }
-  
-  return add;
-}
-#endif
-
-*/
 //
 // Create a circle of tracer points
 //
@@ -398,99 +315,7 @@ bool MeasurementBlob::draw_info_gui(const std::string action, const float &trace
   return add;
 }
 #endif
-/*
-//
-// Create a line of tracer points
-//
-std::vector<float>
-TracerLine::init_particles(float _ips) const {
 
-  // create a new vector to pass on
-  std::vector<float> x;
-
-  if (not this->is_enabled()) return x;
-
-  // how many points do we need?
-  float llen = std::sqrt( std::pow(m_xf-m_x, 2) + std::pow(m_yf-m_y, 2) );
-  int ilen = 1 + llen / _ips;
-
-  // loop over integer indices
-  for (int i=0; i<ilen; ++i) {
-
-    // how far along the line?
-    float frac = (float)i / (float)(ilen-1);
-
-    // create a particle here
-    x.emplace_back((1.0-frac)*m_x + frac*m_xf);
-    x.emplace_back((1.0-frac)*m_y + frac*m_yf);
-  }
-
-  return x;
-}
-
-std::vector<float>
-TracerLine::step_particles(float _ips) const {
-  // does not emit
-  return std::vector<float>();
-}
-
-void
-TracerLine::debug(std::ostream& os) const {
-  os << to_string();
-}
-
-std::string
-TracerLine::to_string() const {
-  std::stringstream ss;
-  ss << "tracer line from " << m_x << " " << m_y << " to " << m_xf << " " << m_yf;
-  return ss.str();
-}
-
-void
-TracerLine::from_json(const nlohmann::json j) {
-  const std::vector<float> c = j["center"];
-  m_x = c[0];
-  m_y = c[1];
-  const std::vector<float> e = j["end"];
-  m_xf = e[0];
-  m_yf = e[1];
-  m_enabled = j.value("enabled", true);
-}
-
-nlohmann::json
-TracerLine::to_json() const {
-  nlohmann::json j;
-  j["type"] = "tracer line";
-  j["center"] = {m_x, m_y};
-  j["end"] = {m_xf, m_yf};
-  j["enabled"] = m_enabled;
-  return j;
-}
-
-#ifdef USE_IMGUI
-bool TracerLine::draw_info_gui(const std::string action, const float &tracerScale, float ips) {
-  static float xc[2] = {m_x, m_y};
-  static float xf[2] = {m_xf, m_yf};
-  bool add = false;
-  const std::string buttonText = action+" line of tracers";
-
-  ImGui::InputFloat2("start", xc);
-  ImGui::InputFloat2("finish", xf);
-  ImGui::TextWrapped("This feature will add about %d field points",
-		     1+(int)(std::sqrt(std::pow(xf[0]-xc[0],2)+std::pow(xf[1]-xc[1],2))/(tracerScale*ips)));
-  if (ImGui::Button(buttonText.c_str())) {
-    m_x = xc[0];
-    m_y = xc[1];
-    m_xf = xf[0];
-    m_yf = xf[1];
-    add = true;
-  }
-
-  return add;
-}
-#endif
-
-*/
 //
 // Create a line of static measurement points
 //

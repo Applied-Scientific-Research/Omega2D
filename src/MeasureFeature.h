@@ -63,9 +63,7 @@ std::ostream& operator<<(std::ostream& os, MeasureFeature const& ff);
 // types of measurement features:
 //
 // single origin point, continuous tracer emitter
-// single set of tracer particles
 // fixed set of field points
-// periodic rake tracer emitter
 // grid of fixed field points
 // solid block (square, circle) of tracers
 // single streamline (save all positions of a single point, draw as a line)
@@ -99,40 +97,11 @@ protected:
   //float m_str;
 };
 
-/*
-//
-// Concrete class for an immobile particle emitter (one per frame)
-//
-class TracerEmitter : public SinglePoint {
-public:
-  TracerEmitter(float _x = 0.0,
-                float _y = 0.0)
-    : SinglePoint(_x, _y, false)
-    {}
-
-  void debug(std::ostream& os) const override;
-  std::string to_string() const override;
-  void from_json(nlohmann::json) override;
-  nlohmann::json to_json() const override;
-  std::vector<float> init_particles(float) const override;
-  std::vector<float> step_particles(float) const override;
-#ifdef USE_IMGUI
-  bool draw_info_gui(const std::string, const float&, const float) override;
-#endif
-
-protected:
-  // eventually implement frequency, but for now, once per step
-  //float m_frequency;
-};
-
-*/
 //
 // Concrete class for a circle of tracer points
 //
-//class TracerBlob : public SinglePoint {
 class MeasurementBlob : public SinglePoint {
 public:
-  //TracerBlob(float _x = 0.0,
   MeasurementBlob(float _x = 0.0,
              float _y = 0.0,
              bool _moves = false,
@@ -155,37 +124,9 @@ public:
 protected:
   float m_rad;
 };
-/*
-//
-// Concrete class for a tracer line
-//
-class TracerLine : public SinglePoint {
-public:
-  TracerLine(float _x = 0.0,
-             float _y = 0.0,
-             float _xf = 1.0,
-             float _yf = 0.0)
-    : SinglePoint(_x, _y, true),
-      m_xf(_xf),
-      m_yf(_yf)
-    {}
 
-  void debug(std::ostream& os) const override;
-  std::string to_string() const override;
-  void from_json(const nlohmann::json) override;
-  nlohmann::json to_json() const override;
-  std::vector<float> init_particles(float) const override;
-  std::vector<float> step_particles(float) const override;
-#ifdef USE_IMGUI
-  bool draw_info_gui(const std::string, const float&, const float) override;
-#endif
-
-protected:
-  float m_xf, m_yf;
-};
-*/
 //
-// Concrete class for a line of static measurement points
+// Concrete class for a line of measurement points
 //
 class MeasurementLine : public SinglePoint {
 public:
