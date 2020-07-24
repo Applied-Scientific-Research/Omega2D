@@ -172,6 +172,7 @@ void SingleParticle::generate_draw_geom() {
   const float diam = 0.01;
   std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, diam);
   m_draw = tmp->init_elements(diam/25.0);
+  std::fill(m_draw.val.begin(), m_draw.val.end(), m_str);
 }
 
 #ifdef USE_IMGUI
@@ -294,6 +295,7 @@ VortexBlob::to_json() const {
 void VortexBlob::generate_draw_geom() {
   std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, m_rad*2);
   m_draw = tmp->init_elements(m_rad/12.5);
+  std::fill(m_draw.val.begin(), m_draw.val.end(), m_str);
 }
 
 #ifdef USE_IMGUI
@@ -432,6 +434,7 @@ AsymmetricBlob::to_json() const {
 void AsymmetricBlob::generate_draw_geom() {
   std::unique_ptr<SolidOval> tmp = std::make_unique<SolidOval>(nullptr, true, m_x, m_y, m_rad*2, m_minrad*2);
   m_draw = tmp->init_elements(m_rad/12.5);
+  std::fill(m_draw.val.begin(), m_draw.val.end(), m_str);
 }
 
 #ifdef USE_IMGUI
@@ -559,6 +562,7 @@ GaussianBlob::to_json() const {
 void GaussianBlob::generate_draw_geom() {
   std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, m_stddev*6);
   m_draw = tmp->init_elements(m_stddev*6/25);
+  std::fill(m_draw.val.begin(), m_draw.val.end(), m_str);
 }
 
 #ifdef USE_IMGUI
@@ -661,6 +665,7 @@ UniformBlock::to_json() const {
 void UniformBlock::generate_draw_geom() {
   std::unique_ptr<SolidRect> tmp = std::make_unique<SolidRect>(nullptr, true, m_x, m_y, m_xsize, m_ysize);
   m_draw = tmp->init_elements(m_xsize);
+  std::fill(m_draw.val.begin(), m_draw.val.end(), m_str);
 }
 
 #ifdef USE_IMGUI
@@ -763,6 +768,7 @@ BlockOfRandom::to_json() const {
 void BlockOfRandom::generate_draw_geom() {
   std::unique_ptr<SolidRect> tmp = std::make_unique<SolidRect>(nullptr, true, m_x, m_y, m_xsize*2, m_ysize*2);
   m_draw = tmp->init_elements(m_xsize*2);
+  std::fill(m_draw.val.begin(), m_draw.val.end(), (m_minstr+m_maxstr)/2);
 }
 
 #ifdef USE_IMGUI
@@ -844,6 +850,7 @@ void ParticleEmitter::generate_draw_geom() {
   const float diam = 0.01;
   std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, diam);
   m_draw = tmp->init_elements(diam/25.0);
+  std::fill(m_draw.val.begin(), m_draw.val.end(), m_str);
 }
 
 #ifdef USE_IMGUI

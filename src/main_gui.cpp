@@ -674,16 +674,18 @@ int main(int argc, char const *argv[]) {
         ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
         if (ImGui::BeginPopupModal("Edit flow feature")) {
           bool fin = false;
-          if (ffeatures[edit_item_index]->draw_info_gui("Edit", sim.get_ips())) { fin = true; }
+          if (ffeatures[edit_item_index]->draw_info_gui("Edit", sim.get_ips())) {
+            fdraw.clear_elements();
+            for (auto const& ff : ffeatures) {
+              fdraw.add_elements( ff->get_draw_packet(), ff->is_enabled() );
+            }
+            fin = true;
+          }
           ImGui::SameLine();
           if (ImGui::Button("Cancel", ImVec2(120,0))) { fin = true; }
           if (fin) {
             edit_item_index = -1;
             editF = false;
-            fdraw.clear_elements();
-            for (auto const& ff : ffeatures) {
-              fdraw.add_elements( ff->get_draw_packet(), ff->is_enabled() );
-            }
             ImGui::CloseCurrentPopup();
           }
         ImGui::EndPopup();
@@ -1029,6 +1031,7 @@ int main(int argc, char const *argv[]) {
       }
 
       // and draw
+      //std::cout << "Main_Gui pre-sim draw call" << std::endl;
       bdraw.drawGL(gl_projection, rparams);
       fdraw.drawGL(gl_projection, rparams);
       mdraw.drawGL(gl_projection, rparams);
