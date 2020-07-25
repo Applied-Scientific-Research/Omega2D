@@ -636,9 +636,7 @@ int main(int argc, char const *argv[]) {
       for (int i=0; i<(int)ffeatures.size(); ++i) {
 
         ImGui::PushID(++buttonIDs);
-        if (ImGui::Checkbox("", ffeatures[i]->addr_enabled())) {
-          fdraw.reset_enabled(i, ffeatures[i]->is_enabled());
-        }
+        const bool ischeck = ImGui::Checkbox("", ffeatures[i]->addr_enabled());
         ImGui::PopID();
         
         // add an "edit" button after the checkbox (so it's not easy to accidentally hit remove)
@@ -667,6 +665,11 @@ int main(int argc, char const *argv[]) {
         ImGui::PushID(++buttonIDs);
         if (ImGui::SmallButton("remove")) del_this_item = i;
         ImGui::PopID();
+        
+        // if the checkbox flipped positions this frame, ischeck is 1
+        if (ischeck) {
+          fdraw.reset_enabled(i, ffeatures[i]->is_enabled());
+        }
       }
 
       if (editF) {
@@ -782,9 +785,7 @@ int main(int argc, char const *argv[]) {
       for (int i=0; i<(int)mfeatures.size(); ++i) {
 
         ImGui::PushID(++buttonIDs);
-        if (ImGui::Checkbox("", mfeatures[i]->addr_enabled())) {
-          mdraw.reset_enabled(i, mfeatures[i]->is_enabled());
-        }
+        const bool ischeck = ImGui::Checkbox("", mfeatures[i]->addr_enabled());
         ImGui::PopID();
         
         ImGui::SameLine(); 
@@ -808,6 +809,11 @@ int main(int argc, char const *argv[]) {
         ImGui::PushID(++buttonIDs);
         if (ImGui::SmallButton("remove")) del_this_measure = i;
         ImGui::PopID();
+        
+        // if the checkbox flipped positions this frame, ischeck is 1
+        if (ischeck) {
+          mdraw.reset_enabled(i, mfeatures[i]->is_enabled());
+        }
       }
       
       if (editM) {

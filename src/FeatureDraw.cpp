@@ -31,6 +31,9 @@ void FeatureDraw::clear_elements() {
   m_idx.clear();
 }
 
+float enable(float a) { return a*4; }
+float disable(float a) { return a/4; }
+
 // add elements to the local list
 void FeatureDraw::add_elements(const ElementPacket<float> _in, const bool _enabled) {
   //std::cout << "  FeatureDraw appending " << (_in.x.size()/2) << " nodes and " << (_in.idx.size()/2) << " elements" << std::endl;
@@ -51,12 +54,9 @@ void FeatureDraw::add_elements(const ElementPacket<float> _in, const bool _enabl
   // and set the str/val array for per-element color/strength
   const size_t nv_old = m_geom.val.size();
   m_geom.val.insert(std::end(m_geom.val), std::begin(_in.val), std::end(_in.val));
-  /*m_geom.val.resize(nv_old+_in.idx.size()/2);
-  if (_enabled) {
-    std::fill(m_geom.val.begin()+nv_old, m_geom.val.end(), 1.0);
-  } else {
-    std::fill(m_geom.val.begin()+nv_old, m_geom.val.end(), 0.3);
-  }*/
+  if (!_enabled) {
+    std::for_each(m_geom.val.begin()+nv_old, m_geom.val.end(), &disable);
+  }
 
   // append to m_idx the start and end indices for this ElementPacket
   m_idx.push_back(std::make_pair((int)nv_old, (int)m_geom.val.size()));
@@ -71,12 +71,14 @@ void FeatureDraw::reset_enabled(const size_t _ifeat, const bool _enabled) {
   assert(_ifeat < m_idx.size() && "Enable feature index larger than number of features");
   assert(m_idx[_ifeat].second <= (int)m_geom.val.size() && "Draw array sizes larger than expected");
 
-  /*// do the work here
+  // do the work here
+  // The state of _enabled is the new state
   if (_enabled) {
-    std::fill(m_geom.val.begin()+m_idx[_ifeat].first, m_geom.val.begin()+m_idx[_ifeat].second, 1.0);
+    std::for_each(m_geom.val.begin()+m_idx[_ifeat].first, m_geom.val.begin()+m_idx[_ifeat].second, &enable);
   } else {
-    std::fill(m_geom.val.begin()+m_idx[_ifeat].first, m_geom.val.begin()+m_idx[_ifeat].second, 0.3);
-  }*/
+    std::cout << "disabling..." << m_idx[_ifeat].first << " " << m_idx[_ifeat].second << std::endl;
+    std::for_each(m_geom.val.begin()+m_idx[_ifeat].first, m_geom.val.begin()+m_idx[_ifeat].second, &disable);
+  }
 
   m_vals_changed = true;
 }
