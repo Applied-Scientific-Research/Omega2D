@@ -135,10 +135,12 @@ public:
                   bool _moves = false,
                   bool _emits = false,
                   float _xf = 1.0,
-                  float _yf = 0.0)
+                  float _yf = 0.0,
+                  float _dx = 0.1)
     : SinglePoint(_x, _y, _moves, _emits),
       m_xf(_xf),
-      m_yf(_yf)
+      m_yf(_yf),
+      m_dx(_dx)
     {}
 
   void debug(std::ostream& os) const override;
@@ -153,6 +155,7 @@ public:
 
 protected:
   float m_xf, m_yf;
+  float m_dx;
 };
 
 //
