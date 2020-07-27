@@ -67,7 +67,7 @@ void FeatureDraw::add_elements(const ElementPacket<float> _in, const bool _enabl
 
 
 // toggle a set of elements to a new "enabled" setting
-void FeatureDraw::reset_enabled(const size_t _ifeat, const bool _enabled) {
+/*void FeatureDraw::reset_enabled(const size_t _ifeat, const bool _enabled) {
   assert(_ifeat < m_idx.size() && "Enable feature index larger than number of features");
   assert(m_idx[_ifeat].second <= (int)m_geom.val.size() && "Draw array sizes larger than expected");
 
@@ -81,7 +81,7 @@ void FeatureDraw::reset_enabled(const size_t _ifeat, const bool _enabled) {
   }
 
   m_vals_changed = true;
-}
+}*/
 
 
 // helper function to clean up initGL

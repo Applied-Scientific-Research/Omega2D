@@ -499,7 +499,7 @@ int main(int argc, char const *argv[]) {
     }
 
 
-    //if (ImGui::CollapsingHeader("Simulation globals", ImGuiTreeNodeFlags_DefaultOpen)) {
+    //if (ImGui::CollapsingHeader("Simulation globals", ImGuiTreeNodeFlags_DefaultOpen))
     if (ImGui::CollapsingHeader("Simulation globals")) {
 
       // save current versions, so we know which changed
@@ -632,11 +632,12 @@ int main(int argc, char const *argv[]) {
       // list existing flow features here
       static int edit_item_index = -1;
       static bool editF = false;
+      bool addF = false;
       int del_this_item = -1;
       for (int i=0; i<(int)ffeatures.size(); ++i) {
 
         ImGui::PushID(++buttonIDs);
-        const bool ischeck = ImGui::Checkbox("", ffeatures[i]->addr_enabled());
+        if (ImGui::Checkbox("", ffeatures[i]->addr_enabled())) { addF = true; }
         ImGui::PopID();
         
         // add an "edit" button after the checkbox (so it's not easy to accidentally hit remove)
@@ -645,10 +646,6 @@ int main(int argc, char const *argv[]) {
         if (ImGui::SmallButton("edit")) { 
           edit_item_index = i;
           editF = true;
-          // Ideally we call OpenPopup here and then catch it after the forloop,
-          // But OpenPopup has to be called everytime, which gives us this messy flag system
-          // I may create an issue over there to make a case about having openpopup only need
-          // to be called once, because once it's open it's open
         }
         ImGui::PopID();
         
@@ -665,11 +662,6 @@ int main(int argc, char const *argv[]) {
         ImGui::PushID(++buttonIDs);
         if (ImGui::SmallButton("remove")) del_this_item = i;
         ImGui::PopID();
-        
-        // if the checkbox flipped positions this frame, ischeck is 1
-        if (ischeck) {
-          fdraw.reset_enabled(i, ffeatures[i]->is_enabled());
-        }
       }
 
       if (editF) {
@@ -678,10 +670,7 @@ int main(int argc, char const *argv[]) {
         if (ImGui::BeginPopupModal("Edit flow feature")) {
           bool fin = false;
           if (ffeatures[edit_item_index]->draw_info_gui("Edit", sim.get_ips())) {
-            fdraw.clear_elements();
-            for (auto const& ff : ffeatures) {
-              fdraw.add_elements( ff->get_draw_packet(), ff->is_enabled() );
-            }
+            addF = true;
             fin = true;
           }
           ImGui::SameLine();
@@ -698,19 +687,27 @@ int main(int argc, char const *argv[]) {
       if (del_this_item > -1) {
         std::cout << "Asked to delete flow feature " << del_this_item << std::endl;
         ffeatures.erase(ffeatures.begin()+del_this_item);
+        addF = true;
+      }
+
+      if (addF) {
         fdraw.clear_elements();
         for (auto const& ff : ffeatures) {
-          fdraw.add_elements( ff->get_draw_packet(), ff->is_enabled() );
+          if (ff->is_enabled()) {
+            fdraw.add_elements( ff->get_draw_packet(), ff->is_enabled() );
+          }
         }
+        addF = false;
       }
 
       // list existing boundary features here
       static bool editB = false;
+      bool addB = false;
       int del_this_bdry = -1;
       for (int i=0; i<(int)bfeatures.size(); ++i) {
 
         ImGui::PushID(++buttonIDs);
-        const bool ischeck = ImGui::Checkbox("", bfeatures[i]->addr_enabled());
+        if (ImGui::Checkbox("", bfeatures[i]->addr_enabled())) { addB = true; }
         ImGui::PopID();
       
         ImGui::SameLine(); 
@@ -729,11 +726,6 @@ int main(int argc, char const *argv[]) {
           ImGui::TextColored(ImVec4(0.5f,0.5f,0.5f,1.0f), "%s", bfeatures[i]->to_string().c_str());
         }
 
-        // if the checkbox flipped positions this frame, ischeck is 1
-        if (ischeck) {
-          bdraw.reset_enabled(i, bfeatures[i]->is_enabled());
-        }
-
         // add a "remove" button at the end of the line (so it's not easy to accidentally hit)
         ImGui::SameLine();
         ImGui::PushID(++buttonIDs);
@@ -750,11 +742,8 @@ int main(int argc, char const *argv[]) {
           // Currently cannot edit body. This will require rethinking on how we manage the Body Class.
           if (bfeatures[edit_item_index]->draw_info_gui("Edit")) {
             std::cout << "Modified " << bfeatures[edit_item_index]->to_short_string() << std::endl;
+            addB = true;
             fin = true;
-            bdraw.clear_elements();
-            for (auto const& bf : bfeatures) {
-              bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
-            }
           }
           ImGui::SameLine();
           if (ImGui::Button("Cancel", ImVec2(120,0))) { fin = true; }
@@ -770,22 +759,26 @@ int main(int argc, char const *argv[]) {
       if (del_this_bdry > -1) {
         std::cout << "Asked to delete boundary feature " << del_this_bdry << std::endl;
         bfeatures.erase(bfeatures.begin()+del_this_bdry);
-
+      }
+     
+      if (addB) {
         // clear out and re-make all boundary draw geometry
         bdraw.clear_elements();
         for (auto const& bf : bfeatures) {
-          bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
+          if (bf->is_enabled()) { 
+            bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
+          }
         }
       }
-      
 
       // list existing measurement features here
       static bool editM = false;
+      bool addM = false;
       int del_this_measure = -1;
       for (int i=0; i<(int)mfeatures.size(); ++i) {
 
         ImGui::PushID(++buttonIDs);
-        const bool ischeck = ImGui::Checkbox("", mfeatures[i]->addr_enabled());
+        if (ImGui::Checkbox("", mfeatures[i]->addr_enabled())) { addM = true; }
         ImGui::PopID();
         
         ImGui::SameLine(); 
@@ -809,11 +802,6 @@ int main(int argc, char const *argv[]) {
         ImGui::PushID(++buttonIDs);
         if (ImGui::SmallButton("remove")) del_this_measure = i;
         ImGui::PopID();
-        
-        // if the checkbox flipped positions this frame, ischeck is 1
-        if (ischeck) {
-          mdraw.reset_enabled(i, mfeatures[i]->is_enabled());
-        }
       }
       
       if (editM) {
@@ -822,10 +810,7 @@ int main(int argc, char const *argv[]) {
         if (ImGui::BeginPopupModal("Edit measure feature")) {
           bool fin = false;
           if (mfeatures[edit_item_index]->draw_info_gui("Edit", rparams.tracer_scale, sim.get_ips())) {
-            mdraw.clear_elements();
-            for (auto const& mf : mfeatures) {
-              mdraw.add_elements( mf->get_draw_packet(), mf->is_enabled() );
-             }
+              addM = true;
               fin = true;
           }
           ImGui::SameLine();
@@ -842,16 +827,17 @@ int main(int argc, char const *argv[]) {
       if (del_this_measure > -1) {
         std::cout << "Asked to delete measurement feature " << del_this_measure << std::endl;
         mfeatures.erase(mfeatures.begin()+del_this_measure);
-        mdraw.clear_elements();
-        for (auto const& mf : mfeatures) {
-          mdraw.add_elements( mf->get_draw_packet(), mf->is_enabled() );
-        }
+        addM = true;
       }
 
-      //if (ffeatures.size() + bfeatures.size() + mfeatures.size() == 0) {
-      //  ImGui::Text("none");
-      //}
-
+      if (addM) {
+        mdraw.clear_elements();
+        for (auto const& mf : mfeatures) {
+          if (mf->is_enabled()) {
+            mdraw.add_elements( mf->get_draw_packet(), mf->is_enabled() );
+          }
+        }
+      }
     } // end structure entry
 
 
