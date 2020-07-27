@@ -134,13 +134,14 @@ void FeatureDraw::initGL(std::vector<float>& _projmat,
   m_gl->pos_color_attribute = glGetUniformLocation(m_gl->spo[0], "pos_color");
   m_gl->neg_color_attribute = glGetUniformLocation(m_gl->spo[0], "neg_color");
   m_gl->def_color_attribute = glGetUniformLocation(m_gl->spo[0], "def_color");
-  m_gl->one_color_attribute = glGetUniformLocation(m_gl->spo[0], "one_color");
+  m_gl->use_def_attribute = glGetUniformLocation(m_gl->spo[0], "use_def");
+  //m_gl->use_back_attribute = glGetUniformLocation(m_gl->spo[0], "use_back");
 
   // send the current values
   glUniform4fv(m_gl->pos_color_attribute, 1, (const GLfloat *)_poscolor);
   glUniform4fv(m_gl->neg_color_attribute, 1, (const GLfloat *)_negcolor);
   glUniform4fv(m_gl->def_color_attribute, 1, (const GLfloat *)_defcolor);
-  glUniform1i(m_gl->one_color_attribute, (const GLint)_oneColor);
+  glUniform1i(m_gl->use_def_attribute, (const GLint)_oneColor);
   //std::cout << "init pos color as " << _poscolor[0] << " " << _poscolor[1] << " " << _poscolor[2] << " " << _poscolor[3] << std::endl;
 
   // and indicate the fragment color output
@@ -229,7 +230,7 @@ void FeatureDraw::drawGL(std::vector<float>& _projmat,
     glUniform4fv(m_gl->pos_color_attribute, 1, (const GLfloat *)_rparams.pos_circ_color);
     glUniform4fv(m_gl->neg_color_attribute, 1, (const GLfloat *)_rparams.neg_circ_color);
     glUniform4fv(m_gl->def_color_attribute, 1, (const GLfloat *)_rparams.default_color);
-    glUniform1i(m_gl->one_color_attribute, (const GLint)_oneColor);
+    glUniform1i(m_gl->use_def_attribute, (const GLint)_oneColor);
 
     // the one draw call here
     glDrawElements(GL_LINES, m_gl->num_uploaded, get_gl_type<Int>, 0);
