@@ -340,7 +340,7 @@ MeasurementLine::init_particles(float _ips) const {
 
   // how many points do we need?
   float llen = std::sqrt( std::pow(m_xf-m_x, 2) + std::pow(m_yf-m_y, 2) );
-  int ilen = 1 + llen / _ips;
+  int ilen = 1 + llen / m_dx;
 
   // loop over integer indices
   for (int i=0; i<ilen; ++i) {
@@ -384,7 +384,7 @@ MeasurementLine::to_string() const {
   } else {
     ss << "stationary";
   }
-  ss << " line from " << m_x << " " << m_y << " to " << m_xf << " " << m_yf;
+  ss << " line from " << m_x << " " << m_y << " to " << m_xf << " " << m_yf << " with dx " << m_dx;
   return ss.str();
 }
 
@@ -396,9 +396,10 @@ MeasurementLine::from_json(const nlohmann::json j) {
   const std::vector<float> e = j["end"];
   m_xf = e[0];
   m_yf = e[1];
+  m_dx = j.value("dx", 0.1);
   m_enabled = j.value("enabled", true);
   m_is_lagrangian = j.value("lagrangian", m_is_lagrangian);
-  m_emits= j.value("emits", m_emits);
+  m_emits = j.value("emits", m_emits);
 }
 
 nlohmann::json
@@ -407,6 +408,7 @@ MeasurementLine::to_json() const {
   j["type"] = "measurement line";
   j["center"] = {m_x, m_y};
   j["end"] = {m_xf, m_yf};
+  j["dx"] = m_dx;
   j["enabled"] = m_enabled;
   j["lagrangian"] = m_is_lagrangian;
   j["emits"] = m_emits;
@@ -423,6 +425,7 @@ void MeasurementLine::generate_draw_geom() {
 bool MeasurementLine::draw_info_gui(const std::string action, const float &tracerScale, float ips) {
   static float xc[2] = {m_x, m_y};
   static float xf[2] = {m_xf, m_yf};
+  static float dx = m_dx;
   static bool lagrangian = m_is_lagrangian;
   static bool emits = m_emits;
   bool add = false;
@@ -430,6 +433,7 @@ bool MeasurementLine::draw_info_gui(const std::string action, const float &trace
  
   ImGui::InputFloat2("start", xc);
   ImGui::InputFloat2("finish", xf);
+  ImGui::SliderFloat("dx", &dx, ips, 1.0f, "%.4f");
   if (!emits) {
     ImGui::Checkbox("Point follows flow", &lagrangian);
   }
@@ -437,13 +441,14 @@ bool MeasurementLine::draw_info_gui(const std::string action, const float &trace
     ImGui::Checkbox("Point emits particles", &emits);
   }
   ImGui::TextWrapped("This feature will add about %d field points",
-		     1+(int)(std::sqrt(std::pow(xf[0]-xc[0],2)+std::pow(xf[1]-xc[1],2))/(tracerScale*ips)));
+		     1+(int)(std::sqrt(std::pow(xf[0]-xc[0],2)+std::pow(xf[1]-xc[1],2))/dx));
   if (ImGui::Button(buttonText.c_str())) {
     m_x = xc[0];
     m_y = xc[1];
     m_xf = xf[0];
     m_yf = xf[1];
     generate_draw_geom();
+    m_dx = dx;
     m_is_lagrangian = lagrangian;
     m_emits = emits;
     add = true;
@@ -493,7 +498,7 @@ GridPoints::debug(std::ostream& os) const {
 std::string
 GridPoints::to_string() const {
   std::stringstream ss;
-  ss << "measurement grid from " << m_x << " " << m_y << " to " << m_xf << " " << m_yf << " widh dx " << m_dx;
+  ss << "measurement grid from " << m_x << " " << m_y << " to " << m_xf << " " << m_yf << " with dx " << m_dx;
   return ss.str();
 }
 
