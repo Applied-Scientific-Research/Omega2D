@@ -35,7 +35,8 @@ public:
       m_external(_ext),
       m_x(_x),
       m_y(_y)
-    {}
+    {/* m_xc[0] = _x;
+      m_xc[1] = _y;*/ }
   virtual ~BoundaryFeature() = default;
 
   virtual void debug(std::ostream& os) const = 0;
@@ -57,6 +58,7 @@ public:
 protected:
   std::shared_ptr<Body> m_bp;
   bool m_external;
+  //float m_xc[2];
   float m_x;
   float m_y;
   ElementPacket<float> m_draw;
