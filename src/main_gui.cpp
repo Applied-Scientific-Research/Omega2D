@@ -772,6 +772,7 @@ int main(int argc, char const *argv[]) {
       if (del_this_bdry > -1) {
         std::cout << "Asked to delete boundary feature " << del_this_bdry << std::endl;
         bfeatures.erase(bfeatures.begin()+del_this_bdry);
+        addB = true;
       }
      
       if (addB) {
