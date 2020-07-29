@@ -368,8 +368,8 @@ int main(int argc, char const *argv[]) {
       int currentItemIndex = 0;
       const char* currentItem = descriptions[currentItemIndex].c_str();
       static ImGuiComboFlags flags = 0;
-      if (ImGui::BeginCombo("", currentItem, flags)) // The second parameter is the label previewed before opening the combo.
-      {
+      // The second parameter is the label previewed before opening the combo.
+      if (ImGui::BeginCombo("", currentItem, flags)) {
         for (size_t n = 0; n < descriptions.size(); n++)
         {
           bool is_selected = (currentItem == descriptions[n].c_str());
@@ -391,20 +391,26 @@ int main(int argc, char const *argv[]) {
         mfeatures.clear();
         parse_json(sim, ffeatures, bfeatures, mfeatures, rparams, sims[currentItemIndex-1]);
         
+        std::cout << "Loading drawing info for features..." << std::endl;
         // clear and remake the draw geometry
         bdraw.clear_elements();
         for (auto const& bf : bfeatures) {
-          bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
+          if (bf->is_enabled()) {
+            bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
+          }
         }
         fdraw.clear_elements();
         for (auto const& ff : ffeatures) {
-          fdraw.add_elements( ff->get_draw_packet(), ff->is_enabled() );
+          if (ff->is_enabled()) {
+            fdraw.add_elements( ff->get_draw_packet(), ff->is_enabled() );
+          }
         }
         mdraw.clear_elements();
         for (auto const& mf : mfeatures) {
-          mdraw.add_elements( mf->get_draw_packet(), mf->is_enabled() );
+          if (mf->is_enabled()) {
+            mdraw.add_elements( mf->get_draw_packet(), mf->is_enabled() );
+          }
         }
-        
         // finish setting up and run
         is_viscous = sim.get_diffuse();
         currentItemIndex = 0;
@@ -438,19 +444,26 @@ int main(int argc, char const *argv[]) {
           parse_json(sim, ffeatures, bfeatures, mfeatures, rparams, j);
 
           // clear and remake the draw geometry
+          std::cout << "Loading drawing info for features..." << std::endl;
           bdraw.clear_elements();
           for (auto const& bf : bfeatures) {
-            bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
+            if (bf->is_enabled()) {
+              bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
+            }
           }
           fdraw.clear_elements();
           for (auto const& ff : ffeatures) {
-            fdraw.add_elements( ff->get_draw_packet(), ff->is_enabled() );
+            if (ff->is_enabled()) {
+              fdraw.add_elements( ff->get_draw_packet(), ff->is_enabled() );
+            }
           }
           mdraw.clear_elements();
           for (auto const& mf : mfeatures) {
-            mdraw.add_elements( mf->get_draw_packet(), mf->is_enabled() );
+            if (mf->is_enabled()) {
+              mdraw.add_elements( mf->get_draw_packet(), mf->is_enabled() );
+            }
           }
-
+        
           // finish setting up and run
           is_viscous = sim.get_diffuse();
 
