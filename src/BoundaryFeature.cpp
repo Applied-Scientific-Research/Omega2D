@@ -135,29 +135,31 @@ bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeat
   if (oldItem != item) {
     switch(item) {
       case 0: {
-        bf = std::make_unique<SolidCircle>(bp);
+        bf = std::make_unique<SolidCircle>();
       } break;
       case 1: {
-        bf = std::make_unique<SolidSquare>(bp);
+        bf = std::make_unique<SolidSquare>();
       } break;
       case 2: {
-        bf = std::make_unique<SolidOval>(bp);
+        bf = std::make_unique<SolidOval>();
       } break;
       case 3: {
-        bf = std::make_unique<SolidRect>(bp);
+        bf = std::make_unique<SolidRect>();
       } break;
       case 4: {
-        bf = std::make_unique<BoundarySegment>(bp);
+        bf = std::make_unique<BoundarySegment>();
       } break;
       case 5: {
-        bf = std::make_unique<SolidPolygon>(bp);
+        bf = std::make_unique<SolidPolygon>();
       } break;
       case 6: {
-        bf = std::make_unique<SolidAirfoil>(bp);
+        bf = std::make_unique<SolidAirfoil>();
       } break;
     } // end switch for geometry
     oldItem = item;
   }
+
+  if (changed) { bf->set_body(bp); }
 
   if (bf->draw_info_gui("Add")) {
     if (mitem == 2) {
