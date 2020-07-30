@@ -481,9 +481,9 @@ bool fileIOWindow(
     if ( directory_browsing )
         size.y += std::min( size_t( 8 ), std::max( dir_list.size(), file_list.size() ) ) *  GetFontSize();
 
-    SetNextWindowSize( size );
+    SetNextWindowSize( size, ImGuiCond_FirstUseEver);
     // I have no idea why I can't resize this window!?!
-    ImGuiWindowFlags window_flags = !ImGuiWindowFlags_AlwaysAutoResize;
+    ImGuiWindowFlags window_flags = 0;//!ImGuiWindowFlags_AlwaysAutoResize;
     Begin( "FileIO", NULL, window_flags );
 
     Text("Directory: "); SameLine();
