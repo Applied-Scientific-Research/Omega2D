@@ -9,7 +9,7 @@
 #pragma once
 
 #include "Feature.h"
-
+#include "ElementPacket.h"
 #include "json/json.hpp"
 
 #include <iostream>
@@ -33,31 +33,34 @@ public:
       m_emits(_emits)
     {}
   virtual ~MeasureFeature() {}
+  virtual MeasureFeature* copy() const = 0;
 
   bool moves() const { return m_is_lagrangian; }
   bool emits() const { return m_emits; }
+  float jitter(const float, const float) const;
+  ElementPacket<float> get_draw_packet() const { return m_draw; }
+
   virtual void debug(std::ostream& os) const = 0;
   virtual std::string to_string() const = 0;
   virtual void from_json(const nlohmann::json) = 0;
   virtual nlohmann::json to_json() const = 0;
   virtual std::vector<float> init_particles(float) const = 0;
   virtual std::vector<float> step_particles(float) const = 0;
-  float jitter(const float, const float) const;
+  virtual void generate_draw_geom() = 0;
 #ifdef USE_IMGUI
-  static void draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float, const float &);
+  static bool draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float, const float &);
   virtual bool draw_info_gui(const std::string, const float &, const float) = 0;
 #endif
-
 
 protected:
   float m_x;
   float m_y;
   bool m_is_lagrangian;
   bool m_emits;
+  ElementPacket<float> m_draw;
 };
 
 std::ostream& operator<<(std::ostream& os, MeasureFeature const& ff);
-
 
 //
 // types of measurement features:
@@ -68,7 +71,6 @@ std::ostream& operator<<(std::ostream& os, MeasureFeature const& ff);
 // solid block (square, circle) of tracers
 // single streamline (save all positions of a single point, draw as a line)
 //
-
 
 
 //
@@ -82,6 +84,7 @@ public:
               bool _emits = false)
     : MeasureFeature(_x, _y, _moves, _emits)
     {}
+  SinglePoint* copy() const override { return new SinglePoint(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -89,6 +92,7 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+  void generate_draw_geom() override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string, const float&, const float) override;
 #endif
@@ -110,6 +114,7 @@ public:
     : SinglePoint(_x, _y, _moves, _emits),
       m_rad(_rad)
     {}
+  MeasurementBlob* copy() const override { return new MeasurementBlob(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -117,6 +122,7 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+  void generate_draw_geom() override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string, const float&, const float) override;
 #endif
@@ -142,6 +148,7 @@ public:
       m_yf(_yf),
       m_dx(_dx)
     {}
+  MeasurementLine* copy() const override { return new MeasurementLine(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -149,6 +156,7 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+  void generate_draw_geom() override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string, const float&, const float) override;
 #endif
@@ -173,6 +181,7 @@ public:
       m_yf(_yf),
       m_dx(_dx)
     {}
+  GridPoints* copy() const override { return new GridPoints(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -180,6 +189,7 @@ public:
   nlohmann::json to_json() const override;
   std::vector<float> init_particles(float) const override;
   std::vector<float> step_particles(float) const override;
+  void generate_draw_geom() override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string, const float&, const float) override;
 #endif

@@ -35,8 +35,10 @@ public:
       m_external(_ext),
       m_x(_x),
       m_y(_y)
-    {}
+    {/* m_xc[0] = _x;
+      m_xc[1] = _y;*/ }
   virtual ~BoundaryFeature() = default;
+  virtual BoundaryFeature* copy() const = 0;
 
   virtual void debug(std::ostream& os) const = 0;
   virtual std::string to_string() const = 0;
@@ -45,6 +47,7 @@ public:
   virtual nlohmann::json to_json() const = 0;
   virtual ElementPacket<float> init_elements(const float) const = 0;
   //virtual std::vector<float> step_elements(const float) const = 0;
+  void set_body(std::shared_ptr<Body> _bp) { m_bp = _bp; }
   std::shared_ptr<Body> get_body() { return m_bp; }
   virtual void generate_draw_geom() = 0;
   virtual ElementPacket<float> get_draw_packet() { return m_draw; }
@@ -57,6 +60,7 @@ public:
 protected:
   std::shared_ptr<Body> m_bp;
   bool m_external;
+  //float m_xc[2];
   float m_x;
   float m_y;
   ElementPacket<float> m_draw;
@@ -106,7 +110,7 @@ public:
     : BoundaryFeature(_bp, _ext, _x, _y),
       m_diam(_diam)
     {}
-  SolidCircle(const SolidCircle&) = default;
+  SolidCircle* copy() const override { return new SolidCircle(*this); }
   ~SolidCircle() = default;
 
   void debug(std::ostream& os) const override;
@@ -142,6 +146,7 @@ public:
       m_theta(_theta)
     {}
   ~SolidOval() = default;
+  SolidOval* copy() const override { return new SolidOval(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -176,6 +181,7 @@ public:
       m_theta(_theta)
     {}
   ~SolidSquare() = default;
+  SolidSquare* copy() const override { return new SolidSquare(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -210,6 +216,7 @@ public:
       m_sidey(_sidey)
     {}
   ~SolidRect() = default;
+  SolidRect* copy() const override { return new SolidRect(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -247,6 +254,7 @@ public:
       m_tangflow(_tangflow)
     {}
   ~BoundarySegment() = default;
+  BoundarySegment* copy() const override { return new BoundarySegment(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -285,6 +293,7 @@ public:
       m_theta(_theta)
     {}
   ~SolidPolygon() = default;
+  SolidPolygon* copy() const override { return new SolidPolygon(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -327,6 +336,7 @@ public:
       m_chordLength(_chordLength)
     {}
   ~SolidAirfoil() = default;
+  SolidAirfoil* copy() const override { return new SolidAirfoil(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;

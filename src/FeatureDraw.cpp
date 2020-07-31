@@ -31,6 +31,9 @@ void FeatureDraw::clear_elements() {
   m_idx.clear();
 }
 
+float enable(float a) { return a*4; }
+float disable(float a) { return a/4; }
+
 // add elements to the local list
 void FeatureDraw::add_elements(const ElementPacket<float> _in, const bool _enabled) {
   //std::cout << "  FeatureDraw appending " << (_in.x.size()/2) << " nodes and " << (_in.idx.size()/2) << " elements" << std::endl;
@@ -50,11 +53,9 @@ void FeatureDraw::add_elements(const ElementPacket<float> _in, const bool _enabl
 
   // and set the str/val array for per-element color/strength
   const size_t nv_old = m_geom.val.size();
-  m_geom.val.resize(nv_old+_in.idx.size()/2);
-  if (_enabled) {
-    std::fill(m_geom.val.begin()+nv_old, m_geom.val.end(), 1.0);
-  } else {
-    std::fill(m_geom.val.begin()+nv_old, m_geom.val.end(), 0.3);
+  m_geom.val.insert(std::end(m_geom.val), std::begin(_in.val), std::end(_in.val));
+  if (!_enabled) {
+    std::for_each(m_geom.val.begin()+nv_old, m_geom.val.end(), &disable);
   }
 
   // append to m_idx the start and end indices for this ElementPacket
@@ -66,19 +67,21 @@ void FeatureDraw::add_elements(const ElementPacket<float> _in, const bool _enabl
 
 
 // toggle a set of elements to a new "enabled" setting
-void FeatureDraw::reset_enabled(const size_t _ifeat, const bool _enabled) {
+/*void FeatureDraw::reset_enabled(const size_t _ifeat, const bool _enabled) {
   assert(_ifeat < m_idx.size() && "Enable feature index larger than number of features");
   assert(m_idx[_ifeat].second <= (int)m_geom.val.size() && "Draw array sizes larger than expected");
 
   // do the work here
+  // The state of _enabled is the new state
   if (_enabled) {
-    std::fill(m_geom.val.begin()+m_idx[_ifeat].first, m_geom.val.begin()+m_idx[_ifeat].second, 1.0);
+    std::for_each(m_geom.val.begin()+m_idx[_ifeat].first, m_geom.val.begin()+m_idx[_ifeat].second, &enable);
   } else {
-    std::fill(m_geom.val.begin()+m_idx[_ifeat].first, m_geom.val.begin()+m_idx[_ifeat].second, 0.3);
+    std::cout << "disabling..." << m_idx[_ifeat].first << " " << m_idx[_ifeat].second << std::endl;
+    std::for_each(m_geom.val.begin()+m_idx[_ifeat].first, m_geom.val.begin()+m_idx[_ifeat].second, &disable);
   }
 
   m_vals_changed = true;
-}
+}*/
 
 
 // helper function to clean up initGL
@@ -95,7 +98,8 @@ void FeatureDraw::prepare_opengl_buffer(const GLuint _prog, const GLuint _idx,
 void FeatureDraw::initGL(std::vector<float>& _projmat,
                          float*              _poscolor,
                          float*              _negcolor,
-                         float*              _defcolor) {
+                         float*              _defcolor,
+                         bool                _oneColor) {
 
   std::cout << "inside FeatureDraw::initGL" << std::endl;
 
@@ -130,11 +134,14 @@ void FeatureDraw::initGL(std::vector<float>& _projmat,
   m_gl->pos_color_attribute = glGetUniformLocation(m_gl->spo[0], "pos_color");
   m_gl->neg_color_attribute = glGetUniformLocation(m_gl->spo[0], "neg_color");
   m_gl->def_color_attribute = glGetUniformLocation(m_gl->spo[0], "def_color");
+  m_gl->use_def_attribute = glGetUniformLocation(m_gl->spo[0], "use_def");
+  //m_gl->use_back_attribute = glGetUniformLocation(m_gl->spo[0], "use_back");
 
   // send the current values
   glUniform4fv(m_gl->pos_color_attribute, 1, (const GLfloat *)_poscolor);
   glUniform4fv(m_gl->neg_color_attribute, 1, (const GLfloat *)_negcolor);
   glUniform4fv(m_gl->def_color_attribute, 1, (const GLfloat *)_defcolor);
+  glUniform1i(m_gl->use_def_attribute, (const GLint)_oneColor);
   //std::cout << "init pos color as " << _poscolor[0] << " " << _poscolor[1] << " " << _poscolor[2] << " " << _poscolor[3] << std::endl;
 
   // and indicate the fragment color output
@@ -186,7 +193,8 @@ void FeatureDraw::updateGL() {
 }
 
 void FeatureDraw::drawGL(std::vector<float>& _projmat,
-                         RenderParams&       _rparams) {
+                         RenderParams&       _rparams,
+                         bool                _oneColor) {
 
   //std::cout << "inside FeatureDraw::drawGL" << std::endl;
 
@@ -194,7 +202,8 @@ void FeatureDraw::drawGL(std::vector<float>& _projmat,
   if (not m_gl) {
     initGL(_projmat, _rparams.pos_circ_color,
                      _rparams.neg_circ_color,
-                     _rparams.default_color);
+                     _rparams.default_color,
+                     _oneColor);
     updateGL();
   }
 
@@ -221,6 +230,7 @@ void FeatureDraw::drawGL(std::vector<float>& _projmat,
     glUniform4fv(m_gl->pos_color_attribute, 1, (const GLfloat *)_rparams.pos_circ_color);
     glUniform4fv(m_gl->neg_color_attribute, 1, (const GLfloat *)_rparams.neg_circ_color);
     glUniform4fv(m_gl->def_color_attribute, 1, (const GLfloat *)_rparams.default_color);
+    glUniform1i(m_gl->use_def_attribute, (const GLint)_oneColor);
 
     // the one draw call here
     glDrawElements(GL_LINES, m_gl->num_uploaded, get_gl_type<Int>, 0);

@@ -144,7 +144,7 @@ void resize_to_resolution(GLFWwindow* window, const int new_w, const int new_h) 
 void LoadJsonSims(std::vector<nlohmann::json> &sims, std::vector<std::string> &descriptions, const std::string dirPath) {
   std::list<std::string> fileNames = MiniPath::listFiles(dirPath, "*.json");
   std::string sysDelim = MiniPath::getSystemDelim();
-  std::cout << "Reading in" << std::endl;
+  std::cout << "Reading in from " << dirPath << std::endl;
   for(const std::string& s : fileNames) {
     sims.push_back(read_json(dirPath+sysDelim+s));
     descriptions.push_back(sims.back()["description"]);

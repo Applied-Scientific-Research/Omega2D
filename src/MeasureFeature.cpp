@@ -7,6 +7,7 @@
  */
 
 #include "MeasureFeature.h"
+#include "BoundaryFeature.h"
 
 #include <cmath>
 #include "imgui/imgui.h"
@@ -51,47 +52,51 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
 }
 
 #ifdef USE_IMGUI
-void MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &mfs, const float ips, const float &tracerScale) {
+bool MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &mfs, const float ips, const float &tracerScale) {
   static int item = 0;
-  const char* items[] = { "single point", /*"streakline",*/ "measurement circle", /*"line of tracers",*/ "measurement line", "measurement grid" };
+  static int oldItem = -1;
+  const char* items[] = { "single point", "measurement circle", "measurement line", "measurement grid" };
   ImGui::Combo("type", &item, items, 4);
 
   // show different inputs based on what is selected
-  std::unique_ptr<MeasureFeature> mf = nullptr;
-  switch(item) {
-    case 0: {
-      mf = std::make_unique<SinglePoint>();
-    } break;
-    case 1: {
-      // a tracer circle
-      mf = std::make_unique<MeasurementBlob>();
-      //TracerBlob::draw_creation_gui(mf, tracerScale, ips);
-    } break;
-    case 2: {
-      // a static, measurement line
-      mf = std::make_unique<MeasurementLine>();
-      //MeasurementLine::draw_creation_gui(mf, tracerScale, ips);
-    } break;
-    case 3: {
-      // a static grid of measurement points
-      mf = std::make_unique<GridPoints>();
-      //GridPoints::draw_creation_gui(mf, ips);
-    } break;
+  static std::unique_ptr<MeasureFeature> mf = nullptr;
+  if (oldItem != item) {
+    switch(item) {
+      case 0: {
+        mf = std::make_unique<SinglePoint>();
+      } break;
+      case 1: {
+        mf = std::make_unique<MeasurementBlob>();
+      } break;
+      case 2: {
+        mf = std::make_unique<MeasurementLine>();
+      } break;
+      case 3: {
+        mf = std::make_unique<GridPoints>();
+      } break;
+    }
+    oldItem = item;
   }
 
+  bool created = false;  
   if (mf->draw_info_gui("Add", tracerScale, ips)) {
+    mf->generate_draw_geom();
     mfs.emplace_back(std::move(mf));
     mf = nullptr;
+    oldItem = -1;
+    created = true;
     ImGui::CloseCurrentPopup();
   }
   
   ImGui::SameLine();
   if (ImGui::Button("Cancel", ImVec2(120,0))) {
+    oldItem = -1;
     mf = nullptr;
     ImGui::CloseCurrentPopup();
   }
 
   ImGui::EndPopup();
+  return created;
 }
 #endif
 
@@ -99,9 +104,9 @@ float MeasureFeature::jitter(const float _z, const float _ips) const {
   // set up the random number generator
   static std::random_device rd;  //Will be used to obtain a seed for the random number engine
   static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
-  static std::uniform_real_distribution<float> zmean_dist(-0.5, 0.5);
+  static std::uniform_real_distribution<float> dist(-0.5, 0.5);
   // emits one per step, jittered slightly
-  return _z+_ips*zmean_dist(gen);
+  return _z+_ips*dist(gen);
 }
 
 //
@@ -163,30 +168,30 @@ SinglePoint::to_json() const {
   return j;
 }
 
+void SinglePoint::generate_draw_geom() {
+  const float diam = 0.02;
+  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, diam);
+  m_draw = tmp->init_elements(diam/25.0);
+}
+
 #ifdef USE_IMGUI
 bool SinglePoint::draw_info_gui(const std::string action, const float &tracerScale,
                                 const float ips) {
-  static float xc[2] = {m_x, m_y};
-  static bool lagrangian = m_is_lagrangian;
-  static bool emits = m_emits;
+  float xc[2] = {m_x, m_y};
   bool add = false;
   const std::string buttonText = action+" single point";
 
   ImGui::InputFloat2("position", xc);
-  if (!emits) {
-    ImGui::Checkbox("Point follows flow", &lagrangian);
+  if (!m_emits) {
+    ImGui::Checkbox("Point follows flow", &m_is_lagrangian);
   }
-  if (!lagrangian) {
-    ImGui::Checkbox("Point emits particles", &emits);
+  if (!m_is_lagrangian) {
+    ImGui::Checkbox("Point emits particles", &m_emits);
   }
   ImGui::TextWrapped("\nThis feature will add 1 point");
-  if (ImGui::Button(buttonText.c_str())) {
-    m_x = xc[0];
-    m_y = xc[1];
-    m_is_lagrangian = lagrangian;
-    m_emits = emits;
-    add = true;
-  }
+  if (ImGui::Button(buttonText.c_str())) { add = true; }
+  m_x = xc[0];
+  m_y = xc[1];
   
   return add;
 }
@@ -284,33 +289,30 @@ MeasurementBlob::to_json() const {
   return j;
 }
 
+void MeasurementBlob::generate_draw_geom() {
+  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, m_rad*2.0);
+  m_draw = tmp->init_elements(m_rad/12.5);
+}
+
 #ifdef USE_IMGUI
 bool MeasurementBlob::draw_info_gui(const std::string action, const float &tracerScale, float ips) {
-  static float xc[2] = {m_x, m_y};
-  static float rad = m_rad;
-  static bool lagrangian = m_is_lagrangian;
-  static bool emits = m_emits;
+  float xc[2] = {m_x, m_y};
   bool add = false;
   const std::string buttonText = action+" circle of tracers";
  
   ImGui::InputFloat2("center", xc);
-  ImGui::SliderFloat("radius", &rad, ips, 1.0f, "%.4f");
-  if (!emits) {
-    ImGui::Checkbox("Point follows flow", &lagrangian);
+  ImGui::SliderFloat("radius", &m_rad, ips, 1.0f, "%.4f");
+  if (!m_emits) {
+    ImGui::Checkbox("Point follows flow", &m_is_lagrangian);
   }
-  if (!lagrangian) {
-    ImGui::Checkbox("Point emits particles", &emits);
+  if (!m_is_lagrangian) {
+    ImGui::Checkbox("Point emits particles", &m_emits);
   }
   ImGui::TextWrapped("This feature will add about %d field points",
-                     (int)(0.785398175*std::pow(2*rad/(tracerScale*ips), 2)));
-  if (ImGui::Button(buttonText.c_str())) {
-    m_x = xc[0];
-    m_y = xc[1];
-    m_rad = rad;
-    m_is_lagrangian = lagrangian;
-    m_emits = emits;
-    add = true;
-  }
+                     (int)(0.785398175*std::pow(2*m_rad/(tracerScale*ips), 2)));
+  if (ImGui::Button(buttonText.c_str())) { add = true; }
+  m_x = xc[0];
+  m_y = xc[1];
 
   return add;
 }
@@ -404,41 +406,40 @@ MeasurementLine::to_json() const {
   return j;
 }
 
+void MeasurementLine::generate_draw_geom() {
+  std::unique_ptr<BoundarySegment> tmp = std::make_unique<BoundarySegment>(nullptr, true, m_x, m_y,
+                                                                           m_xf, m_yf, 0.0, 0.0);
+  m_draw = tmp->init_elements(1.0);
+}
+
 #ifdef USE_IMGUI
 bool MeasurementLine::draw_info_gui(const std::string action, const float &tracerScale, float ips) {
-  static float xc[2] = {m_x, m_y};
-  static float xf[2] = {m_xf, m_yf};
-  static float dx = m_dx;
-  static bool lagrangian = m_is_lagrangian;
-  static bool emits = m_emits;
+  float xc[2] = {m_x, m_y};
+  float xf[2] = {m_xf, m_yf};
   bool add = false;
   const std::string buttonText = action+" line of measurement points";
  
   ImGui::InputFloat2("start", xc);
   ImGui::InputFloat2("finish", xf);
-  ImGui::SliderFloat("dx", &dx, ips, 1.0f, "%.4f");
-  if (!emits) {
-    ImGui::Checkbox("Point follows flow", &lagrangian);
+  ImGui::SliderFloat("dx", &m_dx, ips, 1.0f, "%.4f");
+  if (!m_emits) {
+    ImGui::Checkbox("Point follows flow", &m_is_lagrangian);
   }
-  if (!lagrangian) {
-    ImGui::Checkbox("Point emits particles", &emits);
+  if (!m_is_lagrangian) {
+    ImGui::Checkbox("Point emits particles", &m_emits);
   }
   ImGui::TextWrapped("This feature will add about %d field points",
-		     1+(int)(std::sqrt(std::pow(xf[0]-xc[0],2)+std::pow(xf[1]-xc[1],2))/dx));
-  if (ImGui::Button(buttonText.c_str())) {
-    m_x = xc[0];
-    m_y = xc[1];
-    m_xf = xf[0];
-    m_yf = xf[1];
-    m_dx = dx;
-    m_is_lagrangian = lagrangian;
-    m_emits = emits;
-    add = true;
-  }
+		     1+(int)(std::sqrt(std::pow(xf[0]-xc[0],2)+std::pow(xf[1]-xc[1],2))/m_dx));
+  if (ImGui::Button(buttonText.c_str())) { add = true; }
+  m_x = xc[0];
+  m_y = xc[1];
+  m_xf = xf[0];
+  m_yf = xf[1];
 
   return add;
 }
 #endif
+
 
 //
 // Create a grid of static measurement points
@@ -510,27 +511,31 @@ GridPoints::to_json() const {
   return j;
 }
 
+void GridPoints::generate_draw_geom() {
+  const float xc = (m_x+m_xf)/2;
+  const float yc = (m_y+m_yf)/2;
+  std::unique_ptr<SolidRect> tmp = std::make_unique<SolidRect>(nullptr, true, xc, yc,
+                                                               m_xf-m_x, m_yf-m_y, 0.0);          
+  m_draw = tmp->init_elements(m_xf-m_x);
+}
+
 #ifdef USE_IMGUI
 bool GridPoints::draw_info_gui(const std::string action, const float &tracer_scale, const float ips) {
-  static float xc[2] = {m_x, m_y};
-  static float xf[2] = {m_xf, m_yf};
-  static float dx = m_dx;
+  float xc[2] = {m_x, m_y};
+  float xf[2] = {m_xf, m_yf};
   bool add = false;
   const std::string buttonText = action+" grid of measurement points";
  
   ImGui::InputFloat2("start", xc);
   ImGui::InputFloat2("finish", xf);
-  ImGui::SliderFloat("dx", &dx, ips, 1.0f, "%.4f");
+  ImGui::SliderFloat("dx", &m_dx, ips, 1.0f, "%.4f");
   ImGui::TextWrapped("This feature will add about %d field points",
-		     1+(int)((xf[0]-xc[0])*(xf[1]-xc[1])/(dx*dx)));
-  if (ImGui::Button(buttonText.c_str())) {
-    m_x = xc[0];
-    m_y = xc[1];
-    m_xf = xf[0];
-    m_yf = xf[1];
-    m_dx = dx;
-    add = true;
-  }
+		     1+(int)((xf[0]-xc[0])*(xf[1]-xc[1])/(m_dx*m_dx)));
+  if (ImGui::Button(buttonText.c_str())) { add = true; }
+  m_x = xc[0];
+  m_y = xc[1];
+  m_xf = xf[0];
+  m_yf = xf[1];
 
   return add;
 }
