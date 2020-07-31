@@ -159,19 +159,15 @@ SingleParticle::to_json() const {
 bool SingleParticle::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
   // a single vortex particle
-  static float xc[2] = {m_x, m_y};
-  static float stren = m_str;
+  float xc[2] = {m_x, m_y};
   const std::string buttonText = action+" single particle";
  
   ImGui::InputFloat2("center", xc);
-  ImGui::SliderFloat("strength", &stren, -1.0f, 1.0f, "%.4f");
+  ImGui::SliderFloat("strength", &m_str, -1.0f, 1.0f, "%.4f");
   ImGui::TextWrapped("This feature will add 1 particle");
-  if (ImGui::Button(buttonText.c_str())) {
-    m_x = xc[0];
-    m_y = xc[1];
-    m_str = stren;
-    add = true;
-  }
+  if (ImGui::Button(buttonText.c_str())) { add = true; }
+  m_x = xc[0];
+  m_y = xc[1];
   return add;
 }
 #endif
@@ -275,7 +271,7 @@ VortexBlob::to_json() const {
 #ifdef USE_IMGUI
 bool VortexBlob::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
-  static float xc[2] = {m_x, m_y};
+  float xc[2] = {m_x, m_y};
   const std::string buttonText = action+" vortex blob";
 
   ImGui::InputFloat2("center", xc);
@@ -399,7 +395,7 @@ AsymmetricBlob::to_json() const {
 #ifdef USE_IMGUI
 bool AsymmetricBlob::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
-  static float xc[2] = {m_x, m_y};
+  float xc[2] = {m_x, m_y};
   const std::string buttonText = action+" asymmetric vortex blob";
 
   ImGui::InputFloat2("center", xc);
@@ -508,7 +504,7 @@ GaussianBlob::to_json() const {
 #ifdef USE_IMGUI
 bool GaussianBlob::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
-  static float xc[2] = {m_x, m_y};
+  float xc[2] = {m_x, m_y};
   const std::string buttonText = action+" gaussian blob";
   
   ImGui::InputFloat2("center", xc);
@@ -598,8 +594,8 @@ UniformBlock::to_json() const {
 #ifdef USE_IMGUI
 bool UniformBlock::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
-  static float xs[2] = {m_xsize, m_ysize};
-  static float xc[2] = {m_x, m_y};
+  float xs[2] = {m_xsize, m_ysize};
+  float xc[2] = {m_x, m_y};
   const std::string buttonText = action+" block of vorticies";
 
   ImGui::InputFloat2("center", xc);
@@ -690,8 +686,8 @@ BlockOfRandom::to_json() const {
 #ifdef USE_IMGUI
 bool BlockOfRandom::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
-  static float xs[2] = {m_xsize, m_ysize};
-  static float xc[2] = {m_x, m_y};
+  float xs[2] = {m_xsize, m_ysize};
+  float xc[2] = {m_x, m_y};
   const std::string buttonText = action+" random vorticies";
 
   ImGui::InputFloat2("center", xc);
@@ -756,7 +752,7 @@ ParticleEmitter::to_json() const {
 #ifdef USE_IMGUI
 bool ParticleEmitter::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
-  static float xc[2] = {m_x, m_y};
+  float xc[2] = {m_x, m_y};
   const std::string buttonText = action+" particle emitter";
 
   ImGui::InputFloat2("center", xc);

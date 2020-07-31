@@ -166,7 +166,7 @@ SinglePoint::to_json() const {
 #ifdef USE_IMGUI
 bool SinglePoint::draw_info_gui(const std::string action, const float &tracerScale,
                                 const float ips) {
-  static float xc[2] = {m_x, m_y};
+  float xc[2] = {m_x, m_y};
   bool add = false;
   const std::string buttonText = action+" single point";
 
@@ -280,7 +280,7 @@ MeasurementBlob::to_json() const {
 
 #ifdef USE_IMGUI
 bool MeasurementBlob::draw_info_gui(const std::string action, const float &tracerScale, float ips) {
-  static float xc[2] = {m_x, m_y};
+  float xc[2] = {m_x, m_y};
   bool add = false;
   const std::string buttonText = action+" circle of tracers";
  
@@ -392,8 +392,8 @@ MeasurementLine::to_json() const {
 
 #ifdef USE_IMGUI
 bool MeasurementLine::draw_info_gui(const std::string action, const float &tracerScale, float ips) {
-  static float xc[2] = {m_x, m_y};
-  static float xf[2] = {m_xf, m_yf};
+  float xc[2] = {m_x, m_y};
+  float xf[2] = {m_xf, m_yf};
   bool add = false;
   const std::string buttonText = action+" line of measurement points";
  
@@ -490,8 +490,8 @@ GridPoints::to_json() const {
 
 #ifdef USE_IMGUI
 bool GridPoints::draw_info_gui(const std::string action, const float &tracer_scale, const float ips) {
-  static float xc[2] = {m_x, m_y};
-  static float xf[2] = {m_xf, m_yf};
+  float xc[2] = {m_x, m_y};
+  float xf[2] = {m_xf, m_yf};
   bool add = false;
   const std::string buttonText = action+" grid of measurement points";
  
