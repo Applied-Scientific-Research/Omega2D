@@ -17,6 +17,7 @@
 #include "FeatureDraw.h"
 #include "json/json.hpp"
 #include "main_gui_functions.cpp"
+#include "imgui/imgui_internal.h"
 
 #ifdef _WIN32
   // for glad
@@ -900,6 +901,10 @@ int main(int argc, char const *argv[]) {
         if (ImGui::Button("PAUSE", ImVec2(200,20+fontSize))) sim_is_running = false;
         // space bar pauses
         if (ImGui::IsKeyPressed(32) and not show_file_output_window) sim_is_running = false;
+      } else if (!(sim_is_running) && !(sim.test_for_new_results())) {
+        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+        ImGui::Button("FINISHING STEP", ImVec2(200, 20+fontSize));
+        ImGui::PopItemFlag();
       } else {
         //ImGui::Text("Simulation is not running, step = %ld, time = %g", sim.get_nstep(), sim.get_time());
         if (ImGui::Button("RUN", ImVec2(200,20+fontSize))) sim_is_running = true;
