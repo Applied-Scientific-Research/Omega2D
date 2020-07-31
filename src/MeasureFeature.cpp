@@ -7,6 +7,7 @@
  */
 
 #include "MeasureFeature.h"
+#include "BoundaryFeature.h"
 
 #include <cmath>
 #include "imgui/imgui.h"
@@ -51,7 +52,7 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
 }
 
 #ifdef USE_IMGUI
-void MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &mfs, const float ips, const float &tracerScale) {
+bool MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &mfs, const float ips, const float &tracerScale) {
   static int item = 0;
   static int oldItem = -1;
   const char* items[] = { "single point", "measurement circle", "measurement line", "measurement grid" };
@@ -76,11 +77,14 @@ void MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeatur
     }
     oldItem = item;
   }
-  
+
+  bool created = false;  
   if (mf->draw_info_gui("Add", tracerScale, ips)) {
+    mf->generate_draw_geom();
     mfs.emplace_back(std::move(mf));
     mf = nullptr;
     oldItem = -1;
+    created = true;
     ImGui::CloseCurrentPopup();
   }
   
@@ -92,6 +96,7 @@ void MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeatur
   }
 
   ImGui::EndPopup();
+  return created;
 }
 #endif
 
@@ -99,9 +104,9 @@ float MeasureFeature::jitter(const float _z, const float _ips) const {
   // set up the random number generator
   static std::random_device rd;  //Will be used to obtain a seed for the random number engine
   static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
-  static std::uniform_real_distribution<float> zmean_dist(-0.5, 0.5);
+  static std::uniform_real_distribution<float> dist(-0.5, 0.5);
   // emits one per step, jittered slightly
-  return _z+_ips*zmean_dist(gen);
+  return _z+_ips*dist(gen);
 }
 
 //
@@ -161,6 +166,12 @@ SinglePoint::to_json() const {
   j["lagrangian"] = m_is_lagrangian;
   j["emits"] = m_emits;
   return j;
+}
+
+void SinglePoint::generate_draw_geom() {
+  const float diam = 0.02;
+  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, diam);
+  m_draw = tmp->init_elements(diam/25.0);
 }
 
 #ifdef USE_IMGUI
@@ -278,6 +289,11 @@ MeasurementBlob::to_json() const {
   return j;
 }
 
+void MeasurementBlob::generate_draw_geom() {
+  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, m_rad*2.0);
+  m_draw = tmp->init_elements(m_rad/12.5);
+}
+
 #ifdef USE_IMGUI
 bool MeasurementBlob::draw_info_gui(const std::string action, const float &tracerScale, float ips) {
   float xc[2] = {m_x, m_y};
@@ -390,6 +406,12 @@ MeasurementLine::to_json() const {
   return j;
 }
 
+void MeasurementLine::generate_draw_geom() {
+  std::unique_ptr<BoundarySegment> tmp = std::make_unique<BoundarySegment>(nullptr, true, m_x, m_y,
+                                                                           m_xf, m_yf, 0.0, 0.0);
+  m_draw = tmp->init_elements(1.0);
+}
+
 #ifdef USE_IMGUI
 bool MeasurementLine::draw_info_gui(const std::string action, const float &tracerScale, float ips) {
   float xc[2] = {m_x, m_y};
@@ -417,6 +439,7 @@ bool MeasurementLine::draw_info_gui(const std::string action, const float &trace
   return add;
 }
 #endif
+
 
 //
 // Create a grid of static measurement points
@@ -486,6 +509,14 @@ GridPoints::to_json() const {
   j["lagrangian"] = m_is_lagrangian;
   j["emits"] = m_emits;
   return j;
+}
+
+void GridPoints::generate_draw_geom() {
+  const float xc = (m_x+m_xf)/2;
+  const float yc = (m_y+m_yf)/2;
+  std::unique_ptr<SolidRect> tmp = std::make_unique<SolidRect>(nullptr, true, xc, yc,
+                                                               m_xf-m_x, m_yf-m_y, 0.0);          
+  m_draw = tmp->init_elements(m_xf-m_x);
 }
 
 #ifdef USE_IMGUI

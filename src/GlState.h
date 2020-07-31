@@ -71,7 +71,9 @@ public:
 
   // some number of attributes
   GLint projmat_attribute, projmat_attribute_bl, projmat_attribute_pt, quad_attribute_bl, quad_attribute_pt;
-  GLint def_color_attribute, pos_color_attribute, neg_color_attribute, str_scale_attribute, unif_rad_attribute;
-  GLint rad_scale_attribute;
+  GLint def_color_attribute, pos_color_attribute, neg_color_attribute; //, back_color_attribute; 
+  GLint use_def_attribute; //, use_back_attribute;
+  GLint str_scale_attribute, unif_rad_attribute, rad_scale_attribute;
+
 };
 

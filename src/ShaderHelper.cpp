@@ -155,6 +155,13 @@ GLuint create_vertfrag_prog(const std::string vert_shader_src,
 
   // Link and use the program
   glLinkProgram(shaderProgram);
+  int success;
+  char infoLog[512];
+  glGetShaderiv(shaderProgram, GL_LINK_STATUS, &success);
+  if (!success) {
+    glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+    std::cout << "ERROR: Shader program failed compilation\n" << infoLog << std::endl;
+  }
   glUseProgram(shaderProgram);
 
   return shaderProgram;

@@ -7,11 +7,12 @@
  */
 
 #include "FlowFeature.h"
-
-#include <cmath>
+#include "BoundaryFeature.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
+
+#include <cmath>
 #include <iostream>
 #include <sstream>
 #include <random>
@@ -53,7 +54,7 @@ void parse_flow_json(std::vector<std::unique_ptr<FlowFeature>>& _flist,
 }
 
 #ifdef USE_IMGUI
-void FlowFeature::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &ffs, const float ips) {
+bool FlowFeature::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &ffs, const float ips) {
   static int item = 1;
   static int oldItem = -1;
   const char* items[] = { "single particle", "round vortex blob", "Gaussian vortex blob", "asymmetric vortex blob", "block of vorticity", "random particles", "particle emitter" };
@@ -88,9 +89,12 @@ void FlowFeature::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &f
     oldItem = item;
   }
 
+  bool created = false;
   if (ff->draw_info_gui("Add", ips)) {
+    ff->generate_draw_geom();
     ffs.emplace_back(std::move(ff));
     ff = nullptr;
+    created = true;
     oldItem = -1;
     ImGui::CloseCurrentPopup();
   }
@@ -100,7 +104,9 @@ void FlowFeature::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &f
     oldItem = -1;
     ImGui::CloseCurrentPopup();
   }
+
   ImGui::EndPopup();
+  return created;
 }
 #endif
 
@@ -153,6 +159,13 @@ SingleParticle::to_json() const {
   j["strength"] = m_str;
   j["enabled"] = m_enabled;
   return j;
+}
+
+void SingleParticle::generate_draw_geom() {
+  const float diam = 0.01;
+  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, diam);
+  m_draw = tmp->init_elements(diam/25.0);
+  std::fill(m_draw.val.begin(), m_draw.val.end(), m_str);
 }
 
 #ifdef USE_IMGUI
@@ -267,6 +280,11 @@ VortexBlob::to_json() const {
   return j;
 }
 
+void VortexBlob::generate_draw_geom() {
+  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, m_rad*2);
+  m_draw = tmp->init_elements(m_rad/12.5);
+  std::fill(m_draw.val.begin(), m_draw.val.end(), m_str);
+}
 
 #ifdef USE_IMGUI
 bool VortexBlob::draw_info_gui(const std::string action, const float ips) {
@@ -392,6 +410,12 @@ AsymmetricBlob::to_json() const {
   return j;
 }
 
+void AsymmetricBlob::generate_draw_geom() {
+  std::unique_ptr<SolidOval> tmp = std::make_unique<SolidOval>(nullptr, true, m_x, m_y, m_rad*2, m_minrad*2);
+  m_draw = tmp->init_elements(m_rad/12.5);
+  std::fill(m_draw.val.begin(), m_draw.val.end(), m_str);
+}
+
 #ifdef USE_IMGUI
 bool AsymmetricBlob::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
@@ -501,6 +525,12 @@ GaussianBlob::to_json() const {
   return j;
 }
 
+void GaussianBlob::generate_draw_geom() {
+  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, m_stddev*6);
+  m_draw = tmp->init_elements(m_stddev*6/25);
+  std::fill(m_draw.val.begin(), m_draw.val.end(), m_str);
+}
+
 #ifdef USE_IMGUI
 bool GaussianBlob::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
@@ -591,6 +621,12 @@ UniformBlock::to_json() const {
   return j;
 }
 
+void UniformBlock::generate_draw_geom() {
+  std::unique_ptr<SolidRect> tmp = std::make_unique<SolidRect>(nullptr, true, m_x, m_y, m_xsize, m_ysize);
+  m_draw = tmp->init_elements(m_xsize);
+  std::fill(m_draw.val.begin(), m_draw.val.end(), m_str);
+}
+
 #ifdef USE_IMGUI
 bool UniformBlock::draw_info_gui(const std::string action, const float ips) {
   bool add = false;
@@ -622,16 +658,16 @@ BlockOfRandom::init_particles(float _ips) const {
   // set up the random number generator
   static std::random_device rd;  //Will be used to obtain a seed for the random number engine
   static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
-  static std::uniform_real_distribution<> zmean_dist(-1.0, 1.0);
-  static std::uniform_real_distribution<> zo_dist(0.0, 1.0);
+  static std::uniform_real_distribution<> loc_dist(-1.0, 1.0);
+  static std::uniform_real_distribution<> str_dist(0.0, 1.0);
 
   std::vector<float> x(4*m_num);
   // initialize the particles' locations and strengths, leave radius zero for now
   for (size_t i=0; i<(size_t)m_num; ++i) {
     size_t idx = 4*i;
-    x[idx+0] = m_x + m_xsize*zmean_dist(gen);
-    x[idx+1] = m_y + m_ysize*zmean_dist(gen);
-    x[idx+2] = m_minstr + (m_maxstr-m_minstr)*zo_dist(gen);
+    x[idx+0] = m_x + m_xsize*loc_dist(gen);
+    x[idx+1] = m_y + m_ysize*loc_dist(gen);
+    x[idx+2] = m_minstr + (m_maxstr-m_minstr)*str_dist(gen);
     x[idx+3] = 0.0f;
   }
   return x;
@@ -681,6 +717,30 @@ BlockOfRandom::to_json() const {
   j["num"] = m_num;
   j["enabled"] = m_enabled;
   return j;
+}
+
+struct RandomGenerator {
+  static int instances;
+  //static std::random_device m_rd; //Will be used to obtain a seed for the random number engine
+  std::mt19937 m_gen; //Standard mersenne_twister_engine seeded with rd()
+  std::uniform_real_distribution<float> m_dist;
+  float m_lb;
+  float m_ub;
+  RandomGenerator(float _lb, float _ub) : m_lb(_lb), m_ub(_ub) {
+    instances++;
+    m_gen = std::mt19937(instances);
+    m_dist = std::uniform_real_distribution<float>(0.0, 1.0);
+  }
+
+  float operator()() { return m_lb + (m_ub-m_lb)*m_dist(m_gen); }
+};
+
+int RandomGenerator::instances = 0;
+
+void BlockOfRandom::generate_draw_geom() {
+  std::unique_ptr<SolidRect> tmp = std::make_unique<SolidRect>(nullptr, true, m_x, m_y, m_xsize*2, m_ysize*2);
+  m_draw = tmp->init_elements(m_xsize*2);
+  std::generate(m_draw.val.begin(), m_draw.val.end(), RandomGenerator(m_minstr, m_maxstr));
 }
 
 #ifdef USE_IMGUI
@@ -747,6 +807,13 @@ ParticleEmitter::to_json() const {
   j["strength"] = m_str;
   j["enabled"] = m_enabled;
   return j;
+}
+
+void ParticleEmitter::generate_draw_geom() {
+  const float diam = 0.01;
+  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, diam);
+  m_draw = tmp->init_elements(diam/25.0);
+  std::fill(m_draw.val.begin(), m_draw.val.end(), m_str);
 }
 
 #ifdef USE_IMGUI

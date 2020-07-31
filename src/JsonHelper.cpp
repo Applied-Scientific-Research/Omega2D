@@ -201,6 +201,10 @@ void parse_json(Simulation& sim,
       parse_measure_json(mfeatures, mf);
     }
   }
+
+  for (auto const& ff : ffeatures) { ff->generate_draw_geom(); }
+  for (auto const& bf : bfeatures) { bf->generate_draw_geom(); }
+  for (auto const& mf : mfeatures) { mf->generate_draw_geom(); }
 }
 
 
