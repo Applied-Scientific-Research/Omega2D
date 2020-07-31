@@ -32,7 +32,8 @@ public:
       m_is_lagrangian(_moves),
       m_emits(_emits)
     {}
-  virtual ~MeasureFeature() = default;
+  virtual ~MeasureFeature() {}
+  virtual MeasureFeature* copy() const = 0;
 
   bool moves() const { return m_is_lagrangian; }
   bool emits() const { return m_emits; }
@@ -83,8 +84,8 @@ public:
               bool _emits = false)
     : MeasureFeature(_x, _y, _moves, _emits)
     {}
-  ~SinglePoint() = default;
-  
+  SinglePoint* copy() const override { return new SinglePoint(*this); }
+
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
   void from_json(const nlohmann::json) override;
@@ -113,7 +114,7 @@ public:
     : SinglePoint(_x, _y, _moves, _emits),
       m_rad(_rad)
     {}
-  ~MeasurementBlob() = default;
+  MeasurementBlob* copy() const override { return new MeasurementBlob(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -147,7 +148,7 @@ public:
       m_yf(_yf),
       m_dx(_dx)
     {}
-  ~MeasurementLine() = default;
+  MeasurementLine* copy() const override { return new MeasurementLine(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -180,7 +181,7 @@ public:
       m_yf(_yf),
       m_dx(_dx)
     {}
-  ~GridPoints() = default;
+  GridPoints* copy() const override { return new GridPoints(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;

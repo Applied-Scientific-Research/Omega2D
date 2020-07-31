@@ -644,21 +644,21 @@ int main(int argc, char const *argv[]) {
 
       // list existing flow features here
       static int edit_item_index = -1;
-      static bool editF = false;
-      bool addF = false;
+      static std::unique_ptr<FlowFeature> tmpff = nullptr;
+      bool redrawF = false;
       int del_this_item = -1;
       for (int i=0; i<(int)ffeatures.size(); ++i) {
 
         ImGui::PushID(++buttonIDs);
-        if (ImGui::Checkbox("", ffeatures[i]->addr_enabled())) { addF = true; }
+        if (ImGui::Checkbox("", ffeatures[i]->addr_enabled())) { redrawF = true; }
         ImGui::PopID();
         
         // add an "edit" button after the checkbox (so it's not easy to accidentally hit remove)
         ImGui::SameLine();
         ImGui::PushID(++buttonIDs);
-        if (ImGui::SmallButton("edit")) { 
+        if (ImGui::SmallButton("edit")) {
+          tmpff = std::unique_ptr<FlowFeature>(ffeatures[i]->copy());
           edit_item_index = i;
-          editF = true;
         }
         ImGui::PopID();
         
@@ -677,20 +677,25 @@ int main(int argc, char const *argv[]) {
         ImGui::PopID();
       }
 
-      if (editF) {
+      if (tmpff) {
         ImGui::OpenPopup("Edit flow feature");
         ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
         if (ImGui::BeginPopupModal("Edit flow feature")) {
           bool fin = false;
-          if (ffeatures[edit_item_index]->draw_info_gui("Edit", sim.get_ips())) {
-            addF = true;
+          if (tmpff->draw_info_gui("Edit", sim.get_ips())) {
+            tmpff->generate_draw_geom();
+            ffeatures[edit_item_index].reset(nullptr);
+            ffeatures[edit_item_index] = std::move(tmpff);
+            redrawF = true;
             fin = true;
           }
           ImGui::SameLine();
-          if (ImGui::Button("Cancel", ImVec2(120,0))) { fin = true; }
+          if (ImGui::Button("Cancel", ImVec2(120,0))) {
+            fin = true;
+          }
           if (fin) {
             edit_item_index = -1;
-            editF = false;
+            tmpff = nullptr;
             ImGui::CloseCurrentPopup();
           }
         ImGui::EndPopup();
@@ -700,34 +705,33 @@ int main(int argc, char const *argv[]) {
       if (del_this_item > -1) {
         std::cout << "Asked to delete flow feature " << del_this_item << std::endl;
         ffeatures.erase(ffeatures.begin()+del_this_item);
-        addF = true;
+        redrawF = true;
       }
 
-      if (addF) {
+      if (redrawF) {
         fdraw.clear_elements();
         for (auto const& ff : ffeatures) {
           if (ff->is_enabled()) {
             fdraw.add_elements( ff->get_draw_packet(), ff->is_enabled() );
           }
         }
-        addF = false;
       }
 
       // list existing boundary features here
-      static bool editB = false;
-      bool addB = false;
       int del_this_bdry = -1;
+      static std::unique_ptr<BoundaryFeature> tmpbf = nullptr;
+      bool redrawB = false;
       for (int i=0; i<(int)bfeatures.size(); ++i) {
 
         ImGui::PushID(++buttonIDs);
-        if (ImGui::Checkbox("", bfeatures[i]->addr_enabled())) { addB = true; }
+        if (ImGui::Checkbox("", bfeatures[i]->addr_enabled())) { redrawB = true; }
         ImGui::PopID();
       
         ImGui::SameLine(); 
         ImGui::PushID(++buttonIDs); 
-        if (ImGui::SmallButton("edit")) { 
+        if (ImGui::SmallButton("edit")) {
+          tmpbf = std::unique_ptr<BoundaryFeature>(bfeatures[i]->copy());
           edit_item_index = i;
-          editB = true;
         }
         ImGui::PopID();
  
@@ -747,22 +751,24 @@ int main(int argc, char const *argv[]) {
         ImGui::PopID();
       }
       
-      if (editB) {
+      if (tmpbf) {
         ImGui::OpenPopup("Edit boundary feature");
         ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
         if (ImGui::BeginPopupModal("Edit boundary feature")) {
           bool fin = false;
           // Currently cannot edit body. This will require rethinking on how we manage the Body Class.
-          if (bfeatures[edit_item_index]->draw_info_gui("Edit")) {
-            std::cout << "Modified " << bfeatures[edit_item_index]->to_short_string() << std::endl;
-            addB = true;
+          if (tmpbf->draw_info_gui("Edit")) {
+            tmpbf->generate_draw_geom();
+            bfeatures[edit_item_index].reset();
+            bfeatures[edit_item_index] = std::move(tmpbf);
+            redrawB = true;
             fin = true;
           }
           ImGui::SameLine();
           if (ImGui::Button("Cancel", ImVec2(120,0))) { fin = true; }
           if (fin) {
             edit_item_index = -1;
-            editB = false;
+            tmpbf = nullptr;
             ImGui::CloseCurrentPopup();
           }
           ImGui::EndPopup();
@@ -772,10 +778,10 @@ int main(int argc, char const *argv[]) {
       if (del_this_bdry > -1) {
         std::cout << "Asked to delete boundary feature " << del_this_bdry << std::endl;
         bfeatures.erase(bfeatures.begin()+del_this_bdry);
-        addB = true;
+        redrawB = true;
       }
      
-      if (addB) {
+      if (redrawB) {
         // clear out and re-make all boundary draw geometry
         bdraw.clear_elements();
         for (auto const& bf : bfeatures) {
@@ -786,20 +792,20 @@ int main(int argc, char const *argv[]) {
       }
 
       // list existing measurement features here
-      static bool editM = false;
-      bool addM = false;
+      static std::unique_ptr<MeasureFeature> tmpmf = nullptr;
       int del_this_measure = -1;
+      bool redrawM = false;
       for (int i=0; i<(int)mfeatures.size(); ++i) {
 
         ImGui::PushID(++buttonIDs);
-        if (ImGui::Checkbox("", mfeatures[i]->addr_enabled())) { addM = true; }
+        if (ImGui::Checkbox("", mfeatures[i]->addr_enabled())) { redrawM = true; }
         ImGui::PopID();
         
         ImGui::SameLine(); 
         ImGui::PushID(++buttonIDs); 
         if (ImGui::SmallButton("edit")) { 
           edit_item_index = i;
-          editM = true;
+          tmpmf = std::unique_ptr<MeasureFeature>(mfeatures[i]->copy());
         }
         ImGui::PopID();
         
@@ -818,20 +824,23 @@ int main(int argc, char const *argv[]) {
         ImGui::PopID();
       }
       
-      if (editM) {
+      if (tmpmf) {
         ImGui::OpenPopup("Edit measure feature");
         ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
         if (ImGui::BeginPopupModal("Edit measure feature")) {
           bool fin = false;
-          if (mfeatures[edit_item_index]->draw_info_gui("Edit", rparams.tracer_scale, sim.get_ips())) {
-              addM = true;
-              fin = true;
+          if (tmpmf->draw_info_gui("Edit", rparams.tracer_scale, sim.get_ips())) {
+            tmpmf->generate_draw_geom();
+            mfeatures[edit_item_index].reset();
+            mfeatures[edit_item_index] = std::move(tmpmf);
+            redrawM = true;
+            fin = true;
           }
           ImGui::SameLine();
           if (ImGui::Button("Cancel", ImVec2(120,0))) { fin = true; }
           if (fin) {
             edit_item_index = -1;
-            editM = false;
+            tmpmf = nullptr;
             ImGui::CloseCurrentPopup();
           }
         ImGui::EndPopup();
@@ -841,10 +850,10 @@ int main(int argc, char const *argv[]) {
       if (del_this_measure > -1) {
         std::cout << "Asked to delete measurement feature " << del_this_measure << std::endl;
         mfeatures.erase(mfeatures.begin()+del_this_measure);
-        addM = true;
+        redrawM = true;
       }
 
-      if (addM) {
+      if (redrawM) {
         mdraw.clear_elements();
         for (auto const& mf : mfeatures) {
           if (mf->is_enabled()) {
