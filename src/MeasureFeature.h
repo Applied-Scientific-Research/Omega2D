@@ -33,6 +33,7 @@ public:
       m_emits(_emits)
     {}
   virtual ~MeasureFeature() {}
+  virtual MeasureFeature* copy() const = 0;
 
   bool moves() const { return m_is_lagrangian; }
   bool emits() const { return m_emits; }
@@ -82,6 +83,7 @@ public:
               bool _emits = false)
     : MeasureFeature(_x, _y, _moves, _emits)
     {}
+  SinglePoint* copy() const override { return new SinglePoint(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -110,6 +112,7 @@ public:
     : SinglePoint(_x, _y, _moves, _emits),
       m_rad(_rad)
     {}
+  MeasurementBlob* copy() const override { return new MeasurementBlob(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -142,6 +145,7 @@ public:
       m_yf(_yf),
       m_dx(_dx)
     {}
+  MeasurementLine* copy() const override { return new MeasurementLine(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -173,6 +177,7 @@ public:
       m_yf(_yf),
       m_dx(_dx)
     {}
+  GridPoints* copy() const override { return new GridPoints(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;

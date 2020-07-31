@@ -29,17 +29,18 @@ public:
       m_y(_y)
     {}
   virtual ~FlowFeature() {}
+  virtual FlowFeature* copy() const = 0;
 
   virtual void debug(std::ostream& os) const = 0;
   virtual std::string to_string() const = 0;
   virtual void from_json(const nlohmann::json) = 0;
   virtual nlohmann::json to_json() const = 0;
   virtual std::vector<float> init_particles(float) const = 0;
+  virtual std::vector<float> step_particles(float) const = 0;
 #ifdef USE_IMGUI
   static void draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &, const float);
   virtual bool draw_info_gui(const std::string, const float) = 0;
 #endif
-  virtual std::vector<float> step_particles(float) const = 0;
 
   // emit particles as vector of float4
 
@@ -67,7 +68,9 @@ public:
     : FlowFeature(_x, _y),
       m_str(_str)
     {}
-
+  SingleParticle* copy() const override 
+                  { return new SingleParticle(*this); }
+  
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
   void from_json(const nlohmann::json) override;
@@ -97,6 +100,8 @@ public:
       m_rad(_rad),
       m_softness(_soft)
     {}
+  VortexBlob* copy() const override 
+              { return new VortexBlob(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -130,6 +135,8 @@ public:
       m_minrad(_minrad),
       m_theta(_theta)
     {}
+  AsymmetricBlob* copy() const override 
+                  { return new AsymmetricBlob(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -159,6 +166,8 @@ public:
     : SingleParticle(_x, _y, _str),
       m_stddev(_stddev)
     {}
+  GaussianBlob* copy() const override 
+                { return new GaussianBlob(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -189,6 +198,8 @@ public:
       m_xsize(_xsize),
       m_ysize(_ysize)
     {}
+  UniformBlock* copy() const override 
+                { return new UniformBlock(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -225,6 +236,8 @@ public:
       m_maxstr(_maxstr),
       m_num(_num)
     {}
+  BlockOfRandom* copy() const override 
+                 { return new BlockOfRandom(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
@@ -255,6 +268,8 @@ public:
                   float _str = 0.1)
     : SingleParticle(_x, _y, _str)
     {}
+  ParticleEmitter* copy() const override 
+                   { return new ParticleEmitter(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
