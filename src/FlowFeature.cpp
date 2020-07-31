@@ -704,16 +704,16 @@ BlockOfRandom::init_particles(float _ips) const {
   // set up the random number generator
   static std::random_device rd;  //Will be used to obtain a seed for the random number engine
   static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
-  static std::uniform_real_distribution<> zmean_dist(-1.0, 1.0);
-  static std::uniform_real_distribution<> zo_dist(0.0, 1.0);
+  static std::uniform_real_distribution<> loc_dist(-1.0, 1.0);
+  static std::uniform_real_distribution<> str_dist(0.0, 1.0);
 
   std::vector<float> x(4*m_num);
   // initialize the particles' locations and strengths, leave radius zero for now
   for (size_t i=0; i<(size_t)m_num; ++i) {
     size_t idx = 4*i;
-    x[idx+0] = m_x + m_xsize*zmean_dist(gen);
-    x[idx+1] = m_y + m_ysize*zmean_dist(gen);
-    x[idx+2] = m_minstr + (m_maxstr-m_minstr)*zo_dist(gen);
+    x[idx+0] = m_x + m_xsize*loc_dist(gen);
+    x[idx+1] = m_y + m_ysize*loc_dist(gen);
+    x[idx+2] = m_minstr + (m_maxstr-m_minstr)*str_dist(gen);
     x[idx+3] = 0.0f;
   }
   return x;
@@ -765,10 +765,28 @@ BlockOfRandom::to_json() const {
   return j;
 }
 
+struct RandomGenerator {
+  static int instances;
+  //static std::random_device m_rd; //Will be used to obtain a seed for the random number engine
+  std::mt19937 m_gen; //Standard mersenne_twister_engine seeded with rd()
+  std::uniform_real_distribution<float> m_dist;
+  float m_lb;
+  float m_ub;
+  RandomGenerator(float _lb, float _ub) : m_lb(_lb), m_ub(_ub) {
+    instances++;
+    m_gen = std::mt19937(instances);
+    m_dist = std::uniform_real_distribution<float>(0.0, 1.0);
+  }
+
+  float operator()() { return m_lb + (m_ub-m_lb)*m_dist(m_gen); }
+};
+
+int RandomGenerator::instances = 0;
+
 void BlockOfRandom::generate_draw_geom() {
   std::unique_ptr<SolidRect> tmp = std::make_unique<SolidRect>(nullptr, true, m_x, m_y, m_xsize*2, m_ysize*2);
   m_draw = tmp->init_elements(m_xsize*2);
-  std::fill(m_draw.val.begin(), m_draw.val.end(), (m_minstr+m_maxstr)/2);
+  std::generate(m_draw.val.begin(), m_draw.val.end(), RandomGenerator(m_minstr, m_maxstr));
 }
 
 #ifdef USE_IMGUI

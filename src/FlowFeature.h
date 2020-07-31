@@ -223,8 +223,8 @@ public:
                 float _y = 0.0,
                 float _xsize = 1.0,
                 float _ysize = 1.0,
-                float _minstr = -0.1,
-                float _maxstr = 0.1,
+                float _minstr = -0.5,
+                float _maxstr = 0.5,
                 int   _num = 100)
     : FlowFeature(_x, _y),
       m_xsize(_xsize),
