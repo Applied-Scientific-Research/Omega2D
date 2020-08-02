@@ -241,11 +241,18 @@ public:
     S circ = 0.0;
 
     if (s) {
-      // we have strengths, add them up
-      // this is the c++17 way
-      //return std::reduce(std::execution::par, s->begin(), s->end());
-      // this is the c++11 way
-      circ = std::accumulate(s->begin(), s->end(), 0.0);
+      if (s->size() < 40000) {
+        // we have strengths, add them up
+        // this is the c++17 way
+        //return std::reduce(std::execution::par, s->begin(), s->end());
+        // this is the c++11 way
+        circ = std::accumulate(s->begin(), s->end(), 0.0);
+      } else {
+        // do it in double precision instead
+        Vector<double> dblstr(s->begin(), s->end());
+        double dblcirc = std::accumulate(dblstr.begin(), dblstr.end(), 0.0);
+        circ = (float)dblcirc;
+      }
     }
 
     return circ;
