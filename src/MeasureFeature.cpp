@@ -34,8 +34,9 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
 
   const std::string ftype = _jin["type"];
 
-  if      (ftype == "tracer") {           _flist.emplace_back(std::make_unique<SinglePoint>()); }
-  else if (ftype == "tracer emitter") {   _flist.emplace_back(std::make_unique<SinglePoint>(0.0, 0.0, false, true)); }
+  if      ((ftype == "tracer") || (ftype == "point")) {
+    _flist.emplace_back(std::make_unique<SinglePoint>());
+  } else if (ftype == "tracer emitter") {   _flist.emplace_back(std::make_unique<SinglePoint>(0.0, 0.0, false, true)); }
   else if (ftype == "tracer blob") {      _flist.emplace_back(std::make_unique<MeasurementBlob>()); }
   else if (ftype == "tracer line") {      _flist.emplace_back(std::make_unique<MeasurementLine>(0.0, 0.0, false, true)); }
   else if (ftype == "measurement line") { _flist.emplace_back(std::make_unique<MeasurementLine>()); }
