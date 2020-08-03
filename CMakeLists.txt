@@ -218,7 +218,7 @@ FILE(GLOB IMGUISOURCES "src/imgui/*.cpp" )
 INCLUDE_DIRECTORIES( "src/tinyxml2" )
 INCLUDE_DIRECTORIES( "src/tinyexpr" )
 INCLUDE_DIRECTORIES( "src/cppcodec" )
-INCLUDE_DIRECTORIES( "src/stb" )
+INCLUDE_DIRECTORIES( "src/miniz" )
 INCLUDE_DIRECTORIES( "src" )
 
 IF (CMAKE_COMPILER_IS_GNUCXX)
@@ -241,7 +241,7 @@ SET(SOURCES ${HEADERS}
 SET(GUI_SOURCES "src/glad/glad.c"
                 "src/ShaderHelper.cpp"
                 "src/FeatureDraw.cpp"
-                "src/stb/FrameBufferToImage.cpp" )
+                "src/miniz/FrameBufferToImage.cpp" )
 
 # create a binary for the GUI version
 IF( BUILD_GUI )
