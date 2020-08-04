@@ -40,7 +40,7 @@ void saveFramePNG(std::string file_name) {
 
   size_t png_data_size = 0;
   void *pPNG_data = tdefl_write_image_to_png_file_in_memory_ex(buffer, width, height, 3,
-                                                               &png_data_size, 6, MZ_FALSE);
+                                                               &png_data_size, MZ_BEST_COMPRESSION, MZ_TRUE);
   if (pPNG_data) {
     FILE *pFile = fopen(file_name.c_str(), "wb");
     fwrite(pPNG_data, 1, png_data_size, pFile);
