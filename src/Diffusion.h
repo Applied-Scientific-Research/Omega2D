@@ -61,7 +61,7 @@ public:
       adaptive_radii(false),
       nom_sep_scaled(std::sqrt(8.0)),
       particle_overlap(1.5),
-      merge_thresh(0.2),
+      merge_thresh(0.4),
       shed_before_diffuse(true)
     {}
 
@@ -178,7 +178,7 @@ void Diffusion<S,A,I>::step(const double                _time,
   //
   // first push away particles inside or too close to the body
   assert(M_PI != 0); // Can't divide by 0
-  clear_inner_layer<S>(1, _bdry, _vort, 1.0/std::sqrt(2.0*M_PI), get_nom_sep(h_nu));
+  clear_inner_layer<S>(1, _bdry, _vort, 0.5/std::sqrt(2.0*M_PI), get_nom_sep(h_nu));
   solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
 
   //
@@ -302,11 +302,11 @@ void Diffusion<S,A,I>::step(const double                _time,
   if (shed_before_diffuse) {
     // use method which trims circulations under the threshold
     //(void) clear_inner_layer<S>(0, _bdry, _vort, 0.0, _vdelta/particle_overlap); // THIS IS BAD
-    (void) clear_inner_layer<S>(1, _bdry, _vort, 1.0/std::sqrt(2.0*M_PI), _vdelta/particle_overlap);
+    (void) clear_inner_layer<S>(1, _bdry, _vort, 0.5/std::sqrt(2.0*M_PI), _vdelta/particle_overlap);
   } else {
     // use method which simply pushes all still-active particles to be at or above a threshold distance
     // cutoff is a multiple of ips (these are the last two arguments)
-    (void) clear_inner_layer<S>(1, _bdry, _vort, 1.0/std::sqrt(2.0*M_PI), _vdelta/particle_overlap);
+    (void) clear_inner_layer<S>(1, _bdry, _vort, 0.5/std::sqrt(2.0*M_PI), _vdelta/particle_overlap);
   }
 
 
@@ -421,21 +421,7 @@ void Diffusion<S,A,I>::draw_advanced() {
   ShowHelpMarker("Particle sizes will adapt as required to maintain resolution during the diffusion calculation. If unchecked, all particles will stay the same size.");
   set_amr(use_amr);
 
-  if (use_amr) {
-    ImGui::PushItemWidth(-270);
-    float lapse_rate = vrm.get_radgrad();
-    ImGui::SliderFloat("Radius gradient", &lapse_rate, 0.01, 0.5f, "%.2f");
-    ImGui::SameLine();
-    ShowHelpMarker("During adaptive diffusion, enforce a maximum spatial gradient for particle radii.");
-    vrm.set_radgrad(lapse_rate);
-
-    float adapt_thresh = std::log10(vrm.get_adapt());
-    ImGui::SliderFloat("Threshold to adapt", &adapt_thresh, -12, 0, "%.1f");
-    ImGui::SameLine();
-    ShowHelpMarker("During diffusion, allow any particles with strength less than this power-of-ten threshold to grow in size.");
-    vrm.set_adapt(std::pow(10.f,adapt_thresh));
-    ImGui::PopItemWidth();
-  }
+  if (use_amr) vrm.draw_advanced();
 #endif
 
   } else if (pd_type == pd_pse) {
