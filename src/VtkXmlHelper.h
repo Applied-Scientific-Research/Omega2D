@@ -15,6 +15,7 @@
 
 #include "tinyxml2.h"
 #include "cppcodec/base64_rfc4648.hpp"
+#include "miniz/miniz.h"
 
 #include <vector>
 #include <cstdint>	// for uint32_t
@@ -41,19 +42,46 @@ void write_DataArray (tinyxml2::XMLPrinter& _p,
                       bool _asbase64 = false) {
 
   using base64 = cppcodec::base64_rfc4648;
-
-  if (_compress) {
-    // not yet implemented
-  }
+  const std::string data = std::string(_data.begin(), _data.end());
 
   if (_asbase64) {
     _p.PushAttribute( "format", "binary" );
+    
+    std::string header = "";
+    std::string encoded = "";
+    if (_compress) {
+      //The header for compressed base64 data is [#blocks] [#block size] [#last block size]
+                                              // [#compressed block size for each block]
+      const uLong numBlocks = 1;
+      uLong blockSize = (uLong)data.length();
+      uLong compBound = compressBound(blockSize);
+      if (!blockSize && _data.size()) { std::cout << "Incorrect block size!" << std::endl; }
+      
+      unsigned char *pComp = (mz_uint8 *)malloc((size_t)compBound);
+      if (!pComp) {
+        printf("No Memory!\n");
+        // We should stop the compression
+      }
+    
+      int compStatus = mz_compress2(pComp, &compBound, (const unsigned char*)data.c_str(), blockSize, 1);
+      if (compStatus != Z_OK) {
+        printf("VTK Compression failed!\n");
+        // Abort compression
+      } else {
+        printf("Compressed VTK from %u to %u bytes\n", (mz_uint32)blockSize, (mz_uint32)compBound);
+      }
+      encoded = base64::encode(pComp, (size_t)compBound);
+      
+      uint32_t headerA[4] = {(uint32_t)numBlocks, (uint32_t)blockSize, (uint32_t)blockSize, (uint32_t)encoded.size()};
+      header = base64::encode((const char*)headerA, (size_t)(4*sizeof(headerA[0])));
+      free(pComp);
+    } else {
+      // encode and write the UInt32 length indicator - the length of the base64-encoded blob
+      encoded = base64::encode(data.c_str(), (size_t)(sizeof(_data[0])*_data.size()));
+      uint32_t encoded_length = encoded.size();
+      header = base64::encode((const char*)(&encoded_length), (size_t)(sizeof(uint32_t)));
+    }
 
-    std::string encoded = base64::encode((const char*)_data.data(), (size_t)(sizeof(_data[0])*_data.size()));
-
-    // encode and write the UInt32 length indicator - the length of the base64-encoded blob
-    uint32_t encoded_length = encoded.size();
-    std::string header = base64::encode((const char*)(&encoded_length), (size_t)(sizeof(uint32_t)));
     //std::cout << "base64 length of header: " << header.size() << std::endl;
     //std::cout << "base64 length of data: " << encoded.size() << std::endl;
 
@@ -66,7 +94,7 @@ void write_DataArray (tinyxml2::XMLPrinter& _p,
       std::vector<uint8_t> decoded = base64::decode(encoded);
       S* decoded_floats = reinterpret_cast<S*>(decoded.data());
   
-      std::cout << "Encoding an array of " << _data.size() << " floats to: " << encoded << std::endl;
+      std::cout << "Encoding an array of " << data.length() << " floats to: " << encoded << std::endl;
       std::cout << "Decoding back into array of floats, starting with: " << decoded_floats[0] << " " << decoded_floats[1] << std::endl;
       //std::cout << "Decoding back into array of " << decoded.size() << " floats, starting with: " << decoded[0] << std::endl;
     }
@@ -76,8 +104,8 @@ void write_DataArray (tinyxml2::XMLPrinter& _p,
 
     // write the data
     _p.PushText( " " );
-    for (size_t i=0; i<_data.size(); ++i) {
-      _p.PushText( _data[i] );
+    for (size_t i=0; i<data.length(); ++i) {
+      _p.PushText( data[i] );
       _p.PushText( " " );
     }
   }
@@ -153,6 +181,19 @@ void write_DataArray (tinyxml2::XMLPrinter& _p,
 //        </DataArray>
 //      </FieldData>
 
+void write_vtk_header(tinyxml2::XMLPrinter &printer, const char* type, const char* version,
+                      const char* byte_order, const char* header_type, const bool compress) {
+  printer.PushAttribute( "type", type );
+  //printer.PushAttribute( "type", "PolyData" );
+  printer.PushAttribute( "version", version );
+  printer.PushAttribute( "byte_order", byte_order );
+  // note this is still unsigned even though all indices later are signed!
+  printer.PushAttribute( "header_type", header_type );
+  if (compress) {
+    printer.PushAttribute( "compressor", "vtkZLibDataCompressor" );
+  }
+}
+
 //
 template <class S>
 std::string write_vtu_points(Points<S> const& pts, const size_t file_idx,
@@ -160,7 +201,7 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx,
 
   assert(pts.get_n() > 0 && "Inside write_vtu_points with no points");
 
-  const bool compress = false;
+  const bool compress = true;
   const bool asbase64 = true;
 
   bool has_radii = true;
@@ -184,13 +225,7 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx,
   printer.PushHeader(false, true);
 
   printer.OpenElement( "VTKFile" );
-  printer.PushAttribute( "type", "UnstructuredGrid" );
-  //printer.PushAttribute( "type", "PolyData" );
-  printer.PushAttribute( "version", "0.1" );
-  printer.PushAttribute( "byte_order", "LittleEndian" );
-  // note this is still unsigned even though all indices later are signed!
-  printer.PushAttribute( "header_type", "UInt32" );
-
+  write_vtk_header(printer, "UnstructuredGrid", "0.1", "LittleEndian", "UInt32", compress);
   // push comment with sim time?
 
   // must choose one of these two formats
@@ -205,7 +240,7 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx,
   printer.PushAttribute( "NumberOfTuples", "1" );
   {
     Vector<double> time_vec = {time};
-    write_DataArray (printer, time_vec, false, false);
+    write_DataArray (printer, time_vec, true, true);
   }
   printer.CloseElement();	// DataArray
   printer.CloseElement();	// FieldData
@@ -351,7 +386,7 @@ std::string write_vtu_panels(Surfaces<S> const& surf, const size_t file_idx,
 
   assert(surf.get_npanels() > 0 && "Inside write_vtu_panels with no panels");
 
-  const bool compress = false;
+  const bool compress = true;
   const bool asbase64 = true;
 
   bool has_vort_str = false;
@@ -374,12 +409,7 @@ std::string write_vtu_panels(Surfaces<S> const& surf, const size_t file_idx,
   printer.PushHeader(false, true);
 
   printer.OpenElement( "VTKFile" );
-  printer.PushAttribute( "type", "UnstructuredGrid" );
-  //printer.PushAttribute( "type", "PolyData" );
-  printer.PushAttribute( "version", "0.1" );
-  printer.PushAttribute( "byte_order", "LittleEndian" );
-  printer.PushAttribute( "header_type", "UInt32" );
-
+  write_vtk_header(printer, "UnstructuredGrid", "0.1", "LittleEndian", "UInt32", compress);
   // push comment with sim time?
 
   // must choose one of these two formats

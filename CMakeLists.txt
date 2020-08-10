@@ -237,11 +237,11 @@ SET(SOURCES ${HEADERS}
             "src/JsonHelper.cpp"
             "src/StatusFile.cpp"
             "src/tinyxml2/tinyxml2.cpp"
-            "src/tinyexpr/tinyexpr.c" )
+            "src/tinyexpr/tinyexpr.c"
+            "src/miniz/miniz.c")
 SET(GUI_SOURCES "src/glad/glad.c"
                 "src/ShaderHelper.cpp"
                 "src/FeatureDraw.cpp"
-                "src/miniz/miniz.c"
                 "src/miniz/FrameBufferToImage.cpp" )
 
 # create a binary for the GUI version
