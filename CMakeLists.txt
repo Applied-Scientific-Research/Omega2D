@@ -42,7 +42,7 @@ IF (CMAKE_COMPILER_IS_GNUCXX)
   SET (CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native")
   SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -march=native -g -ggdb3")
 ELSEIF (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  SET (CMAKE_CXX_FLAGS "-Wall -Wformat -std=c++17 -stdlib=libc++")
+  SET (CMAKE_CXX_FLAGS "-Wall -Wformat -std=c++17")
   SET (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -ggdb")
   SET (CMAKE_CXX_FLAGS_RELEASE "-O3")
   SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g -ggdb")
@@ -54,6 +54,11 @@ ENDIF ()
 
 # Split on operating system
 IF( WIN32 )
+  # because clang is stupid
+  IF (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+  ENDIF ()
+
   SET( GL_LIBS_HOME "C:/Lib" CACHE PATH "Location of support libraries" )
   SET( GLFW3_ROOT "${GL_LIBS_HOME}/glfw-3.3.bin.WIN32" CACHE STRING "GLFW3 root" )
   INCLUDE_DIRECTORIES( "${GLFW3_ROOT}/include" )
@@ -97,6 +102,11 @@ IF( WIN32 )
   SET_PROPERTY(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Omega2D)
 
 ELSEIF( APPLE )
+  # because clang is stupid
+  IF (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+  ENDIF ()
+
   INCLUDE_DIRECTORIES ( /System/Library/Frameworks )
   FIND_LIBRARY(COCOA_LIBRARY Cocoa)
   FIND_LIBRARY(IOKIT_LIBRARY IOKit)
@@ -137,6 +147,11 @@ ELSEIF( APPLE )
   SET( GUI_LIBS ${FRAMEWORK_LIBS} ${COCOA_LIBRARY} ${IOKIT_LIBRARY} ${COREVIDEO_LIBRARY} ${OpenGL_LIBRARY} )
 
 ELSEIF( UNIX )
+  # because clang is stupid
+  IF (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
+  ENDIF ()
+
   # glfw finds opengl
   # this works for CentOS 7
   #FIND_PACKAGE( glfw3 3.0 REQUIRED )

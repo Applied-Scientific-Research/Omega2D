@@ -611,7 +611,7 @@ bool fileIOWindow(
     Text("File Name: "); SameLine();
     InputText( "  ", current_file, IM_ARRAYSIZE( current_file ) );
 
-    Text( "File Type: " ); SameLine(); Text( extension_cstrings[file_type_selected] ); SameLine();
+    Text( "File Type: " ); SameLine(); Text( "%s", extension_cstrings[file_type_selected] ); SameLine();
     if (Button( CARET_DOWN ) )
         ImGui::OpenPopup("FileType");
 

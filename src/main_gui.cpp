@@ -332,7 +332,7 @@ int main(int argc, char const *argv[]) {
       ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiCond_FirstUseEver);
       if (ImGui::BeginPopupModal("Simulation error occurred")) {
         ImGui::Spacing();
-        ImGui::TextWrapped(sim_err_msg.c_str());
+        ImGui::TextWrapped("%s", sim_err_msg.c_str());
         ImGui::Spacing();
         if (ImGui::Button("Got it.", ImVec2(120,0))) {
           // clear out the error message first

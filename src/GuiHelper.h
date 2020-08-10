@@ -2,7 +2,7 @@
  * GuiHelper.h - Useful pieces of code for drawing the Gui
  *
  * (c)2020 Applied Scientific Research, Inc.
- *         Written by Mark J Stock <markjstock@gmail.com>
+ *         Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -16,7 +16,7 @@
 #include "imgui/ImguiWindowsFileIO.hpp"
 
 // adds a (?) help text
-static void ShowHelpMarker(const char* desc)
+static inline void ShowHelpMarker(const char* desc)
 {
     ImGui::TextDisabled("(?)");
     if (ImGui::IsItemHovered())
