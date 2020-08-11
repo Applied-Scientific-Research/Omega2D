@@ -1,8 +1,8 @@
 /*
  * Points.h - Specialized class for 2D points
  *
- * (c)2018-9 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
+ * (c)2018-20 Applied Scientific Research, Inc.
+ *            Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -92,6 +92,70 @@ public:
     }
   }
 
+  // alternate constructor - accepting ElementPacket
+  Points(const ElementPacket<S>& _in,
+         const elem_t _e,
+         const move_t _m,
+         std::shared_ptr<Body> _bp)
+    : ElementBase<S>(0, _e, _m, _bp),
+      max_strength(-1.0) {
+
+    // ensure that this packet really is Points
+    assert(_in.idx.size() == 0 && "Input ElementPacket is not Points");
+    assert(_in.ndim == 0 && "Input ElementPacket is not Points");
+
+    // and that it has the right number of values per particle
+    if (_e == inert) assert(_in.val.size() == 0 && "Input ElementPacket with fldpts has val array");
+    else if (_e == reactive) assert(false && "Input ElementPacket with reactive points is unsupported");
+    else assert(_in.val.size() == 2*_in.nelem && "Input ElementPacket with vortons has val array not a multiple of 2");
+
+    // tell the world that we're legit
+    std::cout << "  new collection with " << (_in.nelem);
+    std::cout << ((_e == inert) ? " tracer" : " vortex") << " elems" << std::endl;
+
+    // need to reset the base class n, because this gets run before the base ctor
+    this->n = _in.nelem;
+
+    // this initialization specific to Points - is it, though?
+    for (size_t d=0; d<Dimensions; ++d) {
+      this->x[d].resize(this->n);
+      for (size_t i=0; i<this->n; ++i) {
+        this->x[d][i] = _in.x[Dimensions*i+d];
+      }
+    }
+
+    // save untransformed positions if we are given a Body pointer
+    if (_bp) {
+      this->ux = this->x;
+    }
+
+    if (_e == inert) {
+      // field points need neither radius nor strength
+
+    } else {
+      // active vortons need radius, ASSUMPTION: it's the second interleaved value in _in.val
+      r.resize(this->n);
+      for (size_t i=0; i<this->n; ++i) {
+        r[i] = _in.val[2*i+1];
+      }
+
+      // optional strength in base class
+      // need to assign it a vector first!
+      // ASSUMPTION: it's the first interleaved value in _in.val
+      Vector<S> new_s;
+      new_s.resize(this->n);
+      for (size_t i=0; i<this->n; ++i) {
+        new_s[i] = _in.val[2*i+0];
+      }
+      this->s = std::move(new_s);
+    }
+
+    // velocity in base class
+    for (size_t d=0; d<Dimensions; ++d) {
+      this->u[d].resize(this->n);
+    }
+  }
+
   const Vector<S>& get_rad() const { return r; }
   Vector<S>&       get_rad()       { return r; }
 
@@ -107,7 +171,8 @@ public:
 
   const float get_max_bc_value() const { return 0.0; }
 
-  void add_new(std::vector<float>& _in) {
+  // append more elements this collection
+  void add_new(std::vector<S>& _in) {
     // remember old size and incoming size
     const size_t nold = this->n;
 
@@ -129,6 +194,48 @@ public:
       r.resize(nold+nnew);
       for (size_t i=0; i<nnew; ++i) {
         r[nold+i] = _in[4*i+3];
+      }
+    }
+
+    // save the new untransformed positions if we have a Body pointer
+    if (this->B) {
+      for (size_t d=0; d<Dimensions; ++d) {
+        (*this->ux)[d].resize(nold+nnew);
+        for (size_t i=nold; i<nold+nnew; ++i) {
+          (*this->ux)[d][i] = this->x[d][i];
+        }
+      }
+    }
+  }
+
+  // append more elements this collection
+  void add_new(ElementPacket<S>& _in) {
+    // ensure that this packet really is Points
+    assert(_in.idx.size() == 0 && "Input ElementPacket is not Points");
+    assert(_in.ndim == 0 && "Input ElementPacket is not Points");
+
+    // and that it has the right number of values per particle
+    if (this->E == inert) assert(_in.val.size() == 0 && "Input ElementPacket with fldpts has val array");
+    else if (this->E == reactive) assert("Input ElementPacket with reactive points is unsupported");
+    else assert(_in.val.size() != 2*_in.nelem && "Input ElementPacket with vortons has val array not a multiple of 2");
+
+    // remember old size and incoming size (note that Points nelems = nnodes)
+    const size_t nold = this->n;
+    const size_t nnew = _in.nelem;
+    std::cout << "  adding " << nnew << " particles to collection..." << std::endl;
+
+    // must explicitly call the method in the base class first - this pulls out positions and strengths
+    ElementBase<S>::add_new(_in);
+
+    // then do local stuff
+    if (this->E == inert) {
+      // no radius needed
+
+    } else {
+      // active points need radius, ASSUMPTION: it's the second interleaved value in _in.val
+      r.resize(nold+nnew);
+      for (size_t i=0; i<nnew; ++i) {
+        r[nold+i] = _in.val[2*i+1];
       }
     }
 
