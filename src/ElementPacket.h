@@ -25,5 +25,8 @@ struct ElementPacket {
   std::vector<S> x;
   std::vector<Int> idx;
   std::vector<S> val;
+  uint32_t nelem;
+  uint8_t ndim;	// 0=points, 1=surfaces, 2=volumes for 2D
+		// 0=points, 1=lines, 2=surfaces, 3=volumes for 3D
 };
 

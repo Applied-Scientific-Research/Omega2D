@@ -1,9 +1,9 @@
 /*
  * FlowFeature.h - GUI-side descriptions of flow features
  *
- * (c)2017-9 Applied Scientific Research, Inc.
- *           Mark J Stock <markjstock@gmail.com>
-             Blake B Hillier <blakehillier@mac.com>
+ * (c)2017-20 Applied Scientific Research, Inc.
+ *            Mark J Stock <markjstock@gmail.com>
+              Blake B Hillier <blakehillier@mac.com>
  */
 
 #pragma once

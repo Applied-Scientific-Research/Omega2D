@@ -209,16 +209,24 @@ int main(int argc, char const *argv[]) {
       // initialize particle distributions
       for (auto const& ff: ffeatures) {
         if (ff->is_enabled()) sim.add_particles( ff->init_particles(sim.get_ips()) );
+        //if (ff->is_enabled()) {
+        //  ElementPacket<float> newpacket = ff->init_elements(sim.get_ips());
+          // echo any errors
+        //  if (good) sim.add_elements( newpacket, active, lagrangian, ff->get_body() );
+        //}
+        //if (ff->is_enabled()) sim.add_elements( ff->init_elements(sim.get_ips()), active, lagrangian, ff->get_body() );
       }
 
       // initialize solid objects
       for (auto const& bf : bfeatures) {
         if (bf->is_enabled()) sim.add_boundary( bf->get_body(), bf->init_elements(sim.get_ips()) );
+        //if (bf->is_enabled()) sim.add_elements( bf->init_elements(sim.get_ips()), reactive, ?, bf->get_body() );
       }
 
       // initialize measurement features
       for (auto const& mf: mfeatures) {
         if (mf->is_enabled()) sim.add_fldpts( mf->init_particles(rparams.tracer_scale*sim.get_ips()), mf->moves() );
+        //if (mf->is_enabled()) sim.add_elements( mf->init_elements(rparams.tracer_scale*sim.get_ips()), inert, mf->moves(), mf->get_body() );
       }
 
       sim.set_initialized();

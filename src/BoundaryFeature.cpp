@@ -222,6 +222,10 @@ SolidCircle::init_elements(const float _ips) const {
     }
   }
 
+  //ElementPacket<float> retval({x, idx, val, num_panels, 1});
+  //if (!retval.verify()) { die! }
+  //return retval;
+
   return ElementPacket<float>({x, idx, val});
 }
 

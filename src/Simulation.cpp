@@ -741,6 +741,30 @@ void Simulation::add_boundary(std::shared_ptr<Body> _bptr, ElementPacket<float> 
   }
 }
 
+// add elements (general)
+void Simulation::add_elements(ElementPacket<float> _elems,
+                              elem_t _et, move_t _mt, std::shared_ptr<Body> _bptr) {
+
+  // skip out early if nothing's here
+  if (_elems.nelem == 0) return;
+  //if (_elems.idx.size() == 0) return;
+
+  // query the element packet for geometry type (Points, Surfaces, Volumes)
+  //const Int element_dim = _elems.ndim;
+
+  // now split on which Collection will receive this
+  //std::vector<Collection>& addto;
+  if (_et == active) {
+    // it's active vorticity, add to vort
+    // file_elements(vort, _elems, _mt, _bptr);
+    // in that routine, we will look for a match for move type, body pointer, and points/surfs/vols
+  } else if (_et == reactive) {
+    // file_elements(bdry, _elems, _mt, _bptr);
+  } else {
+    // file_elements(fldpt, _elems, _mt, _bptr);
+  }
+}
+
 // add a new Body with the given name
 void Simulation::add_body(std::shared_ptr<Body> _body) {
   bodies.emplace_back(_body);

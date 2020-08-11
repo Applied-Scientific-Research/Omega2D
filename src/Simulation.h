@@ -94,6 +94,7 @@ public:
   void add_particles(std::vector<float>);
   void add_fldpts(std::vector<float>, const bool);
   void add_boundary(std::shared_ptr<Body>, ElementPacket<float>);
+  void add_elements(ElementPacket<float>, elem_t, move_t, std::shared_ptr<Body>);
 
   // access body list
   void add_body(std::shared_ptr<Body>);
