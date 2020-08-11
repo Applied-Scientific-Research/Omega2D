@@ -2,7 +2,7 @@
  * Merge.h - library code for a two-dimensional particle merging scheme
  *
  * (c)2017-9 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
+ *           Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -74,7 +74,7 @@ size_t merge_close_particles(std::array<Vector<S>,2>& pos,
 
   // new merging needs two new thresholds
   const S initial_thresh = 0.5;
-  const S always_thresh = 0.05;
+  const S always_thresh = 0.1;
 
   // and a measure of the mean strength
   S meanstr = 0.0;
