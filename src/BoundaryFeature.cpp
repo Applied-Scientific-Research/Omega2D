@@ -159,13 +159,13 @@ bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeat
     oldItem = item;
   }
 
-  if (changed) { bf->set_body(bp); }
-
   if (bf->draw_info_gui("Add")) {
+    if (!bp) { abort(); }
     if (mitem == 2) {
       bp->set_name(bf->to_short_string());
       sim.add_body(bp);
     }
+    bf->set_body(bp);
     bfs.emplace_back(std::move(bf));
     bf = nullptr;
     oldItem = -1;
