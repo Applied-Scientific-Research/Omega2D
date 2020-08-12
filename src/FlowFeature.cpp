@@ -119,15 +119,24 @@ bool FlowFeature::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &f
 //
 // drop a single particle
 //
-std::vector<float>
-SingleParticle::init_particles(float _ips) const {
-  if (this->is_enabled()) return std::vector<float>({m_x, m_y, m_str, 0.0});
-  else return std::vector<float>();
+ElementPacket<float>
+SingleParticle::init_elements(float _ips) const {
+  //if (this->is_enabled()) return std::vector<float>({m_x, m_y, m_str, 0.0});
+  //else return std::vector<float>();
+  std::vector<float> x = {m_x, m_y};
+  std::vector<Int> idx = {};
+  std::vector<float> vals = {m_str, 0.0};
+  ElementPacket<float> packet({x, idx, vals, (uint32_t)1, (uint8_t)0});
+  if (packet.verify(packet.x.size()+packet.val.size(), 4)) {
+    return packet;
+  } else {
+    return ElementPacket<float>();
+  }
 }
 
-std::vector<float>
-SingleParticle::step_particles(float _ips) const {
-  return std::vector<float>();
+ElementPacket<float>
+SingleParticle::step_elements(float _ips) const {
+  return ElementPacket<float>();
 }
 
 void
@@ -188,12 +197,14 @@ bool SingleParticle::draw_info_gui(const std::string action, const float ips) {
 //
 // make a circular vortex blob with soft transition
 //
-std::vector<float>
-VortexBlob::init_particles(float _ips) const {
+ElementPacket<float>
+VortexBlob::init_elements(float _ips) const {
   // create a new vector to pass on
   std::vector<float> x;
+  std::vector<Int> idx;
+  std::vector<float> vals;
 
-  if (not this->is_enabled()) return x;
+  //if (not this->is_enabled()) return x;
 
   // what size 2D integer array will we loop over
   int irad = 1 + (m_rad + 0.5*m_softness) / _ips;
@@ -220,11 +231,12 @@ VortexBlob::init_particles(float _ips) const {
         // create a weaker particle
         this_str = 0.5 - 0.5*std::sin(M_PI * (dr - m_rad) / m_softness);
       }
-      x.emplace_back((float)this_str);
+      vals.emplace_back((float)this_str);
       tot_circ += this_str;
 
       // this is the radius - still zero for now
-      x.emplace_back(0.0f);
+      // Where should this go?
+      vals.emplace_back(0.0f);
     }
   }
   }
@@ -233,16 +245,21 @@ VortexBlob::init_particles(float _ips) const {
   //   has exactly the right strength
   std::cout << "  blob had " << tot_circ << " initial circulation" << std::endl;
   double str_scale = (double)m_str / tot_circ;
-  for (size_t i=2; i<x.size(); i+=4) {
-    x[i] = (float)((double)x[i] * str_scale);
+  for (size_t i=0; i<vals.size(); i+=2) {
+    vals[i] = (float)((double)vals[i] * str_scale);
   }
 
-  return x;
+  ElementPacket<float> packet({x, idx, vals, (uint32_t)std::pow(2*irad, 2), (uint8_t)0});
+  if (packet.verify(packet.x.size()+packet.val.size(), 4)) {
+    return packet;
+  } else {
+    return ElementPacket<float>();
+  }
 }
 
-std::vector<float>
-VortexBlob::step_particles(float _ips) const {
-  return std::vector<float>();
+ElementPacket<float>
+VortexBlob::step_elements(float _ips) const {
+  return ElementPacket<float>();
 }
 
 void
@@ -307,12 +324,14 @@ bool VortexBlob::draw_info_gui(const std::string action, const float ips) {
 //
 // make an anymmetric vortex blob with soft transition
 //
-std::vector<float>
-AsymmetricBlob::init_particles(float _ips) const {
+ElementPacket<float>
+AsymmetricBlob::init_elements(float _ips) const {
   // create a new vector to pass on
   std::vector<float> x;
+  std::vector<Int> idx;
+  std::vector<float> vals;
 
-  if (not this->is_enabled()) return x;
+  //if (not this->is_enabled()) return x;
 
   // what size 2D integer array will we loop over
   int irad = 1 + (m_rad    + 0.5*m_softness) / _ips;
@@ -346,11 +365,11 @@ AsymmetricBlob::init_particles(float _ips) const {
         // create a weaker particle
         this_str = 0.5 - 0.5*std::sin(M_PI * (dr - m_rad) / m_softness);
       }
-      x.emplace_back((float)this_str);
+      vals.emplace_back((float)this_str);
       tot_circ += this_str;
 
       // this is the radius - still zero for now
-      x.emplace_back(0.0f);
+      vals.emplace_back(0.0f);
     }
   }
   }
@@ -359,16 +378,21 @@ AsymmetricBlob::init_particles(float _ips) const {
   //   has exactly the right strength
   std::cout << "  asym blob had " << tot_circ << " initial circulation" << std::endl;
   double str_scale = (double)m_str / tot_circ;
-  for (size_t i=2; i<x.size(); i+=4) {
-    x[i] = (float)((double)x[i] * str_scale);
+  for (size_t i=0; i<vals.size(); i+=2) {
+    vals[i] = (float)((double)vals[i] * str_scale);
   }
 
-  return x;
+  ElementPacket<float> packet({x, idx, vals, (uint32_t)((2*jrad)*(2*irad)), (uint8_t)0});
+  if (packet.verify(packet.x.size()+packet.val.size(), 4)) {
+    return packet;
+  } else {
+    return ElementPacket<float>();
+  }
 }
 
-std::vector<float>
-AsymmetricBlob::step_particles(float _ips) const {
-  return std::vector<float>();
+ElementPacket<float>
+AsymmetricBlob::step_elements(float _ips) const {
+  return ElementPacket<float>();
 }
 
 void
@@ -439,12 +463,12 @@ bool AsymmetricBlob::draw_info_gui(const std::string action, const float ips) {
 //
 // make a Gaussian vortex blob
 //
-std::vector<float>
-GaussianBlob::init_particles(float _ips) const {
+ElementPacket<float>
+GaussianBlob::init_elements(float _ips) const {
   // create a new vector to pass on
   std::vector<float> x;
-
-  if (not this->is_enabled()) return x;
+  std::vector<Int> idx;
+  std::vector<float> vals;
 
   // what size 2D integer array will we loop over
   int irad = 1 + (3.0*m_stddev) / _ips;
@@ -467,11 +491,11 @@ GaussianBlob::init_particles(float _ips) const {
 
       // figure out the strength from another check
       double this_str = std::exp(-std::pow(dr/m_stddev, 2.0));
-      x.emplace_back((float)this_str);
+      vals.emplace_back((float)this_str);
       tot_circ += this_str;
 
       // this is the radius - still zero for now
-      x.emplace_back(0.0f);
+      vals.emplace_back(0.0f);
     }
   }
   }
@@ -480,16 +504,21 @@ GaussianBlob::init_particles(float _ips) const {
   //   has exactly the right strength
   std::cout << "  blob had " << tot_circ << " initial circulation" << std::endl;
   double str_scale = (double)m_str / tot_circ;
-  for (size_t i=2; i<x.size(); i+=4) {
-    x[i] = (float)((double)x[i] * str_scale);
+  for (size_t i=0; i<vals.size(); i+=2) {
+    vals[i] = (float)((double)vals[i] * str_scale);
   }
 
-  return x;
+  ElementPacket<float> packet({x, idx, vals, (uint32_t)std::pow(2*irad, 2), (uint8_t)0});
+  if (packet.verify(packet.x.size()+packet.val.size(), 4)) {
+    return packet;
+  } else {
+    return ElementPacket<float>();
+  }
 }
 
-std::vector<float>
-GaussianBlob::step_particles(float _ips) const {
-  return std::vector<float>();
+ElementPacket<float>
+GaussianBlob::step_elements(float _ips) const {
+  return ElementPacket<float>();
 }
 
 void
@@ -551,10 +580,9 @@ bool GaussianBlob::draw_info_gui(const std::string action, const float ips) {
 //
 // make the block of regular, and uniform-strength particles
 //
-std::vector<float>
-UniformBlock::init_particles(float _ips) const {
+ElementPacket<float>
+UniformBlock::init_elements(float _ips) const {
 
-  if (not this->is_enabled()) return std::vector<float>();
 
   // what size 2D integer array will we loop over
   int isize = 1 + m_xsize / _ips;
@@ -562,26 +590,35 @@ UniformBlock::init_particles(float _ips) const {
   std::cout << "block needs " << isize << " by " << jsize << " particles" << std::endl;
 
   // create a new vector to pass on
-  std::vector<float> x(4*isize*jsize);
+  std::vector<float> x(2*isize*jsize);
+  std::vector<Int> idx();
+  std::vector<float> vals(2*isize*jsize);
 
   const float each_str = m_str / (float)(isize*jsize);
 
   // initialize the particles' locations and strengths, leave radius zero for now
-  size_t iptr = 0;
+  size_t ix = 0;
+  size_t iv = 0;
   for (int i=0; i<isize; ++i) {
   for (int j=0; j<jsize; ++j) {
-    x[iptr++] = m_x + m_xsize * (((float)i + 0.5)/(float)isize - 0.5);
-    x[iptr++] = m_y + m_ysize * (((float)j + 0.5)/(float)jsize - 0.5);
-    x[iptr++] = each_str;
-    x[iptr++] = 0.0f;
+    x[ix++] = m_x + m_xsize * (((float)i + 0.5)/(float)isize - 0.5);
+    x[ix++] = m_y + m_ysize * (((float)j + 0.5)/(float)jsize - 0.5);
+    vals[iv++] = each_str;
+    vals[iv++] = 0.0f;
   }
   }
-  return x;
+
+  ElementPacket<float> packet({x, idx, vals, (uint32_t)(isize*jsize), (uint8_t)0});
+  if (packet.verify(packet.x.size()+packet.val.size(), 4)) {
+    return packet;
+  } else {
+    return ElementPacket<float>();
+  }
 }
 
-std::vector<float>
-UniformBlock::step_particles(float _ips) const {
-  return std::vector<float>();
+ElementPacket<float>
+UniformBlock::step_elements(float _ips) const {
+  return ElementPacket<float>();
 }
 
 void
@@ -650,32 +687,37 @@ bool UniformBlock::draw_info_gui(const std::string action, const float ips) {
 //
 // make the block of randomly-placed and random-strength particles
 //
-std::vector<float>
-BlockOfRandom::init_particles(float _ips) const {
-
-  if (not this->is_enabled()) return std::vector<float>();
-
+ElementPacket<float>
+BlockOfRandom::init_elements(float _ips) const {
   // set up the random number generator
   static std::random_device rd;  //Will be used to obtain a seed for the random number engine
   static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
   static std::uniform_real_distribution<> loc_dist(-1.0, 1.0);
   static std::uniform_real_distribution<> str_dist(0.0, 1.0);
 
-  std::vector<float> x(4*m_num);
+  std::vector<float> x(2*m_num);
+  std::vector<Int> idx();
+  std::vector<float> vals(2*m_num);
   // initialize the particles' locations and strengths, leave radius zero for now
   for (size_t i=0; i<(size_t)m_num; ++i) {
-    size_t idx = 4*i;
-    x[idx+0] = m_x + m_xsize*loc_dist(gen);
+    size_t idx = 2*i;
+    x[idx] = m_x + m_xsize*loc_dist(gen);
     x[idx+1] = m_y + m_ysize*loc_dist(gen);
-    x[idx+2] = m_minstr + (m_maxstr-m_minstr)*str_dist(gen);
-    x[idx+3] = 0.0f;
+    vals[idx] = m_minstr + (m_maxstr-m_minstr)*str_dist(gen);
+    vals[idx+1] = 0.0f;
   }
-  return x;
+  
+  ElementPacket<float> packet({x, idx, vals, (uint32_t)(2*m_num), (uint8_t)0});
+  if (packet.verify(packet.x.size()+packet.val.size(), 4)) {
+    return packet;
+  } else {
+    return ElementPacket<float>();
+  }
 }
 
-std::vector<float>
-BlockOfRandom::step_particles(float _ips) const {
-  return std::vector<float>();
+ElementPacket<float>
+BlockOfRandom::step_elements(float _ips) const {
+  return ElementPacket<float>();
 }
 
 void
@@ -767,15 +809,22 @@ bool BlockOfRandom::draw_info_gui(const std::string action, const float ips) {
 //
 // drop a single particle from the emitter
 //
-std::vector<float>
-ParticleEmitter::init_particles(float _ips) const {
-  return std::vector<float>();
+ElementPacket<float>
+ParticleEmitter::init_elements(float _ips) const {
+  return ElementPacket<float>();
 }
 
-std::vector<float>
-ParticleEmitter::step_particles(float _ips) const {
-  if (this->is_enabled()) return std::vector<float>({m_x, m_y, m_str, 0.0});
-  else return std::vector<float>();
+ElementPacket<float>
+ParticleEmitter::step_elements(float _ips) const {
+  std::vector<float> x = {m_x, m_y};
+  std::vector<Int> idx;
+  std::vector<float> vals = {m_str, 0.0};
+  ElementPacket<float> packet({x, idx, vals, (uint32_t)1, (uint8_t)0});
+  if (packet.verify(packet.x.size()+packet.val.size(), 4)) {
+    return packet;
+  } else {
+    return ElementPacket<float>();
+  }
 }
 
 void
