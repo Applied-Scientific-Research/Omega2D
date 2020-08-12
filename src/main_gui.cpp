@@ -208,12 +208,12 @@ int main(int argc, char const *argv[]) {
 
       // initialize particle distributions
       for (auto const& ff: ffeatures) {
-        if (ff->is_enabled()) sim.add_particles( ff->init_particles(sim.get_ips()) );
-        //if (ff->is_enabled()) {
-        //  ElementPacket<float> newpacket = ff->init_elements(sim.get_ips());
+        //if (ff->is_enabled()) sim.add_particles( ff->init_particles(sim.get_ips()) );
+        if (ff->is_enabled()) {
+          ElementPacket<float> newpacket = ff->init_elements(sim.get_ips());
           // echo any errors
-        //  if (good) sim.add_elements( newpacket, active, lagrangian, ff->get_body() );
-        //}
+          /*if (good)*/ sim.add_elements( newpacket, active, lagrangian, ff->get_body() );
+        }
         //if (ff->is_enabled()) sim.add_elements( ff->init_elements(sim.get_ips()), active, lagrangian, ff->get_body() );
       }
 
@@ -229,8 +229,10 @@ int main(int argc, char const *argv[]) {
 
       // initialize measurement features
       for (auto const& mf: mfeatures) {
-        if (mf->is_enabled()) sim.add_fldpts( mf->init_particles(rparams.tracer_scale*sim.get_ips()), mf->moves() );
-        //if (mf->is_enabled()) sim.add_elements( mf->init_elements(rparams.tracer_scale*sim.get_ips()), inert, mf->moves(), mf->get_body() );
+        //if (mf->is_enabled()) sim.add_fldpts( mf->init_particles(rparams.tracer_scale*sim.get_ips()), mf->moves() );
+        if (mf->is_enabled()) {
+          const move_t newMoveType = (mf->get_is_lagrangian() ? lagrangian : fixed);
+          sim.add_elements( mf->init_elements(rparams.tracer_scale*sim.get_ips()), inert, newMoveType, mf->get_body() );
       }
 
       sim.set_initialized();
@@ -317,10 +319,10 @@ int main(int argc, char const *argv[]) {
 
         // generate new particles from emitters
         for (auto const& ff : ffeatures) {
-          if (ff->is_enabled()) sim.add_particles( ff->step_particles(sim.get_ips()) );
+          if (ff->is_enabled()) sim.add_elements( ff->step_particles(sim.get_ips()) );
         }
         for (auto const& mf : mfeatures) {
-          if (mf->is_enabled()) sim.add_fldpts( mf->step_particles(rparams.tracer_scale*sim.get_ips()), true );
+          if (mf->is_enabled()) sim.add_elements( mf->step_particles(rparams.tracer_scale*sim.get_ips()), true );
         }
 
         // begin a new dynamic step: convection and diffusion

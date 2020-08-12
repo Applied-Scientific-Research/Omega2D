@@ -259,7 +259,7 @@ MeasurementBlob::init_elements(float _ips) const {
 ElementPacket<float>
 MeasurementBlob::step_elements(float _ips) const {
   if ((m_enabled) && (m_emits)) {
-    std::vector<float> x = init_particles(_ips);
+    std::vector<float> x = init_elements(_ips);
     for (size_t i=0; i<x.size(); i++) {
       x[i] = jitter(x[i], _ips);
     }
@@ -383,7 +383,7 @@ MeasurementLine::init_elements(float _ips) const {
 ElementPacket<float>
 MeasurementLine::step_elements(float _ips) const {
   if ((m_enabled) && (m_emits)) {
-    std::vector<float> x = init_particles(_ips);
+    std::vector<float> x = init_elements(_ips);
     for (size_t i=0; i<x.size(); i++) {
       x[i] = jitter(x[i], _ips);
     }

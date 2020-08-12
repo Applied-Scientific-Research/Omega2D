@@ -40,6 +40,7 @@ public:
   bool emits() const { return m_emits; }
   float jitter(const float, const float) const;
   ElementPacket<float> get_draw_packet() const { return m_draw; }
+  bool get_is_lagrangian() { return m_is_lagrangian; }
 
   virtual void debug(std::ostream& os) const = 0;
   virtual std::string to_string() const = 0;
