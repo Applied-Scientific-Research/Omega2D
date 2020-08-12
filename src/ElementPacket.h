@@ -25,7 +25,7 @@ struct ElementPacket {
   // Ensure the element packet is correct
   // This will probaly need some parameters and some if statements
   // Check the sim.add_* functions
-  bool verify() { return true; }
+  bool verify(int check) { return (x.size() % check == 0); }
 
   std::vector<S> x;
   std::vector<Int> idx;

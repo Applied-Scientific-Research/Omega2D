@@ -223,7 +223,7 @@ SolidCircle::init_elements(const float _ips) const {
   }
 
   ElementPacket<float> packet({x, idx, val, num_panels, 1});
-  if (packet.verify()) {
+  if (packet.verify(x.size())) {
     return packet;
   } else {
     // Has to be a better way
@@ -423,7 +423,7 @@ SolidOval::init_elements(const float _ips) const {
   }
 
   ElementPacket<float> packet({x, idx, val, num_panels, 1});
-  if (packet.verify()) {
+  if (packet.verify(x.size())) {
     return packet;
   } else {
     // Has to be a better way
@@ -572,7 +572,7 @@ SolidSquare::init_elements(const float _ips) const {
   }
 
   ElementPacket<float> packet({x, idx, val, num_panels, 1});
-  if (packet.verify()) {
+  if (packet.verify(x.size())) {
     return packet;
   } else {
     // Has to be a better way
@@ -721,7 +721,7 @@ SolidRect::init_elements(const float _ips) const {
   }
 
   ElementPacket<float> packet({x, idx, val, num_panels, 1});
-  if (packet.verify()) {
+  if (packet.verify(x.size())) {
     return packet;
   } else {
     // Has to be a better way
@@ -848,7 +848,7 @@ BoundarySegment::init_elements(const float _ips) const {
   }
 
   ElementPacket<float> packet({x, idx, val, num_panels, 1});
-  if (packet.verify()) {
+  if (packet.verify(x.size())) {
     return packet;
   } else {
     // Has to be a better way
@@ -992,7 +992,7 @@ SolidPolygon::init_elements(const float _ips) const {
   }
 
   ElementPacket<float> packet({x, idx, val, num_panels, 1});
-  if (packet.verify()) {
+  if (packet.verify(x.size())) {
     return packet;
   } else {
     // Has to be a better way
@@ -1212,7 +1212,7 @@ SolidAirfoil::init_elements(const float _ips) const {
   std::vector<float> val(idx.size()/2, 0.0);
 
   ElementPacket<float> packet({x, idx, val, 4*numX-1, 1});
-  if (packet.verify()) {
+  if (packet.verify(x.size())) {
     return packet;
   } else {
     // Has to be a better way
