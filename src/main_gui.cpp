@@ -319,10 +319,10 @@ int main(int argc, char const *argv[]) {
 
         // generate new particles from emitters
         for (auto const& ff : ffeatures) {
-          if (ff->is_enabled()) sim.add_elements( ff->step_particles(sim.get_ips()) );
+          if (ff->is_enabled()) sim.add_elements( ff->step_elements(sim.get_ips()) );
         }
         for (auto const& mf : mfeatures) {
-          if (mf->is_enabled()) sim.add_elements( mf->step_particles(rparams.tracer_scale*sim.get_ips()), true );
+          if (mf->is_enabled()) sim.add_elements( mf->step_elements(rparams.tracer_scale*sim.get_ips()), true );
         }
 
         // begin a new dynamic step: convection and diffusion

@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "Body.h"
 #include "Omega2D.h"
 #include "Feature.h"
 #include "ElementPacket.h"
@@ -26,12 +27,14 @@ public:
   MeasureFeature(float _x,
                  float _y,
                  bool _moves,
-                 bool _emits)
+                 bool _emits,
+                 std::shared_ptr<Body> _bp)
     : Feature(true),
       m_x(_x),
       m_y(_y),
       m_is_lagrangian(_moves),
-      m_emits(_emits)
+      m_emits(_emits),
+      m_bp(_bp)
     {}
   virtual ~MeasureFeature() {}
   virtual MeasureFeature* copy() const = 0;
@@ -41,6 +44,7 @@ public:
   float jitter(const float, const float) const;
   ElementPacket<float> get_draw_packet() const { return m_draw; }
   bool get_is_lagrangian() { return m_is_lagrangian; }
+  std::shared_ptr<Body> get_body() { return m_bp; }
 
   virtual void debug(std::ostream& os) const = 0;
   virtual std::string to_string() const = 0;
@@ -55,6 +59,7 @@ public:
 #endif
 
 protected:
+  std::shared_ptr<Body> m_bp;
   float m_x;
   float m_y;
   bool m_is_lagrangian;
@@ -83,8 +88,9 @@ public:
   SinglePoint(float _x = 0.0,
               float _y = 0.0,
               bool _moves = false,
-              bool _emits = false)
-    : MeasureFeature(_x, _y, _moves, _emits)
+              bool _emits = false,
+              std::shared_ptr<Body> _bp = nullptr)
+    : MeasureFeature(_x, _y, _moves, _emits, _bp)
     {}
   SinglePoint* copy() const override { return new SinglePoint(*this); }
 
@@ -112,8 +118,9 @@ public:
              float _y = 0.0,
              bool _moves = false,
              bool _emits = false,
-             float _rad = 0.1)
-    : SinglePoint(_x, _y, _moves, _emits),
+             float _rad = 0.1,
+             std::shared_ptr<Body> _bp = nullptr)
+    : SinglePoint(_x, _y, _moves, _emits, _bp),
       m_rad(_rad)
     {}
   MeasurementBlob* copy() const override { return new MeasurementBlob(*this); }
@@ -144,8 +151,9 @@ public:
                   bool _emits = false,
                   float _xf = 1.0,
                   float _yf = 0.0,
-                  float _dx = 0.1)
-    : SinglePoint(_x, _y, _moves, _emits),
+                  float _dx = 0.1,
+                  std::shared_ptr<Body> _bp = nullptr)
+    : SinglePoint(_x, _y, _moves, _emits, _bp),
       m_xf(_xf),
       m_yf(_yf),
       m_dx(_dx)
@@ -178,7 +186,7 @@ public:
              float _xf = 1.0,
              float _yf = 1.0,
              float _dx = 0.1)
-    : MeasureFeature(_xs, _ys, false, false),
+    : MeasureFeature(_xs, _ys, false, false, nullptr),
       m_xf(_xf),
       m_yf(_yf),
       m_dx(_dx)

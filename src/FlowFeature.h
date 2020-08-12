@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "Body.h"
 #include "Feature.h"
 #include "ElementPacket.h"
 #include "json/json.hpp"
@@ -23,13 +24,17 @@ class FlowFeature : public Feature {
 public:
   explicit
   FlowFeature(float _x,
-              float _y)
+              float _y,
+              std::shared_ptr<Body> _bp)
     : Feature(true),
       m_x(_x),
-      m_y(_y)
+      m_y(_y),
+      m_bp(_bp)
     {}
   virtual ~FlowFeature() {}
   virtual FlowFeature* copy() const = 0;
+
+  std::shared_ptr<Body> get_body() { return m_bp; }
 
   virtual void debug(std::ostream& os) const = 0;
   virtual std::string to_string() const = 0;
@@ -50,6 +55,7 @@ protected:
   float m_x;
   float m_y;
   ElementPacket<float> m_draw;
+  std::shared_ptr<Body> m_bp;
 };
 
 std::ostream& operator<<(std::ostream& os, FlowFeature const& ff);
@@ -67,8 +73,9 @@ class SingleParticle : public FlowFeature {
 public:
   SingleParticle(float _x = 0.0,
                  float _y = 0.0,
-                 float _str = 1.0)
-    : FlowFeature(_x, _y),
+                 float _str = 1.0,
+                 std::shared_ptr<Body> _bp = nullptr)
+    : FlowFeature(_x, _y, _bp),
       m_str(_str)
     {}
   SingleParticle* copy() const override 
@@ -99,8 +106,9 @@ public:
              float _y = 0.0,
              float _str = 1.0,
              float _rad = 0.1,
-             float _soft = 0.1)
-    : SingleParticle(_x, _y, _str),
+             float _soft = 0.1,
+             std::shared_ptr<Body> _bp = nullptr)
+    : SingleParticle(_x, _y, _str, _bp),
       m_rad(_rad),
       m_softness(_soft)
     {}
@@ -135,8 +143,9 @@ public:
                  float _majrad = 0.2,
                  float _minrad = 0.1,
                  float _soft = 0.1,
-                 float _theta = 0.0)
-    : VortexBlob(_x, _y, _str, _majrad, _soft),
+                 float _theta = 0.0,
+                 std::shared_ptr<Body> _bp = nullptr)
+    : VortexBlob(_x, _y, _str, _majrad, _soft, _bp),
       m_minrad(_minrad),
       m_theta(_theta)
     {}
@@ -168,8 +177,9 @@ public:
   GaussianBlob(float _x = 0.0,
                float _y = 0.0,
                float _str = 1.0,
-               float _stddev = 0.5)
-    : SingleParticle(_x, _y, _str),
+               float _stddev = 0.5,
+               std::shared_ptr<Body> _bp = nullptr)
+    : SingleParticle(_x, _y, _str, _bp),
       m_stddev(_stddev)
     {}
   GaussianBlob* copy() const override 
@@ -200,8 +210,9 @@ public:
                float _y = 0.0,
                float _xsize = 1.0,
                float _ysize = 1.0,
-               float _str = 1.0)
-    : SingleParticle(_x, _y, _str),
+               float _str = 1.0,
+               std::shared_ptr<Body> _bp = nullptr)
+    : SingleParticle(_x, _y, _str, _bp),
       m_xsize(_xsize),
       m_ysize(_ysize)
     {}
@@ -236,8 +247,9 @@ public:
                 float _ysize = 1.0,
                 float _minstr = -0.5,
                 float _maxstr = 0.5,
-                int   _num = 100)
-    : FlowFeature(_x, _y),
+                int   _num = 100,
+                std::shared_ptr<Body> _bp = nullptr)
+    : FlowFeature(_x, _y, _bp),
       m_xsize(_xsize),
       m_ysize(_ysize),
       m_minstr(_minstr),
@@ -274,8 +286,9 @@ class ParticleEmitter : public SingleParticle {
 public:
   ParticleEmitter(float _x = 0.0,
                   float _y = 0.0,
-                  float _str = 0.1)
-    : SingleParticle(_x, _y, _str)
+                  float _str = 0.1,
+                  std::shared_ptr<Body> _bp = nullptr)
+    : SingleParticle(_x, _y, _str, _bp)
     {}
   ParticleEmitter* copy() const override 
                    { return new ParticleEmitter(*this); }
