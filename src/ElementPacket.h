@@ -22,6 +22,11 @@ struct ElementPacket {
   ElementPacket<S>& operator=(ElementPacket<S> const&) = default; //allow copy
   ElementPacket<S>& operator=(ElementPacket<S>&&) = default; //allow move
 
+  // Ensure the element packet is correct
+  // This will probaly need some parameters and some if statements
+  // Check the sim.add_* functions
+  bool verify() { return true; }
+
   std::vector<S> x;
   std::vector<Int> idx;
   std::vector<S> val;

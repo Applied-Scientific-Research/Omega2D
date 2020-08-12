@@ -222,11 +222,14 @@ SolidCircle::init_elements(const float _ips) const {
     }
   }
 
-  //ElementPacket<float> retval({x, idx, val, num_panels, 1});
-  //if (!retval.verify()) { die! }
-  //return retval;
-
-  return ElementPacket<float>({x, idx, val});
+  ElementPacket<float> packet({x, idx, val, num_panels, 1});
+  if (packet.verify()) {
+    return packet;
+  } else {
+    // Has to be a better way
+    return ElementPacket<float>();
+  }
+   
 }
 
 void
@@ -419,7 +422,13 @@ SolidOval::init_elements(const float _ips) const {
     }
   }
 
-  return ElementPacket<float>({x, idx, val});
+  ElementPacket<float> packet({x, idx, val, num_panels, 1});
+  if (packet.verify()) {
+    return packet;
+  } else {
+    // Has to be a better way
+    return ElementPacket<float>();
+  }
 }
 
 void
@@ -562,7 +571,13 @@ SolidSquare::init_elements(const float _ips) const {
     }
   }
 
-  return ElementPacket<float>({x, idx, val});
+  ElementPacket<float> packet({x, idx, val, num_panels, 1});
+  if (packet.verify()) {
+    return packet;
+  } else {
+    // Has to be a better way
+    return ElementPacket<float>();
+  }
 }
 
 void
@@ -705,7 +720,13 @@ SolidRect::init_elements(const float _ips) const {
     }
   }
 
-  return ElementPacket<float>({x, idx, val});
+  ElementPacket<float> packet({x, idx, val, num_panels, 1});
+  if (packet.verify()) {
+    return packet;
+  } else {
+    // Has to be a better way
+    return ElementPacket<float>();
+  }
 }
 
 void
@@ -826,7 +847,13 @@ BoundarySegment::init_elements(const float _ips) const {
     }
   }
 
-  return ElementPacket<float>({x, idx, val});
+  ElementPacket<float> packet({x, idx, val, num_panels, 1});
+  if (packet.verify()) {
+    return packet;
+  } else {
+    // Has to be a better way
+    return ElementPacket<float>();
+  }
 }
 
 void
@@ -964,7 +991,13 @@ SolidPolygon::init_elements(const float _ips) const {
     }
   }
 
-  return ElementPacket<float>({x, idx, val});
+  ElementPacket<float> packet({x, idx, val, num_panels, 1});
+  if (packet.verify()) {
+    return packet;
+  } else {
+    // Has to be a better way
+    return ElementPacket<float>();
+  }
 }
 
 void
@@ -1178,7 +1211,13 @@ SolidAirfoil::init_elements(const float _ips) const {
   // val is bc, which is 0.0
   std::vector<float> val(idx.size()/2, 0.0);
 
-  return ElementPacket<float>({x, idx, val});
+  ElementPacket<float> packet({x, idx, val, 4*numX-1, 1});
+  if (packet.verify()) {
+    return packet;
+  } else {
+    // Has to be a better way
+    return ElementPacket<float>();
+  }
 }
 
 void
