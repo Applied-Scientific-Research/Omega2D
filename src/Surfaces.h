@@ -425,9 +425,8 @@ public:
     assert(_in.ndim == 1 && "Input ElementPacket is not Surfaces");
 
     // and that it has the right number of values per particle
-    if (this->E == inert) assert(_in.val.size() == 0 && "Input ElementPacket with fldpts has val array");
-    else if (this->E == reactive) assert(false && "Input ElementPacket with reactive points is unsupported");
-    else assert(_in.val.size() != 2*_in.nelem && "Input ElementPacket with vortons has val array not a multiple of 2");
+    if (this->E == inert) assert(_in.val.size() == 0 && "Input ElementPacket with inert Surfaces has nonzero val array");
+    else assert(_in.val.size() == _in.nelem && "Input ElementPacket with Surfaces has bad val array size");
 
     // must explicitly call the method in the base class first - this pulls out positions and strengths
     //ElementBase<S>::add_new(_in);

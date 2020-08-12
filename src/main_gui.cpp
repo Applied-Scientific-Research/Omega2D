@@ -219,8 +219,12 @@ int main(int argc, char const *argv[]) {
 
       // initialize solid objects
       for (auto const& bf : bfeatures) {
-        if (bf->is_enabled()) sim.add_boundary( bf->get_body(), bf->init_elements(sim.get_ips()) );
-        //if (bf->is_enabled()) sim.add_elements( bf->init_elements(sim.get_ips()), reactive, ?, bf->get_body() );
+        //if (bf->is_enabled()) sim.add_boundary( bf->get_body(), bf->init_elements(sim.get_ips()) );
+        if (bf->is_enabled()) {
+          ElementPacket<float> newpacket = bf->init_elements(sim.get_ips());
+          const move_t newmovetype = (bf->get_body() ? bodybound : fixed);
+          sim.add_elements(newpacket, reactive, newmovetype, bf->get_body() );
+        }
       }
 
       // initialize measurement features
