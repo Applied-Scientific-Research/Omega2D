@@ -56,7 +56,7 @@ public:
   }
 
   // child class calls here to add nodes and other properties
-  void add_new(std::vector<float>& _in) {
+  void add_new(const std::vector<float>& _in) {
 
     // check inputs
     if (_in.size() == 0) return;
@@ -98,7 +98,7 @@ public:
   }
 
   // child class calls here to add nodes and other properties
-  void add_new(ElementPacket<float>& _in) {
+  void add_new(const ElementPacket<float>& _in) {
 
     // check inputs
     if (_in.x.size() == 0 or _in.nelem == 0) return;

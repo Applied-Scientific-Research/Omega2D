@@ -172,7 +172,7 @@ public:
   const float get_max_bc_value() const { return 0.0; }
 
   // append more elements this collection
-  void add_new(std::vector<S>& _in) {
+  void add_new(const std::vector<S>& _in) {
     // remember old size and incoming size
     const size_t nold = this->n;
 
@@ -209,7 +209,7 @@ public:
   }
 
   // append more elements this collection
-  void add_new(ElementPacket<S>& _in) {
+  void add_new(const ElementPacket<S>& _in) {
     // ensure that this packet really is Points
     assert(_in.idx.size() == 0 && "Input ElementPacket is not Points");
     assert(_in.ndim == 0 && "Input ElementPacket is not Points");
