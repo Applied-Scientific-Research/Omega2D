@@ -3,6 +3,7 @@
  *
  * (c)2018-20 Applied Scientific Research, Inc.
  *            Mark J Stock <markjstock@gmail.com>
+ *            Blake B Hillier <blakehillier@mac.com>
  */
 
 #pragma once
@@ -30,7 +31,7 @@ struct ElementPacket {
   std::vector<S> x;
   std::vector<Int> idx;
   std::vector<S> val;
-  uint32_t nelem;
+  size_t nelem;
   uint8_t ndim;	// 0=points, 1=surfaces, 2=volumes for 2D
 		// 0=points, 1=lines, 2=surfaces, 3=volumes for 3D
 };
