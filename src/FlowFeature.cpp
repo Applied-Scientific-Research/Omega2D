@@ -127,7 +127,7 @@ SingleParticle::init_elements(float _ips) const {
   std::vector<float> x = {m_x, m_y};
   std::vector<Int> idx = {};
   std::vector<float> vals = {m_str, 0.0};
-  ElementPacket<float> packet({x, idx, vals, (size_t)1, (uint8_t)0});
+  ElementPacket<float> packet({x, idx, vals, (size_t)1, 0});
   if (packet.verify(packet.x.size()+packet.val.size(), 4)) {
     return packet;
   } else {
@@ -250,7 +250,7 @@ VortexBlob::init_elements(float _ips) const {
     vals[i] = (float)((double)vals[i] * str_scale);
   }
 
-  ElementPacket<float> packet({x, idx, vals, (size_t)std::pow(2*irad, 2), (uint8_t)0});
+  ElementPacket<float> packet({x, idx, vals, x.size()/2, 0});
   if (packet.verify(packet.x.size()+packet.val.size(), 4)) {
     return packet;
   } else {
@@ -383,7 +383,7 @@ AsymmetricBlob::init_elements(float _ips) const {
     vals[i] = (float)((double)vals[i] * str_scale);
   }
 
-  ElementPacket<float> packet({x, idx, vals, (size_t)((2*jrad)*(2*irad)), (uint8_t)0});
+  ElementPacket<float> packet({x, idx, vals, x.size()/2, 0});
   if (packet.verify(packet.x.size()+packet.val.size(), 4)) {
     return packet;
   } else {
@@ -509,7 +509,7 @@ GaussianBlob::init_elements(float _ips) const {
     vals[i] = (float)((double)vals[i] * str_scale);
   }
 
-  ElementPacket<float> packet({x, idx, vals, (size_t)std::pow(2*irad, 2), (uint8_t)0});
+  ElementPacket<float> packet({x, idx, vals, x.size()/2, (uint8_t)0});
   if (packet.verify(packet.x.size()+packet.val.size(), 4)) {
     return packet;
   } else {
@@ -592,7 +592,7 @@ UniformBlock::init_elements(float _ips) const {
 
   // create a new vector to pass on
   std::vector<float> x(2*isize*jsize);
-  std::vector<Int> idx();
+  std::vector<Int> idx;
   std::vector<float> vals(2*isize*jsize);
 
   const float each_str = m_str / (float)(isize*jsize);
@@ -609,7 +609,7 @@ UniformBlock::init_elements(float _ips) const {
   }
   }
 
-  ElementPacket<float> packet({x, idx, vals, (size_t)(isize*jsize), (uint8_t)0});
+  ElementPacket<float> packet({x, idx, vals, (size_t)(isize*jsize), 0});
   if (packet.verify(packet.x.size()+packet.val.size(), 4)) {
     return packet;
   } else {
@@ -697,7 +697,7 @@ BlockOfRandom::init_elements(float _ips) const {
   static std::uniform_real_distribution<> str_dist(0.0, 1.0);
 
   std::vector<float> x(2*m_num);
-  std::vector<Int> idx();
+  std::vector<Int> idx;
   std::vector<float> vals(2*m_num);
   // initialize the particles' locations and strengths, leave radius zero for now
   for (size_t i=0; i<(size_t)m_num; ++i) {
