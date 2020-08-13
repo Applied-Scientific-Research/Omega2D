@@ -233,6 +233,7 @@ int main(int argc, char const *argv[]) {
         if (mf->is_enabled()) {
           const move_t newMoveType = (mf->get_is_lagrangian() ? lagrangian : fixed);
           sim.add_elements( mf->init_elements(rparams.tracer_scale*sim.get_ips()), inert, newMoveType, mf->get_body() );
+        }
       }
 
       sim.set_initialized();
@@ -330,6 +331,7 @@ int main(int argc, char const *argv[]) {
           if (mf->is_enabled()) {
             const move_t newMoveType = (mf->get_is_lagrangian() ? lagrangian : fixed);
             sim.add_elements( mf->step_elements(rparams.tracer_scale*sim.get_ips()), inert, newMoveType, mf->get_body() );
+          }
         }
 
         // begin a new dynamic step: convection and diffusion
