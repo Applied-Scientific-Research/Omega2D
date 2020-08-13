@@ -259,13 +259,10 @@ MeasurementBlob::init_elements(float _ips) const {
 ElementPacket<float>
 MeasurementBlob::step_elements(float _ips) const {
   if ((m_enabled) && (m_emits)) {
-    std::vector<float> x = init_elements(_ips);
-    for (size_t i=0; i<x.size(); i++) {
-      x[i] = jitter(x[i], _ips);
+    ElementPacket<float> packet = init_elements(_ips);
+    for (size_t i=0; i<packet.x.size(); i++) {
+      packet.x[i] = jitter(packet.x[i], _ips);
     }
-    std::vector<Int> idx;
-    std::vector<float> vals;
-    ElementPacket<float> packet({x, idx, vals, (uint32_t)(x.size()/2), (uint8_t)0});
     if (packet.verify(packet.x.size(), Dimensions)) {
       return packet;
     } else {
@@ -383,13 +380,10 @@ MeasurementLine::init_elements(float _ips) const {
 ElementPacket<float>
 MeasurementLine::step_elements(float _ips) const {
   if ((m_enabled) && (m_emits)) {
-    std::vector<float> x = init_elements(_ips);
-    for (size_t i=0; i<x.size(); i++) {
-      x[i] = jitter(x[i], _ips);
+    ElementPacket<float> packet = init_elements(_ips);
+    for (size_t i=0; i<packet.x.size(); i++) {
+      packet.x[i] = jitter(packet.x[i], _ips);
     }
-    std::vector<Int> idx;
-    std::vector<float> vals;
-    ElementPacket<float> packet({x, idx, vals, (uint32_t)(x.size()/2), (uint8_t)0});
     if (packet.verify(packet.x.size(), Dimensions)) {
       return packet;
     } else {
