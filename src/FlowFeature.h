@@ -13,6 +13,7 @@
 #include "ElementPacket.h"
 #include "json/json.hpp"
 
+#include <memory>
 #include <iostream>
 #include <vector>
 #include <string>

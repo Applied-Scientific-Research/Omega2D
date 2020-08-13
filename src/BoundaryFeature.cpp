@@ -222,7 +222,7 @@ SolidCircle::init_elements(const float _ips) const {
     }
   }
 
-  ElementPacket<float> packet({x, idx, val, (uint32_t)num_panels, 1});
+  ElementPacket<float> packet({x, idx, val, (size_t)num_panels, 1});
   if (packet.verify(packet.x.size(), x.size())) {
     return packet;
   } else {

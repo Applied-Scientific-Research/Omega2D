@@ -59,11 +59,11 @@ public:
 #endif
 
 protected:
-  std::shared_ptr<Body> m_bp;
   float m_x;
   float m_y;
   bool m_is_lagrangian;
   bool m_emits;
+  std::shared_ptr<Body> m_bp;
   ElementPacket<float> m_draw;
 };
 
@@ -98,8 +98,8 @@ public:
   std::string to_string() const override;
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
-  ElementPacket<float> init_elements(float) const = 0;
-  ElementPacket<float> step_elements(float) const = 0;
+  ElementPacket<float> init_elements(float) const;
+  ElementPacket<float> step_elements(float) const;
   void generate_draw_geom() override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string, const float&, const float) override;
@@ -129,8 +129,8 @@ public:
   std::string to_string() const override;
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
-  ElementPacket<float> init_elements(float) const = 0;
-  ElementPacket<float> step_elements(float) const = 0;
+  ElementPacket<float> init_elements(float) const;
+  ElementPacket<float> step_elements(float) const;
   void generate_draw_geom() override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string, const float&, const float) override;
@@ -164,8 +164,8 @@ public:
   std::string to_string() const override;
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
-  ElementPacket<float> init_elements(float) const = 0;
-  ElementPacket<float> step_elements(float) const = 0;
+  ElementPacket<float> init_elements(float) const;
+  ElementPacket<float> step_elements(float) const;
   void generate_draw_geom() override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string, const float&, const float) override;
@@ -197,8 +197,8 @@ public:
   std::string to_string() const override;
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
-  ElementPacket<float> init_elements(float) const = 0;
-  ElementPacket<float> step_elements(float) const = 0;
+  ElementPacket<float> init_elements(float) const;
+  ElementPacket<float> step_elements(float) const;
   void generate_draw_geom() override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string, const float&, const float) override;

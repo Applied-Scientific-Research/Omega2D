@@ -8,9 +8,10 @@
 
 #include "MeasureFeature.h"
 #include "BoundaryFeature.h"
-
-#include <cmath>
 #include "imgui/imgui.h"
+
+#include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <sstream>
 #include <random>
@@ -119,7 +120,7 @@ SinglePoint::init_elements(float _ips) const {
   std::vector<float> x = {m_x, m_y};
   std::vector<Int> idx;
   std::vector<float> vals;
-  ElementPacket<float> packet({x, idx, vals, (uint32_t)1, (uint8_t)0});
+  ElementPacket<float> packet({x, idx, vals, (size_t)1, (uint8_t)0});
   if (packet.verify(packet.x.size(), Dimensions)) {
     return packet;
   } else {
@@ -133,7 +134,7 @@ SinglePoint::step_elements(float _ips) const {
     std::vector<float> x = {jitter(m_x, _ips), jitter(m_y, _ips)};
     std::vector<Int> idx;
     std::vector<float> vals;
-    ElementPacket<float> packet({x, idx, vals, (uint32_t)1, (uint8_t)0});
+    ElementPacket<float> packet({x, idx, vals, (size_t)1, (uint8_t)0});
     if (packet.verify(packet.x.size(), Dimensions)) {
       return packet;
     } else {
@@ -247,7 +248,7 @@ MeasurementBlob::init_elements(float _ips) const {
   }
   }
   
-  ElementPacket<float> packet({x, idx, vals, (uint32_t)(x.size()/2), (uint8_t)0});
+  ElementPacket<float> packet({x, idx, vals, (size_t)(x.size()/2), (uint8_t)0});
   if (packet.verify(packet.x.size(), Dimensions)) {
     return packet;
   } else {
@@ -369,7 +370,7 @@ MeasurementLine::init_elements(float _ips) const {
     x.emplace_back((1.0-frac)*m_y + frac*m_yf);
   }
   
-  ElementPacket<float> packet({x, idx, vals, (uint32_t)(2*ilen), (uint8_t)0});
+  ElementPacket<float> packet({x, idx, vals, (size_t)(2*ilen), (uint8_t)0});
   if (packet.verify(packet.x.size(), Dimensions)) {
     return packet;
   } else {
@@ -496,7 +497,7 @@ GridPoints::init_elements(float _ips) const {
     }
   }
 
-  ElementPacket<float> packet({x, idx, vals, (uint32_t)(x.size()/2), (uint8_t)0});
+  ElementPacket<float> packet({x, idx, vals, (size_t)(x.size()/2), (uint8_t)0});
   if (packet.verify(packet.x.size(), Dimensions)) {
     return packet;
   } else {
