@@ -481,9 +481,9 @@ bool fileIOWindow(
     if ( directory_browsing )
         size.y += std::min( size_t( 8 ), std::max( dir_list.size(), file_list.size() ) ) *  GetFontSize();
 
-    SetNextWindowSize( size );
+    SetNextWindowSize( size, ImGuiCond_FirstUseEver);
     // I have no idea why I can't resize this window!?!
-    ImGuiWindowFlags window_flags = !ImGuiWindowFlags_AlwaysAutoResize;
+    ImGuiWindowFlags window_flags = 0;//!ImGuiWindowFlags_AlwaysAutoResize;
     Begin( "FileIO", NULL, window_flags );
 
     Text("Directory: "); SameLine();
@@ -611,7 +611,7 @@ bool fileIOWindow(
     Text("File Name: "); SameLine();
     InputText( "  ", current_file, IM_ARRAYSIZE( current_file ) );
 
-    Text( "File Type: " ); SameLine(); Text( extension_cstrings[file_type_selected] ); SameLine();
+    Text( "File Type: " ); SameLine(); Text( "%s", extension_cstrings[file_type_selected] ); SameLine();
     if (Button( CARET_DOWN ) )
         ImGui::OpenPopup("FileType");
 

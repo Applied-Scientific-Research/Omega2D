@@ -24,17 +24,17 @@ public:
   // visible member functions
   void clear_elements();
   void add_elements(const ElementPacket<float>, const bool);
-  void reset_enabled(const size_t, const bool);
+  //void reset_enabled(const size_t, const bool);
 
   void updateGL();
-  void drawGL(std::vector<float>&, RenderParams&);
+  void drawGL(std::vector<float>&, RenderParams&, bool);
 
 private:
   //
   // member variables
   //
   void prepare_opengl_buffer(const GLuint, const GLuint, const GLchar*, const GLuint);
-  void initGL(std::vector<float>&, float*, float*, float*);
+  void initGL(std::vector<float>&, float*, float*, float*, bool);
 
   // Collected geometry
   ElementPacket<float> m_geom;

@@ -56,7 +56,11 @@ void solve_bem(const double                         _time,
 
   // need this for dispatching velocity influence calls, template param is accumulator type,
   //   member variable is default execution environment
-  InfluenceVisitor<A> ivisitor = {ExecEnv()};
+#ifdef USE_VC
+  InfluenceVisitor<A> ivisitor = {ExecEnv(true, direct, cpu_vc)};
+#else
+  InfluenceVisitor<A> ivisitor = {ExecEnv(true, direct, cpu_x86)};
+#endif
   RHSVisitor rvisitor;
 
   //

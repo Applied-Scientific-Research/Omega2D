@@ -135,7 +135,7 @@ void Convection<S,A,I>::advect_1st(const double                         _time,
 
   // push away particles inside or too close to the body
   assert(M_PI != 0); // Can't divide by 0
-  clear_inner_layer<S>(1, _bdry, _vort, 1.0/std::sqrt(2.0*M_PI), _ips);
+  clear_inner_layer<S>(1, _bdry, _vort, 0.5/std::sqrt(2.0*M_PI), _ips);
   // and solve the bem
   solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
 
@@ -180,7 +180,7 @@ void Convection<S,A,I>::advect_2nd(const double                         _time,
 
   // push away particles inside or too close to the body
   assert(M_PI != 0); // Can't divide by 0
-  clear_inner_layer<S>(1, _bdry, _vort, 1.0/std::sqrt(2.0*M_PI), _ips);
+  clear_inner_layer<S>(1, _bdry, _vort, 0.5/std::sqrt(2.0*M_PI), _ips);
   // perform the first BEM
   solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
 
@@ -205,7 +205,7 @@ void Convection<S,A,I>::advect_2nd(const double                         _time,
   // begin the 2nd step ---------
 
   // push away particles inside or too close to the body
-  clear_inner_layer<S>(1, _bdry, interim_vort, 1.0/std::sqrt(2.0*M_PI), _ips);
+  clear_inner_layer<S>(1, _bdry, interim_vort, 0.5/std::sqrt(2.0*M_PI), _ips);
   // perform the second BEM
   solve_bem<S,A,I>(_time + _dt, _fs, interim_vort, _bdry, _bem);
 

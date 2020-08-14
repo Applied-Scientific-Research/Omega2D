@@ -14,7 +14,7 @@ This open-source code is aimed at users interested in understanding vortex metho
 
 
 ## Build the software
-This code uses some C++17 features (like `std::variant` and `<filesystem>`, so requires GCC 8, Clang 4, and MSVC 19.10 (Visual Studio 15 2017) or newer compilers.
+This code uses some C++17 features (like `std::variant` and `<filesystem>`, so requires GCC 8, Clang 5, and MSVC 19.10 (Visual Studio 15 2017) or newer compilers.
 
 #### Prerequisites
 Users will also need CMake, Eigen (version 3.3 or newer), and GLFW version 3 on their machines to build this, other requirements are included in this distribution. Get these on Fedora with
@@ -54,6 +54,10 @@ Upon installation of the prerequisites, the following commands should build Omeg
     make
 
 If you were able to build and install Vc, then you should set `-DUSE_VC=ON` in the above `cmake` command.
+
+To use the system Clang on Linux, you will want the following variables defined:
+
+    cmake -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ ..
 
 On OSX, to get OpenMP parallelization of the solver, you may need to install GCC with brew (as above), and add a few more arguments to the `cmake` command:
 
@@ -99,14 +103,11 @@ Generate an X.264-encoded video from a series of png images with the following c
 ## To do
 Tasks to consider or implement:
 
-* Add support for NACA wings, whether from a library or by reading geometry files in standard formats
-* Draw something when you add a feature (so we know it's doing something) - means that the \*Feature objects need draw calls
-* Add ability to edit features in the GUI, not just remove and re-add them
+* Add support for NACA wings to be created by reading geometry files in standard formats - this might mean enabling Kutta points (reactive Points)
 * Add an openmp setting to the CPU execution environment, to show the effects of multithreading
 * Bug: static field points should not be pushed out of bodies
 * Compute vel grad at each point (vortex or field pt) and write it to the vtu file
 * If we have velgrad, we can compute the elongation of any point - use this to determine when a field point has stretched too far, and replace it with two child field points, of half-brightness, in the correct places; this should be a toggleable behavior, as it would demand ever-increasing numbers of field points
-* Add airfoils - read them from a text file or generate them algorithmically - this might mean enabling Kutta points (reactive Points)
 * Have method to tell batch and gui to dump vtu files periodically
 * Would be nice to have an option to have solid bodies randomly shed tracers (small chance per step per panel)
 * Consider a zlib implementation for both vtu and png files: [zstr](https://github.com/mateidavid/zstr), [miniz](https://github.com/richgel999/miniz), or [gzip-hpp](https://github.com/mapbox/gzip-hpp)
@@ -140,7 +141,7 @@ Tasks to consider or implement:
 ## Thanks
 This project is funded by the [National Institutes of Health (NIH)](https://www.nih.gov/) under grant number 1 R01 EB022180-01A1 ("A Fast High-Order CFD for Turbulent Flow Simulation in Cardio-Devices").
 
-Thanks to [Omar Cornut](http://www.miracleworld.net/) for his [dear imgui](https://github.com/ocornut/imgui) library, file browser dialogs from [Imgui-IGS-Snippets](https://github.com/gileoo/Imgui-IGS-Snippets), png writing from [stb\_image\_write](https://github.com/nothings/stb/blob/master/stb_image_write.h), sol-prog's [OpenGL Tutorials](https://github.com/sol-prog/OpenGL-101), and Jim Susinno's [OpenGL-Boilerplate](https://github.com/jimbo00000/OpenGL-Boilerplate).
+Thanks to [Omar Cornut](http://www.miracleworld.net/) for his [dear imgui](https://github.com/ocornut/imgui) library, file browser dialogs from [Imgui-IGS-Snippets](https://github.com/gileoo/Imgui-IGS-Snippets), sol-prog's [OpenGL Tutorials](https://github.com/sol-prog/OpenGL-101), Jim Susinno's [OpenGL-Boilerplate](https://github.com/jimbo00000/OpenGL-Boilerplate), and the [miniz](https://github.com/richgel999/miniz/tree/master) compression library.
 
 VRM code is functional thanks to jlblancoc for [Nanoflann](https://github.com/jlblancoc/nanoflann) (a header-only tree search library), and to all of the developers of [Eigen](http://eigen.tuxfamily.org/) (a C++ matrix/vector library). The BEM code also relies heavily on [Eigen](http://eigen.tuxfamily.org/). We also love [Vc](https://github.com/VcDevel/Vc), an excellent SIMD library by Matthias Kretz.
 
