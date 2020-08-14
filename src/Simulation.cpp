@@ -775,13 +775,13 @@ void Simulation::file_elements(std::vector<Collection>& _collvec,
     bool this_match = true;
 
     // check movement type
-    const move_t tmt = std::visit([=](auto& elem) { return elem.get_movet(); }, bdry[i]);
+    const move_t tmt = std::visit([=](auto& elem) { return elem.get_movet(); }, _collvec[i]);
     if (_mt != tmt) {
       this_match = false;
 
     } else if (tmt == bodybound) {
       // check body pointer
-      std::shared_ptr<Body> tbp = std::visit([=](auto& elem) { return elem.get_body_ptr(); }, bdry[i]);
+      std::shared_ptr<Body> tbp = std::visit([=](auto& elem) { return elem.get_body_ptr(); }, _collvec[i]);
       if (_bptr != tbp) this_match = false;
     }
 
@@ -803,7 +803,7 @@ void Simulation::file_elements(std::vector<Collection>& _collvec,
   if (no_match) {
     // make a new collection according to element dimension
     if (_elems.ndim == 0) {
-      _collvec.push_back(Points<float>(_elems, _et, _mt, _bptr));
+      _collvec.push_back(Points<float>(_elems, _et, _mt, _bptr, get_vdelta()));
     } else if (_elems.ndim == 1) {
       _collvec.push_back(Surfaces<float>(_elems, _et, _mt, _bptr));
     }
@@ -815,7 +815,7 @@ void Simulation::file_elements(std::vector<Collection>& _collvec,
     // proceed to add the correct object type
     if (_elems.ndim == 0) {
       Points<float>& pts = std::get<Points<float>>(coll);
-      pts.add_new(_elems);
+      pts.add_new(_elems, get_vdelta());
     } else if (_elems.ndim == 1) {
       Surfaces<float>& surf = std::get<Surfaces<float>>(coll);
       surf.add_new(_elems);
