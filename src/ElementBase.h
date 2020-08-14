@@ -1,8 +1,8 @@
 /*
  * ElementBase.h - abstract class for arrays of any computational elements
  *
- * (c)2018-9 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
+ * (c)2018-20 Applied Scientific Research, Inc.
+ *            Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -10,6 +10,7 @@
 #include "VectorHelper.h"
 #include "Omega2D.h"
 #include "Body.h"
+#include "ElementPacket.h"
 
 #include <iostream>
 #include <vector>
@@ -54,7 +55,8 @@ public:
     *s = _in;
   }
 
-  void add_new(std::vector<float>& _in) {
+  // child class calls here to add nodes and other properties
+  void add_new(const std::vector<float>& _in) {
 
     // check inputs
     if (_in.size() == 0) return;
@@ -94,6 +96,47 @@ public:
     // finally, update n
     n += nnew;
   }
+
+  // child class calls here to add nodes and other properties
+  void add_new(const ElementPacket<float>& _in) {
+
+    // check inputs
+    if (_in.x.size() == 0 or _in.nelem == 0) return;
+    assert(_in.x.size() % Dimensions == 0 && "Input ElementPacket does not have correct number of node coords");
+
+    // new number of nodes (not elements)
+    const size_t nnew = _in.x.size()/Dimensions;
+
+    // add node coordinates
+    for (size_t d=0; d<Dimensions; ++d) {
+      // extend with more space for new values
+      x[d].resize(n+nnew);
+      // copy new values to end of vector
+      for (size_t i=0; i<nnew; ++i) {
+        x[d][n+i] = _in.x[Dimensions*i+d];
+      }
+    }
+
+    // strength - ASSUMPTION: the strength is the first of each val entry
+    if (s) {
+      assert(_in.val.size() >= nnew && "Input ElementPacket does not have enough values in val");
+      const size_t nper = _in.val.size() / nnew;
+      // must dereference s to get the actual vector
+      (*s).resize(n+nnew);
+      for (size_t i=0; i<nnew; ++i) {
+        (*s)[n+i] = _in.val[nper*i+0];
+      }
+    }
+
+    // extend the other vectors as well
+    for (size_t d=0; d<Dimensions; ++d) {
+      u[d].resize(n+nnew);
+    }
+
+    // finally, update n
+    n += nnew;
+  }
+
 
   // up-size all arrays to the new size, filling with sane values
   // this only happens right after diffusion

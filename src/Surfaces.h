@@ -183,6 +183,14 @@ public:
     }
   }
 
+  // delegating constructor
+  Surfaces(const ElementPacket<S>& _elems,
+           const elem_t _e,
+           const move_t _m,
+           std::shared_ptr<Body> _bp)
+    : Surfaces(_elems.x, _elems.idx, _elems.val, _e, _m, _bp)
+  { }
+
   size_t                            get_npanels()     const { return np; }
   const S                           get_vol()         const { return vol; }
   const std::array<S,Dimensions>    get_geom_center() const { return tc; }
@@ -293,7 +301,7 @@ public:
     }
   }
 
-  // add more nodes and panels to this collection
+  // append nodes and panels to this collection
   void add_new(const std::vector<S>&   _x,
                const std::vector<Int>& _idx,
                const std::vector<S>&   _val) {
@@ -408,6 +416,23 @@ public:
       set_geom_center();
     }
   }
+
+  // append nodes and panels to this collection
+  void add_new(const ElementPacket<float>& _in) {
+
+    // ensure that this packet really is Surfaces
+    assert(_in.idx.size() != 0 && "Input ElementPacket is not Surfaces");
+    assert(_in.ndim == 1 && "Input ElementPacket is not Surfaces");
+
+    // and that it has the right number of values per particle
+    if (this->E == inert) assert(_in.val.size() == 0 && "Input ElementPacket with inert Surfaces has nonzero val array");
+    else assert(_in.val.size() == _in.nelem && "Input ElementPacket with Surfaces has bad val array size");
+
+    // must explicitly call the method in the base class first - this pulls out positions and strengths
+    //ElementBase<S>::add_new(_in);
+    (void) add_new(_in.x, _in.idx, _in.val);
+  }
+
 
   void add_body_motion(const S _factor, const double _time) {
     // no need to call base class now
