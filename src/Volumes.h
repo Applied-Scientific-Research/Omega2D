@@ -26,6 +26,16 @@
 #include <optional>
 #include <cassert>
 
+const std::string vert_shader_source =
+#include "shaders/elempack.vert"
+;
+const std::string geom_shader_source =
+#include "shaders/quad.geom"
+;
+const std::string frag_shader_source =
+#include "shaders/elempack.frag"
+;
+
 
 // useful structure for element strengths and BCs
 // Strength<S> ps;
@@ -50,8 +60,8 @@ public:
           const move_t _m,
           std::shared_ptr<Body> _bp)
     : ElementBase<S>(0, _e, _m, _bp),
-      nb(0) {
-      //max_strength(-1.0) {
+      nb(0),
+      max_strength(-1.0) {
 
     // assume all elements are 1st order quads (4 corner indices)
     assert(_idx.size() % 4 == 0 && "Index array is not an even multiple of 4");
@@ -836,6 +846,7 @@ public:
 
   // smooth the peak strength magnitude
   void update_max_str() {
+    max_strength = 1.0;
 /*
     S thismax = get_max_str();
 
@@ -975,7 +986,7 @@ public:
     std::cout << "inside Volumes.initGL with E=" << this->E << " and M=" << this->M << std::endl;
 
     // generate the opengl state object with space for 4 vbos and 1 shader program
-    mgl = std::make_shared<GlState>(4,1);
+    mgl = std::make_shared<GlState>(3,1);
 
     // Allocate space, but don't upload the data from CPU to GPU yet
     for (size_t i=0; i<Dimensions; ++i) {
@@ -986,18 +997,23 @@ public:
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mgl->vbo[Dimensions]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, 0, idx.data(), GL_STATIC_DRAW);
 
+/*
     if (this->s) {
       glBindBuffer(GL_ARRAY_BUFFER, mgl->vbo[3]);
       glBufferData(GL_ARRAY_BUFFER, 0, (*ps[0]).data(), GL_STATIC_DRAW);
     }
+*/
 
-    // Load and create the blob-drawing shader program
-    mgl->spo[0] = create_draw_surface_line_prog();
+    // Load and create the quad-drawing shader program
+    mgl->spo[0] = create_vertfrag_prog(vert_shader_source, frag_shader_source);
+    //mgl->spo[0] = create_vertgeomfrag_prog(vert_shader_source, frag_shader_source);
+    //mgl->spo[0] = create_draw_quad_prog();
+    //mgl->spo[1] = create_draw_quadedges_prog();
 
     // Now do the four arrays
     prepare_opengl_buffer(mgl->spo[0], 0, "px");
     prepare_opengl_buffer(mgl->spo[0], 1, "py");
-    prepare_opengl_buffer(mgl->spo[0], 2, "rawstr");
+    //prepare_opengl_buffer(mgl->spo[0], 2, "rawstr");
 
     // and for the compute shaders! (later)
 
@@ -1053,12 +1069,14 @@ public:
         // just don't upload strengths
 
       } else { // this->E is active or reactive
+/*
         // the strengths
         if (ps[0]) {
           const size_t slen = ps[0]->size()*sizeof(S);
           glBindBuffer(GL_ARRAY_BUFFER, mgl->vbo[3]);
           glBufferData(GL_ARRAY_BUFFER, slen, (*ps[0]).data(), GL_DYNAMIC_DRAW);
         }
+*/
       }
 
       glBindVertexArray(0);
@@ -1068,7 +1086,7 @@ public:
     }
   }
 
-  // OpenGL3 stuff to draw segments, called once per frame
+  // OpenGL3 stuff to draw quads, called once per frame
   void drawGL(std::vector<float>& _projmat,
               RenderParams&       _rparams,
               const float         _vdelta) {
@@ -1110,7 +1128,7 @@ public:
       glUniform1f (mgl->str_scale_attribute, (const GLfloat)max_strength);
 
       // the one draw call here
-      glDrawElements(GL_LINES, mgl->num_uploaded, get_gl_type<Int>, 0);
+      //glDrawElements(GL_LINES, mgl->num_uploaded, get_gl_type<Int>, 0);
 
       // return state
       glEnable(GL_DEPTH_TEST);
@@ -1151,6 +1169,6 @@ private:
 #ifdef USE_GL
   std::shared_ptr<GlState> mgl;
 #endif
-  //float max_strength;
+  float max_strength;
 };
 
