@@ -98,8 +98,8 @@ public:
   std::string to_string() const override;
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
-  ElementPacket<float> init_elements(float) const;
-  ElementPacket<float> step_elements(float) const;
+  ElementPacket<float> init_elements(float) const override;
+  ElementPacket<float> step_elements(float) const override;
   void generate_draw_geom() override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string, const float&, const float) override;
@@ -129,8 +129,8 @@ public:
   std::string to_string() const override;
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
-  ElementPacket<float> init_elements(float) const;
-  ElementPacket<float> step_elements(float) const;
+  ElementPacket<float> init_elements(float) const override;
+  ElementPacket<float> step_elements(float) const override;
   void generate_draw_geom() override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string, const float&, const float) override;
@@ -164,8 +164,8 @@ public:
   std::string to_string() const override;
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
-  ElementPacket<float> init_elements(float) const;
-  ElementPacket<float> step_elements(float) const;
+  ElementPacket<float> init_elements(float) const override;
+  ElementPacket<float> step_elements(float) const override;
   void generate_draw_geom() override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string, const float&, const float) override;
@@ -197,8 +197,8 @@ public:
   std::string to_string() const override;
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
-  ElementPacket<float> init_elements(float) const;
-  ElementPacket<float> step_elements(float) const;
+  ElementPacket<float> init_elements(float) const override;
+  ElementPacket<float> step_elements(float) const override;
   void generate_draw_geom() override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string, const float&, const float) override;
