@@ -108,7 +108,7 @@ public:
     // and that it has the right number of values per particle
     if (_e == inert) assert(_in.val.size() == 0 && "Input ElementPacket with fldpts has val array");
     else if (_e == reactive) assert(false && "Input ElementPacket with reactive points is unsupported");
-    else assert(_in.val.size() == 2*_in.nelem && "Input ElementPacket with vortons has val array not a multiple of 2");
+    else assert(_in.val.size() == _in.nelem && "Input ElementPacket with vortons has incorrect size val array");
 
     // tell the world that we're legit
     std::cout << "  new collection with " << (_in.nelem);
@@ -138,21 +138,15 @@ public:
       // field points need neither radius nor strength
 
     } else {
-      // active vortons need radius, ASSUMPTION: it's the second interleaved value in _in.val
+      // active vortons need radius
       r.resize(this->n);
-      for (size_t i=0; i<this->n; ++i) {
-        //r[i] = _in.val[2*i+1];
-        r[i] = _vd;
-      }
+      std::fill(r.begin(), r.end(), _vd);
 
       // optional strength in base class
       // need to assign it a vector first!
-      // ASSUMPTION: it's the first interleaved value in _in.val
       Vector<S> new_s;
       new_s.resize(this->n);
-      for (size_t i=0; i<this->n; ++i) {
-        new_s[i] = _in.val[2*i+0];
-      }
+      std::copy(_in.val.begin(), _in.val.end(), new_s.begin());
       this->s = std::move(new_s);
     }
 
@@ -223,7 +217,7 @@ public:
     // and that it has the right number of values per particle
     if (this->E == inert) assert(_in.val.size() == 0 && "Input ElementPacket with fldpts has val array");
     else if (this->E == reactive) assert("Input ElementPacket with reactive points is unsupported");
-    else assert(_in.val.size() != 2*_in.nelem && "Input ElementPacket with vortons has val array not a multiple of 2");
+    else assert(_in.val.size() == _in.nelem && "Input ElementPacket with vortons has bad sized val array");
 
     // remember old size and incoming size (note that Points nelems = nnodes)
     const size_t nold = this->n;
@@ -238,12 +232,8 @@ public:
       // no radius needed
 
     } else {
-      // active points need radius, ASSUMPTION: it's the second interleaved value in _in.val
       r.resize(nold+nnew);
-      for (size_t i=0; i<nnew; ++i) {
-        //r[nold+i] = _in.val[2*i+1];
-        r[nold+i] = _vd;
-      }
+      std::fill(r.begin()+nold, r.end(), _vd);
     }
 
     // save the new untransformed positions if we have a Body pointer

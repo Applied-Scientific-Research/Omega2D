@@ -775,13 +775,13 @@ void Simulation::file_elements(std::vector<Collection>& _collvec,
     bool this_match = true;
 
     // check movement type
-    const move_t tmt = std::visit([=](auto& elem) { return elem.get_movet(); }, bdry[i]);
+    const move_t tmt = std::visit([=](auto& elem) { return elem.get_movet(); }, _collvec[i]);
     if (_mt != tmt) {
       this_match = false;
 
     } else if (tmt == bodybound) {
       // check body pointer
-      std::shared_ptr<Body> tbp = std::visit([=](auto& elem) { return elem.get_body_ptr(); }, bdry[i]);
+      std::shared_ptr<Body> tbp = std::visit([=](auto& elem) { return elem.get_body_ptr(); }, _collvec[i]);
       if (_bptr != tbp) this_match = false;
     }
 

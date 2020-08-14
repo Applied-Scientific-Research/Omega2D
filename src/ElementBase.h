@@ -102,7 +102,7 @@ public:
 
     // check inputs
     if (_in.x.size() == 0 or _in.nelem == 0) return;
-    assert(_in.x.size() % Dimensions != 0 && "Input ElementPacket does not have correct number of node coords");
+    assert(_in.x.size() % Dimensions == 0 && "Input ElementPacket does not have correct number of node coords");
 
     // new number of nodes (not elements)
     const size_t nnew = _in.x.size()/Dimensions;
