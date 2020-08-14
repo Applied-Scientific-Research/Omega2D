@@ -96,7 +96,8 @@ public:
   Points(const ElementPacket<S>& _in,
          const elem_t _e,
          const move_t _m,
-         std::shared_ptr<Body> _bp)
+         std::shared_ptr<Body> _bp,
+         const float _vd)
     : ElementBase<S>(0, _e, _m, _bp),
       max_strength(-1.0) {
 
@@ -112,6 +113,10 @@ public:
     // tell the world that we're legit
     std::cout << "  new collection with " << (_in.nelem);
     std::cout << ((_e == inert) ? " tracer" : " vortex") << " elems" << std::endl;
+    //std::cout << "  contains " << std::endl;
+    //for (size_t i=0; i<_in.nelem; ++i) {
+    //  std::cout << "    " << _in.x[2*i] << " " << _in.x[2*i+1] << " " << _in.val[2*i] << " " << _in.val[2*i+1] << std::endl;
+    //}
 
     // need to reset the base class n, because this gets run before the base ctor
     this->n = _in.nelem;
@@ -136,7 +141,8 @@ public:
       // active vortons need radius, ASSUMPTION: it's the second interleaved value in _in.val
       r.resize(this->n);
       for (size_t i=0; i<this->n; ++i) {
-        r[i] = _in.val[2*i+1];
+        //r[i] = _in.val[2*i+1];
+        r[i] = _vd;
       }
 
       // optional strength in base class
@@ -209,7 +215,7 @@ public:
   }
 
   // append more elements this collection
-  void add_new(const ElementPacket<S>& _in) {
+  void add_new(const ElementPacket<S>& _in, const float _vd) {
     // ensure that this packet really is Points
     assert(_in.idx.size() == 0 && "Input ElementPacket is not Points");
     assert(_in.ndim == 0 && "Input ElementPacket is not Points");
@@ -235,7 +241,8 @@ public:
       // active points need radius, ASSUMPTION: it's the second interleaved value in _in.val
       r.resize(nold+nnew);
       for (size_t i=0; i<nnew; ++i) {
-        r[nold+i] = _in.val[2*i+1];
+        //r[nold+i] = _in.val[2*i+1];
+        r[nold+i] = _vd;
       }
     }
 
