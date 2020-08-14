@@ -176,6 +176,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ, ExecEnv& env) 
         }
         tu[0][i] += accumu.sum();
         tu[1][i] += accumv.sum();
+        //std::cout << "part " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
       }
     } else
 #endif  // no Vc
