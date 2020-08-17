@@ -66,16 +66,16 @@ public:
       const int j = (i+Dimensions) % x.size();
       if (x[i] == packet.x[j]) { samef += 1; }
     } // also need to do idx and val. Could just create erase function for packets
-    if (samef == Dimensions) { x.erase(x.begin(), x.begin()+Dimensions); }
+    if (samef == Dimensions) { packet.x.erase(packet.x.begin(), packet.x.begin()+Dimensions); }
     int sameb = 0;
     for (int i = packet.x.size()-1; i > packet.x.size()-Dimensions-1; i--) {
       const int j = (i+Dimensions) % packet.x.size();
-      if (packet.x[i] == x[j]) { x.erase(x.end()-Dimensions, x.end()); }
+      if (packet.x[i] == x[j]) { sameb += 1; }
     }
-    if (sameb == Dimensions) { x.erase(x.end()-Dimensions, x.end()); }
+    if (sameb == Dimensions) { packet.x.erase(packet.x.end()-Dimensions, packet.x.end()); }
     // Adjust indices if we removed 2 duplicate points
     if ((samef == Dimensions) && (sameb == Dimensions)) {
-      packet.idx.erase(packet.idx.end()-2, packet.idx.end());
+      packet.idx.erase(packet.idx.end()-Dimensions, packet.idx.end());
     }
 
     // Combine vectors 

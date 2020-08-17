@@ -723,12 +723,12 @@ SolidSquare::init_elements(const float _ips) const {
   }
 
   if (packet.verify(packet.x.size(), packet.x.size())) {
-    /*std::cout << "x: ";
+    std::cout << "x: ";
     for (int i = 0; i<packet.x.size(); i++) { std::cout << packet.x[i] << " "; }
     std::cout << "\nidx: ";
     for (int i = 0; i<packet.idx.size(); i++) { std::cout << packet.idx[i] << " "; }
     std::cout << "\nval: ";
-    for (int i = 0; i<packet.val.size(); i++) { std::cout << packet.val[i] << " "; }*/
+    for (int i = 0; i<packet.val.size(); i++) { std::cout << packet.val[i] << " "; }
     return packet;
   } else {
     // Has to be a better way
