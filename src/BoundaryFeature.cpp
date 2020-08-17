@@ -695,7 +695,7 @@ SolidSquare::init_elements(const float _ips) const {
     packet.add(bsv[i]->init_elements(_ips));
   }
 
-  // Packet adds as if they are segments, so we have one too many and the last isn't 0
+  // Packet adds as if they are segments, so we have to connect the beginning with the end
   packet.idx.push_back(packet.idx.back());
   packet.idx.push_back(0);
   packet.ndim = 1;
@@ -813,7 +813,7 @@ void SolidSquare::generate_draw_geom() {
 //
 ElementPacket<float>
 SolidRect::init_elements(const float _ips) const {
-
+/*
   if (not this->is_enabled()) return ElementPacket<float>();
 
   // how many panels?
@@ -822,15 +822,18 @@ SolidRect::init_elements(const float _ips) const {
   const size_t num_panels = 2 * (np_x + np_y);
 
   std::cout << "Creating rectangle with " << num_panels << " panels" << std::endl;
-
+*/
+  std::cout << "Creating rectangle" << std::endl;
+  std::vector<std::unique_ptr<BoundarySegment>> bsv;
+/*
   // created once
   std::vector<float>   x(num_panels*2);
   std::vector<Int>   idx(num_panels*2);
   std::vector<float> val(num_panels);
-
+*/
   const float st = std::sin(M_PI * m_theta / 180.0);
   const float ct = std::cos(M_PI * m_theta / 180.0);
-
+/*
   // outside is to the left walking from one point to the next
   // so go CW around the body
   size_t icnt = 0;
@@ -858,26 +861,48 @@ SolidRect::init_elements(const float _ips) const {
     x[icnt++] = m_x + px*ct - py*st;
     x[icnt++] = m_y + px*st + py*ct;
   }
+*/
+  const float px = 0.5*m_side;
+  const float py = 0.5*m_sidey;
+  std::vector<float> pxs = {-px, -px, px, px};
+  std::vector<float> pys = {-py, py, py, -py};
+  std::cout << "Creating Boundary Segments" << std::endl;
+  for (int i = 0; i<4; i++) {
+    const int j = (i+1)%4;
+    bsv.emplace_back(std::make_unique<BoundarySegment>(m_bp, m_external,  m_x+pxs[i]*ct-pys[i]*st,
+                                                       m_y+pxs[i]*st+pys[i]*ct, m_x+pxs[j]*ct-pys[j]*st, 
+                                                       m_y+pxs[j]*st+pys[j]*ct, 0.0, 0.0));
+    std::cout << bsv[i]->to_string() << std::endl;
+  }
+
+  std::cout << "Creating Packets" << std::endl;
+  ElementPacket<float> packet = bsv[0]->init_elements(_ips);
+  for (int i = 1; i < bsv.size(); i++) {
+    packet.add(bsv[i]->init_elements(_ips));
+  }
+
+  packet.idx.push_back(packet.idx.back());
+  packet.idx.push_back(0);
+  packet.ndim = 1;
 
   // outside is to the left walking from one point to the next
-  for (size_t i=0; i<num_panels; i++) {
+/*  for (size_t i=0; i<num_panels; i++) {
     idx[2*i]   = i;
     idx[2*i+1] = i+1;
     val[i]     = 0.0;
-  }
+  }*/
 
   // correct the final index
-  idx[2*num_panels-1] = 0;
+  //idx[2*num_panels-1] = 0;
 
   // flip the orientation of the panels
   if (not m_external) {
-    for (size_t i=0; i<num_panels; i++) {
-      std::swap(idx[2*i], idx[2*i+1]);
+    for (size_t i=0; i<packet.idx.size(); i++) {
+      std::swap(packet.idx[2*i], packet.idx[2*i+1]);
     }
   }
 
-  ElementPacket<float> packet({x, idx, val, num_panels, 1});
-  if (packet.verify(packet.x.size(), x.size())) {
+  if (packet.verify(packet.x.size(), packet.x.size())) {
     return packet;
   } else {
     // Has to be a better way
