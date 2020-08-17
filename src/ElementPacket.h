@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <vector>
+#include <iostream>
 
 // Helper class for passing arbitrary elements around
 template<class S>
@@ -20,8 +21,8 @@ public:
   ElementPacket<S>(std::vector<S> _x = std::vector<S>(),
                    std::vector<Int> _idx = std::vector<Int>(),
                    std::vector<S> _val = std::vector<S>(),
-                   size_t _nelem = 0,
-                   uint8_t _ndim = -1)
+                   size_t _nelem = 55,
+                   uint8_t _ndim = 55)
     : x(_x), idx(_idx), val(_val), nelem(_nelem), ndim(_ndim)
     {}
   ~ElementPacket<S>() = default;
@@ -32,18 +33,67 @@ public:
   ElementPacket<S>& operator=(ElementPacket<S>&&) = default; //allow move
 
   // Ensure the element packet is correct
-  // This will probaly need some parameters and some if statements
-  // Check the sim.add_* functions
-  bool verify(int attribute, int check) { return (attribute % check == 0); }
+  // These functions have been made for boundary segments. They should be tested and abstracted
+  // To deal with points, etc. as well
+  bool verify(int attribute, int check) {
+    bool good = (attribute % check == 0);
+    
+    if (x.size() % Dimensions != 0) {
+      std::cout << "Size of x is not divisible by Dimensions!\nx.size(): ";
+      std::cout  << x.size() << " Dimensions: " << Dimensions << std::endl;
+      good = false;
+    }
+    
+   /* if (val.size() % x.size()/Dimensions != 0) {
+      std::cout << "val does not have correct number of panels!\nval.size(): ";
+      std::cout  << val.size() << " number of panels: " << x.size()/Dimensions << std::endl;
+      good = false;
+    }*/
+    return good;
+  }
+  
   void add(ElementPacket<S> packet) {
+    // Check if they have overlapping points on the edges
+    // I don't know if this has any affect on measure/flow features
+    int samef = 0;
+    for (int i = x.size()-1; i > x.size()-Dimensions-1; i--) {
+      const int j = (i+Dimensions) % x.size();
+      if (x[i] == packet.x[j]) { samef += 1; }
+    } // also need to do idx and val. Could just create erase function for packets
+    if (samef == Dimensions) { packet.remove(true, 1); }
+    int sameb = 0;
+    for (int i = packet.x.size()-1; i > packet.x.size()-Dimensions-1; i--) {
+      const int j = (i+Dimensions) % packet.x.size();
+      if (packet.x[i] == x[j]) { sameb += 1; }
+    }
+    if (sameb == Dimensions) { packet.remove(false, 1); }
+    // Adjust indices if we removed 2 duplicate points
+    if ((samef == Dimensions) && (sameb == Dimensions)) {
+      packet.idx.erase(packet.idx.end()-2, packet.idx.end());
+    }
+
+    // Combine vectors 
     x.insert(x.end(), packet.x.begin(), packet.x.end());
-    idx.erase(idx.end()-2, idx.end());
     // Add the last current vertex number to the new set of indices (except the 0 at the end)
-    std::transform(packet.idx.begin(), packet.idx.end()-1, packet.idx.begin(),
-                   std::bind2nd(std::plus<Int>(), idx.back()));
+    std::transform(packet.idx.begin(), packet.idx.end(), packet.idx.begin(),
+                   std::bind2nd(std::plus<Int>(), idx.back()+1));
+    idx.push_back(idx.back());
     idx.insert(idx.end(), packet.idx.begin(), packet.idx.end());
     val.insert(val.end(), packet.val.begin(), packet.val.end());
+    nelem = val.size();
   }
+
+  // Removes an amount of points from each vector from either the front or back
+  void remove(bool front, int amount) {
+    const int aD = amount*Dimensions;
+    nelem -= amount;
+    if (front) {
+      x.erase(x.begin(), x.begin()+aD);
+    } else {
+      x.erase(x.end()-aD, x.end());
+    }
+  }
+    
 
   std::vector<S> x;
   std::vector<Int> idx;

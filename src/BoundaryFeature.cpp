@@ -643,7 +643,7 @@ SolidSquare::init_elements(const float _ips) const {
   /*std::vector<float>   x(num_panels*2);
   std::vector<Int>   idx(num_panels*2);
   std::vector<float> val(num_panels);*/
-  std::vector<std::unique_ptr<BoundarySegment>> bsv(4);
+  std::vector<std::unique_ptr<BoundarySegment>> bsv;
 
   const float st = std::sin(M_PI * m_theta / 180.0);
   const float ct = std::cos(M_PI * m_theta / 180.0);
@@ -686,15 +686,19 @@ SolidSquare::init_elements(const float _ips) const {
     bsv.emplace_back(std::make_unique<BoundarySegment>(m_bp, m_external,  m_x+pxs[i]*ct-pys[i]*st,
                                                        m_y+pxs[i]*st+pys[i]*ct, m_x+pxs[j]*ct-pys[j]*st, 
                                                        m_y+pxs[j]*st+pys[j]*ct, 0.0, 0.0));
+    std::cout << bsv[i]->to_string() << std::endl;
   }
 
   std::cout << "Creating Packets" << std::endl;
-  ElementPacket<float> packet({std::vector<float>, std::vector<Int>, std::vector<float>});
-  for (int i = 0; i < bsv.size(); i++) {
-    std::cout << " " << i;
+  ElementPacket<float> packet = bsv[0]->init_elements(_ips);
+  for (int i = 1; i < bsv.size(); i++) {
     packet.add(bsv[i]->init_elements(_ips));
-    std::cout << " end" << std::endl;
   }
+
+  // Packet adds as if they are segments, so we have one too many and the last isn't 0
+  packet.idx.pop_back();
+  packet.idx[packet.idx.size()-1] = 0;
+  packet.ndim = 1;
   /* For use with list in the future
   int j = 1;
   for (std::list<std::unique_ptr<BoundarySegment>>::iterator i = bs.begin(); i != bs.end(); i++) {
@@ -719,6 +723,12 @@ SolidSquare::init_elements(const float _ips) const {
   }
 
   if (packet.verify(packet.x.size(), packet.x.size())) {
+    std::cout << "x: ";
+    for (int i = 0; i<packet.x.size(); i++) { std::cout << packet.x[i] << " "; }
+    std::cout << "\nidx: ";
+    for (int i = 0; i<packet.idx.size(); i++) { std::cout << packet.idx[i] << " "; }
+    std::cout << "\nval: ";
+    for (int i = 0; i<packet.val.size(); i++) { std::cout << packet.val[i] << " "; }
     return packet;
   } else {
     // Has to be a better way
@@ -794,7 +804,7 @@ bool SolidSquare::draw_info_gui(const std::string action) {
 #endif
 
 void SolidSquare::generate_draw_geom() {
-  m_draw = init_elements(m_side);
+  m_draw = init_elements(m_side/3);
   // transform according to body position at t=0?
 }
 

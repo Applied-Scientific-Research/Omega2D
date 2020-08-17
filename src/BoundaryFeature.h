@@ -116,7 +116,7 @@ public:
       m_ye(_yend),
       m_normflow(_normflow),
       m_tangflow(_tangflow)
-    {}
+    {} //std::cout << to_string() << std::endl; }
   ~BoundarySegment() = default;
   BoundarySegment* copy() const override { return new BoundarySegment(*this); }
 
