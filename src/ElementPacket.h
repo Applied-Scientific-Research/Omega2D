@@ -51,10 +51,14 @@ public:
     }*/
     return good;
   }
-  
+ 
+  // This simply appends an Element Packet to the end of the existing packet,
+  // removing any duplicate points. The end result currently is a longer segment.
+  // Boundaries will need to add another set of idx values and a 0 to close it.
+  // I don't think this will currently work with flow/measure features, but ideally
+  // this would also be able to merge those packets.
   void add(ElementPacket<S> packet) {
     // Check if they have overlapping points on the edges
-    // I don't know if this has any affect on measure/flow features
     std::cout << "\nidx: ";
     for (int i = 0; i<idx.size(); i++) { std::cout << idx[i] << " "; }
     std::cout << "\npacket.idx: ";
@@ -80,7 +84,7 @@ public:
 
     // Combine vectors 
     x.insert(x.end(), packet.x.begin(), packet.x.end());
-    // Add the last current vertex number to the new set of indices (except the 0 at the end)
+    // Add the last current vertex number to the new set of indices
     std::transform(packet.idx.begin(), packet.idx.end(), packet.idx.begin(),
                    std::bind2nd(std::plus<Int>(), idx.back()));
     idx.insert(idx.end(), packet.idx.begin(), packet.idx.end());
