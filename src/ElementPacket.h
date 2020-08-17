@@ -55,18 +55,24 @@ public:
   void add(ElementPacket<S> packet) {
     // Check if they have overlapping points on the edges
     // I don't know if this has any affect on measure/flow features
+    std::cout << "\nidx: ";
+    for (int i = 0; i<idx.size(); i++) { std::cout << idx[i] << " "; }
+    std::cout << "\npacket.idx: ";
+    for (int i = 0; i<packet.idx.size(); i++) { std::cout << packet.idx[i] << " "; }
+    std::cout << std::endl;
+
     int samef = 0;
     for (int i = x.size()-1; i > x.size()-Dimensions-1; i--) {
       const int j = (i+Dimensions) % x.size();
       if (x[i] == packet.x[j]) { samef += 1; }
     } // also need to do idx and val. Could just create erase function for packets
-    if (samef == Dimensions) { packet.remove(true, 1); }
+    if (samef == Dimensions) { x.erase(x.begin(), x.begin()+Dimensions); }
     int sameb = 0;
     for (int i = packet.x.size()-1; i > packet.x.size()-Dimensions-1; i--) {
       const int j = (i+Dimensions) % packet.x.size();
-      if (packet.x[i] == x[j]) { sameb += 1; }
+      if (packet.x[i] == x[j]) { x.erase(x.end()-Dimensions, x.end()); }
     }
-    if (sameb == Dimensions) { packet.remove(false, 1); }
+    if (sameb == Dimensions) { x.erase(x.end()-Dimensions, x.end()); }
     // Adjust indices if we removed 2 duplicate points
     if ((samef == Dimensions) && (sameb == Dimensions)) {
       packet.idx.erase(packet.idx.end()-2, packet.idx.end());
@@ -76,24 +82,11 @@ public:
     x.insert(x.end(), packet.x.begin(), packet.x.end());
     // Add the last current vertex number to the new set of indices (except the 0 at the end)
     std::transform(packet.idx.begin(), packet.idx.end(), packet.idx.begin(),
-                   std::bind2nd(std::plus<Int>(), idx.back()+1));
-    idx.push_back(idx.back());
+                   std::bind2nd(std::plus<Int>(), idx.back()));
     idx.insert(idx.end(), packet.idx.begin(), packet.idx.end());
     val.insert(val.end(), packet.val.begin(), packet.val.end());
     nelem = val.size();
   }
-
-  // Removes an amount of points from each vector from either the front or back
-  void remove(bool front, int amount) {
-    const int aD = amount*Dimensions;
-    nelem -= amount;
-    if (front) {
-      x.erase(x.begin(), x.begin()+aD);
-    } else {
-      x.erase(x.end()-aD, x.end());
-    }
-  }
-    
 
   std::vector<S> x;
   std::vector<Int> idx;

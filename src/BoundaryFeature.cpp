@@ -696,8 +696,8 @@ SolidSquare::init_elements(const float _ips) const {
   }
 
   // Packet adds as if they are segments, so we have one too many and the last isn't 0
-  packet.idx.pop_back();
-  packet.idx[packet.idx.size()-1] = 0;
+  packet.idx.push_back(packet.idx.back());
+  packet.idx.push_back(0);
   packet.ndim = 1;
   /* For use with list in the future
   int j = 1;
@@ -723,12 +723,12 @@ SolidSquare::init_elements(const float _ips) const {
   }
 
   if (packet.verify(packet.x.size(), packet.x.size())) {
-    std::cout << "x: ";
+    /*std::cout << "x: ";
     for (int i = 0; i<packet.x.size(); i++) { std::cout << packet.x[i] << " "; }
     std::cout << "\nidx: ";
     for (int i = 0; i<packet.idx.size(); i++) { std::cout << packet.idx[i] << " "; }
     std::cout << "\nval: ";
-    for (int i = 0; i<packet.val.size(); i++) { std::cout << packet.val[i] << " "; }
+    for (int i = 0; i<packet.val.size(); i++) { std::cout << packet.val[i] << " "; }*/
     return packet;
   } else {
     // Has to be a better way
