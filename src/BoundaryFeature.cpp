@@ -981,15 +981,13 @@ bool SolidRect::draw_info_gui(const std::string action) {
 #endif
 
 void SolidRect::generate_draw_geom() {
-  m_draw = init_elements(m_side);
+  m_draw = init_elements(std::min(m_side, m_sidey));
 }
-
-
 
 // Create a Polygon 
 ElementPacket<float>
 SolidPolygon::init_elements(const float _ips) const {
-  // If object has been removed, return no elements?
+/*  // If object has been removed, return no elements?
   if (not this->is_enabled()) return ElementPacket<float>();
 
   // how many panels
@@ -997,12 +995,15 @@ SolidPolygon::init_elements(const float _ips) const {
   const size_t num_panels = panlsPerSide * m_numSides;
  
   std::cout << "Creating " << m_numSides << "-sided polygon with " << num_panels << " panels" << std::endl;
-
+*/
+  std::cout << "Creating " << m_numSides << "-sided polygon" << std::endl;
+  std::vector<std::unique_ptr<BoundarySegment>> bsv;
+/*
   // created once
   std::vector<float>   x(num_panels*2);
   std::vector<Int>   idx(num_panels*2);
   std::vector<float> val(num_panels);
-
+*/
   // Turning degrees into radians: deg*pi/180
   float phi = 0;
   if (m_numSides % 2 == 0) { phi = 360/(m_numSides*2.0); }
@@ -1013,14 +1014,14 @@ SolidPolygon::init_elements(const float _ips) const {
   // so go CW around the body
   // m_side * i / panlsPerSide reflects distance between two adjacent panels
   // If m_numSides is even, it seems to rotate CCW by 360/m_numSides/2 degrees in place
-  float vx = 0.0;
-  float vy = m_radius;
-  size_t icnt = 0;
-  for (int j=0; j<m_numSides; j++) {
+  std::vector<float> vxs = {0.0};
+  std::vector<float> vys = {m_radius};
+  //size_t icnt = 0;
+  for (int j=1; j<m_numSides; j++) {
     // Find next vertex
-    const float nxtVx = m_radius * std::sin(2*M_PI*(float)(j+1)/(float)m_numSides);
-    const float nxtVy = m_radius * std::cos(2*M_PI*(float)(j+1)/(float)m_numSides);
-    // std::cout << '(' << vx << ',' << vy << ") -> (" << nxtVx << ',' << nxtVy << ')' << std::endl;
+    vxs.push_back(m_radius * std::sin(2*M_PI*(float)(j)/(float)m_numSides));
+    vys.push_back(m_radius * std::cos(2*M_PI*(float)(j)/(float)m_numSides));
+/*    // std::cout << '(' << vx << ',' << vy << ") -> (" << nxtVx << ',' << nxtVy << ')' << std::endl;
     for (size_t i=0; i<panlsPerSide; i++) {
       const float px = vx+(nxtVx-vx)*(float)i/(float)panlsPerSide;
       const float py = vy+(nxtVy-vy)*(float)i/(float)panlsPerSide;
@@ -1028,9 +1029,29 @@ SolidPolygon::init_elements(const float _ips) const {
       x[icnt++] = m_y + px*st + py*ct;
     }
     vx = nxtVx;
-    vy = nxtVy;
+    vy = nxtVy; */
   }
 
+  for (int i = 0; i < m_numSides; i++) { std::cout << vxs[i] << " " << vys[i] << std::endl; }
+  for (int i = 0; i<m_numSides; i++) {
+    const int j = (i+1)%m_numSides;
+    bsv.emplace_back(std::make_unique<BoundarySegment>(m_bp, m_external, m_x+vxs[i]*ct-vys[i]*st,
+                                                       m_y+vxs[i]*st+vys[i]*ct, m_x+vxs[j]*ct-vys[j]*st,
+                                                       m_y+vxs[j]*st+vys[j]*ct, 0.0, 0.0));
+  }
+
+  std::cout << "Creating Packets" << std::endl;
+  ElementPacket<float> packet = bsv[0]->init_elements(_ips);
+  for (int i = 1; i < bsv.size(); i++) {
+    packet.add(bsv[i]->init_elements(_ips));
+  }
+
+  // Packet adds as if they are segments, so we have one too many and the last isn't 0
+  packet.idx.push_back(packet.idx.back());
+  packet.idx.push_back(0);
+  packet.ndim = 1;
+
+/*
   // outside is to the left walking from one point to the next
   for (size_t i=0; i<num_panels; i++) {
     idx[2*i]   = i;
@@ -1040,16 +1061,22 @@ SolidPolygon::init_elements(const float _ips) const {
 
   // correct the final index
   idx[2*num_panels-1] = 0;
-
+*/
   // flip the orientation of the panels
   if (not m_external) {
-    for (size_t i=0; i<num_panels; i++) {
-      std::swap(idx[2*i], idx[2*i+1]);
+    for (size_t i=0; i<packet.idx.size(); i++) {
+      std::swap(packet.idx[2*i], packet.idx[2*i+1]);
     }
   }
 
-  ElementPacket<float> packet({x, idx, val, num_panels, 1});
-  if (packet.verify(packet.x.size(), x.size())) {
+  std::cout << "\nx: ";
+  for (int i = 0; i<packet.x.size(); i++) { std::cout << packet.x[i] << " "; }
+  std::cout << "\npacket.idx: ";
+  for (int i = 0; i<packet.idx.size(); i++) { std::cout << packet.idx[i] << " "; }
+  std::cout << std::endl;
+
+  //ElementPacket<float> packet({x, idx, val, num_panels, 1});
+  if (packet.verify(packet.x.size(), packet.x.size())) {
     return packet;
   } else {
     // Has to be a better way
@@ -1147,7 +1174,7 @@ bool SolidPolygon::draw_info_gui(const std::string action) {
 #endif
 
 void SolidPolygon::generate_draw_geom() {
-  m_draw = init_elements(m_radius);
+  m_draw = init_elements(m_side);
 }
 
 // node distribution with dense points at each end
