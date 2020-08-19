@@ -231,8 +231,6 @@ double chebeshev_node_2(const double dens_left, const double dens_right, const s
 ElementPacket<float>
 BoundarySegment::init_elements(const float _ips) const {
 
-  if (not this->is_enabled()) return ElementPacket<float>();
-
   // how many panels?
   const float seg_length = std::sqrt(std::pow(m_xe-m_x, 2) + std::pow(m_ye-m_y, 2));
   //const size_t num_panels = std::min(10000, std::max(1, (int)(seg_length / _ips)));
@@ -271,7 +269,6 @@ BoundarySegment::init_elements(const float _ips) const {
     }
   }
 
-  std::cout << x.size() << " " << idx.size() << " " << val.size() << std::endl;
   ElementPacket<float> packet({x, idx, val, num_panels, 1});
   if (packet.verify(packet.x.size(), x.size())) {
     return packet;
@@ -680,48 +677,13 @@ void SolidOval::generate_draw_geom() {
 //
 ElementPacket<float>
 SolidSquare::init_elements(const float _ips) const {
-  // how many panels?
-  //const size_t num_panels = 4 * std::min(10000, std::max(1, (int)(m_side / _ips)));
 
-  //std::cout << "Creating square with " << num_panels << " panels" << std::endl;
   std::cout << "Creating square" << std::endl;
-  // created once
-  /*std::vector<float>   x(num_panels*2);
-  std::vector<Int>   idx(num_panels*2);
-  std::vector<float> val(num_panels);*/
   std::vector<std::unique_ptr<BoundarySegment>> bsv;
 
   const float st = std::sin(M_PI * m_theta / 180.0);
   const float ct = std::cos(M_PI * m_theta / 180.0);
 
-  // outside is to the left walking from one point to the next
-  // so go CW around the body
-  /*size_t icnt = 0;
-  for (size_t i=0; i<num_panels/4; i++) {
-    const float px = m_side * -0.5;
-    const float py = m_side * (-0.5 + (float)i / (float)(num_panels/4));
-    x[icnt++] = m_x + px*ct - py*st;
-    x[icnt++] = m_y + px*st + py*ct;
-    
-  }
-  for (size_t i=0; i<num_panels/4; i++) {
-    const float px = m_side * (-0.5 + (float)i / (float)(num_panels/4));
-    const float py = m_side * 0.5;
-    x[icnt++] = m_x + px*ct - py*st;
-    x[icnt++] = m_y + px*st + py*ct;
-  }
-  for (size_t i=0; i<num_panels/4; i++) {
-    const float px = m_side * 0.5;
-    const float py = m_side * (0.5 - (float)i / (float)(num_panels/4));
-    x[icnt++] = m_x + px*ct - py*st;
-    x[icnt++] = m_y + px*st + py*ct;
-  }
-  for (size_t i=0; i<num_panels/4; i++) {
-    const float px = m_side * (0.5 - (float)i / (float)(num_panels/4));
-    const float py = m_side * -0.5;
-    x[icnt++] = m_x + px*ct - py*st;
-    x[icnt++] = m_y + px*st + py*ct;
-  }*/
   // Create BoundarySegments for each side
   const float p = 0.5*m_side;
   std::vector<float> pxs = {-p, -p, p, p};
@@ -745,21 +707,6 @@ SolidSquare::init_elements(const float _ips) const {
   packet.idx.push_back(packet.idx.back());
   packet.idx.push_back(0);
   packet.ndim = 1;
-  /* For use with list in the future
-  int j = 1;
-  for (std::list<std::unique_ptr<BoundarySegment>>::iterator i = bs.begin(); i != bs.end(); i++) {
-    packet.add(i.init_elements(_ips));
-    std::cout << j++ << std::endl;
-  }
-  // outside is to the left walking from one point to the next
-  for (size_t i=0; i<num_panels; i++) {
-    idx[2*i]   = i;
-    idx[2*i+1] = i+1;
-    val[i]     = 0.0;
-  }*/
-
-  // correct the final index
-  //idx[2*num_panels-1] = 0;
 
   // flip the orientation of the panels
   if (not m_external) {
@@ -769,12 +716,6 @@ SolidSquare::init_elements(const float _ips) const {
   }
 
   if (packet.verify(packet.x.size(), packet.x.size())) {
-    /*std::cout << "x: ";
-    for (int i = 0; i<packet.x.size(); i++) { std::cout << packet.x[i] << " "; }
-    std::cout << "\nidx: ";
-    for (int i = 0; i<packet.idx.size(); i++) { std::cout << packet.idx[i] << " "; }
-    std::cout << "\nval: ";
-    for (int i = 0; i<packet.val.size(); i++) { std::cout << packet.val[i] << " "; }*/
     return packet;
   } else {
     // Has to be a better way
@@ -859,69 +800,25 @@ void SolidSquare::generate_draw_geom() {
 //
 ElementPacket<float>
 SolidRect::init_elements(const float _ips) const {
-/*
-  if (not this->is_enabled()) return ElementPacket<float>();
-
-  // how many panels?
-  const size_t np_x = std::min(10000, std::max(1, (int)(m_side / _ips)));
-  const size_t np_y = std::min(10000, std::max(1, (int)(m_sidey / _ips)));
-  const size_t num_panels = 2 * (np_x + np_y);
-
-  std::cout << "Creating rectangle with " << num_panels << " panels" << std::endl;
-*/
+  
   std::cout << "Creating rectangle" << std::endl;
   std::vector<std::unique_ptr<BoundarySegment>> bsv;
-/*
-  // created once
-  std::vector<float>   x(num_panels*2);
-  std::vector<Int>   idx(num_panels*2);
-  std::vector<float> val(num_panels);
-*/
+  
   const float st = std::sin(M_PI * m_theta / 180.0);
   const float ct = std::cos(M_PI * m_theta / 180.0);
-/*
-  // outside is to the left walking from one point to the next
-  // so go CW around the body
-  size_t icnt = 0;
-  for (size_t i=0; i<np_y; i++) {
-    const float px = m_side * -0.5;
-    const float py = m_sidey * (-0.5 + (float)i / (float)(np_y));
-    x[icnt++] = m_x + px*ct - py*st;
-    x[icnt++] = m_y + px*st + py*ct;
-  }
-  for (size_t i=0; i<np_x; i++) {
-    const float px = m_side * (-0.5 + (float)i / (float)(np_x));
-    const float py = m_sidey * 0.5;
-    x[icnt++] = m_x + px*ct - py*st;
-    x[icnt++] = m_y + px*st + py*ct;
-  }
-  for (size_t i=0; i<np_y; i++) {
-    const float px = m_side * 0.5;
-    const float py = m_sidey * (0.5 - (float)i / (float)(np_y));
-    x[icnt++] = m_x + px*ct - py*st;
-    x[icnt++] = m_y + px*st + py*ct;
-  }
-  for (size_t i=0; i<np_x; i++) {
-    const float px = m_side * (0.5 - (float)i / (float)(np_x));
-    const float py = m_sidey * -0.5;
-    x[icnt++] = m_x + px*ct - py*st;
-    x[icnt++] = m_y + px*st + py*ct;
-  }
-*/
+  
   const float px = 0.5*m_side;
   const float py = 0.5*m_sidey;
   std::vector<float> pxs = {-px, -px, px, px};
   std::vector<float> pys = {-py, py, py, -py};
-  std::cout << "Creating Boundary Segments" << std::endl;
+ 
   for (int i = 0; i<4; i++) {
     const int j = (i+1)%4;
     bsv.emplace_back(std::make_unique<BoundarySegment>(m_bp, m_external,  m_x+pxs[i]*ct-pys[i]*st,
                                                        m_y+pxs[i]*st+pys[i]*ct, m_x+pxs[j]*ct-pys[j]*st, 
                                                        m_y+pxs[j]*st+pys[j]*ct, 0.0, 0.0));
-    std::cout << bsv[i]->to_string() << std::endl;
   }
 
-  std::cout << "Creating Packets" << std::endl;
   ElementPacket<float> packet = bsv[0]->init_elements(_ips);
   for (int i = 1; i < bsv.size(); i++) {
     packet.add(bsv[i]->init_elements(_ips));
@@ -930,16 +827,6 @@ SolidRect::init_elements(const float _ips) const {
   packet.idx.push_back(packet.idx.back());
   packet.idx.push_back(0);
   packet.ndim = 1;
-
-  // outside is to the left walking from one point to the next
-/*  for (size_t i=0; i<num_panels; i++) {
-    idx[2*i]   = i;
-    idx[2*i+1] = i+1;
-    val[i]     = 0.0;
-  }*/
-
-  // correct the final index
-  //idx[2*num_panels-1] = 0;
 
   // flip the orientation of the panels
   if (not m_external) {
@@ -1033,23 +920,10 @@ void SolidRect::generate_draw_geom() {
 // Create a Polygon 
 ElementPacket<float>
 SolidPolygon::init_elements(const float _ips) const {
-/*  // If object has been removed, return no elements?
-  if (not this->is_enabled()) return ElementPacket<float>();
-
-  // how many panels
-  const size_t panlsPerSide = std::min(10000, std::max(1, (int)(m_side / _ips)));
-  const size_t num_panels = panlsPerSide * m_numSides;
- 
-  std::cout << "Creating " << m_numSides << "-sided polygon with " << num_panels << " panels" << std::endl;
-*/
+  
   std::cout << "Creating " << m_numSides << "-sided polygon" << std::endl;
   std::vector<std::unique_ptr<BoundarySegment>> bsv;
-/*
-  // created once
-  std::vector<float>   x(num_panels*2);
-  std::vector<Int>   idx(num_panels*2);
-  std::vector<float> val(num_panels);
-*/
+  
   // Turning degrees into radians: deg*pi/180
   float phi = 0;
   if (m_numSides % 2 == 0) { phi = 360/(m_numSides*2.0); }
@@ -1062,23 +936,12 @@ SolidPolygon::init_elements(const float _ips) const {
   // If m_numSides is even, it seems to rotate CCW by 360/m_numSides/2 degrees in place
   std::vector<float> vxs = {0.0};
   std::vector<float> vys = {m_radius};
-  //size_t icnt = 0;
   for (int j=1; j<m_numSides; j++) {
     // Find next vertex
     vxs.push_back(m_radius * std::sin(2*M_PI*(float)(j)/(float)m_numSides));
     vys.push_back(m_radius * std::cos(2*M_PI*(float)(j)/(float)m_numSides));
-/*    // std::cout << '(' << vx << ',' << vy << ") -> (" << nxtVx << ',' << nxtVy << ')' << std::endl;
-    for (size_t i=0; i<panlsPerSide; i++) {
-      const float px = vx+(nxtVx-vx)*(float)i/(float)panlsPerSide;
-      const float py = vy+(nxtVy-vy)*(float)i/(float)panlsPerSide;
-      x[icnt++] = m_x + px*ct - py*st;
-      x[icnt++] = m_y + px*st + py*ct;
-    }
-    vx = nxtVx;
-    vy = nxtVy; */
   }
 
-  for (int i = 0; i < m_numSides; i++) { std::cout << vxs[i] << " " << vys[i] << std::endl; }
   for (int i = 0; i<m_numSides; i++) {
     const int j = (i+1)%m_numSides;
     bsv.emplace_back(std::make_unique<BoundarySegment>(m_bp, m_external, m_x+vxs[i]*ct-vys[i]*st,
@@ -1086,7 +949,6 @@ SolidPolygon::init_elements(const float _ips) const {
                                                        m_y+vxs[j]*st+vys[j]*ct, 0.0, 0.0));
   }
 
-  std::cout << "Creating Packets" << std::endl;
   ElementPacket<float> packet = bsv[0]->init_elements(_ips);
   for (int i = 1; i < bsv.size(); i++) {
     packet.add(bsv[i]->init_elements(_ips));
@@ -1097,31 +959,12 @@ SolidPolygon::init_elements(const float _ips) const {
   packet.idx.push_back(0);
   packet.ndim = 1;
 
-/*
-  // outside is to the left walking from one point to the next
-  for (size_t i=0; i<num_panels; i++) {
-    idx[2*i]   = i;
-    idx[2*i+1] = i+1;
-    val[i]     = 0.0;
-  }
-
-  // correct the final index
-  idx[2*num_panels-1] = 0;
-*/
   // flip the orientation of the panels
   if (not m_external) {
     for (size_t i=0; i<packet.idx.size(); i++) {
       std::swap(packet.idx[2*i], packet.idx[2*i+1]);
     }
   }
-
-  std::cout << "\npacket.x " << packet.x.size() << " :";
-  for (int i = 0; i<packet.x.size(); i++) { std::cout << packet.x[i] << " "; }
-  std::cout << "\npacket.idx " << packet.idx.size() << " :";
-  for (int i = 0; i<packet.idx.size(); i++) { std::cout << packet.idx[i] << " "; }
-  std::cout << "\npacket.val " << packet.val.size() << " :";
-  for (int i = 0; i<packet.val.size(); i++) { std::cout << packet.val[i] << " "; }
-  std::cout << std::endl;
 
   //ElementPacket<float> packet({x, idx, val, num_panels, 1});
   if (packet.verify(packet.x.size(), packet.x.size())) {

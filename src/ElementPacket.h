@@ -59,12 +59,6 @@ public:
   // this would also be able to merge those packets.
   void add(ElementPacket<S> packet) {
     // Check if they have overlapping points on the edges
-    std::cout << "\nidx: ";
-    for (int i = 0; i<idx.size(); i++) { std::cout << idx[i] << " "; }
-    std::cout << "\npacket.idx: ";
-    for (int i = 0; i<packet.idx.size(); i++) { std::cout << packet.idx[i] << " "; }
-    std::cout << std::endl;
-
     int samef = 0;
     for (int i = x.size()-1; i > x.size()-Dimensions-1; i--) {
       const int j = (i+Dimensions) % x.size();
