@@ -688,18 +688,15 @@ SolidSquare::init_elements(const float _ips) const {
   const float p = 0.5*m_side;
   std::vector<float> pxs = {-p, -p, p, p};
   std::vector<float> pys = {-p, p, p, -p};
-  std::cout << "Creating Boundary Segments" << std::endl;
   for (int i = 0; i<4; i++) {
     const int j = (i+1)%4;
     bsv.emplace_back(std::make_unique<BoundarySegment>(m_bp, m_external,  m_x+pxs[i]*ct-pys[i]*st,
                                                        m_y+pxs[i]*st+pys[i]*ct, m_x+pxs[j]*ct-pys[j]*st, 
                                                        m_y+pxs[j]*st+pys[j]*ct, 0.0, 0.0));
-    std::cout << bsv[i]->to_string() << std::endl;
   }
 
-  std::cout << "Creating Packets" << std::endl;
   ElementPacket<float> packet = bsv[0]->init_elements(_ips);
-  for (int i = 1; i < bsv.size(); i++) {
+  for (size_t i = 1; i < bsv.size(); i++) {
     packet.add(bsv[i]->init_elements(_ips));
   }
 
@@ -820,7 +817,7 @@ SolidRect::init_elements(const float _ips) const {
   }
 
   ElementPacket<float> packet = bsv[0]->init_elements(_ips);
-  for (int i = 1; i < bsv.size(); i++) {
+  for (size_t i = 1; i < bsv.size(); i++) {
     packet.add(bsv[i]->init_elements(_ips));
   }
 
@@ -950,7 +947,7 @@ SolidPolygon::init_elements(const float _ips) const {
   }
 
   ElementPacket<float> packet = bsv[0]->init_elements(_ips);
-  for (int i = 1; i < bsv.size(); i++) {
+  for (size_t i = 1; i < bsv.size(); i++) {
     packet.add(bsv[i]->init_elements(_ips));
   }
 
@@ -1129,12 +1126,6 @@ SolidAirfoil::init_elements(const float _ips) const {
     idx[2*(2*numX-i)]   = 2*numX-i;
     idx[2*(2*numX-i)+1] = 2*numX-i+1;
   }
-
-  std::cout << _ips << std::endl;
-  for (int i = 0; i<(x.size()/2)-1; i++) {
-    std::cout << std::sqrt(std::pow(x[2*(i+1)]-x[2*i], 2)+std::pow(x[2*(i+1)+1]-x[2*i+1], 2)) << std::endl;
-  }
-  
 
   // the last panel needs to point to the first node
   idx[4*numX-1] = 0;

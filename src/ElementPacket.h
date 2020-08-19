@@ -60,13 +60,13 @@ public:
   void add(ElementPacket<S> packet) {
     // Check if they have overlapping points on the edges
     int samef = 0;
-    for (int i = x.size()-1; i > x.size()-Dimensions-1; i--) {
+    for (size_t i = x.size()-1; i > x.size()-Dimensions-1; i--) {
       const int j = (i+Dimensions) % x.size();
       if (x[i] == packet.x[j]) { samef += 1; }
     } // also need to do idx and val. Could just create erase function for packets
     if (samef == Dimensions) { packet.x.erase(packet.x.begin(), packet.x.begin()+Dimensions); }
     int sameb = 0;
-    for (int i = packet.x.size()-1; i > packet.x.size()-Dimensions-1; i--) {
+    for (size_t i = packet.x.size()-1; i > packet.x.size()-Dimensions-1; i--) {
       const int j = (i+Dimensions) % packet.x.size();
       if (packet.x[i] == x[j]) { sameb += 1; }
     }
