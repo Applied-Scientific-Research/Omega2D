@@ -252,7 +252,7 @@ BoundarySegment::init_elements(const float _ips) const {
   // so go CW around the body
   size_t icnt = 0;
   for (size_t i=0; i<num_panels+1; i++) {
-    const float s = chebeshev_node_2(leftDist, rightDist, (float)i / (float)num_panels, num_panels);
+    const float s = chebeshev_node_2(leftDist, rightDist, i, num_panels);
     x[icnt++] = (1.0-s)*m_x + s*m_xe;
     x[icnt++] = (1.0-s)*m_y + s*m_ye;
   }
@@ -271,6 +271,7 @@ BoundarySegment::init_elements(const float _ips) const {
     }
   }
 
+  std::cout << x.size() << " " << idx.size() << " " << val.size() << std::endl;
   ElementPacket<float> packet({x, idx, val, num_panels, 1});
   if (packet.verify(packet.x.size(), x.size())) {
     return packet;
