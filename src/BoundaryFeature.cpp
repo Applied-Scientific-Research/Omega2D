@@ -183,6 +183,48 @@ bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeat
 }
 #endif
 
+// node distribution with dense points at each end
+double chebeshev_node(double a, double b, double k, double n) {
+  return (a+b)*0.5+(b-a)*0.5*std::cos((2*(n-k)-1)*M_PI*0.5/n);
+}
+
+// node distribution with tunable density at each end
+// first, a measure of how many panels are needed given densities at each end and relative panel size
+size_t chebeshev_node_2_count(const double dens_left, const double dens_right, const double rel_pan_size) {
+  // first, compute theta bounds given node densities
+  assert(dens_left > 0.0 && dens_left < 1.0 && dens_right > 0.0 && dens_right < 1.0 && "Panel densities out of range");
+  const double theta_left = M_PI - std::asin(dens_left);
+  const double theta_right = std::asin(dens_right);
+  // theta range
+  const double theta_range = theta_left - theta_right;
+  // x range from these
+  const double x_range = std::cos(theta_right) - std::cos(theta_left);
+  // now, size of the middle panel
+  const double x_panel = x_range * rel_pan_size;
+  // convert that to an angle
+  const double theta_panel = 2.0 * std::asin(0.5*x_panel);
+  // finally, find panel count
+  return std::max((int)3, (int)(0.5 + theta_range/theta_panel));
+}
+
+// then the mathematics itself to generate the node positions
+double chebeshev_node_2(const double dens_left, const double dens_right, const size_t k, const size_t n) {
+  // first, compute theta bounds given node densities
+  assert(dens_left > 0.0 && dens_left < 1.0 && dens_right > 0.0 && dens_right < 1.0 && "Panel densities out of range");
+  const double theta_left = M_PI - std::asin(dens_left);
+  const double theta_right = std::asin(dens_right);
+  // theta range
+  const double theta_range = theta_left - theta_right;
+  // x range from these
+  const double x_range = std::cos(theta_right) - std::cos(theta_left);
+
+  // now, find test theta from input indices
+  const double theta = theta_right + theta_range*k/(double)n;
+
+  // finally, compute and scale the return value (from 0..1)
+  return (std::cos(theta_right) - std::cos(theta)) / x_range;
+}
+
 //
 // Create a segment of a solid boundary
 //
@@ -193,7 +235,10 @@ BoundarySegment::init_elements(const float _ips) const {
 
   // how many panels?
   const float seg_length = std::sqrt(std::pow(m_xe-m_x, 2) + std::pow(m_ye-m_y, 2));
-  const size_t num_panels = std::min(10000, std::max(1, (int)(seg_length / _ips)));
+  //const size_t num_panels = std::min(10000, std::max(1, (int)(seg_length / _ips)));
+  const float leftDist = 0.333;
+  const float rightDist = 0.333;
+  const size_t num_panels = chebeshev_node_2_count(leftDist, rightDist, _ips/seg_length);
 
   std::cout << "Creating segment with " << num_panels << " panels" << std::endl;
   std::cout << "  " << to_string() << std::endl;
@@ -207,7 +252,7 @@ BoundarySegment::init_elements(const float _ips) const {
   // so go CW around the body
   size_t icnt = 0;
   for (size_t i=0; i<num_panels+1; i++) {
-    const float s = (float)i / (float)num_panels;
+    const float s = chebeshev_node_2(leftDist, rightDist, (float)i / (float)num_panels, num_panels);
     x[icnt++] = (1.0-s)*m_x + s*m_xe;
     x[icnt++] = (1.0-s)*m_y + s*m_ye;
   }
@@ -1069,10 +1114,12 @@ SolidPolygon::init_elements(const float _ips) const {
     }
   }
 
-  std::cout << "\nx: ";
+  std::cout << "\npacket.x " << packet.x.size() << " :";
   for (int i = 0; i<packet.x.size(); i++) { std::cout << packet.x[i] << " "; }
-  std::cout << "\npacket.idx: ";
+  std::cout << "\npacket.idx " << packet.idx.size() << " :";
   for (int i = 0; i<packet.idx.size(); i++) { std::cout << packet.idx[i] << " "; }
+  std::cout << "\npacket.val " << packet.val.size() << " :";
+  for (int i = 0; i<packet.val.size(); i++) { std::cout << packet.val[i] << " "; }
   std::cout << std::endl;
 
   //ElementPacket<float> packet({x, idx, val, num_panels, 1});
@@ -1177,46 +1224,6 @@ void SolidPolygon::generate_draw_geom() {
   m_draw = init_elements(m_side);
 }
 
-// node distribution with dense points at each end
-double chebeshev_node(double a, double b, double k, double n) {
-  return (a+b)*0.5+(b-a)*0.5*std::cos((2*(n-k)-1)*M_PI*0.5/n);
-}
-
-// node distribution with tunable density at each end
-// first, a measure of how many panels are needed given densities at each end and relative panel size
-size_t chebeshev_node_2_count(const double dens_left, const double dens_right, const double rel_pan_size) {
-  // first, compute theta bounds given node densities
-  assert(dens_left > 0.0 && dens_left < 1.0 && dens_right > 0.0 && dens_right < 1.0 && "Panel densities out of range");
-  const double theta_left = M_PI - std::asin(dens_left);
-  const double theta_right = std::asin(dens_right);
-  // theta range
-  const double theta_range = theta_left - theta_right;
-  // x range from these
-  const double x_range = std::cos(theta_right) - std::cos(theta_left);
-  // now, size of the middle panel
-  const double x_panel = x_range * rel_pan_size;
-  // convert that to an angle
-  const double theta_panel = 2.0 * std::asin(0.5*x_panel);
-  // finally, find panel count
-  return std::max((int)3, (int)(0.5 + theta_range/theta_panel));
-}
-// then the mathematics itself to generate the node positions
-double chebeshev_node_2(const double dens_left, const double dens_right, const size_t k, const size_t n) {
-  // first, compute theta bounds given node densities
-  assert(dens_left > 0.0 && dens_left < 1.0 && dens_right > 0.0 && dens_right < 1.0 && "Panel densities out of range");
-  const double theta_left = M_PI - std::asin(dens_left);
-  const double theta_right = std::asin(dens_right);
-  // theta range
-  const double theta_range = theta_left - theta_right;
-  // x range from these
-  const double x_range = std::cos(theta_right) - std::cos(theta_left);
-
-  // now, find test theta from input indices
-  const double theta = theta_right + theta_range*k/(double)n;
-
-  // finally, compute and scale the return value (from 0..1)
-  return (std::cos(theta_right) - std::cos(theta)) / x_range;
-}
 
 // Create a NACA 4-digit airfoil
 ElementPacket<float>
@@ -1278,6 +1285,12 @@ SolidAirfoil::init_elements(const float _ips) const {
     idx[2*(2*numX-i)]   = 2*numX-i;
     idx[2*(2*numX-i)+1] = 2*numX-i+1;
   }
+
+  std::cout << _ips << std::endl;
+  for (int i = 0; i<(x.size()/2)-1; i++) {
+    std::cout << std::sqrt(std::pow(x[2*(i+1)]-x[2*i], 2)+std::pow(x[2*(i+1)+1]-x[2*i+1], 2)) << std::endl;
+  }
+  
 
   // the last panel needs to point to the first node
   idx[4*numX-1] = 0;
