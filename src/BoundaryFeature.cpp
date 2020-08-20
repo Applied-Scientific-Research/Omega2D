@@ -54,6 +54,7 @@ void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
   _flist.back()->from_json(_jin);
 
   // finally, generate the draw information
+  _flist.back()->create();
   _flist.back()->generate_draw_geom();
 
   std::cout << "  found " << _flist.back()->to_string() << std::endl;
@@ -166,6 +167,8 @@ bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeat
       sim.add_body(bp);
     }
     bf->set_body(bp);
+    bf->create();
+    bf->generate_draw_geom();
     bfs.emplace_back(std::move(bf));
     bf = nullptr;
     oldItem = -1;
@@ -334,7 +337,6 @@ bool BoundarySegment::draw_info_gui(const std::string action) {
   ImGui::TextWrapped("This feature will add a solid boundary segment from start to end, where fluid is on the left when marching from start to end, and positive tangential flow is as if segment is moving along vector from start to end. Make sure enough segments are created to fully enclose a volume.");
   if (ImGui::Button(buttonText.c_str())) {
     add = true;
-    generate_draw_geom();
     ImGui::CloseCurrentPopup();
   }
   m_x = xc[0];
@@ -452,7 +454,6 @@ bool SolidCircle::draw_info_gui(const std::string action) {
   ImGui::TextWrapped("This feature will add a solid circular boundary centered at the given coordinates");
   if (ImGui::Button(buttonText.c_str())) {
     add = true;
-    generate_draw_geom();
     ImGui::CloseCurrentPopup();
   }
   m_x = xc[0];
@@ -656,7 +657,6 @@ bool SolidOval::draw_info_gui(const std::string action) {
   ImGui::SliderFloat("orientation", &m_theta, 0.0f, 179.0f, "%.0f");
   ImGui::TextWrapped("This feature will add a solid oval boundary centered at the given coordinates");
   if (ImGui::Button(buttonText.c_str())) {
-    generate_draw_geom();
     add = true;
     ImGui::CloseCurrentPopup();
   }
@@ -675,11 +675,9 @@ void SolidOval::generate_draw_geom() {
 //
 // Create a square
 //
-ElementPacket<float>
-SolidSquare::init_elements(const float _ips) const {
-
+void SolidSquare::create() {
   std::cout << "Creating square" << std::endl;
-  std::vector<std::unique_ptr<BoundarySegment>> bsv;
+  m_bsl.clear();
 
   const float st = std::sin(M_PI * m_theta / 180.0);
   const float ct = std::cos(M_PI * m_theta / 180.0);
@@ -690,14 +688,21 @@ SolidSquare::init_elements(const float _ips) const {
   std::vector<float> pys = {-p, p, p, -p};
   for (int i = 0; i<4; i++) {
     const int j = (i+1)%4;
-    bsv.emplace_back(std::make_unique<BoundarySegment>(m_bp, m_external,  m_x+pxs[i]*ct-pys[i]*st,
-                                                       m_y+pxs[i]*st+pys[i]*ct, m_x+pxs[j]*ct-pys[j]*st, 
-                                                       m_y+pxs[j]*st+pys[j]*ct, 0.0, 0.0));
+    m_bsl.emplace_back(BoundarySegment(m_bp, m_external,  m_x+pxs[i]*ct-pys[i]*st,
+                                       m_y+pxs[i]*st+pys[i]*ct, m_x+pxs[j]*ct-pys[j]*st, 
+                                       m_y+pxs[j]*st+pys[j]*ct, 0.0, 0.0));
   }
+}
 
-  ElementPacket<float> packet = bsv[0]->init_elements(_ips);
-  for (size_t i = 1; i < bsv.size(); i++) {
-    packet.add(bsv[i]->init_elements(_ips));
+ElementPacket<float>
+SolidSquare::init_elements(const float _ips) const {
+
+  std::cout << "Initializing square" << std::endl;
+  if (m_bsl.empty()) { return ElementPacket<float>(); }
+
+  ElementPacket<float> packet = m_bsl.begin()->init_elements(_ips);
+  for (auto i = std::next(m_bsl.begin()); i != m_bsl.end(); ++i) {
+    packet.add(i->init_elements(_ips));
   }
 
   // Packet adds as if they are segments, so we have to connect the beginning with the end
@@ -777,7 +782,6 @@ bool SolidSquare::draw_info_gui(const std::string action) {
   ImGui::TextWrapped("This feature will add a solid square boundary centered at the given coordinates");
   if (ImGui::Button(buttonText.c_str())) {
     add = true;
-    generate_draw_geom();
     ImGui::CloseCurrentPopup();
   }
   m_x = xc[0];
@@ -795,30 +799,35 @@ void SolidSquare::generate_draw_geom() {
 //
 // Create a rectangle
 //
-ElementPacket<float>
-SolidRect::init_elements(const float _ips) const {
-  
+void SolidRect::create() {
   std::cout << "Creating rectangle" << std::endl;
-  std::vector<std::unique_ptr<BoundarySegment>> bsv;
-  
+  m_bsl.clear();
+
   const float st = std::sin(M_PI * m_theta / 180.0);
   const float ct = std::cos(M_PI * m_theta / 180.0);
-  
+
+  // Create BoundarySegments for each side
   const float px = 0.5*m_side;
   const float py = 0.5*m_sidey;
   std::vector<float> pxs = {-px, -px, px, px};
   std::vector<float> pys = {-py, py, py, -py};
- 
   for (int i = 0; i<4; i++) {
     const int j = (i+1)%4;
-    bsv.emplace_back(std::make_unique<BoundarySegment>(m_bp, m_external,  m_x+pxs[i]*ct-pys[i]*st,
-                                                       m_y+pxs[i]*st+pys[i]*ct, m_x+pxs[j]*ct-pys[j]*st, 
-                                                       m_y+pxs[j]*st+pys[j]*ct, 0.0, 0.0));
+    m_bsl.emplace_back(BoundarySegment(m_bp, m_external,  m_x+pxs[i]*ct-pys[i]*st,
+                                       m_y+pxs[i]*st+pys[i]*ct, m_x+pxs[j]*ct-pys[j]*st, 
+                                       m_y+pxs[j]*st+pys[j]*ct, 0.0, 0.0));
   }
+}
 
-  ElementPacket<float> packet = bsv[0]->init_elements(_ips);
-  for (size_t i = 1; i < bsv.size(); i++) {
-    packet.add(bsv[i]->init_elements(_ips));
+ElementPacket<float>
+SolidRect::init_elements(const float _ips) const {
+  
+  std::cout << "Initializing rectangle" << std::endl;
+  if (m_bsl.empty()) { return ElementPacket<float>(); }
+
+  ElementPacket<float> packet = m_bsl.begin()->init_elements(_ips);
+  for (auto i = std::next(m_bsl.begin()); i != m_bsl.end(); ++i) {
+    packet.add(i->init_elements(_ips));
   }
 
   packet.idx.push_back(packet.idx.back());
@@ -900,7 +909,6 @@ bool SolidRect::draw_info_gui(const std::string action) {
   ImGui::TextWrapped("This feature will add a solid rectangular boundary centered at the given coordinates");
   if (ImGui::Button(buttonText.c_str())) {
     add = true;
-    generate_draw_geom();
     ImGui::CloseCurrentPopup();
   }
   m_x = xc[0];
@@ -915,12 +923,10 @@ void SolidRect::generate_draw_geom() {
 }
 
 // Create a Polygon 
-ElementPacket<float>
-SolidPolygon::init_elements(const float _ips) const {
-  
+void SolidPolygon::create() {
   std::cout << "Creating " << m_numSides << "-sided polygon" << std::endl;
-  std::vector<std::unique_ptr<BoundarySegment>> bsv;
-  
+  m_bsl.clear();
+
   // Turning degrees into radians: deg*pi/180
   float phi = 0;
   if (m_numSides % 2 == 0) { phi = 360/(m_numSides*2.0); }
@@ -941,14 +947,21 @@ SolidPolygon::init_elements(const float _ips) const {
 
   for (int i = 0; i<m_numSides; i++) {
     const int j = (i+1)%m_numSides;
-    bsv.emplace_back(std::make_unique<BoundarySegment>(m_bp, m_external, m_x+vxs[i]*ct-vys[i]*st,
-                                                       m_y+vxs[i]*st+vys[i]*ct, m_x+vxs[j]*ct-vys[j]*st,
-                                                       m_y+vxs[j]*st+vys[j]*ct, 0.0, 0.0));
+    m_bsl.emplace_back(BoundarySegment(m_bp, m_external, m_x+vxs[i]*ct-vys[i]*st,
+                                       m_y+vxs[i]*st+vys[i]*ct, m_x+vxs[j]*ct-vys[j]*st,
+                                       m_y+vxs[j]*st+vys[j]*ct, 0.0, 0.0));
   }
+}
 
-  ElementPacket<float> packet = bsv[0]->init_elements(_ips);
-  for (size_t i = 1; i < bsv.size(); i++) {
-    packet.add(bsv[i]->init_elements(_ips));
+ElementPacket<float>
+SolidPolygon::init_elements(const float _ips) const {
+  
+  std::cout << "Initializing " << m_numSides << "-sided polygon" << std::endl;
+  if (m_bsl.empty()) { return ElementPacket<float>(); }
+ 
+  ElementPacket<float> packet = m_bsl.begin()->init_elements(_ips);
+  for (auto i = std::next(m_bsl.begin()); i != m_bsl.end(); ++i) {
+    packet.add(i->init_elements(_ips));
   }
 
   // Packet adds as if they are segments, so we have one too many and the last isn't 0
@@ -1051,7 +1064,6 @@ bool SolidPolygon::draw_info_gui(const std::string action) {
   ImGui::TextWrapped("This feature will add a solid polygon boundary with n sides centered at the given coordinates");
   if (ImGui::Button(buttonText.c_str())) {
     add = true;
-    generate_draw_geom();
     ImGui::CloseCurrentPopup();
   }
   m_x = xc[0];
@@ -1216,7 +1228,6 @@ bool SolidAirfoil::draw_info_gui(const std::string action) {
   ImGui::TextWrapped("This feature will add a NACA airfoil with LE at the given coordinates");
   if (ImGui::Button(buttonText.c_str())) {
     add = true;
-    generate_draw_geom();
     ImGui::CloseCurrentPopup();
   }
   m_x = xc[0];

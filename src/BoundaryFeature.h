@@ -47,6 +47,7 @@ public:
   virtual std::string to_short_string() const = 0;
   virtual void from_json(const nlohmann::json) = 0;
   virtual nlohmann::json to_json() const = 0;
+  virtual void create() = 0;
   virtual ElementPacket<float> init_elements(const float) const = 0;
   //virtual std::vector<float> step_elements(const float) const = 0;
   void set_body(std::shared_ptr<Body> _bp) { m_bp = _bp; }
@@ -116,7 +117,7 @@ public:
       m_ye(_yend),
       m_normflow(_normflow),
       m_tangflow(_tangflow)
-    {} //std::cout << to_string() << std::endl; }
+    {}
   ~BoundarySegment() = default;
   BoundarySegment* copy() const override { return new BoundarySegment(*this); }
 
@@ -125,6 +126,7 @@ public:
   std::string to_short_string() const override { return "segmented boundary"; }
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
+  void create() override { }
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string) override;
@@ -157,6 +159,7 @@ public:
   std::string to_short_string() const override { return "circular cylinder"; }
   void from_json(nlohmann::json) override;
   nlohmann::json to_json() const override;
+  void create() override { }
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string) override;
@@ -192,6 +195,7 @@ public:
   std::string to_short_string() const override { return "oval cylinder"; }
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
+  void create() override { }
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string) override;
@@ -227,6 +231,7 @@ public:
   std::string to_short_string() const override { return "square cylinder"; }
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
+  void create();
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string) override;
@@ -236,7 +241,7 @@ public:
 protected:
   float m_side;
   float m_theta;
-  //std::list<BoundarySegment> m_bs;
+  std::list<BoundarySegment> m_bsl;
 };
 
 
@@ -263,6 +268,7 @@ public:
   std::string to_short_string() const override { return "rectangular cylinder"; }
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
+  void create() override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string) override;
@@ -303,6 +309,7 @@ public:
   std::string to_short_string() const override { return "polygon cylinder"; }
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
+  void create() override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string) override;
@@ -314,6 +321,7 @@ protected:
   float m_side;
   float m_radius;
   float m_theta;
+  std::list<BoundarySegment> m_bsl;
 };
 
 /*
@@ -346,6 +354,7 @@ public:
   std::string to_short_string() const override { return "airfoil cylinder"; }
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
+  void create() override { }
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string) override;

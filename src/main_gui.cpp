@@ -782,6 +782,7 @@ int main(int argc, char const *argv[]) {
           bool fin = false;
           // Currently cannot edit body. This will require rethinking on how we manage the Body Class.
           if (tmpbf->draw_info_gui("Edit")) {
+            tmpbf->create();
             tmpbf->generate_draw_geom();
             bfeatures[edit_item_index].reset();
             bfeatures[edit_item_index] = std::move(tmpbf);
