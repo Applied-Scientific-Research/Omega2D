@@ -11,6 +11,9 @@
 #include "Omega2D.h"
 
 #include <algorithm>
+#if _WIN32
+  #include <functional>
+#endif
 #include <vector>
 #include <iostream>
 
@@ -80,7 +83,7 @@ public:
     x.insert(x.end(), packet.x.begin(), packet.x.end());
     // Add the last current vertex number to the new set of indices
     std::transform(packet.idx.begin(), packet.idx.end(), packet.idx.begin(),
-                   std::bind2nd(std::plus<Int>(), idx.back()));
+                   std::bind(std::plus<Int>(), std::placeholders::_1, idx.back()));
     idx.insert(idx.end(), packet.idx.begin(), packet.idx.end());
     val.insert(val.end(), packet.val.begin(), packet.val.end());
     nelem = val.size();
