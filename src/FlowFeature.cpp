@@ -109,6 +109,39 @@ bool FlowFeature::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &f
   ImGui::EndPopup();
   return created;
 }
+
+void FlowFeature::draw_feature_list(std::vector<std::unique_ptr<FlowFeature>> &feat,
+                                    std::unique_ptr<FlowFeature> &editingFeat, int &edit_feat_index,
+                                    int &del_feat_index, bool &redraw, int &buttonIDs) {
+  for (int i=0; i<(int)feat.size(); ++i) {
+    ImGui::PushID(++buttonIDs);
+    if (ImGui::Checkbox("", feat[i]->addr_enabled())) { redraw = true; }
+    ImGui::PopID();
+    
+    // add an "edit" button after the checkbox (so it's not easy to accidentally hit remove)
+    ImGui::SameLine();
+    ImGui::PushID(++buttonIDs);
+    if (ImGui::SmallButton("edit")) {
+      editingFeat = std::unique_ptr<FlowFeature>(feat[i]->copy());
+      edit_feat_index = i;
+    }
+    ImGui::PopID();
+    
+    if (feat[i]->is_enabled()) {
+      ImGui::SameLine();
+      ImGui::Text("%s", feat[i]->to_string().c_str());
+    } else {
+      ImGui::SameLine();
+      ImGui::TextColored(ImVec4(0.5f,0.5f,0.5f,1.0f), "%s", feat[i]->to_string().c_str());
+    }
+
+    // add a "remove" button at the end of the line (so it's not easy to accidentally hit)
+    ImGui::SameLine();
+    ImGui::PushID(++buttonIDs);
+    if (ImGui::SmallButton("remove")) { del_feat_index = i; }
+    ImGui::PopID();
+  }
+}
 #endif
 
 //

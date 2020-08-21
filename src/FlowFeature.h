@@ -32,7 +32,7 @@ public:
       m_y(_y),
       m_bp(_bp)
     {}
-  virtual ~FlowFeature() {}
+  virtual ~FlowFeature() = default; 
   virtual FlowFeature* copy() const = 0;
 
   std::shared_ptr<Body> get_body() { return m_bp; }
@@ -48,6 +48,8 @@ public:
 #ifdef USE_IMGUI
   static bool draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &, const float);
   virtual bool draw_info_gui(const std::string, const float) = 0;
+  static void draw_feature_list(std::vector<std::unique_ptr<FlowFeature>> &, std::unique_ptr<FlowFeature> &, int &,
+                                int &, bool &, int &);
 #endif
 
   // emit particles as vector of float4

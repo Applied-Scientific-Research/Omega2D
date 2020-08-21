@@ -56,6 +56,8 @@ public:
 #ifdef USE_IMGUI
   static bool draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float, const float &);
   virtual bool draw_info_gui(const std::string, const float &, const float) = 0;
+  static void draw_feature_list(std::vector<std::unique_ptr<MeasureFeature>> &, std::unique_ptr<MeasureFeature> &,
+                                int &, int &, bool &, int &);
 #endif
 
 protected:
