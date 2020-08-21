@@ -671,41 +671,7 @@ int main(int argc, char const *argv[]) {
       bool redraw = false;
       int buttonIDs = 10;
       FlowFeature::draw_feature_list(ffeatures, tmpff, edit_feat_index, del_feat_index, redraw, buttonIDs);
-/*      // list existing flow features here
-      static int edit_item_index = -1;
-      static std::unique_ptr<FlowFeature> tmpff = nullptr;
-      bool redrawF = false;
-      int del_this_item = -1;
-      for (int i=0; i<(int)ffeatures.size(); ++i) {
-
-        ImGui::PushID(++buttonIDs);
-        if (ImGui::Checkbox("", ffeatures[i]->addr_enabled())) { redrawF = true; }
-        ImGui::PopID();
-        
-        // add an "edit" button after the checkbox (so it's not easy to accidentally hit remove)
-        ImGui::SameLine();
-        ImGui::PushID(++buttonIDs);
-        if (ImGui::SmallButton("edit")) {
-          tmpff = std::unique_ptr<FlowFeature>(ffeatures[i]->copy());
-          edit_item_index = i;
-        }
-        ImGui::PopID();
-        
-        if (ffeatures[i]->is_enabled()) {
-          ImGui::SameLine();
-          ImGui::Text("%s", ffeatures[i]->to_string().c_str());
-        } else {
-          ImGui::SameLine();
-          ImGui::TextColored(ImVec4(0.5f,0.5f,0.5f,1.0f), "%s", ffeatures[i]->to_string().c_str());
-        }
-
-        // add a "remove" button at the end of the line (so it's not easy to accidentally hit)
-        ImGui::SameLine();
-        ImGui::PushID(++buttonIDs);
-        if (ImGui::SmallButton("remove")) del_this_item = i;
-        ImGui::PopID();
-      }
-*/
+      
       if (tmpff) {
         ImGui::OpenPopup("Edit flow feature");
         ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
@@ -750,40 +716,7 @@ int main(int argc, char const *argv[]) {
       // list existing boundary features here
       static std::unique_ptr<BoundaryFeature> tmpbf = nullptr;
       BoundaryFeature::draw_feature_list(bfeatures, tmpbf, edit_feat_index, del_feat_index, redraw, buttonIDs);
-/*      int del_this_bdry = -1;
-      static int edit_item_index = -1;
-      static std::unique_ptr<BoundaryFeature> tmpbf = nullptr;
-      bool redrawB = false;
-      for (int i=0; i<(int)bfeatures.size(); ++i) {
-
-        ImGui::PushID(++buttonIDs);
-        if (ImGui::Checkbox("", bfeatures[i]->addr_enabled())) { redrawB = true; }
-        ImGui::PopID();
-      
-        ImGui::SameLine(); 
-        ImGui::PushID(++buttonIDs); 
-        if (ImGui::SmallButton("edit")) {
-          tmpbf = std::unique_ptr<BoundaryFeature>(bfeatures[i]->copy());
-          edit_item_index = i;
-        }
-        ImGui::PopID();
- 
-        if (bfeatures[i]->is_enabled()) {
-          ImGui::SameLine();
-          ImGui::Text("%s", bfeatures[i]->to_string().c_str());
-        } else {
-          ImGui::SameLine();
-          ImGui::TextColored(ImVec4(0.5f,0.5f,0.5f,1.0f), "%s", bfeatures[i]->to_string().c_str());
-        }
-
-        // add a "remove" button at the end of the line (so it's not easy to accidentally hit)
-        ImGui::SameLine();
-        ImGui::PushID(++buttonIDs);
-        ImGui::SameLine();
-        if (ImGui::SmallButton("remove")) { del_this_bdry = i; }
-        ImGui::PopID();
-      }
- */     
+    
       if (tmpbf) {
         ImGui::OpenPopup("Edit boundary feature");
         ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
@@ -829,38 +762,7 @@ int main(int argc, char const *argv[]) {
       // list existing measurement features here
       static std::unique_ptr<MeasureFeature> tmpmf = nullptr;
       MeasureFeature::draw_feature_list(mfeatures, tmpmf, edit_feat_index, del_feat_index, redraw, buttonIDs);
-/*      static std::unique_ptr<MeasureFeature> tmpmf = nullptr;
-      int del_this_measure = -1;
-      bool redrawM = false;
-      for (int i=0; i<(int)mfeatures.size(); ++i) {
-
-        ImGui::PushID(++buttonIDs);
-        if (ImGui::Checkbox("", mfeatures[i]->addr_enabled())) { redrawM = true; }
-        ImGui::PopID();
-        
-        ImGui::SameLine(); 
-        ImGui::PushID(++buttonIDs); 
-        if (ImGui::SmallButton("edit")) { 
-          edit_item_index = i;
-          tmpmf = std::unique_ptr<MeasureFeature>(mfeatures[i]->copy());
-        }
-        ImGui::PopID();
-        
-        if (mfeatures[i]->is_enabled()) {
-          ImGui::SameLine();
-          ImGui::Text("%s", mfeatures[i]->to_string().c_str());
-        } else {
-          ImGui::SameLine();
-          ImGui::TextColored(ImVec4(0.5f,0.5f,0.5f,1.0f), "%s", mfeatures[i]->to_string().c_str());
-        }
-
-        // add a "remove" button at the end of the line (so it's not easy to accidentally hit)
-        ImGui::SameLine();
-        ImGui::PushID(++buttonIDs);
-        if (ImGui::SmallButton("remove")) del_this_measure = i;
-        ImGui::PopID();
-      }
- */     
+   
       if (tmpmf) {
         ImGui::OpenPopup("Edit measure feature");
         ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
