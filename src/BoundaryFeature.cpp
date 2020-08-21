@@ -54,6 +54,7 @@ void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
   _flist.back()->from_json(_jin);
 
   // finally, generate the draw information
+  _flist.back()->create();
   _flist.back()->generate_draw_geom();
 
   std::cout << "  found " << _flist.back()->to_string() << std::endl;
@@ -166,6 +167,8 @@ bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeat
       sim.add_body(bp);
     }
     bf->set_body(bp);
+    bf->create();
+    bf->generate_draw_geom();
     bfs.emplace_back(std::move(bf));
     bf = nullptr;
     oldItem = -1;
@@ -182,6 +185,172 @@ bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeat
   return created;
 }
 #endif
+
+// node distribution with dense points at each end
+double chebeshev_node(double a, double b, double k, double n) {
+  return (a+b)*0.5+(b-a)*0.5*std::cos((2*(n-k)-1)*M_PI*0.5/n);
+}
+
+// node distribution with tunable density at each end
+// first, a measure of how many panels are needed given densities at each end and relative panel size
+size_t chebeshev_node_2_count(const double dens_left, const double dens_right, const double rel_pan_size) {
+  // first, compute theta bounds given node densities
+  assert(dens_left > 0.0 && dens_left < 1.0 && dens_right > 0.0 && dens_right < 1.0 && "Panel densities out of range");
+  const double theta_left = M_PI - std::asin(dens_left);
+  const double theta_right = std::asin(dens_right);
+  // theta range
+  const double theta_range = theta_left - theta_right;
+  // x range from these
+  const double x_range = std::cos(theta_right) - std::cos(theta_left);
+  // now, size of the middle panel
+  const double x_panel = x_range * rel_pan_size;
+  // convert that to an angle
+  const double theta_panel = 2.0 * std::asin(0.5*x_panel);
+  // finally, find panel count
+  return std::max((int)3, (int)(0.5 + theta_range/theta_panel));
+}
+
+// then the mathematics itself to generate the node positions
+double chebeshev_node_2(const double dens_left, const double dens_right, const size_t k, const size_t n) {
+  // first, compute theta bounds given node densities
+  assert(dens_left > 0.0 && dens_left < 1.0 && dens_right > 0.0 && dens_right < 1.0 && "Panel densities out of range");
+  const double theta_left = M_PI - std::asin(dens_left);
+  const double theta_right = std::asin(dens_right);
+  // theta range
+  const double theta_range = theta_left - theta_right;
+  // x range from these
+  const double x_range = std::cos(theta_right) - std::cos(theta_left);
+
+  // now, find test theta from input indices
+  const double theta = theta_right + theta_range*k/(double)n;
+
+  // finally, compute and scale the return value (from 0..1)
+  return (std::cos(theta_right) - std::cos(theta)) / x_range;
+}
+
+//
+// Create a segment of a solid boundary
+//
+ElementPacket<float>
+BoundarySegment::init_elements(const float _ips) const {
+
+  // how many panels?
+  const float seg_length = std::sqrt(std::pow(m_xe-m_x, 2) + std::pow(m_ye-m_y, 2));
+  //const size_t num_panels = std::min(10000, std::max(1, (int)(seg_length / _ips)));
+  const float leftDist = 0.333;
+  const float rightDist = 0.333;
+  const size_t num_panels = chebeshev_node_2_count(leftDist, rightDist, _ips/seg_length);
+
+  std::cout << "Creating segment with " << num_panels << " panels" << std::endl;
+  std::cout << "  " << to_string() << std::endl;
+
+  // created once
+  std::vector<float>   x((num_panels+1)*2);
+  std::vector<Int>   idx(num_panels*2);
+  std::vector<float> val(num_panels);
+
+  // outside is to the left walking from one point to the next
+  // so go CW around the body
+  size_t icnt = 0;
+  for (size_t i=0; i<num_panels+1; i++) {
+    const float s = chebeshev_node_2(leftDist, rightDist, i, num_panels);
+    x[icnt++] = (1.0-s)*m_x + s*m_xe;
+    x[icnt++] = (1.0-s)*m_y + s*m_ye;
+  }
+
+  // outside is to the left walking from one point to the next
+  for (size_t i=0; i<num_panels; i++) {
+    idx[2*i]   = i;
+    idx[2*i+1] = i+1;
+    val[i]     = m_tangflow;
+  }
+
+  // flip the orientation of the panels
+  if (not m_external) {
+    for (size_t i=0; i<num_panels; i++) {
+      std::swap(idx[2*i], idx[2*i+1]);
+    }
+  }
+
+  ElementPacket<float> packet({x, idx, val, num_panels, 1});
+  if (packet.verify(packet.x.size(), x.size())) {
+    return packet;
+  } else {
+    // Has to be a better way
+    return ElementPacket<float>();
+  }
+}
+
+void
+BoundarySegment::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+BoundarySegment::to_string() const {
+  std::stringstream ss;
+  ss << "segment from " << m_x << " " << m_y << " to " << m_xe << " " << m_ye;
+  if (std::abs(m_tangflow) > std::numeric_limits<float>::epsilon()) {
+    ss << " with boundary vel " << m_tangflow;
+  }
+  return ss.str();
+}
+
+void
+BoundarySegment::from_json(const nlohmann::json j) {
+  const std::vector<float> tr = j["startpt"];
+  m_x = tr[0];
+  m_y = tr[1];
+  const std::vector<float> ep = j["endpt"];
+  m_xe = ep[0];
+  m_ye = ep[1];
+  m_normflow = j.value("normalVel", 0.0);
+  m_tangflow = j.value("tangentialVel", 0.0);
+  m_external = true;//j.value("external", true);
+  m_enabled = j.value("enabled",true);
+}
+
+nlohmann::json
+BoundarySegment::to_json() const {
+  // make an object for the mesh
+  nlohmann::json mesh = nlohmann::json::object();
+  mesh["geometry"] = "segment";
+  mesh["startpt"] = {m_x, m_y};
+  mesh["endpt"] = {m_xe, m_ye};
+  mesh["normalVel"] = m_normflow;
+  mesh["tangentialVel"] = m_tangflow;
+  //mesh["external"] = m_external;
+  mesh["enabled"] = m_enabled;
+  return mesh;
+}
+
+#ifdef USE_IMGUI
+bool BoundarySegment::draw_info_gui(const std::string action) {
+  float xc[2] = {m_x, m_y};
+  float xe[2] = {m_xe, m_ye};
+  bool add = false;
+  const std::string buttonText = action+" boundary segment";
+
+  ImGui::InputFloat2("start", xc);
+  ImGui::InputFloat2("end", xe);
+  ImGui::SliderFloat("force tangential flow", &m_tangflow, -2.0f, 2.0f, "%.1f");
+  ImGui::TextWrapped("This feature will add a solid boundary segment from start to end, where fluid is on the left when marching from start to end, and positive tangential flow is as if segment is moving along vector from start to end. Make sure enough segments are created to fully enclose a volume.");
+  if (ImGui::Button(buttonText.c_str())) {
+    add = true;
+    ImGui::CloseCurrentPopup();
+  }
+  m_x = xc[0];
+  m_y = xc[1];
+  m_xe = xe[0];
+  m_ye = xe[1];
+
+  return add;
+}
+#endif
+
+void BoundarySegment::generate_draw_geom() {
+  m_draw = init_elements(1.0);
+}
 
 //
 // Create a circle
@@ -285,7 +454,6 @@ bool SolidCircle::draw_info_gui(const std::string action) {
   ImGui::TextWrapped("This feature will add a solid circular boundary centered at the given coordinates");
   if (ImGui::Button(buttonText.c_str())) {
     add = true;
-    generate_draw_geom();
     ImGui::CloseCurrentPopup();
   }
   m_x = xc[0];
@@ -489,7 +657,6 @@ bool SolidOval::draw_info_gui(const std::string action) {
   ImGui::SliderFloat("orientation", &m_theta, 0.0f, 179.0f, "%.0f");
   ImGui::TextWrapped("This feature will add a solid oval boundary centered at the given coordinates");
   if (ImGui::Button(buttonText.c_str())) {
-    generate_draw_geom();
     add = true;
     ImGui::CloseCurrentPopup();
   }
@@ -508,71 +675,49 @@ void SolidOval::generate_draw_geom() {
 //
 // Create a square
 //
-ElementPacket<float>
-SolidSquare::init_elements(const float _ips) const {
-
-  if (not this->is_enabled()) return ElementPacket<float>();
-
-  // how many panels?
-  const size_t num_panels = 4 * std::min(10000, std::max(1, (int)(m_side / _ips)));
-
-  std::cout << "Creating square with " << num_panels << " panels" << std::endl;
-
-  // created once
-  std::vector<float>   x(num_panels*2);
-  std::vector<Int>   idx(num_panels*2);
-  std::vector<float> val(num_panels);
+void SolidSquare::create() {
+  std::cout << "Creating square" << std::endl;
+  m_bsl.clear();
 
   const float st = std::sin(M_PI * m_theta / 180.0);
   const float ct = std::cos(M_PI * m_theta / 180.0);
 
-  // outside is to the left walking from one point to the next
-  // so go CW around the body
-  size_t icnt = 0;
-  for (size_t i=0; i<num_panels/4; i++) {
-    const float px = m_side * -0.5;
-    const float py = m_side * (-0.5 + (float)i / (float)(num_panels/4));
-    x[icnt++] = m_x + px*ct - py*st;
-    x[icnt++] = m_y + px*st + py*ct;
+  // Create BoundarySegments for each side
+  const float p = 0.5*m_side;
+  std::vector<float> pxs = {-p, -p, p, p};
+  std::vector<float> pys = {-p, p, p, -p};
+  for (int i = 0; i<4; i++) {
+    const int j = (i+1)%4;
+    m_bsl.emplace_back(BoundarySegment(m_bp, m_external,  m_x+pxs[i]*ct-pys[i]*st,
+                                       m_y+pxs[i]*st+pys[i]*ct, m_x+pxs[j]*ct-pys[j]*st, 
+                                       m_y+pxs[j]*st+pys[j]*ct, 0.0, 0.0));
   }
-  for (size_t i=0; i<num_panels/4; i++) {
-    const float px = m_side * (-0.5 + (float)i / (float)(num_panels/4));
-    const float py = m_side * 0.5;
-    x[icnt++] = m_x + px*ct - py*st;
-    x[icnt++] = m_y + px*st + py*ct;
-  }
-  for (size_t i=0; i<num_panels/4; i++) {
-    const float px = m_side * 0.5;
-    const float py = m_side * (0.5 - (float)i / (float)(num_panels/4));
-    x[icnt++] = m_x + px*ct - py*st;
-    x[icnt++] = m_y + px*st + py*ct;
-  }
-  for (size_t i=0; i<num_panels/4; i++) {
-    const float px = m_side * (0.5 - (float)i / (float)(num_panels/4));
-    const float py = m_side * -0.5;
-    x[icnt++] = m_x + px*ct - py*st;
-    x[icnt++] = m_y + px*st + py*ct;
+}
+
+ElementPacket<float>
+SolidSquare::init_elements(const float _ips) const {
+
+  std::cout << "Initializing square" << std::endl;
+  if (m_bsl.empty()) { return ElementPacket<float>(); }
+
+  ElementPacket<float> packet = m_bsl.begin()->init_elements(_ips);
+  for (auto i = std::next(m_bsl.begin()); i != m_bsl.end(); ++i) {
+    packet.add(i->init_elements(_ips));
   }
 
-  // outside is to the left walking from one point to the next
-  for (size_t i=0; i<num_panels; i++) {
-    idx[2*i]   = i;
-    idx[2*i+1] = i+1;
-    val[i]     = 0.0;
-  }
-
-  // correct the final index
-  idx[2*num_panels-1] = 0;
+  // Packet adds as if they are segments, so we have to connect the beginning with the end
+  packet.idx.push_back(packet.idx.back());
+  packet.idx.push_back(0);
+  packet.ndim = 1;
 
   // flip the orientation of the panels
   if (not m_external) {
-    for (size_t i=0; i<num_panels; i++) {
-      std::swap(idx[2*i], idx[2*i+1]);
+    for (size_t i=0; i<packet.idx.size(); i++) {
+      std::swap(packet.idx[2*i], packet.idx[2*i+1]);
     }
   }
 
-  ElementPacket<float> packet({x, idx, val, num_panels, 1});
-  if (packet.verify(packet.x.size(), x.size())) {
+  if (packet.verify(packet.x.size(), packet.x.size())) {
     return packet;
   } else {
     // Has to be a better way
@@ -637,7 +782,6 @@ bool SolidSquare::draw_info_gui(const std::string action) {
   ImGui::TextWrapped("This feature will add a solid square boundary centered at the given coordinates");
   if (ImGui::Button(buttonText.c_str())) {
     add = true;
-    generate_draw_geom();
     ImGui::CloseCurrentPopup();
   }
   m_x = xc[0];
@@ -648,80 +792,56 @@ bool SolidSquare::draw_info_gui(const std::string action) {
 #endif
 
 void SolidSquare::generate_draw_geom() {
-  m_draw = init_elements(m_side);
+  m_draw = init_elements(m_side/3);
   // transform according to body position at t=0?
 }
 
 //
 // Create a rectangle
 //
-ElementPacket<float>
-SolidRect::init_elements(const float _ips) const {
-
-  if (not this->is_enabled()) return ElementPacket<float>();
-
-  // how many panels?
-  const size_t np_x = std::min(10000, std::max(1, (int)(m_side / _ips)));
-  const size_t np_y = std::min(10000, std::max(1, (int)(m_sidey / _ips)));
-  const size_t num_panels = 2 * (np_x + np_y);
-
-  std::cout << "Creating rectangle with " << num_panels << " panels" << std::endl;
-
-  // created once
-  std::vector<float>   x(num_panels*2);
-  std::vector<Int>   idx(num_panels*2);
-  std::vector<float> val(num_panels);
+void SolidRect::create() {
+  std::cout << "Creating rectangle" << std::endl;
+  m_bsl.clear();
 
   const float st = std::sin(M_PI * m_theta / 180.0);
   const float ct = std::cos(M_PI * m_theta / 180.0);
 
-  // outside is to the left walking from one point to the next
-  // so go CW around the body
-  size_t icnt = 0;
-  for (size_t i=0; i<np_y; i++) {
-    const float px = m_side * -0.5;
-    const float py = m_sidey * (-0.5 + (float)i / (float)(np_y));
-    x[icnt++] = m_x + px*ct - py*st;
-    x[icnt++] = m_y + px*st + py*ct;
+  // Create BoundarySegments for each side
+  const float px = 0.5*m_side;
+  const float py = 0.5*m_sidey;
+  std::vector<float> pxs = {-px, -px, px, px};
+  std::vector<float> pys = {-py, py, py, -py};
+  for (int i = 0; i<4; i++) {
+    const int j = (i+1)%4;
+    m_bsl.emplace_back(BoundarySegment(m_bp, m_external,  m_x+pxs[i]*ct-pys[i]*st,
+                                       m_y+pxs[i]*st+pys[i]*ct, m_x+pxs[j]*ct-pys[j]*st, 
+                                       m_y+pxs[j]*st+pys[j]*ct, 0.0, 0.0));
   }
-  for (size_t i=0; i<np_x; i++) {
-    const float px = m_side * (-0.5 + (float)i / (float)(np_x));
-    const float py = m_sidey * 0.5;
-    x[icnt++] = m_x + px*ct - py*st;
-    x[icnt++] = m_y + px*st + py*ct;
-  }
-  for (size_t i=0; i<np_y; i++) {
-    const float px = m_side * 0.5;
-    const float py = m_sidey * (0.5 - (float)i / (float)(np_y));
-    x[icnt++] = m_x + px*ct - py*st;
-    x[icnt++] = m_y + px*st + py*ct;
-  }
-  for (size_t i=0; i<np_x; i++) {
-    const float px = m_side * (0.5 - (float)i / (float)(np_x));
-    const float py = m_sidey * -0.5;
-    x[icnt++] = m_x + px*ct - py*st;
-    x[icnt++] = m_y + px*st + py*ct;
+}
+
+ElementPacket<float>
+SolidRect::init_elements(const float _ips) const {
+  
+  std::cout << "Initializing rectangle" << std::endl;
+  if (m_bsl.empty()) { return ElementPacket<float>(); }
+
+  ElementPacket<float> packet = m_bsl.begin()->init_elements(_ips);
+  for (auto i = std::next(m_bsl.begin()); i != m_bsl.end(); ++i) {
+    packet.add(i->init_elements(_ips));
   }
 
-  // outside is to the left walking from one point to the next
-  for (size_t i=0; i<num_panels; i++) {
-    idx[2*i]   = i;
-    idx[2*i+1] = i+1;
-    val[i]     = 0.0;
-  }
-
-  // correct the final index
-  idx[2*num_panels-1] = 0;
+  packet.idx.push_back(packet.idx.back());
+  packet.idx.push_back(0);
+  packet.ndim = 1;
 
   // flip the orientation of the panels
   if (not m_external) {
-    for (size_t i=0; i<num_panels; i++) {
-      std::swap(idx[2*i], idx[2*i+1]);
+    for (size_t i=0; i<packet.idx.size(); i++) {
+      std::swap(packet.idx[2*i], packet.idx[2*i+1]);
     }
   }
 
-  ElementPacket<float> packet({x, idx, val, num_panels, 1});
-  if (packet.verify(packet.x.size(), x.size())) {
+  if (packet.verify(packet.x.size(), packet.x.size())) {
     return packet;
   } else {
     // Has to be a better way
@@ -789,7 +909,6 @@ bool SolidRect::draw_info_gui(const std::string action) {
   ImGui::TextWrapped("This feature will add a solid rectangular boundary centered at the given coordinates");
   if (ImGui::Button(buttonText.c_str())) {
     add = true;
-    generate_draw_geom();
     ImGui::CloseCurrentPopup();
   }
   m_x = xc[0];
@@ -800,151 +919,13 @@ bool SolidRect::draw_info_gui(const std::string action) {
 #endif
 
 void SolidRect::generate_draw_geom() {
-  m_draw = init_elements(m_side);
+  m_draw = init_elements(std::min(m_side, m_sidey));
 }
-
-
-//
-// Create a segment of a solid boundary
-//
-ElementPacket<float>
-BoundarySegment::init_elements(const float _ips) const {
-
-  if (not this->is_enabled()) return ElementPacket<float>();
-
-  // how many panels?
-  const float seg_length = std::sqrt(std::pow(m_xe-m_x, 2) + std::pow(m_ye-m_y, 2));
-  const size_t num_panels = std::min(10000, std::max(1, (int)(seg_length / _ips)));
-
-  std::cout << "Creating segment with " << num_panels << " panels" << std::endl;
-  std::cout << "  " << to_string() << std::endl;
-
-  // created once
-  std::vector<float>   x((num_panels+1)*2);
-  std::vector<Int>   idx(num_panels*2);
-  std::vector<float> val(num_panels);
-
-  // outside is to the left walking from one point to the next
-  // so go CW around the body
-  size_t icnt = 0;
-  for (size_t i=0; i<num_panels+1; i++) {
-    const float s = (float)i / (float)num_panels;
-    x[icnt++] = (1.0-s)*m_x + s*m_xe;
-    x[icnt++] = (1.0-s)*m_y + s*m_ye;
-  }
-
-  // outside is to the left walking from one point to the next
-  for (size_t i=0; i<num_panels; i++) {
-    idx[2*i]   = i;
-    idx[2*i+1] = i+1;
-    val[i]     = m_tangflow;
-  }
-
-  // flip the orientation of the panels
-  if (not m_external) {
-    for (size_t i=0; i<num_panels; i++) {
-      std::swap(idx[2*i], idx[2*i+1]);
-    }
-  }
-
-  ElementPacket<float> packet({x, idx, val, num_panels, 1});
-  if (packet.verify(packet.x.size(), x.size())) {
-    return packet;
-  } else {
-    // Has to be a better way
-    return ElementPacket<float>();
-  }
-}
-
-void
-BoundarySegment::debug(std::ostream& os) const {
-  os << to_string();
-}
-
-std::string
-BoundarySegment::to_string() const {
-  std::stringstream ss;
-  ss << "segment from " << m_x << " " << m_y << " to " << m_xe << " " << m_ye;
-  if (std::abs(m_tangflow) > std::numeric_limits<float>::epsilon()) {
-    ss << " with boundary vel " << m_tangflow;
-  }
-  return ss.str();
-}
-
-void
-BoundarySegment::from_json(const nlohmann::json j) {
-  const std::vector<float> tr = j["startpt"];
-  m_x = tr[0];
-  m_y = tr[1];
-  const std::vector<float> ep = j["endpt"];
-  m_xe = ep[0];
-  m_ye = ep[1];
-  m_normflow = j.value("normalVel", 0.0);
-  m_tangflow = j.value("tangentialVel", 0.0);
-  m_external = true;//j.value("external", true);
-  m_enabled = j.value("enabled",true);
-}
-
-nlohmann::json
-BoundarySegment::to_json() const {
-  // make an object for the mesh
-  nlohmann::json mesh = nlohmann::json::object();
-  mesh["geometry"] = "segment";
-  mesh["startpt"] = {m_x, m_y};
-  mesh["endpt"] = {m_xe, m_ye};
-  mesh["normalVel"] = m_normflow;
-  mesh["tangentialVel"] = m_tangflow;
-  //mesh["external"] = m_external;
-  mesh["enabled"] = m_enabled;
-  return mesh;
-}
-
-#ifdef USE_IMGUI
-bool BoundarySegment::draw_info_gui(const std::string action) {
-  float xc[2] = {m_x, m_y};
-  float xe[2] = {m_xe, m_ye};
-  bool add = false;
-  const std::string buttonText = action+" boundary segment";
-
-  ImGui::InputFloat2("start", xc);
-  ImGui::InputFloat2("end", xe);
-  ImGui::SliderFloat("force tangential flow", &m_tangflow, -2.0f, 2.0f, "%.1f");
-  ImGui::TextWrapped("This feature will add a solid boundary segment from start to end, where fluid is on the left when marching from start to end, and positive tangential flow is as if segment is moving along vector from start to end. Make sure enough segments are created to fully enclose a volume.");
-  if (ImGui::Button(buttonText.c_str())) {
-    add = true;
-    generate_draw_geom();
-    ImGui::CloseCurrentPopup();
-  }
-  m_x = xc[0];
-  m_y = xc[1];
-  m_xe = xe[0];
-  m_ye = xe[1];
-
-  return add;
-}
-#endif
-
-void BoundarySegment::generate_draw_geom() {
-  m_draw = init_elements(1.0);
-}
-
 
 // Create a Polygon 
-ElementPacket<float>
-SolidPolygon::init_elements(const float _ips) const {
-  // If object has been removed, return no elements?
-  if (not this->is_enabled()) return ElementPacket<float>();
-
-  // how many panels
-  const size_t panlsPerSide = std::min(10000, std::max(1, (int)(m_side / _ips)));
-  const size_t num_panels = panlsPerSide * m_numSides;
- 
-  std::cout << "Creating " << m_numSides << "-sided polygon with " << num_panels << " panels" << std::endl;
-
-  // created once
-  std::vector<float>   x(num_panels*2);
-  std::vector<Int>   idx(num_panels*2);
-  std::vector<float> val(num_panels);
+void SolidPolygon::create() {
+  std::cout << "Creating " << m_numSides << "-sided polygon" << std::endl;
+  m_bsl.clear();
 
   // Turning degrees into radians: deg*pi/180
   float phi = 0;
@@ -956,43 +937,47 @@ SolidPolygon::init_elements(const float _ips) const {
   // so go CW around the body
   // m_side * i / panlsPerSide reflects distance between two adjacent panels
   // If m_numSides is even, it seems to rotate CCW by 360/m_numSides/2 degrees in place
-  float vx = 0.0;
-  float vy = m_radius;
-  size_t icnt = 0;
-  for (int j=0; j<m_numSides; j++) {
+  std::vector<float> vxs = {0.0};
+  std::vector<float> vys = {m_radius};
+  for (int j=1; j<m_numSides; j++) {
     // Find next vertex
-    const float nxtVx = m_radius * std::sin(2*M_PI*(float)(j+1)/(float)m_numSides);
-    const float nxtVy = m_radius * std::cos(2*M_PI*(float)(j+1)/(float)m_numSides);
-    // std::cout << '(' << vx << ',' << vy << ") -> (" << nxtVx << ',' << nxtVy << ')' << std::endl;
-    for (size_t i=0; i<panlsPerSide; i++) {
-      const float px = vx+(nxtVx-vx)*(float)i/(float)panlsPerSide;
-      const float py = vy+(nxtVy-vy)*(float)i/(float)panlsPerSide;
-      x[icnt++] = m_x + px*ct - py*st;
-      x[icnt++] = m_y + px*st + py*ct;
-    }
-    vx = nxtVx;
-    vy = nxtVy;
+    vxs.push_back(m_radius * std::sin(2*M_PI*(float)(j)/(float)m_numSides));
+    vys.push_back(m_radius * std::cos(2*M_PI*(float)(j)/(float)m_numSides));
   }
 
-  // outside is to the left walking from one point to the next
-  for (size_t i=0; i<num_panels; i++) {
-    idx[2*i]   = i;
-    idx[2*i+1] = i+1;
-    val[i]     = 0.0;
+  for (int i = 0; i<m_numSides; i++) {
+    const int j = (i+1)%m_numSides;
+    m_bsl.emplace_back(BoundarySegment(m_bp, m_external, m_x+vxs[i]*ct-vys[i]*st,
+                                       m_y+vxs[i]*st+vys[i]*ct, m_x+vxs[j]*ct-vys[j]*st,
+                                       m_y+vxs[j]*st+vys[j]*ct, 0.0, 0.0));
+  }
+}
+
+ElementPacket<float>
+SolidPolygon::init_elements(const float _ips) const {
+  
+  std::cout << "Initializing " << m_numSides << "-sided polygon" << std::endl;
+  if (m_bsl.empty()) { return ElementPacket<float>(); }
+ 
+  ElementPacket<float> packet = m_bsl.begin()->init_elements(_ips);
+  for (auto i = std::next(m_bsl.begin()); i != m_bsl.end(); ++i) {
+    packet.add(i->init_elements(_ips));
   }
 
-  // correct the final index
-  idx[2*num_panels-1] = 0;
+  // Packet adds as if they are segments, so we have one too many and the last isn't 0
+  packet.idx.push_back(packet.idx.back());
+  packet.idx.push_back(0);
+  packet.ndim = 1;
 
   // flip the orientation of the panels
   if (not m_external) {
-    for (size_t i=0; i<num_panels; i++) {
-      std::swap(idx[2*i], idx[2*i+1]);
+    for (size_t i=0; i<packet.idx.size(); i++) {
+      std::swap(packet.idx[2*i], packet.idx[2*i+1]);
     }
   }
 
-  ElementPacket<float> packet({x, idx, val, num_panels, 1});
-  if (packet.verify(packet.x.size(), x.size())) {
+  //ElementPacket<float> packet({x, idx, val, num_panels, 1});
+  if (packet.verify(packet.x.size(), packet.x.size())) {
     return packet;
   } else {
     // Has to be a better way
@@ -1079,7 +1064,6 @@ bool SolidPolygon::draw_info_gui(const std::string action) {
   ImGui::TextWrapped("This feature will add a solid polygon boundary with n sides centered at the given coordinates");
   if (ImGui::Button(buttonText.c_str())) {
     add = true;
-    generate_draw_geom();
     ImGui::CloseCurrentPopup();
   }
   m_x = xc[0];
@@ -1090,49 +1074,9 @@ bool SolidPolygon::draw_info_gui(const std::string action) {
 #endif
 
 void SolidPolygon::generate_draw_geom() {
-  m_draw = init_elements(m_radius);
+  m_draw = init_elements(m_side);
 }
 
-// node distribution with dense points at each end
-double chebeshev_node(double a, double b, double k, double n) {
-  return (a+b)*0.5+(b-a)*0.5*std::cos((2*(n-k)-1)*M_PI*0.5/n);
-}
-
-// node distribution with tunable density at each end
-// first, a measure of how many panels are needed given densities at each end and relative panel size
-size_t chebeshev_node_2_count(const double dens_left, const double dens_right, const double rel_pan_size) {
-  // first, compute theta bounds given node densities
-  assert(dens_left > 0.0 && dens_left < 1.0 && dens_right > 0.0 && dens_right < 1.0 && "Panel densities out of range");
-  const double theta_left = M_PI - std::asin(dens_left);
-  const double theta_right = std::asin(dens_right);
-  // theta range
-  const double theta_range = theta_left - theta_right;
-  // x range from these
-  const double x_range = std::cos(theta_right) - std::cos(theta_left);
-  // now, size of the middle panel
-  const double x_panel = x_range * rel_pan_size;
-  // convert that to an angle
-  const double theta_panel = 2.0 * std::asin(0.5*x_panel);
-  // finally, find panel count
-  return std::max((int)3, (int)(0.5 + theta_range/theta_panel));
-}
-// then the mathematics itself to generate the node positions
-double chebeshev_node_2(const double dens_left, const double dens_right, const size_t k, const size_t n) {
-  // first, compute theta bounds given node densities
-  assert(dens_left > 0.0 && dens_left < 1.0 && dens_right > 0.0 && dens_right < 1.0 && "Panel densities out of range");
-  const double theta_left = M_PI - std::asin(dens_left);
-  const double theta_right = std::asin(dens_right);
-  // theta range
-  const double theta_range = theta_left - theta_right;
-  // x range from these
-  const double x_range = std::cos(theta_right) - std::cos(theta_left);
-
-  // now, find test theta from input indices
-  const double theta = theta_right + theta_range*k/(double)n;
-
-  // finally, compute and scale the return value (from 0..1)
-  return (std::cos(theta_right) - std::cos(theta)) / x_range;
-}
 
 // Create a NACA 4-digit airfoil
 ElementPacket<float>
@@ -1284,7 +1228,6 @@ bool SolidAirfoil::draw_info_gui(const std::string action) {
   ImGui::TextWrapped("This feature will add a NACA airfoil with LE at the given coordinates");
   if (ImGui::Button(buttonText.c_str())) {
     add = true;
-    generate_draw_geom();
     ImGui::CloseCurrentPopup();
   }
   m_x = xc[0];
