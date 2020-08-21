@@ -64,7 +64,7 @@ On OSX, to get OpenMP parallelization of the solver, you may need to install GCC
     brew install gcc
     cmake -DCMAKE_C_COMPILER=/usr/local/bin/gcc-x -DCMAKE_CXX_COMPILER=/usr/local/bin/g++-x ..
 
-where x is the latest version on your machine (you can check this by going to `/usr/local/bin`)
+where x is the latest version on your machine (you can check this by going to `/usr/local/bin`).
 
 ## Run a simulation in the GUI
 If you were able to build the software, you should be able to run
