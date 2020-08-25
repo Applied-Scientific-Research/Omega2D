@@ -11,9 +11,7 @@
 #include "Omega2D.h"
 
 #include <algorithm>
-#if _WIN32
-  #include <functional>
-#endif
+#include <functional>
 #include <vector>
 #include <iostream>
 
