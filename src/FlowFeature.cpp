@@ -580,7 +580,6 @@ bool GaussianBlob::draw_info_gui(const std::string action, const float ips) {
 ElementPacket<float>
 UniformBlock::init_elements(float _ips) const {
 
-
   // what size 2D integer array will we loop over
   int isize = 1 + m_xsize / _ips;
   int jsize = 1 + m_ysize / _ips;
@@ -656,7 +655,9 @@ UniformBlock::to_json() const {
 
 void UniformBlock::generate_draw_geom() {
   std::unique_ptr<SolidRect> tmp = std::make_unique<SolidRect>(nullptr, true, m_x, m_y, m_xsize, m_ysize);
-  m_draw = tmp->init_elements(m_xsize);
+  tmp->create();
+  m_draw = tmp->init_elements(std::min(m_xsize, m_ysize));
+  std::cout << "x " << m_draw.x.size() << " val " << m_draw.val.size() << std::endl;
   std::fill(m_draw.val.begin(), m_draw.val.end(), m_str);
 }
 
@@ -702,7 +703,7 @@ BlockOfRandom::init_elements(float _ips) const {
     vals[i] = m_minstr + (m_maxstr-m_minstr)*str_dist(gen);
   }
   
-  ElementPacket<float> packet({x, idx, vals, (size_t)(2*m_num), 0});
+  ElementPacket<float> packet({x, idx, vals, (size_t)m_num, 0});
   if (packet.verify(packet.x.size()+packet.val.size(), 3)) {
     return packet;
   } else {
@@ -776,6 +777,7 @@ int RandomGenerator::instances = 0;
 
 void BlockOfRandom::generate_draw_geom() {
   std::unique_ptr<SolidRect> tmp = std::make_unique<SolidRect>(nullptr, true, m_x, m_y, m_xsize*2, m_ysize*2);
+  tmp->create();
   m_draw = tmp->init_elements(m_xsize*2);
   std::generate(m_draw.val.begin(), m_draw.val.end(), RandomGenerator(m_minstr, m_maxstr));
 }
