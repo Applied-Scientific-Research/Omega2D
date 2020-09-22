@@ -29,17 +29,6 @@ ELSE ()
   ADD_DEFINITIONS(-DVERBOSE=false)
 ENDIF ()
 
-IF (APPLE)
-  SET (CMAKE_INSTALL_PREFIX /usr/local/share)
-ENDIF ()
-
-# Finds directory to pre-made sims
-IF (${CMAKE_BUILD_TYPE} STREQUAL "Release")
-  ADD_DEFINITIONS(-DEXAMPLES_DIR="${CMAKE_INSTALL_PREFIX}/examples")
-ELSE ()
-  ADD_DEFINITIONS(-DEXAMPLES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples")
-ENDIF ()
-
 # Split on compiler
 IF ( CMAKE_COMPILER_IS_GNUCXX )
   # support Core2 at a minimum, haswell ideally
@@ -59,6 +48,16 @@ ELSEIF ( MSVC )
   SET ( CMAKE_CXX_FLAGS_RELEASE "/O2" )
 ENDIF ()
 
+# OpenMP for multithreading
+IF( USE_OMP )
+  FIND_PACKAGE( OpenMP REQUIRED )
+  IF( OPENMP_FOUND )
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+  ENDIF()
+ENDIF()
+
 # Split on operating system
 IF( WIN32 )
   SET( GL_LIBS_HOME "C:/Lib" CACHE PATH "Location of support libraries" )
@@ -70,31 +69,12 @@ IF( WIN32 )
   SET ( EIGEN_ROOT "${GL_LIBS_HOME}/eigen-3.3.7" CACHE STRING "Eigen root" )
   INCLUDE_DIRECTORIES ( "${EIGEN_ROOT}" )
 
-  # OpenMP for multithreading
-  IF( USE_OMP )
-    FIND_PACKAGE( OpenMP REQUIRED )
-    IF( OPENMP_FOUND )
-      #message("OPENMP FOUND")
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-      set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-    ENDIF()
-  ELSE()
-    # suppress the warning
-    #SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unknown-pragmas")
-    # need to find pthreads (for std::async?)
-    #FIND_PACKAGE( Threads REQUIRED )
-    #SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_THREAD_LIBS_INIT}")
-    #IF (CMAKE_THREAD_LIBS_INIT)
-    #ENDIF()
-  ENDIF()
-  
-  SET( BASE_LIBS ${VC_LIBS} ${CMAKE_THREAD_LIBS_INIT} )
   SET( GUI_LIBS ${FRAMEWORK_LIBS} opengl32 )
   SET_PROPERTY( DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Omega2D )
 
 ELSEIF( APPLE )
   SET( GL_LIBS_HOME "/opt/" CACHE PATH "Location of support libraries" )
+  SET (CMAKE_INSTALL_PREFIX /usr/local/share)
   INCLUDE_DIRECTORIES ( /System/Library/Frameworks )
   FIND_LIBRARY( COCOA_LIBRARY Cocoa )
   FIND_LIBRARY( IOKIT_LIBRARY IOKit )
@@ -111,17 +91,7 @@ ELSEIF( APPLE )
   INCLUDE_DIRECTORIES ( "/usr/local/include/eigen3" )
   #INCLUDE_DIRECTORIES ( "/usr/local/Cellar/eigen/3.3.4/include/eigen3" )
 
-  IF( USE_OMP )
-    FIND_PACKAGE( OpenMP )
-    IF( OPENMP_FOUND )
-      #message("OPENMP FOUND")
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-      set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-    ENDIF()
-  ENDIF()
 
-  SET( BASE_LIBS ${VC_LIBS} ${CMAKE_THREAD_LIBS_INIT} )
   SET( GUI_LIBS ${FRAMEWORK_LIBS} ${COCOA_LIBRARY} ${IOKIT_LIBRARY} ${COREVIDEO_LIBRARY} ${OpenGL_LIBRARY} )
 
 ELSEIF( UNIX )
@@ -139,26 +109,13 @@ ELSEIF( UNIX )
 
   INCLUDE_DIRECTORIES ( "/usr/include/eigen3" )
 
-  # OpenMP for multithreading
-  IF( USE_OMP )
-    FIND_PACKAGE( OpenMP REQUIRED )
-    IF( OPENMP_FOUND )
-      #message("OPENMP FOUND")
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-      set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-    ENDIF()
-  ELSE()
+  IF( NOT USE_OMP )
     # suppress the warning
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unknown-pragmas")
     # need to find pthreads (for std::async?)
     FIND_PACKAGE( Threads REQUIRED )
-    #SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_THREAD_LIBS_INIT}")
-    #IF (CMAKE_THREAD_LIBS_INIT)
-    #ENDIF()
   ENDIF()
 
-  SET( BASE_LIBS ${VC_LIBS} ${CMAKE_THREAD_LIBS_INIT} )
   SET( GUI_LIBS ${FRAMEWORK_LIBS} ${GLFW_LIBRARIES} )
 ENDIF()
 
@@ -171,8 +128,11 @@ IF( USE_VC )
 ELSE()
   SET ( VC_LIBS "" )
 ENDIF()
-# Enable plugins
 
+# Finish library setup
+SET( BASE_LIBS ${VC_LIBS} ${CMAKE_THREAD_LIBS_INIT} )
+
+# Enable plugins
 # adaptive VRM
 IF( USE_PLUGIN_AVRM )
   SET (CPREPROCDEFS ${CPREPROCDEFS} -DPLUGIN_AVRM)
@@ -198,6 +158,12 @@ ENDIF()
 #SET( EXTERNAL_LIBS ${FASTSUM_LIBS} gfortran )
 SET( EXTERNAL_LIBS ${FASTSUM_LIBS} )
 
+# Finds directory to pre-made sims
+IF (${CMAKE_BUILD_TYPE} STREQUAL "Release")
+  ADD_DEFINITIONS(-DEXAMPLES_DIR="${CMAKE_INSTALL_PREFIX}/examples")
+ELSE ()
+  ADD_DEFINITIONS(-DEXAMPLES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples")
+ENDIF ()
 
 ADD_DEFINITIONS (${CPREPROCDEFS})
 
