@@ -22,7 +22,6 @@ const std::string frag_shader_source =
 
 // Control storage and drawing of features before Simulation takes over
 
-
 // empty out element packet
 void FeatureDraw::clear_elements() {
   m_geom.x.clear();

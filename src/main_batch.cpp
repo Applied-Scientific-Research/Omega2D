@@ -4,6 +4,7 @@
  *
  * (c)2017-9 Applied Scientific Research, Inc.
  *           Written by Mark J Stock <markjstock@gmail.com>
+ *                      Blake B Hillier <blakehillier@mac.com>
  */
 
 #include "FlowFeature.h"
@@ -112,7 +113,7 @@ int main(int argc, char const *argv[]) {
         if (ff->is_enabled()) {
           ElementPacket<float> newpacket = ff->step_elements(sim.get_ips());
           // echo any errors
-           sim.add_elements( newpacket, active, lagrangian, ff->get_body() );
+          sim.add_elements( newpacket, active, lagrangian, ff->get_body() );
         }
       }
 

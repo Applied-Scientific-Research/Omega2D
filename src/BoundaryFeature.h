@@ -231,7 +231,7 @@ public:
   std::string to_short_string() const override { return "square cylinder"; }
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
-  void create();
+  void create() override;
   ElementPacket<float> init_elements(const float) const override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string) override;

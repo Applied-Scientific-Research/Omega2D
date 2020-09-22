@@ -6,8 +6,8 @@
  *            Blake B Hillier <blakehillier@mac.com>
  */
 
-#include "MeasureFeature.h"
 #include "BoundaryFeature.h"
+#include "MeasureFeature.h"
 #include "imgui/imgui.h"
 
 #include <algorithm>

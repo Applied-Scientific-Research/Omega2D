@@ -144,6 +144,7 @@ public:
 
       // optional strength in base class
       // need to assign it a vector first!
+      // This needs to be modeled after 3D code
       Vector<S> new_s;
       new_s.resize(this->n);
       std::copy(_in.val.begin(), _in.val.end(), new_s.begin());

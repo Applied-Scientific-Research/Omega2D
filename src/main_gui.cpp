@@ -211,7 +211,6 @@ int main(int argc, char const *argv[]) {
         //if (ff->is_enabled()) sim.add_particles( ff->init_particles(sim.get_ips()) );
         if (ff->is_enabled()) {
           ElementPacket<float> newpacket = ff->init_elements(sim.get_ips());
-          // check for errors here?
           sim.add_elements( newpacket, active, lagrangian, ff->get_body() );
         }
       }
@@ -626,7 +625,6 @@ int main(int argc, char const *argv[]) {
         ImGui::Text("Add flow or boundry features (like vortex blobs and solid objects) here, then click RUN.");
       }
 
-
       ImGui::Spacing();
 
       // button and modal window for adding new boundary objects
@@ -650,7 +648,6 @@ int main(int argc, char const *argv[]) {
           fdraw.add_elements( ffeatures.back()->get_draw_packet(), ffeatures.back()->is_enabled() );
         }
       }
-
 
       // button and modal window for adding new measurement objects
       ImGui::SameLine();
