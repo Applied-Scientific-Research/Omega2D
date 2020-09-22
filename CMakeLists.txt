@@ -41,38 +41,33 @@ ELSE ()
 ENDIF ()
 
 # Split on compiler
-IF (CMAKE_COMPILER_IS_GNUCXX)
+IF ( CMAKE_COMPILER_IS_GNUCXX )
   # support Core2 at a minimum, haswell ideally
   #SET (CMAKE_CXX_FLAGS "-Wall -Wformat -Wno-int-in-bool-context -std=c++17 -march=core2 -mtune=haswell")
-  SET (CMAKE_CXX_FLAGS "-Wall -Wformat -std=c++17 -Wno-int-in-bool-context")
-  SET (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -ggdb3")
-  SET (CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native")
-  SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -march=native -g -ggdb3")
-ELSEIF (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  SET (CMAKE_CXX_FLAGS "-Wall -Wformat -std=c++17")
-  SET (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -ggdb")
-  SET (CMAKE_CXX_FLAGS_RELEASE "-O3")
-  SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g -ggdb")
-ELSEIF (MSVC)
-  SET (CMAKE_CXX_FLAGS "/std:c++17 /EHsc /D_USE_MATH_DEFINES /DNOMINMAX")
-  SET (CMAKE_CXX_FLAGS_DEBUG "/Zi")
-  SET (CMAKE_CXX_FLAGS_RELEASE "/O2")
+  SET ( CMAKE_CXX_FLAGS "-Wall -Wformat -std=c++17 -Wno-int-in-bool-context" )
+  SET ( CMAKE_CXX_FLAGS_DEBUG "-O0 -g -ggdb3" )
+  SET ( CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native" )
+  SET ( CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -march=native -g -ggdb3" )
+ELSEIF ( CMAKE_CXX_COMPILER_ID STREQUAL "Clang" )
+  SET ( CMAKE_CXX_FLAGS "-Wall -Wformat -std=c++17" "-stdlib=libc++" )
+  SET ( CMAKE_CXX_FLAGS_DEBUG "-O0 -g -ggdb" )
+  SET ( CMAKE_CXX_FLAGS_RELEASE "-O3" )
+  SET ( CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g -ggdb" )
+ELSEIF ( MSVC )
+  SET ( CMAKE_CXX_FLAGS "/std:c++17 /EHsc /D_USE_MATH_DEFINES /DNOMINMAX" )
+  SET ( CMAKE_CXX_FLAGS_DEBUG "/Zi" )
+  SET ( CMAKE_CXX_FLAGS_RELEASE "/O2" )
 ENDIF ()
 
 # Split on operating system
 IF( WIN32 )
-  # because clang is stupid
-  IF (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-  ENDIF ()
-
   SET( GL_LIBS_HOME "C:/Lib" CACHE PATH "Location of support libraries" )
   SET( GLFW3_ROOT "${GL_LIBS_HOME}/glfw-3.3.bin.WIN32" CACHE STRING "GLFW3 root" )
   INCLUDE_DIRECTORIES( "${GLFW3_ROOT}/include" )
   LINK_DIRECTORIES   ( "${GLFW3_ROOT}/lib-vc2017" )
   SET( FRAMEWORK_LIBS glfw3.lib )
 
-  SET (EIGEN_ROOT "${GL_LIBS_HOME}/eigen-3.3.7" CACHE STRING "Eigen root" )
+  SET ( EIGEN_ROOT "${GL_LIBS_HOME}/eigen-3.3.7" CACHE STRING "Eigen root" )
   INCLUDE_DIRECTORIES ( "${EIGEN_ROOT}" )
 
   # OpenMP for multithreading
@@ -94,34 +89,20 @@ IF( WIN32 )
     #ENDIF()
   ENDIF()
   
-  # Vc for explicit vectorization
-  IF( USE_VC )
-    SET (CPREPROCDEFS ${CPREPROCDEFS} -DUSE_VC)
-    SET (VC_ROOT "${GL_LIBS_HOME}/Vc" CACHE STRING "Vc root" )
-    INCLUDE_DIRECTORIES( "${VC_ROOT}/include" )
-    FIND_LIBRARY( VC_LIBS NAMES Vc PATHS "${VC_ROOT}/lib" )
-  ELSE()
-    SET (VC_LIBS "")
-  ENDIF()
-  
   SET( BASE_LIBS ${VC_LIBS} ${CMAKE_THREAD_LIBS_INIT} )
   SET( GUI_LIBS ${FRAMEWORK_LIBS} opengl32 )
-  SET_PROPERTY(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Omega2D)
+  SET_PROPERTY( DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Omega2D )
 
 ELSEIF( APPLE )
-  # because clang is stupid
-  IF (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-  ENDIF ()
-
+  SET( GL_LIBS_HOME "/opt/" CACHE PATH "Location of support libraries" )
   INCLUDE_DIRECTORIES ( /System/Library/Frameworks )
-  FIND_LIBRARY(COCOA_LIBRARY Cocoa)
-  FIND_LIBRARY(IOKIT_LIBRARY IOKit)
-  FIND_LIBRARY(COREVIDEO_LIBRARY CoreVideo)
-  FIND_LIBRARY(OpenGL_LIBRARY OpenGL )
-  MARK_AS_ADVANCED (COCOA_LIBRARY
-                    IOKIT_LIBRARY
-                    OpenGL_LIBRARY)
+  FIND_LIBRARY( COCOA_LIBRARY Cocoa )
+  FIND_LIBRARY( IOKIT_LIBRARY IOKit )
+  FIND_LIBRARY( COREVIDEO_LIBRARY CoreVideo )
+  FIND_LIBRARY( OpenGL_LIBRARY OpenGL )
+  MARK_AS_ADVANCED ( COCOA_LIBRARY
+                     IOKIT_LIBRARY
+                     OpenGL_LIBRARY )
 
   #SET( FRAMEWORK_LIBS glfw3 )
   FIND_LIBRARY( FRAMEWORK_LIBS NAMES glfw3 glfw libglfw PATHS /usr/local/lib)
@@ -140,25 +121,11 @@ ELSEIF( APPLE )
     ENDIF()
   ENDIF()
 
-  # Vc for explicit vectorization
-  IF( USE_VC )
-    SET (CPREPROCDEFS ${CPREPROCDEFS} -DUSE_VC)
-    SET (VC_ROOT "/opt/Vc" CACHE STRING "Vc root" )
-    INCLUDE_DIRECTORIES( "${VC_ROOT}/include" )
-    FIND_LIBRARY( VC_LIBS NAMES Vc PATHS "${VC_ROOT}/lib" )
-  ELSE()
-    SET (VC_LIBS "")
-  ENDIF()
-
   SET( BASE_LIBS ${VC_LIBS} ${CMAKE_THREAD_LIBS_INIT} )
   SET( GUI_LIBS ${FRAMEWORK_LIBS} ${COCOA_LIBRARY} ${IOKIT_LIBRARY} ${COREVIDEO_LIBRARY} ${OpenGL_LIBRARY} )
 
 ELSEIF( UNIX )
-  # because clang is stupid
-  IF (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
-  ENDIF ()
-
+  SET( GL_LIBS_HOME "/opt/" CACHE PATH "Location of support libraries" )
   # glfw finds opengl
   # this works for CentOS 7
   #FIND_PACKAGE( glfw3 3.0 REQUIRED )
@@ -191,20 +158,19 @@ ELSEIF( UNIX )
     #ENDIF()
   ENDIF()
 
-  # Vc for explicit vectorization
-  IF( USE_VC )
-    SET (CPREPROCDEFS ${CPREPROCDEFS} -DUSE_VC)
-    SET (VC_ROOT "/opt/Vc" CACHE STRING "Vc root" )
-    INCLUDE_DIRECTORIES( "${VC_ROOT}/include" )
-    FIND_LIBRARY( VC_LIBS NAMES Vc PATHS "${VC_ROOT}/lib" )
-  ELSE()
-    SET (VC_LIBS "")
-  ENDIF()
-
   SET( BASE_LIBS ${VC_LIBS} ${CMAKE_THREAD_LIBS_INIT} )
   SET( GUI_LIBS ${FRAMEWORK_LIBS} ${GLFW_LIBRARIES} )
 ENDIF()
 
+# Enable Vc for explicit vectorization
+IF( USE_VC )
+  SET ( CPREPROCDEFS ${CPREPROCDEFS} -DUSE_VC )
+  SET ( VC_ROOT "${GL_LIBS_HOME}/Vc" CACHE STRING "Vc root" )
+  INCLUDE_DIRECTORIES( "${VC_ROOT}/include" )
+  FIND_LIBRARY( VC_LIBS NAMES Vc PATHS "${VC_ROOT}/lib" )
+ELSE()
+  SET ( VC_LIBS "" )
+ENDIF()
 # Enable plugins
 
 # adaptive VRM
