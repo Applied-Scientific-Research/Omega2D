@@ -29,22 +29,12 @@ public:
                  bool _moves,
                  bool _emits,
                  std::shared_ptr<Body> _bp)
-    : Feature(true),
-      m_x(_x),
-      m_y(_y),
+    : Feature(_x, _y, true, _bp),
       m_is_lagrangian(_moves),
-      m_emits(_emits),
-      m_bp(_bp)
+      m_emits(_emits)
     {}
   virtual ~MeasureFeature() {}
   virtual MeasureFeature* copy() const = 0;
-
-  bool moves() const { return m_is_lagrangian; }
-  bool emits() const { return m_emits; }
-  float jitter(const float, const float) const;
-  ElementPacket<float> get_draw_packet() const { return m_draw; }
-  bool get_is_lagrangian() { return m_is_lagrangian; }
-  std::shared_ptr<Body> get_body() { return m_bp; }
 
   virtual void debug(std::ostream& os) const = 0;
   virtual std::string to_string() const = 0;
@@ -54,17 +44,23 @@ public:
   virtual ElementPacket<float> step_elements(float) const = 0;
   virtual void generate_draw_geom() = 0;
 #ifdef USE_IMGUI
-  static bool draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float, const float &);
   virtual bool draw_info_gui(const std::string, const float &, const float) = 0;
+#endif
+ 
+  bool moves() const { return m_is_lagrangian; }
+  bool emits() const { return m_emits; }
+  float jitter(const float, const float) const;
+  bool get_is_lagrangian() { return m_is_lagrangian; }
+
+#ifdef USE_IMGUI
+  static bool draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float, const float &);
+  static void draw_feature_list(std::vector<std::unique_ptr<MeasureFeature>> &, std::unique_ptr<MeasureFeature> &,
+                                int &, int &, bool &, int &);
 #endif
 
 protected:
-  float m_x;
-  float m_y;
   bool m_is_lagrangian;
   bool m_emits;
-  std::shared_ptr<Body> m_bp;
-  ElementPacket<float> m_draw;
 };
 
 std::ostream& operator<<(std::ostream& os, MeasureFeature const& ff);

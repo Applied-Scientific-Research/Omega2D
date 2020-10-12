@@ -27,15 +27,10 @@ public:
   FlowFeature(float _x,
               float _y,
               std::shared_ptr<Body> _bp)
-    : Feature(true),
-      m_x(_x),
-      m_y(_y),
-      m_bp(_bp)
+    : Feature(_x, _y, true, _bp)
     {}
-  virtual ~FlowFeature() {}
+  virtual ~FlowFeature() = default; 
   virtual FlowFeature* copy() const = 0;
-
-  std::shared_ptr<Body> get_body() { return m_bp; }
 
   virtual void debug(std::ostream& os) const = 0;
   virtual std::string to_string() const = 0;
@@ -44,19 +39,17 @@ public:
   virtual ElementPacket<float> init_elements(float) const = 0;
   virtual ElementPacket<float> step_elements(float) const = 0;
   virtual void generate_draw_geom() = 0;
-  virtual ElementPacket<float> get_draw_packet() { return m_draw; }
+#ifdef USE_IMGUI
+  virtual bool draw_info_gui(const std::string, const float) = 0;
+#endif 
+  
 #ifdef USE_IMGUI
   static bool draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &, const float);
-  virtual bool draw_info_gui(const std::string, const float) = 0;
+  static void draw_feature_list(std::vector<std::unique_ptr<FlowFeature>> &, std::unique_ptr<FlowFeature> &, int &,
+                                int &, bool &, int &);
 #endif
 
   // emit particles as vector of float4
-
-protected:
-  float m_x;
-  float m_y;
-  ElementPacket<float> m_draw;
-  std::shared_ptr<Body> m_bp;
 };
 
 std::ostream& operator<<(std::ostream& os, FlowFeature const& ff);
