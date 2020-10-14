@@ -208,17 +208,31 @@ int main(int argc, char const *argv[]) {
 
       // initialize particle distributions
       for (auto const& ff: ffeatures) {
-        if (ff->is_enabled()) sim.add_particles( ff->init_particles(sim.get_ips()) );
+        //if (ff->is_enabled()) sim.add_particles( ff->init_particles(sim.get_ips()) );
+        if (ff->is_enabled()) {
+          ElementPacket<float> newpacket = ff->init_elements(sim.get_ips());
+          sim.add_elements( newpacket, active, lagrangian, ff->get_body() );
+        }
       }
 
       // initialize solid objects
       for (auto const& bf : bfeatures) {
-        if (bf->is_enabled()) sim.add_boundary( bf->get_body(), bf->init_elements(sim.get_ips()) );
+        //if (bf->is_enabled()) sim.add_boundary( bf->get_body(), bf->init_elements(sim.get_ips()) );
+        if (bf->is_enabled()) {
+          ElementPacket<float> newpacket = bf->init_elements(sim.get_ips());
+          const move_t newMoveType = (bf->get_body() ? bodybound : fixed);
+          sim.add_elements(newpacket, reactive, newMoveType, bf->get_body() );
+        }
       }
 
       // initialize measurement features
       for (auto const& mf: mfeatures) {
-        if (mf->is_enabled()) sim.add_fldpts( mf->init_particles(rparams.tracer_scale*sim.get_ips()), mf->moves() );
+        //if (mf->is_enabled()) sim.add_fldpts( mf->init_particles(rparams.tracer_scale*sim.get_ips()), mf->moves() );
+        if (mf->is_enabled()) {
+          ElementPacket<float> newpacket = mf->init_elements(rparams.tracer_scale*sim.get_ips());
+          const move_t newMoveType = (mf->get_is_lagrangian() ? lagrangian : fixed);
+          sim.add_elements(newpacket, inert, newMoveType, mf->get_body() );
+        }
       }
 
       sim.set_initialized();
@@ -302,13 +316,21 @@ int main(int argc, char const *argv[]) {
 
       if (sim_err_msg.empty()) {
         // the last simulation step was fine, OK to continue
-
         // generate new particles from emitters
-        for (auto const& ff : ffeatures) {
-          if (ff->is_enabled()) sim.add_particles( ff->step_particles(sim.get_ips()) );
+        for (auto const& ff: ffeatures) {
+          if (ff->is_enabled()) {
+            ElementPacket<float> newpacket = ff->step_elements(sim.get_ips());
+            // echo any errors
+             sim.add_elements( newpacket, active, lagrangian, ff->get_body() );
+          }
         }
-        for (auto const& mf : mfeatures) {
-          if (mf->is_enabled()) sim.add_fldpts( mf->step_particles(rparams.tracer_scale*sim.get_ips()), true );
+
+        for (auto const& mf: mfeatures) {
+          //if (mf->is_enabled()) sim.add_fldpts( mf->init_particles(rparams.tracer_scale*sim.get_ips()), mf->moves() );
+          if (mf->is_enabled()) {
+            const move_t newMoveType = (mf->get_is_lagrangian() ? lagrangian : fixed);
+            sim.add_elements( mf->step_elements(rparams.tracer_scale*sim.get_ips()), inert, newMoveType, mf->get_body() );
+          }
         }
 
         // begin a new dynamic step: convection and diffusion
@@ -603,7 +625,6 @@ int main(int argc, char const *argv[]) {
         ImGui::Text("Add flow or boundry features (like vortex blobs and solid objects) here, then click RUN.");
       }
 
-
       ImGui::Spacing();
 
       // button and modal window for adding new boundary objects
@@ -628,7 +649,6 @@ int main(int argc, char const *argv[]) {
         }
       }
 
-
       // button and modal window for adding new measurement objects
       ImGui::SameLine();
       if (ImGui::Button("Add measurement")) ImGui::OpenPopup("New measurement structure");
@@ -641,43 +661,14 @@ int main(int argc, char const *argv[]) {
       }
 
       ImGui::Spacing();
-      int buttonIDs = 10;
 
-      // list existing flow features here
-      static int edit_item_index = -1;
       static std::unique_ptr<FlowFeature> tmpff = nullptr;
-      bool redrawF = false;
-      int del_this_item = -1;
-      for (int i=0; i<(int)ffeatures.size(); ++i) {
-
-        ImGui::PushID(++buttonIDs);
-        if (ImGui::Checkbox("", ffeatures[i]->addr_enabled())) { redrawF = true; }
-        ImGui::PopID();
-        
-        // add an "edit" button after the checkbox (so it's not easy to accidentally hit remove)
-        ImGui::SameLine();
-        ImGui::PushID(++buttonIDs);
-        if (ImGui::SmallButton("edit")) {
-          tmpff = std::unique_ptr<FlowFeature>(ffeatures[i]->copy());
-          edit_item_index = i;
-        }
-        ImGui::PopID();
-        
-        if (ffeatures[i]->is_enabled()) {
-          ImGui::SameLine();
-          ImGui::Text("%s", ffeatures[i]->to_string().c_str());
-        } else {
-          ImGui::SameLine();
-          ImGui::TextColored(ImVec4(0.5f,0.5f,0.5f,1.0f), "%s", ffeatures[i]->to_string().c_str());
-        }
-
-        // add a "remove" button at the end of the line (so it's not easy to accidentally hit)
-        ImGui::SameLine();
-        ImGui::PushID(++buttonIDs);
-        if (ImGui::SmallButton("remove")) del_this_item = i;
-        ImGui::PopID();
-      }
-
+      static int edit_feat_index = -1;
+      int del_feat_index = -1;
+      bool redraw = false;
+      int buttonIDs = 10;
+      FlowFeature::draw_feature_list(ffeatures, tmpff, edit_feat_index, del_feat_index, redraw, buttonIDs);
+      
       if (tmpff) {
         ImGui::OpenPopup("Edit flow feature");
         ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
@@ -685,9 +676,9 @@ int main(int argc, char const *argv[]) {
           bool fin = false;
           if (tmpff->draw_info_gui("Edit", sim.get_ips())) {
             tmpff->generate_draw_geom();
-            ffeatures[edit_item_index].reset(nullptr);
-            ffeatures[edit_item_index] = std::move(tmpff);
-            redrawF = true;
+            ffeatures[edit_feat_index].reset(nullptr);
+            ffeatures[edit_feat_index] = std::move(tmpff);
+            redraw = true;
             fin = true;
           }
           ImGui::SameLine();
@@ -695,7 +686,7 @@ int main(int argc, char const *argv[]) {
             fin = true;
           }
           if (fin) {
-            edit_item_index = -1;
+            edit_feat_index = -1;
             tmpff = nullptr;
             ImGui::CloseCurrentPopup();
           }
@@ -703,55 +694,26 @@ int main(int argc, char const *argv[]) {
         }
       }
       
-      if (del_this_item > -1) {
-        std::cout << "Asked to delete flow feature " << del_this_item << std::endl;
-        ffeatures.erase(ffeatures.begin()+del_this_item);
-        redrawF = true;
+      if (del_feat_index > -1) {
+        std::cout << "Asked to delete flow feature " << del_feat_index << std::endl;
+        ffeatures.erase(ffeatures.begin()+del_feat_index);
+        redraw = true;
       }
 
-      if (redrawF) {
+      if (redraw) {
         fdraw.clear_elements();
         for (auto const& ff : ffeatures) {
           if (ff->is_enabled()) {
             fdraw.add_elements( ff->get_draw_packet(), ff->is_enabled() );
           }
         }
+        redraw = false;
       }
-
+      
       // list existing boundary features here
-      int del_this_bdry = -1;
       static std::unique_ptr<BoundaryFeature> tmpbf = nullptr;
-      bool redrawB = false;
-      for (int i=0; i<(int)bfeatures.size(); ++i) {
-
-        ImGui::PushID(++buttonIDs);
-        if (ImGui::Checkbox("", bfeatures[i]->addr_enabled())) { redrawB = true; }
-        ImGui::PopID();
-      
-        ImGui::SameLine(); 
-        ImGui::PushID(++buttonIDs); 
-        if (ImGui::SmallButton("edit")) {
-          tmpbf = std::unique_ptr<BoundaryFeature>(bfeatures[i]->copy());
-          edit_item_index = i;
-        }
-        ImGui::PopID();
- 
-        if (bfeatures[i]->is_enabled()) {
-          ImGui::SameLine();
-          ImGui::Text("%s", bfeatures[i]->to_string().c_str());
-        } else {
-          ImGui::SameLine();
-          ImGui::TextColored(ImVec4(0.5f,0.5f,0.5f,1.0f), "%s", bfeatures[i]->to_string().c_str());
-        }
-
-        // add a "remove" button at the end of the line (so it's not easy to accidentally hit)
-        ImGui::SameLine();
-        ImGui::PushID(++buttonIDs);
-        ImGui::SameLine();
-        if (ImGui::SmallButton("remove")) { del_this_bdry = i; }
-        ImGui::PopID();
-      }
-      
+      BoundaryFeature::draw_feature_list(bfeatures, tmpbf, edit_feat_index, del_feat_index, redraw, buttonIDs);
+    
       if (tmpbf) {
         ImGui::OpenPopup("Edit boundary feature");
         ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
@@ -759,16 +721,17 @@ int main(int argc, char const *argv[]) {
           bool fin = false;
           // Currently cannot edit body. This will require rethinking on how we manage the Body Class.
           if (tmpbf->draw_info_gui("Edit")) {
+            tmpbf->create();
             tmpbf->generate_draw_geom();
-            bfeatures[edit_item_index].reset();
-            bfeatures[edit_item_index] = std::move(tmpbf);
-            redrawB = true;
+            bfeatures[edit_feat_index].reset();
+            bfeatures[edit_feat_index] = std::move(tmpbf);
+            redraw = true;
             fin = true;
           }
           ImGui::SameLine();
           if (ImGui::Button("Cancel", ImVec2(120,0))) { fin = true; }
           if (fin) {
-            edit_item_index = -1;
+            edit_feat_index = -1;
             tmpbf = nullptr;
             ImGui::CloseCurrentPopup();
           }
@@ -776,13 +739,14 @@ int main(int argc, char const *argv[]) {
         }
       }
 
-      if (del_this_bdry > -1) {
-        std::cout << "Asked to delete boundary feature " << del_this_bdry << std::endl;
-        bfeatures.erase(bfeatures.begin()+del_this_bdry);
-        redrawB = true;
+      if (del_feat_index > -1) {
+        std::cout << "Asked to delete boundary feature " << del_feat_index<< std::endl;
+        bfeatures.erase(bfeatures.begin()+del_feat_index);
+        del_feat_index = -1;
+        redraw = true;
       }
      
-      if (redrawB) {
+      if (redraw) {
         // clear out and re-make all boundary draw geometry
         bdraw.clear_elements();
         for (auto const& bf : bfeatures) {
@@ -790,41 +754,13 @@ int main(int argc, char const *argv[]) {
             bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
           }
         }
+        redraw = false;
       }
 
       // list existing measurement features here
       static std::unique_ptr<MeasureFeature> tmpmf = nullptr;
-      int del_this_measure = -1;
-      bool redrawM = false;
-      for (int i=0; i<(int)mfeatures.size(); ++i) {
-
-        ImGui::PushID(++buttonIDs);
-        if (ImGui::Checkbox("", mfeatures[i]->addr_enabled())) { redrawM = true; }
-        ImGui::PopID();
-        
-        ImGui::SameLine(); 
-        ImGui::PushID(++buttonIDs); 
-        if (ImGui::SmallButton("edit")) { 
-          edit_item_index = i;
-          tmpmf = std::unique_ptr<MeasureFeature>(mfeatures[i]->copy());
-        }
-        ImGui::PopID();
-        
-        if (mfeatures[i]->is_enabled()) {
-          ImGui::SameLine();
-          ImGui::Text("%s", mfeatures[i]->to_string().c_str());
-        } else {
-          ImGui::SameLine();
-          ImGui::TextColored(ImVec4(0.5f,0.5f,0.5f,1.0f), "%s", mfeatures[i]->to_string().c_str());
-        }
-
-        // add a "remove" button at the end of the line (so it's not easy to accidentally hit)
-        ImGui::SameLine();
-        ImGui::PushID(++buttonIDs);
-        if (ImGui::SmallButton("remove")) del_this_measure = i;
-        ImGui::PopID();
-      }
-      
+      MeasureFeature::draw_feature_list(mfeatures, tmpmf, edit_feat_index, del_feat_index, redraw, buttonIDs);
+   
       if (tmpmf) {
         ImGui::OpenPopup("Edit measure feature");
         ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
@@ -832,15 +768,15 @@ int main(int argc, char const *argv[]) {
           bool fin = false;
           if (tmpmf->draw_info_gui("Edit", rparams.tracer_scale, sim.get_ips())) {
             tmpmf->generate_draw_geom();
-            mfeatures[edit_item_index].reset();
-            mfeatures[edit_item_index] = std::move(tmpmf);
-            redrawM = true;
+            mfeatures[edit_feat_index].reset();
+            mfeatures[edit_feat_index] = std::move(tmpmf);
+            redraw = true;
             fin = true;
           }
           ImGui::SameLine();
           if (ImGui::Button("Cancel", ImVec2(120,0))) { fin = true; }
           if (fin) {
-            edit_item_index = -1;
+            edit_feat_index = -1;
             tmpmf = nullptr;
             ImGui::CloseCurrentPopup();
           }
@@ -848,19 +784,20 @@ int main(int argc, char const *argv[]) {
         }
       }
 
-      if (del_this_measure > -1) {
-        std::cout << "Asked to delete measurement feature " << del_this_measure << std::endl;
-        mfeatures.erase(mfeatures.begin()+del_this_measure);
-        redrawM = true;
+      if (del_feat_index > -1) {
+        std::cout << "Asked to delete measurement feature " << del_feat_index<< std::endl;
+        mfeatures.erase(mfeatures.begin()+del_feat_index);
+        redraw = true;
       }
 
-      if (redrawM) {
+      if (redraw) {
         mdraw.clear_elements();
         for (auto const& mf : mfeatures) {
           if (mf->is_enabled()) {
             mdraw.add_elements( mf->get_draw_packet(), mf->is_enabled() );
           }
         }
+        redraw = false;
       }
     } // end structure entry
 
@@ -868,7 +805,7 @@ int main(int argc, char const *argv[]) {
     // Rendering parameters, under a header
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Rendering controls")) { draw_render_gui(rparams); }
-    
+
     // Solver parameters, under its own header
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Solver parameters (advanced)")) { sim.draw_advanced(); }

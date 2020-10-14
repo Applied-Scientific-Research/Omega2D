@@ -6,11 +6,12 @@
  *            Blake B Hillier <blakehillier@mac.com>
  */
 
-#include "MeasureFeature.h"
 #include "BoundaryFeature.h"
-
-#include <cmath>
+#include "MeasureFeature.h"
 #include "imgui/imgui.h"
+
+#include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <sstream>
 #include <random>
@@ -99,6 +100,39 @@ bool MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeatur
   ImGui::EndPopup();
   return created;
 }
+
+void MeasureFeature::draw_feature_list(std::vector<std::unique_ptr<MeasureFeature>> &feat,
+                                       std::unique_ptr<MeasureFeature> &editingFeat, int &edit_feat_index, 
+                                       int &del_feat_index, bool &redraw, int &buttonIDs) {
+  for (int i=0; i<(int)feat.size(); ++i) {
+    ImGui::PushID(++buttonIDs);
+    if (ImGui::Checkbox("", feat[i]->addr_enabled())) { redraw = true; }
+    ImGui::PopID();
+    
+    // add an "edit" button after the checkbox (so it's not easy to accidentally hit remove)
+    ImGui::SameLine();
+    ImGui::PushID(++buttonIDs);
+    if (ImGui::SmallButton("edit")) {
+      editingFeat = std::unique_ptr<MeasureFeature>(feat[i]->copy());
+      edit_feat_index = i;
+    }
+    ImGui::PopID();
+    
+    if (feat[i]->is_enabled()) {
+      ImGui::SameLine();
+      ImGui::Text("%s", feat[i]->to_string().c_str());
+    } else {
+      ImGui::SameLine();
+      ImGui::TextColored(ImVec4(0.5f,0.5f,0.5f,1.0f), "%s", feat[i]->to_string().c_str());
+    }
+
+    // add a "remove" button at the end of the line (so it's not easy to accidentally hit)
+    ImGui::SameLine();
+    ImGui::PushID(++buttonIDs);
+    if (ImGui::SmallButton("remove")) { del_feat_index = i; }
+    ImGui::PopID();
+  }
+}
 #endif
 
 float MeasureFeature::jitter(const float _z, const float _ips) const {
@@ -113,19 +147,34 @@ float MeasureFeature::jitter(const float _z, const float _ips) const {
 //
 // Create a single measurement point
 //
-std::vector<float>
-SinglePoint::init_particles(float _ips) const {
+ElementPacket<float>
+SinglePoint::init_elements(float _ips) const {
   // created once
-  if (this->is_enabled()) return std::vector<float>({m_x, m_y});
-  else return std::vector<float>();
+  std::vector<float> x = {m_x, m_y};
+  std::vector<Int> idx;
+  std::vector<float> vals;
+  ElementPacket<float> packet({x, idx, vals, (size_t)1, (uint8_t)0});
+  if (packet.verify(packet.x.size(), Dimensions)) {
+    return packet;
+  } else {
+    return ElementPacket<float>();
+  }
 }
 
-std::vector<float>
-SinglePoint::step_particles(float _ips) const {
+ElementPacket<float>
+SinglePoint::step_elements(float _ips) const {
   if ((m_enabled) && (m_emits)) {
-    return std::vector<float>({jitter(m_x, _ips), jitter(m_y, _ips)});
+    std::vector<float> x = {jitter(m_x, _ips), jitter(m_y, _ips)};
+    std::vector<Int> idx;
+    std::vector<float> vals;
+    ElementPacket<float> packet({x, idx, vals, (size_t)1, (uint8_t)0});
+    if (packet.verify(packet.x.size(), Dimensions)) {
+      return packet;
+    } else {
+      return ElementPacket<float>();
+    }
   } else {
-    return std::vector<float>();
+    return ElementPacket<float>();
   }
 }
 
@@ -201,10 +250,8 @@ bool SinglePoint::draw_info_gui(const std::string action, const float &tracerSca
 //
 // Create a circle of tracer points
 //
-std::vector<float>
-MeasurementBlob::init_particles(float _ips) const {
-
-  if (not this->is_enabled()) return std::vector<float>();
+ElementPacket<float>
+MeasurementBlob::init_elements(float _ips) const {
 
   // set up the random number generator
   static std::random_device rd;  //Will be used to obtain a seed for the random number engine
@@ -213,6 +260,8 @@ MeasurementBlob::init_particles(float _ips) const {
 
   // create a new vector to pass on
   std::vector<float> x;
+  std::vector<Int> idx;
+  std::vector<float> vals;
 
   // what size 2D integer array will we loop over
   int irad = 1 + m_rad / _ips;
@@ -231,20 +280,30 @@ MeasurementBlob::init_particles(float _ips) const {
     }
   }
   }
+  
+  ElementPacket<float> packet({x, idx, vals, (size_t)(x.size()/2), (uint8_t)0});
+  if (packet.verify(packet.x.size(), Dimensions)) {
+    return packet;
+  } else {
+    return ElementPacket<float>();
+  }
 
-  return x;
 }
 
-std::vector<float>
-MeasurementBlob::step_particles(float _ips) const {
+ElementPacket<float>
+MeasurementBlob::step_elements(float _ips) const {
   if ((m_enabled) && (m_emits)) {
-    std::vector <float> blob = init_particles(_ips);
-    for (size_t i=0; i<blob.size(); i++) {
-      blob[i] = jitter(blob[i], _ips);
+    ElementPacket<float> packet = init_elements(_ips);
+    for (size_t i=0; i<packet.x.size(); i++) {
+      packet.x[i] = jitter(packet.x[i], _ips);
     }
-    return blob;
+    if (packet.verify(packet.x.size(), Dimensions)) {
+      return packet;
+    } else {
+      return ElementPacket<float>();
+    }
   } else {
-    return std::vector<float>();
+    return ElementPacket<float>();
   }
 }
 
@@ -322,13 +381,13 @@ bool MeasurementBlob::draw_info_gui(const std::string action, const float &trace
 //
 // Create a line of static measurement points
 //
-std::vector<float>
-MeasurementLine::init_particles(float _ips) const {
+ElementPacket<float>
+MeasurementLine::init_elements(float _ips) const {
 
   // create a new vector to pass on
   std::vector<float> x;
-
-  if (not this->is_enabled()) return x;
+  std::vector<Int> idx;
+  std::vector<float> vals;
 
   // how many points do we need?
   float llen = std::sqrt( std::pow(m_xf-m_x, 2) + std::pow(m_yf-m_y, 2) );
@@ -336,7 +395,6 @@ MeasurementLine::init_particles(float _ips) const {
 
   // loop over integer indices
   for (int i=0; i<ilen; ++i) {
-
     // how far along the line?
     float frac = (float)i / (float)(ilen-1);
 
@@ -344,20 +402,29 @@ MeasurementLine::init_particles(float _ips) const {
     x.emplace_back((1.0-frac)*m_x + frac*m_xf);
     x.emplace_back((1.0-frac)*m_y + frac*m_yf);
   }
-
-  return x;
+  
+  ElementPacket<float> packet({x, idx, vals, (size_t)(2*ilen), (uint8_t)0});
+  if (packet.verify(packet.x.size(), Dimensions)) {
+    return packet;
+  } else {
+    return ElementPacket<float>();
+  }
 }
 
-std::vector<float>
-MeasurementLine::step_particles(float _ips) const {
+ElementPacket<float>
+MeasurementLine::step_elements(float _ips) const {
   if ((m_enabled) && (m_emits)) {
-    std::vector<float> line = init_particles(_ips);
-    for (size_t i=0; i<line.size(); i++) {
-      line[i] = jitter(line[i], _ips);
+    ElementPacket<float> packet = init_elements(_ips);
+    for (size_t i=0; i<packet.x.size(); i++) {
+      packet.x[i] = jitter(packet.x[i], _ips);
     }
-    return line;
+    if (packet.verify(packet.x.size(), Dimensions)) {
+      return packet;
+    } else {
+      return ElementPacket<float>();
+    }
   } else {
-    return std::vector<float>();
+    return ElementPacket<float>();
   }
 }
 
@@ -445,16 +512,15 @@ bool MeasurementLine::draw_info_gui(const std::string action, const float &trace
 //
 // Create a grid of static measurement points
 //
-std::vector<float>
-GridPoints::init_particles(float _ips) const {
+ElementPacket<float>
+GridPoints::init_elements(float _ips) const {
 
   // create a new vector to pass on
   std::vector<float> x;
-
-  if (not this->is_enabled()) return x;
+  std::vector<Int> idx;
+  std::vector<float> vals;
 
   // ignore _ips and use m_dx to define grid density
-
   // loop over integer indices
   for (float xp=m_x+0.5*m_dx; xp<m_xf+0.01*m_dx; xp+=m_dx) {
     for (float yp=m_y+0.5*m_dx; yp<m_yf+0.01*m_dx; yp+=m_dx) {
@@ -464,13 +530,19 @@ GridPoints::init_particles(float _ips) const {
     }
   }
 
-  return x;
+  ElementPacket<float> packet({x, idx, vals, (size_t)(x.size()/2), (uint8_t)0});
+  if (packet.verify(packet.x.size(), Dimensions)) {
+    return packet;
+  } else {
+    return ElementPacket<float>();
+  }
+
 }
 
-std::vector<float>
-GridPoints::step_particles(float _ips) const {
+ElementPacket<float>
+GridPoints::step_elements(float _ips) const {
   // does not emit
-  return std::vector<float>();
+  return ElementPacket<float>();
 }
 
 void

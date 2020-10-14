@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "Body.h"
+#include "Omega2D.h"
 #include "Feature.h"
 #include "ElementPacket.h"
 #include "json/json.hpp"
@@ -25,39 +27,40 @@ public:
   MeasureFeature(float _x,
                  float _y,
                  bool _moves,
-                 bool _emits)
-    : Feature(true),
-      m_x(_x),
-      m_y(_y),
+                 bool _emits,
+                 std::shared_ptr<Body> _bp)
+    : Feature(_x, _y, true, _bp),
       m_is_lagrangian(_moves),
       m_emits(_emits)
     {}
   virtual ~MeasureFeature() {}
   virtual MeasureFeature* copy() const = 0;
 
-  bool moves() const { return m_is_lagrangian; }
-  bool emits() const { return m_emits; }
-  float jitter(const float, const float) const;
-  ElementPacket<float> get_draw_packet() const { return m_draw; }
-
   virtual void debug(std::ostream& os) const = 0;
   virtual std::string to_string() const = 0;
   virtual void from_json(const nlohmann::json) = 0;
   virtual nlohmann::json to_json() const = 0;
-  virtual std::vector<float> init_particles(float) const = 0;
-  virtual std::vector<float> step_particles(float) const = 0;
+  virtual ElementPacket<float> init_elements(float) const = 0;
+  virtual ElementPacket<float> step_elements(float) const = 0;
   virtual void generate_draw_geom() = 0;
 #ifdef USE_IMGUI
-  static bool draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float, const float &);
   virtual bool draw_info_gui(const std::string, const float &, const float) = 0;
+#endif
+ 
+  bool moves() const { return m_is_lagrangian; }
+  bool emits() const { return m_emits; }
+  float jitter(const float, const float) const;
+  bool get_is_lagrangian() { return m_is_lagrangian; }
+
+#ifdef USE_IMGUI
+  static bool draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float, const float &);
+  static void draw_feature_list(std::vector<std::unique_ptr<MeasureFeature>> &, std::unique_ptr<MeasureFeature> &,
+                                int &, int &, bool &, int &);
 #endif
 
 protected:
-  float m_x;
-  float m_y;
   bool m_is_lagrangian;
   bool m_emits;
-  ElementPacket<float> m_draw;
 };
 
 std::ostream& operator<<(std::ostream& os, MeasureFeature const& ff);
@@ -81,8 +84,9 @@ public:
   SinglePoint(float _x = 0.0,
               float _y = 0.0,
               bool _moves = false,
-              bool _emits = false)
-    : MeasureFeature(_x, _y, _moves, _emits)
+              bool _emits = false,
+              std::shared_ptr<Body> _bp = nullptr)
+    : MeasureFeature(_x, _y, _moves, _emits, _bp)
     {}
   SinglePoint* copy() const override { return new SinglePoint(*this); }
 
@@ -90,8 +94,8 @@ public:
   std::string to_string() const override;
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
-  std::vector<float> init_particles(float) const override;
-  std::vector<float> step_particles(float) const override;
+  ElementPacket<float> init_elements(float) const override;
+  ElementPacket<float> step_elements(float) const override;
   void generate_draw_geom() override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string, const float&, const float) override;
@@ -110,8 +114,9 @@ public:
              float _y = 0.0,
              bool _moves = false,
              bool _emits = false,
-             float _rad = 0.1)
-    : SinglePoint(_x, _y, _moves, _emits),
+             float _rad = 0.1,
+             std::shared_ptr<Body> _bp = nullptr)
+    : SinglePoint(_x, _y, _moves, _emits, _bp),
       m_rad(_rad)
     {}
   MeasurementBlob* copy() const override { return new MeasurementBlob(*this); }
@@ -120,8 +125,8 @@ public:
   std::string to_string() const override;
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
-  std::vector<float> init_particles(float) const override;
-  std::vector<float> step_particles(float) const override;
+  ElementPacket<float> init_elements(float) const override;
+  ElementPacket<float> step_elements(float) const override;
   void generate_draw_geom() override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string, const float&, const float) override;
@@ -142,8 +147,9 @@ public:
                   bool _emits = false,
                   float _xf = 1.0,
                   float _yf = 0.0,
-                  float _dx = 0.1)
-    : SinglePoint(_x, _y, _moves, _emits),
+                  float _dx = 0.1,
+                  std::shared_ptr<Body> _bp = nullptr)
+    : SinglePoint(_x, _y, _moves, _emits, _bp),
       m_xf(_xf),
       m_yf(_yf),
       m_dx(_dx)
@@ -154,8 +160,8 @@ public:
   std::string to_string() const override;
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
-  std::vector<float> init_particles(float) const override;
-  std::vector<float> step_particles(float) const override;
+  ElementPacket<float> init_elements(float) const override;
+  ElementPacket<float> step_elements(float) const override;
   void generate_draw_geom() override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string, const float&, const float) override;
@@ -176,7 +182,7 @@ public:
              float _xf = 1.0,
              float _yf = 1.0,
              float _dx = 0.1)
-    : MeasureFeature(_xs, _ys, false, false),
+    : MeasureFeature(_xs, _ys, false, false, nullptr),
       m_xf(_xf),
       m_yf(_yf),
       m_dx(_dx)
@@ -187,8 +193,8 @@ public:
   std::string to_string() const override;
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
-  std::vector<float> init_particles(float) const override;
-  std::vector<float> step_particles(float) const override;
+  ElementPacket<float> init_elements(float) const override;
+  ElementPacket<float> step_elements(float) const override;
   void generate_draw_geom() override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string, const float&, const float) override;

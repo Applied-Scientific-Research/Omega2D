@@ -741,6 +741,89 @@ void Simulation::add_boundary(std::shared_ptr<Body> _bptr, ElementPacket<float> 
   }
 }
 
+// add elements (general)
+void Simulation::add_elements(const ElementPacket<float> _elems,
+                              const elem_t _et, const move_t _mt,
+                              std::shared_ptr<Body> _bptr) {
+
+  // skip out early if nothing's here
+  if (_elems.nelem == 0) return;
+
+  // now split on which Collection will receive this
+  if (_et == active) {
+    // it's active vorticity, add to vort
+    file_elements(vort, _elems, active, _mt, _bptr);
+    // in that routine, we will look for a match for move type, body pointer, and points/surfs/vols
+  } else if (_et == reactive) {
+    file_elements(bdry, _elems, reactive, _mt, _bptr);
+  } else {
+    file_elements(fldpt, _elems, inert, _mt, _bptr);
+  }
+}
+
+// file the new elements into the correct collection
+void Simulation::file_elements(std::vector<Collection>& _collvec,
+                               const ElementPacket<float> _elems,
+                               const elem_t _et, const move_t _mt,
+                               std::shared_ptr<Body> _bptr) {
+
+  // search the collections list for a match (same movement type, Body, elem dims)
+  size_t imatch = 0;
+  bool no_match = true;
+  for (size_t i=0; i<_collvec.size(); ++i) {
+    // assume match
+    bool this_match = true;
+
+    // check movement type
+    const move_t tmt = std::visit([=](auto& elem) { return elem.get_movet(); }, _collvec[i]);
+    if (_mt != tmt) {
+      this_match = false;
+
+    } else if (tmt == bodybound) {
+      // check body pointer
+      std::shared_ptr<Body> tbp = std::visit([=](auto& elem) { return elem.get_body_ptr(); }, _collvec[i]);
+      if (_bptr != tbp) this_match = false;
+    }
+
+    // check Collections element dimension
+    auto& coll = _collvec[i];
+    if (std::holds_alternative<Points<float>>(coll) and _elems.ndim != 0) {
+      this_match = false;
+    } else if (std::holds_alternative<Surfaces<float>>(coll) and _elems.ndim != 1) {
+      this_match = false;
+    }
+
+    if (this_match) {
+      imatch = i;
+      no_match = false;
+    }
+  }
+
+  // if no match, or no collections exist
+  if (no_match) {
+    // make a new collection according to element dimension
+    if (_elems.ndim == 0) {
+      _collvec.push_back(Points<float>(_elems, _et, _mt, _bptr, get_vdelta()));
+    } else if (_elems.ndim == 1) {
+      _collvec.push_back(Surfaces<float>(_elems, _et, _mt, _bptr));
+    }
+
+  } else {
+    // found a match - get the Collection that matched
+    auto& coll = _collvec[imatch];
+
+    // proceed to add the correct object type
+    if (_elems.ndim == 0) {
+      Points<float>& pts = std::get<Points<float>>(coll);
+      pts.add_new(_elems, get_vdelta());
+    } else if (_elems.ndim == 1) {
+      Surfaces<float>& surf = std::get<Surfaces<float>>(coll);
+      surf.add_new(_elems);
+    }
+  }
+
+}
+
 // add a new Body with the given name
 void Simulation::add_body(std::shared_ptr<Body> _body) {
   bodies.emplace_back(_body);

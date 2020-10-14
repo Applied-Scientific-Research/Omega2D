@@ -159,9 +159,11 @@ void BEM<S,I>::solve() {
   // ensure that the solution vector is the right size
   strengths.resizeLike(b);
 
-  //std::cout << "A is " << A.size() << std::endl;
-  //std::cout << "b is " << b.size() << std::endl;
-  //std::cout << "x is " << strengths.size() << std::endl;
+  if (VERBOSE) {
+    std::cout << "A is " << A.size() << std::endl;
+    std::cout << "b is " << b.size() << std::endl;
+    std::cout << "x is " << strengths.size() << std::endl;
+  }
 
   // the Eigen solver object - persistent from call to call
   static Eigen::GMRES<Eigen::Matrix<S, Eigen::Dynamic, Eigen::Dynamic> > solver(A);
