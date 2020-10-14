@@ -64,8 +64,9 @@ public:
       max_strength(-1.0) {
 
     // assume all elements are 1st order quads (4 corner indices)
-    assert(_idx.size() % 4 == 0 && "Index array is not an even multiple of 4");
-    const size_t nelems = _idx.size() / 4;
+    const size_t nper = 4;
+    assert(_idx.size() % nper == 0 && "Index array is not an even multiple of 4");
+    const size_t nelems = _idx.size() / nper;
 
     // always initialize the ps element strength optionals
 /*
@@ -79,14 +80,16 @@ public:
 
     // if no surfs, quit out now
     if (nelems == 0) {
-      // but still initialize ux before we go (in case first bfeature is not enabled)
+      // but still initialize ux (untransformed positions) before we go (in case first bfeature is not enabled)
       if (_bp) this->ux = this->x;
       return;
     }
 
-    assert(_val.size() % nelems == 0 && "Value array is not an even multiple of element count");
     assert(_x.size() % Dimensions == 0 && "Position array is not an even multiple of dimensions");
     const size_t nnodes = _x.size() / Dimensions;
+
+    // Important: Volumes hold properties on nodes, not on elements!!!
+    assert(_val.size() % nnodes == 0 && "Value array is not an even multiple of node count");
 
     std::cout << "  new collection with " << nelems << " elements and " << nnodes << " nodes" << std::endl;
 
@@ -106,7 +109,7 @@ public:
     // copy over the node indices (with a possible type change)
     bool idx_are_all_good = true;
     idx.resize(_idx.size());
-    for (size_t i=0; i<4*nelems; ++i) {
+    for (size_t i=0; i<nper*nelems; ++i) {
       // make sure it exists in the nodes array
       if (_idx[i] >= nnodes) idx_are_all_good = false;
       idx[i] = _idx[i];
@@ -119,8 +122,8 @@ public:
     // are strengths/values on a per-node or per-element basis? - per element now
 
     // now, depending on the element type, put the value somewhere
-/*
     if (this->E == active) {
+/*
       // value is a fixed strength for the segment
       Vector<S> new_s(_val.size());
       ps[0] = std::move(new_s);
@@ -128,8 +131,10 @@ public:
       Vector<S> new_s1(_val.size());
       ps[1] = std::move(new_s1);
       std::copy(_val.begin(), _val.end(), ps[1]->begin());
+*/
 
     } else if (this->E == reactive) {
+/*
       // value is a boundary condition
       // bc[0] is the tangential BC, typically 0.0
       Vector<S> new_bc(_val.size());
@@ -147,11 +152,11 @@ public:
           std::fill(ps[d]->begin(), ps[d]->end(), 0.0);
         }
       }
+*/
 
     } else if (this->E == inert) {
       // value is ignored (probably zero)
     }
-*/
 
     // velocity is per node, in the base class - just resize it here
     for (size_t d=0; d<Dimensions; ++d) {
@@ -188,6 +193,14 @@ public:
     }
 */
   }
+
+  // delegating constructor
+  Volumes(const ElementPacket<S>& _elems,
+          const elem_t _e,
+          const move_t _m,
+          std::shared_ptr<Body> _bp)
+    : Volumes(_elems.x, _elems.idx, _elems.val, _e, _m, _bp)
+  { }
 
   size_t                            get_nelems()     const { return nb; }
   //const S                           get_vol()         const { return vol; }
@@ -307,14 +320,16 @@ public:
     // make sure input arrays are correctly-sized
 
     // assume all elements are 1st order quads (4 corner indices)
-    assert(_idx.size() % 4 == 0 && "Index array is not an even multiple of 4");
-    const size_t nelems = _idx.size() / 4;
+    const size_t nper = 4;
+    assert(_idx.size() % nper == 0 && "Index array is not an even multiple of 4");
+    const size_t nelems = _idx.size() / nper;
     // if no surfs, quit out now
     if (nelems == 0) return;
 
-    assert(_val.size() % nelems == 0 && "Value array is not an even multiple of element count");
     assert(_x.size() % Dimensions == 0 && "Position array is not an even multiple of dimensions");
     const size_t nnodes = _x.size() / Dimensions;
+
+    assert(_val.size() % nnodes == 0 && "Value array is not an even multiple of node count");
 
     std::cout << "  adding " << nelems << " new elements and " << nnodes << " new points to collection..." << std::endl;
 
@@ -342,10 +357,10 @@ public:
     // copy over the node indices, taking care to offset into the new array
     bool idx_are_all_good = true;
     idx.resize(4*neold + _idx.size());
-    for (size_t i=0; i<4*nelems; ++i) {
+    for (size_t i=0; i<nper*nelems; ++i) {
       // make sure it exists in the nodes array
       if (_idx[i] >= nnold+nnodes) idx_are_all_good = false;
-      idx[4*neold+i] = nnold + _idx[i];
+      idx[nper*neold+i] = nnold + _idx[i];
     }
     assert(idx_are_all_good && "Some indicies are bad");
 
@@ -353,16 +368,18 @@ public:
     //compute_bases(neold+nelems);
 
     // now, depending on the element type, put the value somewhere - but element-wise, so here
-/*
     if (this->E == active) {
+/*
       // value is a fixed strength for the element
       ps[0]->reserve(neold+nelems); 
       ps[0]->insert(ps[0]->end(), _val.begin(), _val.end());
       // HACK - should use the size of _val to determine whether we have data here
       ps[1]->reserve(neold+nelems); 
       ps[1]->insert(ps[1]->end(), _val.begin(), _val.end());
+*/
 
     } else if (this->E == reactive) {
+/*
       // value is a boundary condition
       bc[0]->reserve(neold+nelems); 
       bc[0]->insert(bc[0]->end(), _val.begin(), _val.end());
@@ -377,11 +394,11 @@ public:
           //std::fill(ps[d]->begin(), ps[d]->end(), 0.0);
         }
       }
+*/
 
     } else if (this->E == inert) {
       // value is ignored (probably zero)
     }
-*/
 
     // velocity is in the base class - just resize it here
     for (size_t d=0; d<Dimensions; ++d) {
@@ -418,6 +435,22 @@ public:
     }
 */
   }
+
+  // append nodes and bricks to this collection
+  void add_new(const ElementPacket<float>& _in) {
+
+    // ensure that this packet really is Surfaces
+    assert(_in.idx.size() != 0 && "Input ElementPacket is not Volumes");
+    assert(_in.ndim == 2 && "Input ElementPacket is not Volumes");
+
+    // and that it has the right number of values per element/node
+    //if (this->E == inert) assert(_in.val.size() == 0 && "Input ElementPacket with inert Volumes has nonzero val array");
+    //else assert(_in.val.size() == _in.nelem && "Input ElementPacket with Volumes has bad val array size");
+
+    // forward to the proper function
+    (void) add_new(_in.x, _in.idx, _in.val);
+  }
+
 
 /*
   void add_body_motion(const S _factor, const double _time) {
