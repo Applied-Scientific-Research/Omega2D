@@ -805,7 +805,7 @@ int main(int argc, char const *argv[]) {
     // Rendering parameters, under a header
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Rendering controls")) { draw_render_gui(rparams); }
-    
+
     // Solver parameters, under its own header
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Solver parameters (advanced)")) { sim.draw_advanced(); }

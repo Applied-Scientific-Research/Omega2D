@@ -56,7 +56,7 @@ public:
       coresp(),
       h_nu(0.1),
       core_func(gaussian),
-      is_inviscid(false),
+      is_inviscid(true),
       pd_type(pd_vrm),
       adaptive_radii(false),
       nom_sep_scaled(std::sqrt(8.0)),
