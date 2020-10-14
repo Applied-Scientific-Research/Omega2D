@@ -580,8 +580,25 @@ void bricks_affect_panels (Volumes<S> const& src, Surfaces<S>& targ, ExecEnv& en
 
 template <class S, class A>
 void points_affect_bricks (Points<S> const& src, Volumes<S>& targ, ExecEnv& env) {
+  std::cout << "    in ptvol with" << env.to_string() << std::endl;
   std::cout << "    0_2 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
-  assert (false && "Points cannot affect Volumes yet.");
+  //assert (false && "Points cannot affect Volumes yet.");
+
+  // generate temporary collocation points as Points
+  std::vector<S> xysr = targ.represent_nodes_as_particles(0.0f);
+  Points<S> volsaspts(xysr, inert, fixed, nullptr);
+
+  // run the calculation
+  points_affect_points<S,A>(src, volsaspts, env);
+
+  // and copy the velocities to the real target
+  std::array<Vector<S>,Dimensions>& fromvel = volsaspts.get_vel();
+  std::array<Vector<S>,Dimensions>& tovel   = targ.get_vel();
+  for (size_t i=0; i<Dimensions; ++i) {
+    std::copy(fromvel[i].begin(), fromvel[i].end(), tovel[i].begin());
+  }
+
+  // and the vel grads - if need be
 }
 
 template <class S, class A>
