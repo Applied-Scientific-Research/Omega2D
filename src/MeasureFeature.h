@@ -1,9 +1,9 @@
 /*
  * MeasureFeature.h - GUI-side descriptions of flow measurement features
  *
- * (c)2018-9 Applied Scientific Research, Inc.
- *           Mark J Stock <markjstock@gmail.com>
- *           Blake B Hillier <blakehillier@mac.com>
+ * (c)2018-20 Applied Scientific Research, Inc.
+ *            Mark J Stock <markjstock@gmail.com>
+ *            Blake B Hillier <blakehillier@mac.com>
  */
 
 #pragma once
@@ -203,6 +203,41 @@ public:
 protected:
   float m_xf, m_yf;
   float m_dx;
+};
+
+//
+// Concrete class for a grid of measurement points
+//
+class GridElems : public MeasureFeature {
+public:
+  GridElems(float _xs = -1.0,
+            float _ys = -1.0,
+            float _xf = 1.0,
+            float _yf = 1.0,
+            float _nx = 10,
+            float _ny = 10)
+    : MeasureFeature(_xs, _ys, false, false, nullptr),
+      m_xf(_xf),
+      m_yf(_yf),
+      m_nx(_nx),
+      m_ny(_ny)
+    {}
+  GridElems* copy() const override { return new GridElems(*this); }
+
+  void debug(std::ostream& os) const override;
+  std::string to_string() const override;
+  void from_json(const nlohmann::json) override;
+  nlohmann::json to_json() const override;
+  ElementPacket<float> init_elements(float) const override;
+  ElementPacket<float> step_elements(float) const override;
+  void generate_draw_geom() override;
+#ifdef USE_IMGUI
+  bool draw_info_gui(const std::string, const float&, const float) override;
+#endif
+
+protected:
+  float m_xf, m_yf;
+  Int m_nx, m_ny;
 };
 
 //
