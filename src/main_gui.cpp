@@ -328,7 +328,10 @@ int main(int argc, char const *argv[]) {
         for (auto const& mf: mfeatures) {
           //if (mf->is_enabled()) sim.add_fldpts( mf->init_particles(rparams.tracer_scale*sim.get_ips()), mf->moves() );
           if (mf->is_enabled()) {
-            const move_t newMoveType = (mf->get_is_lagrangian() ? lagrangian : fixed);
+            move_t newMoveType = fixed;
+            if (mf->moves() or mf->emits()) {
+              newMoveType = lagrangian;
+            }
             sim.add_elements( mf->step_elements(rparams.tracer_scale*sim.get_ips()), inert, newMoveType, mf->get_body() );
           }
         }
