@@ -1172,7 +1172,7 @@ public:
 #endif
 
   std::string to_string() const {
-    std::string retstr = " " + std::to_string(get_nelems()) + ElementBase<S>::to_string() + " Panels";
+    std::string retstr = " " + std::to_string(get_nelems()) + ElementBase<S>::to_string() + " Bricks";
     return retstr;
   }
 
