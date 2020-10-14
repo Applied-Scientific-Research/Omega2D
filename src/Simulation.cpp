@@ -6,7 +6,6 @@
  */
 
 #include "Simulation.h"
-#include "Points.h"
 #include "Reflect.h"
 #include "BEMHelper.h"
 #include "VtkXmlHelper.h"
@@ -791,6 +790,8 @@ void Simulation::file_elements(std::vector<Collection>& _collvec,
       this_match = false;
     } else if (std::holds_alternative<Surfaces<float>>(coll) and _elems.ndim != 1) {
       this_match = false;
+    } else if (std::holds_alternative<Volumes<float>>(coll) and _elems.ndim != 2) {
+      this_match = false;
     }
 
     if (this_match) {
@@ -806,6 +807,8 @@ void Simulation::file_elements(std::vector<Collection>& _collvec,
       _collvec.push_back(Points<float>(_elems, _et, _mt, _bptr, get_vdelta()));
     } else if (_elems.ndim == 1) {
       _collvec.push_back(Surfaces<float>(_elems, _et, _mt, _bptr));
+    } else if (_elems.ndim == 2) {
+      _collvec.push_back(Volumes<float>(_elems, _et, _mt, _bptr));
     }
 
   } else {
@@ -819,6 +822,9 @@ void Simulation::file_elements(std::vector<Collection>& _collvec,
     } else if (_elems.ndim == 1) {
       Surfaces<float>& surf = std::get<Surfaces<float>>(coll);
       surf.add_new(_elems);
+    } else if (_elems.ndim == 2) {
+      Volumes<float>& vols = std::get<Volumes<float>>(coll);
+      vols.add_new(_elems);
     }
   }
 
