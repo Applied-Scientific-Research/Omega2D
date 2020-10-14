@@ -440,7 +440,6 @@ int main(int argc, char const *argv[]) {
         // finish setting up and run
         is_viscous = sim.get_diffuse();
         currentItemIndex = 0;
-        sim_is_running = true;
       }
     }
 
@@ -492,13 +491,6 @@ int main(int argc, char const *argv[]) {
         
           // finish setting up and run
           is_viscous = sim.get_diffuse();
-
-          // run one step so we know what we have, or autostart
-          if (sim.autostart()) {
-            sim_is_running = true;
-          } else {
-            begin_single_step = true;
-          }
 
           // check and possibly resize the window to match the saved resolution
           resize_to_resolution(window, rparams.width, rparams.height);
