@@ -745,6 +745,7 @@ public:
       r[i] = 1.0;
     }
   }
+*/
 
   //
   // 1st order Euler advection and stretch
@@ -785,7 +786,6 @@ public:
       max_strength = 1.0;
     }
   }
-*/
 
   //
   // return a particle version of the elements (useful during Diffusion)
@@ -839,15 +839,17 @@ public:
   //
   std::vector<S> represent_nodes_as_particles(const S _vdelta) {
 
-    // how many elements?
+    // how many nodes?
     const size_t num_pts = this->get_n();
 
-    // init the output vector (x, y, s, r)
-    std::vector<S> px(num_pts*4);
+    // note that since this is being passed in Influence as inert, use 2 values per point
+
+    // init the output vector (x, y)
+    std::vector<S> px(num_pts*2);
 
     for (size_t i=0; i<num_pts; i++) {
-      px[4*i+0] = this->x[0][i];
-      px[4*i+1] = this->x[1][i];
+      px[2*i+0] = this->x[0][i];
+      px[2*i+1] = this->x[1][i];
       //std::cout << "  element center is " << px[4*i+0] << " " << px[4*i+1];
       // the element strength is the solved strength plus the boundary condition
       //float this_str = (*ps[0])[i];
@@ -855,9 +857,9 @@ public:
       //if (this->E == reactive) this_str += (*bc[0])[i];
       // complete the element with a strength
       //px[4*i+2] = this_str * area[i];
-      px[4*i+2] = 0.0;
+      //px[4*i+2] = 0.0;
       // and the core size (effectively field points)
-      px[4*i+3] = 0.0;
+      //px[4*i+3] = 0.0;
       //std::cout << "  new part is " << px[4*i+0] << " " << px[4*i+1] << " " << px[4*i+2] << " " << px[4*i+3] << std::endl;
     }
 

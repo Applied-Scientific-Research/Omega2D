@@ -518,6 +518,9 @@ std::string write_vtk_grid(Volumes<S> const& grid, const size_t file_idx,
   std::stringstream vtkfn;
   vtkfn << prefix << std::setfill('0') << std::setw(2) << file_idx << "_" << std::setw(5) << frameno << ".vtu";
 
+  // Blake: use code from Surfaces (above) and write velocity as the only data, no strengths
+  // note that positions and vels always have 3 components in the files
+
   std::cout << "Wrote " << grid.get_nelems() << " elements to " << vtkfn.str() << std::endl;
   return vtkfn.str();
 }

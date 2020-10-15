@@ -501,8 +501,8 @@ void Simulation::step() {
   //diff.step(time, 0.5*dt, re, get_vdelta(), thisfs, vort, bdry, bem);
 
   // advect with no diffusion (must update BEM strengths)
-  //conv.advect_1st(time, dt, thisfs, get_ips(), vort, bdry, fldpt, bem);
-  conv.advect_2nd(time, dt, thisfs, get_ips(), vort, bdry, fldpt, bem);
+  conv.advect_1st(time, dt, thisfs, get_ips(), vort, bdry, fldpt, bem);
+  //conv.advect_2nd(time, dt, thisfs, get_ips(), vort, bdry, fldpt, bem);
 
   // operator splitting requires another half-step diffuse (must compute new coefficients)
   //diff.step(time, 0.5*dt, re, get_vdelta(), thisfs, vort, bdry, bem);
