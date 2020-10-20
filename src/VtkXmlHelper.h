@@ -513,6 +513,9 @@ std::string write_vtk_grid(Volumes<S> const& grid, const size_t file_idx,
 
   assert(grid.get_nelems() > 0 && "Inside write_vtk_grid with no elements");
 
+  const bool compress = false;
+  const bool asbase64 = true;
+
   // generate file name
   std::string prefix = "grid_";
   std::stringstream vtkfn;
@@ -521,6 +524,104 @@ std::string write_vtk_grid(Volumes<S> const& grid, const size_t file_idx,
   // Blake: use code from Surfaces (above) and write velocity as the only data, no strengths
   // note that positions and vels always have 3 components in the files
 
+  // prepare file pointer and printer
+  std::FILE* fp = std::fopen(vtkfn.str().c_str(), "wb");
+  tinyxml2::XMLPrinter printer( fp );
+
+  // write <?xml version="1.0"?>
+  printer.PushHeader(false, true);
+
+  printer.OpenElement( "VTKFile" );
+  printer.PushAttribute( "type", "UnstructuredGrid" );
+  //printer.PushAttribute( "type", "PolyData" );
+  printer.PushAttribute( "version", "0.1" );
+  printer.PushAttribute( "byte_order", "LittleEndian" );
+  printer.PushAttribute( "header_type", "UInt32" );
+
+  // push comment with sim time?
+
+  // must choose one of these two formats
+  printer.OpenElement( "UnstructuredGrid" );
+  //printer.OpenElement( "PolyData" );
+
+  // include simulation time here
+  printer.OpenElement( "FieldData" );
+  printer.OpenElement( "DataArray" );
+  printer.PushAttribute( "type", "Float64" );
+  printer.PushAttribute( "Name", "TimeValue" );
+  printer.PushAttribute( "NumberOfTuples", "1" );
+  {
+    Vector<double> time_vec = {time};
+    write_DataArray (printer, time_vec, false, false);
+  }
+  printer.CloseElement();	// DataArray
+  printer.CloseElement();	// FieldData
+
+  printer.OpenElement( "Piece" );
+  printer.PushAttribute( "NumberOfPoints", std::to_string(grid.get_n()).c_str() );
+  printer.PushAttribute( "NumberOfCells", std::to_string(grid.get_nelems()).c_str() );
+
+  printer.OpenElement( "Points" );
+  printer.OpenElement( "DataArray" );
+  printer.PushAttribute( "NumberOfComponents", "3" );	// SEE THIS 3?!?!? It needs to be there.
+  printer.PushAttribute( "Name", "position" );
+  printer.PushAttribute( "type", "Float32" );
+  write_DataArray (printer, grid.get_pos(), compress, asbase64);
+  printer.CloseElement();	// DataArray
+  printer.CloseElement();	// Points
+
+  printer.OpenElement( "Cells" );
+
+  // again, all connectivities and offsets must be Int32!
+  printer.OpenElement( "DataArray" );
+  printer.PushAttribute( "Name", "connectivity" );
+  printer.PushAttribute( "type", "Int32" );
+  {
+    std::vector<Int> const & idx = grid.get_idx();
+    Vector<int32_t> v(std::begin(idx), std::end(idx));
+    write_DataArray (printer, v, compress, asbase64);
+  }
+  printer.CloseElement();	// DataArray
+
+  printer.OpenElement( "DataArray" );
+  printer.PushAttribute( "Name", "offsets" );
+  printer.PushAttribute( "type", "Int32" );
+  {
+    Vector<int32_t> v(grid.get_nelems());
+    std::iota(v.begin(), v.end(), 1);
+    std::transform(v.begin(), v.end(), v.begin(),
+                   std::bind(std::multiplies<int32_t>(), std::placeholders::_1, 2));
+    write_DataArray (printer, v, compress, asbase64);
+  }
+  printer.CloseElement();	// DataArray
+
+  printer.OpenElement( "DataArray" );
+  printer.PushAttribute( "Name", "types" );
+  printer.PushAttribute( "type", "UInt8" );
+  Vector<uint8_t> v(grid.get_nelems());
+  std::fill(v.begin(), v.end(), 3);
+  write_DataArray (printer, v, compress, asbase64);
+  printer.CloseElement();	// DataArray
+
+  printer.CloseElement();	// Cells
+
+
+  printer.OpenElement( "CellData" );
+
+  printer.OpenElement( "DataArray" );
+  printer.PushAttribute( "NumberOfComponents", "3" );
+  printer.PushAttribute( "Name", "velocity" );
+  printer.PushAttribute( "type", "Float32" );
+  write_DataArray (printer, grid.get_vel(), compress, asbase64);
+  printer.CloseElement();	// DataArray
+
+  printer.CloseElement();	// CellData
+
+  printer.CloseElement();	// Piece
+  printer.CloseElement();	// PolyData or UnstructuredGrid
+  printer.CloseElement();	// VTKFile
+
+  std::fclose(fp);
   std::cout << "Wrote " << grid.get_nelems() << " elements to " << vtkfn.str() << std::endl;
   return vtkfn.str();
 }
