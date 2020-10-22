@@ -29,5 +29,6 @@ GLuint create_draw_blob_program();
 GLuint create_draw_point_program();
 GLuint create_draw_surface_line_prog();
 GLuint create_vertfrag_prog(const std::string, const std::string);
+//GLuint create_vertgeomfrag_prog(const std::string, const std::string, const std::string);
 
 // Create a compute program from one shader
