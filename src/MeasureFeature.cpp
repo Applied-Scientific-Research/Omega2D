@@ -42,7 +42,7 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
   else if (ftype == "tracer line") {      _flist.emplace_back(std::make_unique<MeasurementLine>(0.0, 0.0, false, true)); }
   else if (ftype == "measurement line") { _flist.emplace_back(std::make_unique<MeasurementLine>()); }
   else if (ftype == "measurement grid") { _flist.emplace_back(std::make_unique<GridPoints>()); }
-  else if (ftype == "element grid") { _flist.emplace_back(std::make_unique<GridElems>()); }
+  else if (ftype == "element field") { _flist.emplace_back(std::make_unique<GridField>()); }
   else {
     std::cout << "  type " << ftype << " does not name an available measurement feature, ignoring" << std::endl;
     return;
@@ -78,7 +78,7 @@ bool MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeatur
         mf = std::make_unique<GridPoints>();
       } break;
       case 4: {
-        mf = std::make_unique<GridElems>();
+        mf = std::make_unique<GridField>();
       } break;
     }
     oldItem = item;
@@ -623,7 +623,7 @@ bool GridPoints::draw_info_gui(const std::string action, const float &tracer_sca
 // Create a grid of static measurement elements
 //
 ElementPacket<float>
-GridElems::init_elements(float _ips) const {
+GridField::init_elements(float _ips) const {
 
   // create a new vector to pass on
   std::vector<float> x;
@@ -671,26 +671,26 @@ GridElems::init_elements(float _ips) const {
 }
 
 ElementPacket<float>
-GridElems::step_elements(float _ips) const {
+GridField::step_elements(float _ips) const {
   // does not emit
   // but if it did, it'd emit points, one per element
   return ElementPacket<float>();
 }
 
 void
-GridElems::debug(std::ostream& os) const {
+GridField::debug(std::ostream& os) const {
   os << to_string();
 }
 
 std::string
-GridElems::to_string() const {
+GridField::to_string() const {
   std::stringstream ss;
   ss << "measurement field from " << m_x << " " << m_y << " to " << m_xf << " " << m_yf << " with " << m_nx*m_ny << " elems";
   return ss.str();
 }
 
 void
-GridElems::from_json(const nlohmann::json j) {
+GridField::from_json(const nlohmann::json j) {
   const std::vector<float> s = j["start"];
   m_x = s[0];
   m_y = s[1];
@@ -706,9 +706,9 @@ GridElems::from_json(const nlohmann::json j) {
 }
 
 nlohmann::json
-GridElems::to_json() const {
+GridField::to_json() const {
   nlohmann::json j;
-  j["type"] = "element grid";
+  j["type"] = "element field";
   j["start"] = {m_x, m_y};
   j["end"] = {m_xf, m_yf};
   j["nx"] = {m_nx, m_ny};
@@ -718,7 +718,7 @@ GridElems::to_json() const {
   return j;
 }
 
-void GridElems::generate_draw_geom() {
+void GridField::generate_draw_geom() {
   const float xc = (m_x+m_xf)/2;
   const float yc = (m_y+m_yf)/2;
   SolidRect tmp = SolidRect(nullptr, true, xc, yc, m_xf-m_x, m_yf-m_y, 0.0);          
@@ -726,7 +726,7 @@ void GridElems::generate_draw_geom() {
 }
 
 #ifdef USE_IMGUI
-bool GridElems::draw_info_gui(const std::string action, const float &tracer_scale, const float ips) {
+bool GridField::draw_info_gui(const std::string action, const float &tracer_scale, const float ips) {
   float xc[2] = {m_x, m_y};
   float xf[2] = {m_xf, m_yf};
   int nx[2] = {m_nx, m_ny};

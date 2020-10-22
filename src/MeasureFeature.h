@@ -208,9 +208,9 @@ protected:
 //
 // Concrete class for a grid of measurement points
 //
-class GridElems : public MeasureFeature {
+class GridField: public MeasureFeature {
 public:
-  GridElems(float _xs = -1.0,
+  GridField(float _xs = -1.0,
             float _ys = -1.0,
             float _xf = 1.0,
             float _yf = 1.0,
@@ -222,7 +222,7 @@ public:
       m_nx(_nx),
       m_ny(_ny)
     {}
-  GridElems* copy() const override { return new GridElems(*this); }
+  GridField* copy() const override { return new GridField(*this); }
 
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
