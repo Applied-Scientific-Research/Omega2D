@@ -328,7 +328,10 @@ int main(int argc, char const *argv[]) {
         for (auto const& mf: mfeatures) {
           //if (mf->is_enabled()) sim.add_fldpts( mf->init_particles(rparams.tracer_scale*sim.get_ips()), mf->moves() );
           if (mf->is_enabled()) {
-            const move_t newMoveType = (mf->get_is_lagrangian() ? lagrangian : fixed);
+            move_t newMoveType = fixed;
+            if (mf->moves() or mf->emits()) {
+              newMoveType = lagrangian;
+            }
             sim.add_elements( mf->step_elements(rparams.tracer_scale*sim.get_ips()), inert, newMoveType, mf->get_body() );
           }
         }
@@ -437,7 +440,6 @@ int main(int argc, char const *argv[]) {
         // finish setting up and run
         is_viscous = sim.get_diffuse();
         currentItemIndex = 0;
-        sim_is_running = true;
       }
     }
 
@@ -489,13 +491,6 @@ int main(int argc, char const *argv[]) {
         
           // finish setting up and run
           is_viscous = sim.get_diffuse();
-
-          // run one step so we know what we have, or autostart
-          if (sim.autostart()) {
-            sim_is_running = true;
-          } else {
-            begin_single_step = true;
-          }
 
           // check and possibly resize the window to match the saved resolution
           resize_to_resolution(window, rparams.width, rparams.height);
