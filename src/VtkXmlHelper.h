@@ -503,6 +503,51 @@ std::string write_vtu_panels(Surfaces<S> const& surf, const size_t file_idx,
   return vtkfn.str();
 }
 
+void write_idx(tinyxml2::XMLPrinter& _p, std::vector<Int> const & _data,
+               bool _compress = false, bool _asbase64 = false) {
+  using base64 = cppcodec::base64_rfc4648;
+
+  if (_compress) {
+    // not yet implemented
+  }
+
+  if (_asbase64) {
+    _p.PushAttribute( "format", "binary" );
+
+    std::string encoded = base64::encode((const char*)_data.data(), (size_t)(sizeof(_data[0])*_data.size()));
+
+    // encode and write the UInt32 length indicator - the length of the base64-encoded blob
+    uint32_t encoded_length = encoded.size();
+    std::string header = base64::encode((const char*)(&encoded_length), (size_t)(sizeof(uint32_t)));
+    //std::cout << "base64 length of header: " << header.size() << std::endl;
+    //std::cout << "base64 length of data: " << encoded.size() << std::endl;
+
+    _p.PushText( " " );
+    _p.PushText( header.c_str() );
+    _p.PushText( encoded.c_str() );
+    _p.PushText( " " );
+
+    if (false) {
+      std::vector<uint8_t> decoded = base64::decode(encoded);
+      Int* decoded_floats = reinterpret_cast<Int*>(decoded.data());
+  
+      std::cout << "Encoding an array of " << _data.size() << " floats to: " << encoded << std::endl;
+      std::cout << "Decoding back into array of floats, starting with: " << decoded_floats[0] << " " << decoded_floats[1] << std::endl;
+      //std::cout << "Decoding back into array of " << decoded.size() << " floats, starting with: " << decoded[0] << std::endl;
+    }
+
+  } else {
+    _p.PushAttribute( "format", "ascii" );
+
+    // write the data
+    _p.PushText( " " );
+    for (size_t i=0; i<_data.size(); ++i) {
+      _p.PushText( _data[i] );
+      _p.PushText( " " );
+    }
+  }
+}
+
 
 //
 // write grid data to a .vtk file
@@ -580,6 +625,7 @@ std::string write_vtk_grid(Volumes<S> const& grid, const size_t file_idx,
     std::vector<Int> const & idx = grid.get_idx();
     Vector<int32_t> v(std::begin(idx), std::end(idx));
     write_DataArray (printer, v, compress, asbase64);
+    //write_idx(printer, grid.get_idx(), compress, asbase64);
   }
   printer.CloseElement();	// DataArray
 
@@ -588,10 +634,11 @@ std::string write_vtk_grid(Volumes<S> const& grid, const size_t file_idx,
   printer.PushAttribute( "type", "Int32" );
   {
     Vector<int32_t> v(grid.get_nelems());
+    // vector of 1 to n
     std::iota(v.begin(), v.end(), 1);
     std::transform(v.begin(), v.end(), v.begin(),
-                   std::bind(std::multiplies<int32_t>(), std::placeholders::_1, 2));
-    write_DataArray (printer, v, compress, asbase64);
+                   std::bind(std::multiplies<int32_t>(), std::placeholders::_1, 4));
+    write_DataArray(printer, v, compress, asbase64);
   }
   printer.CloseElement();	// DataArray
 
@@ -599,7 +646,7 @@ std::string write_vtk_grid(Volumes<S> const& grid, const size_t file_idx,
   printer.PushAttribute( "Name", "types" );
   printer.PushAttribute( "type", "UInt8" );
   Vector<uint8_t> v(grid.get_nelems());
-  std::fill(v.begin(), v.end(), 3);
+  std::fill(v.begin(), v.end(), 9);
   write_DataArray (printer, v, compress, asbase64);
   printer.CloseElement();	// DataArray
 
