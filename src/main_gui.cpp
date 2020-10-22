@@ -693,6 +693,7 @@ int main(int argc, char const *argv[]) {
         std::cout << "Asked to delete flow feature " << del_feat_index << std::endl;
         ffeatures.erase(ffeatures.begin()+del_feat_index);
         redraw = true;
+        del_feat_index = -1;
       }
 
       if (redraw) {
@@ -783,6 +784,7 @@ int main(int argc, char const *argv[]) {
         std::cout << "Asked to delete measurement feature " << del_feat_index<< std::endl;
         mfeatures.erase(mfeatures.begin()+del_feat_index);
         redraw = true;
+        del_feat_index = -1;
       }
 
       if (redraw) {
