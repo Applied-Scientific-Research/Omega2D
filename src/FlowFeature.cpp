@@ -3,7 +3,7 @@
  *
  * (c)2017-20 Applied Scientific Research, Inc.
  *            Mark J Stock <markjstock@gmail.com>
- *            Blake Hillier <blakehillier@mac.com>
+ *            Blake B Hillier <blakehillier@mac.com>
  */
 
 #include "BoundaryFeature.h"
@@ -51,7 +51,7 @@ void parse_flow_json(std::vector<std::unique_ptr<FlowFeature>>& _flist,
   // and pass the json object to the specific parser
   _flist.back()->from_json(_jin);
 
-  std::cout << "  found " << ftype << std::endl;
+  std::cout << "  finished " << _flist.back()->to_string() << std::endl;
 }
 
 #ifdef USE_IMGUI

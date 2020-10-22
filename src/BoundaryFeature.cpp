@@ -57,7 +57,7 @@ void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
   _flist.back()->create();
   _flist.back()->generate_draw_geom();
 
-  std::cout << "  found " << _flist.back()->to_string() << std::endl;
+  std::cout << "  finished " << _flist.back()->to_string() << std::endl;
 }
 
 #ifdef USE_IMGUI
@@ -521,7 +521,7 @@ SolidOval::init_elements(const float _ips) const {
     circum = m_diam * M_PI;
 #else
     circum = 4.0*0.5*m_diam*std::comp_ellint_2(1.0-std::pow(m_dmin/m_diam,2));
-    std::cout << "analytic circumference is " << circum << std::endl;
+    //std::cout << "analytic circumference is " << circum << std::endl;
 #endif
   } else {
     circum = m_diam * M_PI;
