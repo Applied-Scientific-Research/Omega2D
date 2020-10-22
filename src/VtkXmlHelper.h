@@ -653,7 +653,7 @@ std::string write_vtk_grid(Volumes<S> const& grid, const size_t file_idx,
   printer.CloseElement();	// Cells
 
 
-  printer.OpenElement( "CellData" );
+  printer.OpenElement( "PointData" );
 
   printer.OpenElement( "DataArray" );
   printer.PushAttribute( "NumberOfComponents", "3" );
@@ -662,7 +662,7 @@ std::string write_vtk_grid(Volumes<S> const& grid, const size_t file_idx,
   write_DataArray (printer, grid.get_vel(), compress, asbase64);
   printer.CloseElement();	// DataArray
 
-  printer.CloseElement();	// CellData
+  printer.CloseElement();	// PointData 
 
   printer.CloseElement();	// Piece
   printer.CloseElement();	// PolyData or UnstructuredGrid
