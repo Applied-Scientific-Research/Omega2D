@@ -492,7 +492,7 @@ public:
       // Now do the four arrays
       prepare_opengl_buffer(mgl->spo[1], 0, "px");
       prepare_opengl_buffer(mgl->spo[1], 1, "py");
-      prepare_opengl_buffer(mgl->spo[1], 2, "r");
+      prepare_opengl_buffer(mgl->spo[1], 2, "rad");
       prepare_opengl_buffer(mgl->spo[1], 3, "sx");
 
       // and for the compute shaders!
