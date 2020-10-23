@@ -412,7 +412,7 @@ MeasurementLine::init_elements(float _ips) const {
     x.emplace_back((1.0-frac)*m_y + frac*m_yf);
   }
   
-  ElementPacket<float> packet({x, idx, vals, (size_t)(2*ilen), (uint8_t)0});
+  ElementPacket<float> packet({x, idx, vals, (size_t)ilen, (uint8_t)0});
   if (packet.verify(packet.x.size(), Dimensions)) {
     return packet;
   } else {
