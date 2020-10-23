@@ -208,7 +208,6 @@ int main(int argc, char const *argv[]) {
 
       // initialize particle distributions
       for (auto const& ff: ffeatures) {
-        //if (ff->is_enabled()) sim.add_particles( ff->init_particles(sim.get_ips()) );
         if (ff->is_enabled()) {
           ElementPacket<float> newpacket = ff->init_elements(sim.get_ips());
           sim.add_elements( newpacket, active, lagrangian, ff->get_body() );
@@ -217,7 +216,6 @@ int main(int argc, char const *argv[]) {
 
       // initialize solid objects
       for (auto const& bf : bfeatures) {
-        //if (bf->is_enabled()) sim.add_boundary( bf->get_body(), bf->init_elements(sim.get_ips()) );
         if (bf->is_enabled()) {
           ElementPacket<float> newpacket = bf->init_elements(sim.get_ips());
           const move_t newMoveType = (bf->get_body() ? bodybound : fixed);
@@ -227,7 +225,6 @@ int main(int argc, char const *argv[]) {
 
       // initialize measurement features
       for (auto const& mf: mfeatures) {
-        //if (mf->is_enabled()) sim.add_fldpts( mf->init_particles(rparams.tracer_scale*sim.get_ips()), mf->moves() );
         if (mf->is_enabled()) {
           ElementPacket<float> newpacket = mf->init_elements(rparams.tracer_scale*sim.get_ips());
           const move_t newMoveType = (mf->get_is_lagrangian() ? lagrangian : fixed);
@@ -515,12 +512,8 @@ int main(int argc, char const *argv[]) {
       // we have to manually set this variable
       is_viscous = sim.get_diffuse();
 
-      // run one step so we know what we have, or autostart
-      if (sim.autostart()) {
-        sim_is_running = true;
-      } else {
-        begin_single_step = true;
-      }
+      // autostart if file requests it
+      if (sim.autostart()) sim_is_running = true;
 
       // check and possibly resize the window to match the saved resolution
       resize_to_resolution(window, rparams.width, rparams.height);
