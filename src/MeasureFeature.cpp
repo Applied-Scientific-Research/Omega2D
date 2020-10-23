@@ -153,6 +153,7 @@ float MeasureFeature::jitter(const float _z, const float _ips) const {
 //
 ElementPacket<float>
 SinglePoint::init_elements(float _ips) const {
+  std::cout << "Creating single point" << std::endl;
   // created once
   std::vector<float> x = {m_x, m_y};
   std::vector<Int> idx;
@@ -191,7 +192,7 @@ std::string
 SinglePoint::to_string() const {
   std::stringstream ss;
   if (m_emits) {
-    ss << "emiter";
+    ss << "emitter";
   } else if (m_is_lagrangian) {
     ss << "tracer";
   } else {
@@ -271,6 +272,8 @@ MeasurementBlob::init_elements(float _ips) const {
   int irad = 1 + m_rad / _ips;
   //std::cout << "blob needs " << (-irad) << " to " << irad << " spaces" << std::endl;
 
+  std::cout << "Creating measure blob with up to " << std::pow(2*irad+1,2) << " points" << std::endl;
+
   // loop over integer indices
   for (int i=-irad; i<=irad; ++i) {
   for (int j=-irad; j<=irad; ++j) {
@@ -320,7 +323,7 @@ std::string
 MeasurementBlob::to_string() const {
   std::stringstream ss;
   if (m_emits) {
-    ss << "emiter";
+    ss << "emitter";
   } else if (m_is_lagrangian) {
     ss << "tracer";
   } else {
@@ -397,6 +400,8 @@ MeasurementLine::init_elements(float _ips) const {
   float llen = std::sqrt( std::pow(m_xf-m_x, 2) + std::pow(m_yf-m_y, 2) );
   int ilen = 1 + llen / m_dx;
 
+  std::cout << "Creating measure line with " << ilen << " points" << std::endl;
+
   // loop over integer indices
   for (int i=0; i<ilen; ++i) {
     // how far along the line?
@@ -441,7 +446,7 @@ std::string
 MeasurementLine::to_string() const {
   std::stringstream ss;
   if (m_emits) {
-    ss << "emiter";
+    ss << "emitter";
   } else if (m_is_lagrangian) {
     ss << "tracer";
   } else {
@@ -533,6 +538,8 @@ GridPoints::init_elements(float _ips) const {
       x.emplace_back(yp);
     }
   }
+
+  std::cout << "Creating measure grid with " << (x.size()/2) << " points" << std::endl;
 
   ElementPacket<float> packet({x, idx, vals, (size_t)(x.size()/2), (uint8_t)0});
   if (packet.verify(packet.x.size(), Dimensions)) {
@@ -633,6 +640,8 @@ GridField::init_elements(float _ips) const {
   // we know how large each array will be
   x.resize(2*(m_nx+1)*(m_ny+1));
   idx.resize(4*m_nx*m_ny);
+
+  std::cout << "Creating measure field with " << (m_nx*m_ny) << " quads" << std::endl;
 
   // using nx and ny, calculate dx and dy
   const float dx = (m_xf-m_x) / (float)m_nx;
