@@ -304,6 +304,8 @@ std::vector<std::string> Simulation::write_vtk(const int _index,
                                                const bool _do_flow,
                                                const bool _do_measure) {
 
+  std::cout << "Inside Simulation::write_vtk at t=" << time << std::endl;
+
   // solve the BEM (before any VTK or status file output)
   //std::cout << "Updating element vels" << std::endl;
   std::array<double,2> thisfs = {fs[0], fs[1]};
@@ -830,7 +832,6 @@ void Simulation::file_elements(std::vector<Collection>& _collvec,
       vols.add_new(_elems);
     }
   }
-
 }
 
 // add a new Body with the given name

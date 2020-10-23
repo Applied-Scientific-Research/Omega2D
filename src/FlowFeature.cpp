@@ -239,8 +239,6 @@ VortexBlob::init_elements(float _ips) const {
   std::vector<Int> idx;
   std::vector<float> vals;
 
-  //if (not this->is_enabled()) return x;
-
   // what size 2D integer array will we loop over
   int irad = 1 + (m_rad + 0.5*m_softness) / _ips;
   //std::cout << "blob needs " << (-irad) << " to " << irad << " spaces" << std::endl;
@@ -365,8 +363,6 @@ AsymmetricBlob::init_elements(float _ips) const {
   std::vector<float> x;
   std::vector<Int> idx;
   std::vector<float> vals;
-
-  //if (not this->is_enabled()) return x;
 
   // what size 2D integer array will we loop over
   int irad = 1 + (m_rad    + 0.5*m_softness) / _ips;
