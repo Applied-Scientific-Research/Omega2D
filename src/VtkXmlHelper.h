@@ -12,6 +12,7 @@
 #include "Collection.h"
 #include "Points.h"
 #include "Surfaces.h"
+#include "Volumes.h"
 
 #include "tinyxml2.h"
 #include "cppcodec/base64_rfc4648.hpp"
@@ -502,6 +503,176 @@ std::string write_vtu_panels(Surfaces<S> const& surf, const size_t file_idx,
   return vtkfn.str();
 }
 
+void write_idx(tinyxml2::XMLPrinter& _p, std::vector<Int> const & _data,
+               bool _compress = false, bool _asbase64 = false) {
+  using base64 = cppcodec::base64_rfc4648;
+
+  if (_compress) {
+    // not yet implemented
+  }
+
+  if (_asbase64) {
+    _p.PushAttribute( "format", "binary" );
+
+    std::string encoded = base64::encode((const char*)_data.data(), (size_t)(sizeof(_data[0])*_data.size()));
+
+    // encode and write the UInt32 length indicator - the length of the base64-encoded blob
+    uint32_t encoded_length = encoded.size();
+    std::string header = base64::encode((const char*)(&encoded_length), (size_t)(sizeof(uint32_t)));
+    //std::cout << "base64 length of header: " << header.size() << std::endl;
+    //std::cout << "base64 length of data: " << encoded.size() << std::endl;
+
+    _p.PushText( " " );
+    _p.PushText( header.c_str() );
+    _p.PushText( encoded.c_str() );
+    _p.PushText( " " );
+
+    if (false) {
+      std::vector<uint8_t> decoded = base64::decode(encoded);
+      Int* decoded_floats = reinterpret_cast<Int*>(decoded.data());
+  
+      std::cout << "Encoding an array of " << _data.size() << " floats to: " << encoded << std::endl;
+      std::cout << "Decoding back into array of floats, starting with: " << decoded_floats[0] << " " << decoded_floats[1] << std::endl;
+      //std::cout << "Decoding back into array of " << decoded.size() << " floats, starting with: " << decoded[0] << std::endl;
+    }
+
+  } else {
+    _p.PushAttribute( "format", "ascii" );
+
+    // write the data
+    _p.PushText( " " );
+    for (size_t i=0; i<_data.size(); ++i) {
+      _p.PushText( _data[i] );
+      _p.PushText( " " );
+    }
+  }
+}
+
+
+//
+// write grid data to a .vtk file
+//
+template <class S>
+std::string write_vtk_grid(Volumes<S> const& grid, const size_t file_idx,
+                           const size_t frameno, const double time) {
+
+  assert(grid.get_nelems() > 0 && "Inside write_vtk_grid with no elements");
+
+  const bool compress = false;
+  const bool asbase64 = true;
+
+  // generate file name
+  std::string prefix = "grid_";
+  std::stringstream vtkfn;
+  vtkfn << prefix << std::setfill('0') << std::setw(2) << file_idx << "_" << std::setw(5) << frameno << ".vtu";
+
+  // Blake: use code from Surfaces (above) and write velocity as the only data, no strengths
+  // note that positions and vels always have 3 components in the files
+
+  // prepare file pointer and printer
+  std::FILE* fp = std::fopen(vtkfn.str().c_str(), "wb");
+  tinyxml2::XMLPrinter printer( fp );
+
+  // write <?xml version="1.0"?>
+  printer.PushHeader(false, true);
+
+  printer.OpenElement( "VTKFile" );
+  printer.PushAttribute( "type", "UnstructuredGrid" );
+  //printer.PushAttribute( "type", "PolyData" );
+  printer.PushAttribute( "version", "0.1" );
+  printer.PushAttribute( "byte_order", "LittleEndian" );
+  printer.PushAttribute( "header_type", "UInt32" );
+
+  // push comment with sim time?
+
+  // must choose one of these two formats
+  printer.OpenElement( "UnstructuredGrid" );
+  //printer.OpenElement( "PolyData" );
+
+  // include simulation time here
+  printer.OpenElement( "FieldData" );
+  printer.OpenElement( "DataArray" );
+  printer.PushAttribute( "type", "Float64" );
+  printer.PushAttribute( "Name", "TimeValue" );
+  printer.PushAttribute( "NumberOfTuples", "1" );
+  {
+    Vector<double> time_vec = {time};
+    write_DataArray (printer, time_vec, false, false);
+  }
+  printer.CloseElement();	// DataArray
+  printer.CloseElement();	// FieldData
+
+  printer.OpenElement( "Piece" );
+  printer.PushAttribute( "NumberOfPoints", std::to_string(grid.get_n()).c_str() );
+  printer.PushAttribute( "NumberOfCells", std::to_string(grid.get_nelems()).c_str() );
+
+  printer.OpenElement( "Points" );
+  printer.OpenElement( "DataArray" );
+  printer.PushAttribute( "NumberOfComponents", "3" );	// SEE THIS 3?!?!? It needs to be there.
+  printer.PushAttribute( "Name", "position" );
+  printer.PushAttribute( "type", "Float32" );
+  write_DataArray (printer, grid.get_pos(), compress, asbase64);
+  printer.CloseElement();	// DataArray
+  printer.CloseElement();	// Points
+
+  printer.OpenElement( "Cells" );
+
+  // again, all connectivities and offsets must be Int32!
+  printer.OpenElement( "DataArray" );
+  printer.PushAttribute( "Name", "connectivity" );
+  printer.PushAttribute( "type", "Int32" );
+  {
+    std::vector<Int> const & idx = grid.get_idx();
+    Vector<int32_t> v(std::begin(idx), std::end(idx));
+    write_DataArray (printer, v, compress, asbase64);
+    //write_idx(printer, grid.get_idx(), compress, asbase64);
+  }
+  printer.CloseElement();	// DataArray
+
+  printer.OpenElement( "DataArray" );
+  printer.PushAttribute( "Name", "offsets" );
+  printer.PushAttribute( "type", "Int32" );
+  {
+    Vector<int32_t> v(grid.get_nelems());
+    // vector of 1 to n
+    std::iota(v.begin(), v.end(), 1);
+    std::transform(v.begin(), v.end(), v.begin(),
+                   std::bind(std::multiplies<int32_t>(), std::placeholders::_1, 4));
+    write_DataArray(printer, v, compress, asbase64);
+  }
+  printer.CloseElement();	// DataArray
+
+  printer.OpenElement( "DataArray" );
+  printer.PushAttribute( "Name", "types" );
+  printer.PushAttribute( "type", "UInt8" );
+  Vector<uint8_t> v(grid.get_nelems());
+  std::fill(v.begin(), v.end(), 9);
+  write_DataArray (printer, v, compress, asbase64);
+  printer.CloseElement();	// DataArray
+
+  printer.CloseElement();	// Cells
+
+
+  printer.OpenElement( "PointData" );
+
+  printer.OpenElement( "DataArray" );
+  printer.PushAttribute( "NumberOfComponents", "3" );
+  printer.PushAttribute( "Name", "velocity" );
+  printer.PushAttribute( "type", "Float32" );
+  write_DataArray (printer, grid.get_vel(), compress, asbase64);
+  printer.CloseElement();	// DataArray
+
+  printer.CloseElement();	// PointData 
+
+  printer.CloseElement();	// Piece
+  printer.CloseElement();	// PolyData or UnstructuredGrid
+  printer.CloseElement();	// VTKFile
+
+  std::fclose(fp);
+  std::cout << "Wrote " << grid.get_nelems() << " elements to " << vtkfn.str() << std::endl;
+  return vtkfn.str();
+}
+
 
 //
 // write a collection
@@ -525,6 +696,11 @@ void write_vtk_files(std::vector<Collection> const& coll, const size_t _index, c
       Surfaces<S> const & surf = std::get<Surfaces<S>>(elem);
       if (surf.get_npanels() > 0) {
         _files.emplace_back(write_vtu_panels<S>(surf, idx++, _index, _time));
+      }
+    } else if (std::holds_alternative<Volumes<S>>(elem)) {
+      Volumes<S> const & cells = std::get<Volumes<S>>(elem);
+      if (cells.get_nelems() > 0) {
+        _files.emplace_back(write_vtk_grid<S>(cells, idx++, _index, _time));
       }
     }
   }

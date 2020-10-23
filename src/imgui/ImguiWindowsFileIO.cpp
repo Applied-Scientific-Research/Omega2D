@@ -25,7 +25,7 @@
   #define strcasecmp _stricmp
 #endif
 
-// is already defined
+// already defined
 //#define IM_ARRAYSIZE(_ARR)  ((int)(sizeof(_ARR)/sizeof(*_ARR)))
 
 #if defined(ICON_FA_CARET_DOWN)
@@ -296,8 +296,8 @@ std::list<string> MiniPath::listDirectories( const string& s )
 std::list<string> MiniPath::listFiles( const string& s, string filter )
 {
 #if defined(_WIN32) || defined(_WIN64)
-    using namespace filesystem;    list<string> files;
-
+    using namespace filesystem;
+    list<string> files;
 
     struct _finddata_t c_file;
     intptr_t hFile;

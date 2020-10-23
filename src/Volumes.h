@@ -1,8 +1,8 @@
 /*
- * Surfaces.h - Specialized class for surfaces in 2D
+ * Volumes.h - Specialized class for volumes in 2D
  *
- * (c)2019 Applied Scientific Research, Inc.
- *         Written by Mark J Stock <markjstock@gmail.com>
+ * (c)2020 Applied Scientific Research, Inc.
+ *         Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -26,69 +26,72 @@
 #include <optional>
 #include <cassert>
 
+const std::string vert_shader_source =
+#include "shaders/elempack.vert"
+;
+const std::string geom_shader_source =
+#include "shaders/quad.geom"
+;
+const std::string frag_shader_source =
+#include "shaders/elempack.frag"
+;
 
-// useful structure for panel strengths and BCs
+
+// useful structure for element strengths and BCs
 // Strength<S> ps;
 //   ps[0] means that the tangential (vortex) strength is present
 //   ps[1] means that the normal (source) strength is present
-template <class S> using Strength = std::array<std::optional<Vector<S>>,2>;
-
-// useful structure for basis vectors
-// Basis<S> b;
-//   b[0] is the pair of arrays of the tangential normalized vectors, b[0][0] for x, b[0][1] for y
-//   b[1] is the same for the normal vectors (+ is into fluid), b[1][0] for x, b[1][1] for y
-template <class S> using Basis = std::array<std::array<Vector<S>,Dimensions>,Dimensions>;
+//template <class S> using Strength = std::array<std::optional<Vector<S>>,2>;
 
 
 // 1-D elements
 template <class S>
-class Surfaces: public ElementBase<S> {
+class Volumes: public ElementBase<S> {
 public:
   // constructor - accepts vector of vectors of (x,y,s) pairs
   //               makes one boundary for each outer vector
   //               each inner vector must have even number of floats
   //               last parameter (_val) is either fixed strength or boundary
-  //               condition for each panel
-  Surfaces(const std::vector<S>&   _x,
-           const std::vector<Int>& _idx,
-           const std::vector<S>&   _val,
-           const elem_t _e,
-           const move_t _m,
-           std::shared_ptr<Body> _bp)
+  //               condition for each element
+  Volumes(const std::vector<S>&   _x,
+          const std::vector<Int>& _idx,
+          const std::vector<S>&   _val,
+          const elem_t _e,
+          const move_t _m,
+          std::shared_ptr<Body> _bp)
     : ElementBase<S>(0, _e, _m, _bp),
-      np(0),
-      source_str_is_unknown(true),
-      vol(-1.0),
-      solved_omega(0.0),
-      omega_error(0.0),
-      this_omega(0.0),
-      reabsorbed_gamma(0.0),
+      nb(0),
       max_strength(-1.0) {
 
-    // make sure input arrays are correctly-sized
-    assert(_idx.size() % Dimensions == 0 && "Index array is not an even multiple of dimensions");
-    const size_t nsurfs = _idx.size() / Dimensions;
+    // assume all elements are 1st order quads (4 corner indices)
+    const size_t nper = 4;
+    assert(_idx.size() % nper == 0 && "Index array is not an even multiple of 4");
+    const size_t nelems = _idx.size() / nper;
 
-    // always initialize the ps panel strength optionals
+    // always initialize the ps element strength optionals
+/*
     if (this->E != inert) {
       for (size_t d=0; d<2; ++d) {
         Vector<S> new_s;
         ps[d] = std::move(new_s);
        }
     }
+*/
 
     // if no surfs, quit out now
-    if (nsurfs == 0) {
-      // but still initialize ux before we go (in case first bfeature is not enabled)
+    if (nelems == 0) {
+      // but still initialize ux (untransformed positions) before we go (in case first bfeature is not enabled)
       if (_bp) this->ux = this->x;
       return;
     }
 
-    assert(_val.size() % nsurfs == 0 && "Value array is not an even multiple of panel count");
     assert(_x.size() % Dimensions == 0 && "Position array is not an even multiple of dimensions");
     const size_t nnodes = _x.size() / Dimensions;
 
-    std::cout << "  new collection with " << nsurfs << " panels and " << nnodes << " nodes" << std::endl;
+    // Important: Volumes hold properties on nodes, not on elements!!!
+    assert(_val.size() % nnodes == 0 && "Value array is not an even multiple of node count");
+
+    std::cout << "  new collection with " << nelems << " elements and " << nnodes << " nodes" << std::endl;
 
     // pull out the node locations, they go in the base class
     for (size_t d=0; d<Dimensions; ++d) {
@@ -106,20 +109,21 @@ public:
     // copy over the node indices (with a possible type change)
     bool idx_are_all_good = true;
     idx.resize(_idx.size());
-    for (size_t i=0; i<2*nsurfs; ++i) {
+    for (size_t i=0; i<nper*nelems; ++i) {
       // make sure it exists in the nodes array
       if (_idx[i] >= nnodes) idx_are_all_good = false;
       idx[i] = _idx[i];
     }
     assert(idx_are_all_good && "Some indicies are bad");
 
-    // compute all basis vectors and panel areas
-    compute_bases(nsurfs);
+    // compute all basis vectors and element areas
+    //compute_bases(nelems);
 
-    // are strengths/values on a per-node or per-panel basis? - per panel now
+    // are strengths/values on a per-node or per-element basis? - per element now
 
     // now, depending on the element type, put the value somewhere
     if (this->E == active) {
+/*
       // value is a fixed strength for the segment
       Vector<S> new_s(_val.size());
       ps[0] = std::move(new_s);
@@ -127,8 +131,10 @@ public:
       Vector<S> new_s1(_val.size());
       ps[1] = std::move(new_s1);
       std::copy(_val.begin(), _val.end(), ps[1]->begin());
+*/
 
     } else if (this->E == reactive) {
+/*
       // value is a boundary condition
       // bc[0] is the tangential BC, typically 0.0
       Vector<S> new_bc(_val.size());
@@ -142,10 +148,11 @@ public:
       // make space for the unknown sheet strengths
       for (size_t d=0; d<2; ++d) {
         if (ps[d]) {
-          ps[d]->resize(nsurfs);
+          ps[d]->resize(nelems);
           std::fill(ps[d]->begin(), ps[d]->end(), 0.0);
         }
       }
+*/
 
     } else if (this->E == inert) {
       // value is ignored (probably zero)
@@ -156,52 +163,57 @@ public:
       this->u[d].resize(nnodes);
     }
 
-    // but panel velocity is per panel
+    // but element velocity is per element
+/*
     for (size_t d=0; d<Dimensions; ++d) {
-      pu[d].resize(nsurfs);
+      pu[d].resize(nelems);
     }
+*/
 
     // debug print
-    if (false) {
+    if (true) {
       std::cout << "Nodes" << std::endl;
       for (size_t i=0; i<nnodes; ++i) {
         std::cout << "  " << i << " " << this->x[0][i] << " " << this->x[1][i] << std::endl;
       }
-      std::cout << "Segments" << std::endl;
-      for (size_t i=0; i<nsurfs; ++i) {
-        std::cout << "  " << i << " " << idx[2*i] << " " << idx[2*i+1] << std::endl;
+      std::cout << "Elems" << std::endl;
+      for (size_t i=0; i<nelems; ++i) {
+        std::cout << "  " << i << " " << idx[4*i] << " " << idx[4*i+1] << " " << idx[4*i+2] << " " << idx[4*i+3] << std::endl;
       }
     }
 
-    // need to reset the base class n and the local np
+    // need to reset the base class n and the local nb
     this->n = nnodes;
-    np = nsurfs;
+    nb = nelems;
 
     // find geometric center
+/*
     if (this->M == bodybound) {
       set_geom_center();
     }
+*/
   }
 
   // delegating constructor
-  Surfaces(const ElementPacket<S>& _elems,
-           const elem_t _e,
-           const move_t _m,
-           std::shared_ptr<Body> _bp)
-    : Surfaces(_elems.x, _elems.idx, _elems.val, _e, _m, _bp)
+  Volumes(const ElementPacket<S>& _elems,
+          const elem_t _e,
+          const move_t _m,
+          std::shared_ptr<Body> _bp)
+    : Volumes(_elems.x, _elems.idx, _elems.val, _e, _m, _bp)
   { }
 
-  size_t                            get_npanels()     const { return np; }
-  const S                           get_vol()         const { return vol; }
-  const std::array<S,Dimensions>    get_geom_center() const { return tc; }
+  size_t                            get_nelems()     const { return nb; }
+  //const S                           get_vol()         const { return vol; }
+  //const std::array<S,Dimensions>    get_geom_center() const { return tc; }
 
-  // panel geometry
+  // element geometry
   const std::vector<Int>&                  get_idx()  const { return idx; }
+  //const Vector<S>&                         get_area() const { return area; }
+/*
   const std::array<Vector<S>,Dimensions>&  get_tang() const { return b[0]; }
   const std::array<Vector<S>,Dimensions>&  get_norm() const { return b[1]; }
-  const Vector<S>&                         get_area() const { return area; }
 
-  // override the ElementBase versions and send the panel-center vels
+  // override the ElementBase versions and send the element-center vels
   const std::array<Vector<S>,Dimensions>&   get_vel() const { return pu; }
   std::array<Vector<S>,Dimensions>&         get_vel()       { return pu; }
 
@@ -213,18 +225,22 @@ public:
   const bool                           have_src_str() const { return (bool)ps[1]; }
   const Vector<S>&                      get_src_str() const { return *ps[1]; }
   Vector<S>&                            get_src_str()       { return *ps[1]; }
+*/
 
+/*
   // and (reactive only) boundary conditions
   const Vector<S>&                     get_tang_bcs() const { return *bc[0]; }
   const Vector<S>&                     get_norm_bcs() const { return *bc[1]; }
 
   // find out the next row index in the BEM after this collection
   void set_first_row(const Int _i) { istart = _i; }
-  const Int num_unknowns_per_panel() const { return (source_str_is_unknown ? 2 : 1); }
+  const Int num_unknowns_per_element() const { return (source_str_is_unknown ? 2 : 1); }
   const Int get_first_row() const { return istart; }
-  const Int get_num_rows()  const { return (get_npanels()*num_unknowns_per_panel() + (is_augmented() ? 1 : 0)); }
+  const Int get_num_rows()  const { return (get_nelems()*num_unknowns_per_elem() + (is_augmented() ? 1 : 0)); }
   const Int get_next_row()  const { return istart+get_num_rows(); }
+*/
 
+/*
   // assign the new strengths from BEM - do not let base class do this
   void set_str(const size_t ioffset, const size_t icnt, Vector<S> _in) {
 
@@ -239,13 +255,13 @@ public:
       _in.pop_back();
     }
 
-    assert(_in.size() == (*ps[0]).size()*num_unknowns_per_panel() && "Set strength array size does not match");
+    assert(_in.size() == (*ps[0]).size()*num_unknowns_per_elem() && "Set strength array size does not match");
     //assert(ioffset == 0 && "Offset is not zero");
 
-    // copy the BEM-solved strengths into the panel-strength data structures
+    // copy the BEM-solved strengths into the element-strength data structures
     if (source_str_is_unknown) {
       // there are source strengths
-      for (size_t i=0; i<get_npanels(); ++i) {
+      for (size_t i=0; i<get_nelems(); ++i) {
         (*ps[0])[i] = _in[2*i];
         (*ps[1])[i] = _in[2*i+1];
         //Int id0 = idx[2*i];
@@ -255,36 +271,12 @@ public:
     } else {
       // only vortex strengths
       *ps[0] = _in;
-      //for (size_t i=0; i<get_npanels(); ++i) {
+      //for (size_t i=0; i<get_nelems(); ++i) {
         //Int id0 = idx[2*i];
         //Int id1 = idx[2*i+1];
         //std::cout << i << " " << (*ps[0])[i] << " " << this->x[0][id0] << " " << this->x[1][id0] << " " << this->x[0][id1] << " " << this->x[1][id1] << std::endl;
       //}
     }
-  }
-
-  // a little logic to see if we should augment the BEM equations for this object
-  const bool is_augmented() const {
-    bool augment = true;
-
-    // don't augment the ground body, or the boundary to an internal flow
-    if (this->B) {
-      // is the body pointer ground?
-      if (std::string("ground").compare(this->B->get_name()) == 0) {
-        // now, does the object bound internal flow?
-        if (vol < 0.0) augment = false;
-      }
-    } else {
-      // nullptr for Body? no augment (old way of turning it off)
-      augment = false;
-    }
-    // and only need to augment reactive surfaces (ones participating in BEM)
-    if (this->E != reactive) augment = false;
-
-    // force no augmentation at all
-    //augment = false;
-
-    return augment;
   }
 
   const float get_max_bc_value() const {
@@ -299,28 +291,47 @@ public:
     } else {
       return (float)0.0;
     }
+    return (float)0.0;
   }
+*/
 
-  // append nodes and panels to this collection
+  // a little logic to see if we should augment the BEM equations for this object (see Surfaces.h)
+  const bool is_augmented() const { return false; }
+
+  // find out the next row index in the BEM after this collection
+  // once we start supporting BEM unknowns on points, we'll have to change these
+  void set_first_row(const Int _i) { return; }
+  const Int get_first_row() const { return 0; }
+  const Int get_num_rows()  const { return 0; }
+  const Int get_next_row()  const { return 0; }
+
+  const float get_max_bc_value() const { return 0.0; }
+
+
+  // add more nodes and elements to this collection
   void add_new(const std::vector<S>&   _x,
                const std::vector<Int>& _idx,
                const std::vector<S>&   _val) {
 
     // remember old sizes of nodes and element arrays
     const size_t nnold = this->n;
-    const size_t neold = get_npanels();
+    const size_t neold = get_nelems();
 
     // make sure input arrays are correctly-sized
-    assert(_idx.size() % Dimensions == 0 && "Index array is not an even multiple of dimensions");
-    const size_t nsurfs = _idx.size() / Dimensions;
-    // if no surfs, quit out now
-    if (nsurfs == 0) return;
 
-    assert(_val.size() % nsurfs == 0 && "Value array is not an even multiple of panel count");
+    // assume all elements are 1st order quads (4 corner indices)
+    const size_t nper = 4;
+    assert(_idx.size() % nper == 0 && "Index array is not an even multiple of 4");
+    const size_t nelems = _idx.size() / nper;
+    // if no surfs, quit out now
+    if (nelems == 0) return;
+
     assert(_x.size() % Dimensions == 0 && "Position array is not an even multiple of dimensions");
     const size_t nnodes = _x.size() / Dimensions;
 
-    std::cout << "  adding " << nsurfs << " new surface panels and " << nnodes << " new points to collection..." << std::endl;
+    assert(_val.size() % nnodes == 0 && "Value array is not an even multiple of node count");
+
+    std::cout << "  adding " << nelems << " new elements and " << nnodes << " new points to collection..." << std::endl;
 
     // DON'T call the method in the base class, because we do things differently here
     //ElementBase<S>::add_new(_in);
@@ -345,41 +356,45 @@ public:
 
     // copy over the node indices, taking care to offset into the new array
     bool idx_are_all_good = true;
-    idx.resize(2*neold + _idx.size());
-    for (size_t i=0; i<2*nsurfs; ++i) {
+    idx.resize(4*neold + _idx.size());
+    for (size_t i=0; i<nper*nelems; ++i) {
       // make sure it exists in the nodes array
       if (_idx[i] >= nnold+nnodes) idx_are_all_good = false;
-      idx[2*neold+i] = nnold + _idx[i];
+      idx[nper*neold+i] = nnold + _idx[i];
     }
     assert(idx_are_all_good && "Some indicies are bad");
 
-    // compute all basis vectors and panel areas
-    compute_bases(neold+nsurfs);
+    // compute all basis vectors and element areas
+    //compute_bases(neold+nelems);
 
-    // now, depending on the element type, put the value somewhere - but panel-wise, so here
+    // now, depending on the element type, put the value somewhere - but element-wise, so here
     if (this->E == active) {
+/*
       // value is a fixed strength for the element
-      ps[0]->reserve(neold+nsurfs); 
+      ps[0]->reserve(neold+nelems); 
       ps[0]->insert(ps[0]->end(), _val.begin(), _val.end());
       // HACK - should use the size of _val to determine whether we have data here
-      ps[1]->reserve(neold+nsurfs); 
+      ps[1]->reserve(neold+nelems); 
       ps[1]->insert(ps[1]->end(), _val.begin(), _val.end());
+*/
 
     } else if (this->E == reactive) {
+/*
       // value is a boundary condition
-      bc[0]->reserve(neold+nsurfs); 
+      bc[0]->reserve(neold+nelems); 
       bc[0]->insert(bc[0]->end(), _val.begin(), _val.end());
       // HACK - should use the size of _val to determine whether we have data here
-      bc[1]->reserve(neold+nsurfs); 
+      bc[1]->reserve(neold+nelems); 
       bc[1]->insert(bc[1]->end(), _val.begin(), _val.end());
 
       // upsize vortex sheet and raw strength arrays, too
       for (size_t d=0; d<2; ++d) {
         if (ps[d]) {
-          ps[d]->resize(neold+nsurfs);
+          ps[d]->resize(neold+nelems);
           //std::fill(ps[d]->begin(), ps[d]->end(), 0.0);
         }
       }
+*/
 
     } else if (this->E == inert) {
       // value is ignored (probably zero)
@@ -390,10 +405,12 @@ public:
       this->u[d].resize(nnold+nnodes);
     }
 
-    // panel velocity is here
+    // element velocity is here
+/*
     for (size_t d=0; d<Dimensions; ++d) {
-      pu[d].resize(neold+nsurfs);
+      pu[d].resize(neold+nelems);
     }
+*/
 
     // debug print
     if (false) {
@@ -401,39 +418,41 @@ public:
       for (size_t i=0; i<nnold+nnodes; ++i) {
         std::cout << "  " << i << " " << this->x[0][i] << " " << this->x[1][i] << std::endl;
       }
-      std::cout << "Segments" << std::endl;
-      for (size_t i=0; i<neold+nsurfs; ++i) {
-        std::cout << "  " << i << " " << idx[2*i] << " " << idx[2*i+1] << std::endl;
+      std::cout << "Elems" << std::endl;
+      for (size_t i=0; i<neold+nelems; ++i) {
+        std::cout << "  " << i << " " << idx[4*i] << " " << idx[4*i+1] << " " << idx[4*i+2] << " " << idx[4*i+3] << std::endl;
       }
     }
 
     // need to reset the base class n
     this->n += nnodes;
-    np += nsurfs;
+    nb += nelems;
 
     // re-find geometric center
+/*
     if (this->M == bodybound) {
       set_geom_center();
     }
+*/
   }
 
-  // append nodes and panels to this collection
+  // append nodes and bricks to this collection
   void add_new(const ElementPacket<float>& _in) {
 
     // ensure that this packet really is Surfaces
-    assert(_in.idx.size() != 0 && "Input ElementPacket is not Surfaces");
-    assert(_in.ndim == 1 && "Input ElementPacket is not Surfaces");
+    assert(_in.idx.size() != 0 && "Input ElementPacket is not Volumes");
+    assert(_in.ndim == 2 && "Input ElementPacket is not Volumes");
 
-    // and that it has the right number of values per particle
-    if (this->E == inert) assert(_in.val.size() == 0 && "Input ElementPacket with inert Surfaces has nonzero val array");
-    else assert(_in.val.size() == _in.nelem && "Input ElementPacket with Surfaces has bad val array size");
+    // and that it has the right number of values per element/node
+    //if (this->E == inert) assert(_in.val.size() == 0 && "Input ElementPacket with inert Volumes has nonzero val array");
+    //else assert(_in.val.size() == _in.nelem && "Input ElementPacket with Volumes has bad val array size");
 
-    // must explicitly call the method in the base class first - this pulls out positions and strengths
-    //ElementBase<S>::add_new(_in);
+    // forward to the proper function
     (void) add_new(_in.x, _in.idx, _in.val);
   }
 
 
+/*
   void add_body_motion(const S _factor, const double _time) {
     // no need to call base class now
     //ElementBase<S>::add_body_motion(_factor);
@@ -446,8 +465,8 @@ public:
     assert(vol > 0.0 && "Have not calculated transformed center, or volume is negative");
     // and we trust that we've transformed utc to tc
 
-    // do this for all nodes - what about panels?
-    for (size_t i=0; i<get_npanels(); ++i) {
+    // do this for all nodes - what about elements?
+    for (size_t i=0; i<get_nelems(); ++i) {
 
       // apply the translational velocity
       const std::array<double,Dimensions> thisvel = this->B->get_vel(_time);
@@ -457,10 +476,10 @@ public:
 
       // now compute the rotational velocity with respect to the geometric center
       const double thisrotvel = this->B->get_rotvel(_time);
-      // center of this panel
+      // center of this element
       Int id0 = idx[2*i];
       Int id1 = idx[2*i+1];
-      // panel center
+      // element center
       const S xc = 0.5 * (this->x[0][id1] + this->x[0][id0]);
       const S yc = 0.5 * (this->x[1][id1] + this->x[1][id0]);
       // add rotational velocity
@@ -473,7 +492,7 @@ public:
     // call base class first
     ElementBase<S>::zero_strengths();
 
-    // and reset any panel vortex or source strengths
+    // and reset any element vortex or source strengths
     for (size_t d=0; d<2; ++d) {
       if (ps[d]) {
         std::fill(ps[d]->begin(), ps[d]->end(), 0.0);
@@ -527,21 +546,21 @@ public:
     //assert(vol > 0.0 && "Have not calculated transformed center, or volume is negative");
     // and we trust that we've transformed utc to tc
 
-    assert(ps[0]->size() == get_npanels() && "Strength array is not the same as panel count");
-    assert(ps[1]->size() == get_npanels() && "Strength array is not the same as panel count");
+    assert(ps[0]->size() == get_nelems() && "Strength array is not the same as element count");
+    assert(ps[1]->size() == get_nelems() && "Strength array is not the same as element count");
 
     // still here? let's do it. use the untransformed coordinates
-    for (size_t i=0; i<get_npanels(); i++) {
+    for (size_t i=0; i<get_nelems(); i++) {
       const size_t j   = idx[2*i];
       const size_t jp1 = idx[2*i+1];
-      // vector from object geometric center to panel center
+      // vector from object geometric center to element center
       const S dx = 0.5 * ((*this->ux)[0][j] + (*this->ux)[0][jp1]) - utc[0];
       const S dy = 0.5 * ((*this->ux)[1][j] + (*this->ux)[1][jp1]) - utc[1];
-      // velocity of the panel center
+      // velocity of the element center
       const S ui = -_rotvel * dy;
       const S vi =  _rotvel * dx;
 
-      // panel tangential vector, fluid to the left, body to the right
+      // element tangential vector, fluid to the left, body to the right
       S panelx = (*this->ux)[0][jp1] - (*this->ux)[0][j];
       S panely = (*this->ux)[1][jp1] - (*this->ux)[1][j];
       const S oopanell = 1.0 / area[i];
@@ -558,7 +577,7 @@ public:
 
       // debug print
       if (std::abs(_rotvel) > 0.0 and false) {
-        std::cout << "  panel " << i << " at " << dx << " " << dy << " adds to vortex str "
+        std::cout << "  element " << i << " at " << dx << " " << dy << " adds to vortex str "
                   << new_vort << " and source str " << new_src << std::endl;
       }
     }
@@ -571,47 +590,44 @@ public:
     assert(this->B && "Body pointer has not been set");
     assert(this->ux && "Untransformed positions have not been set");
 
-    std::cout << "  inside Surfaces::set_geom_center with " << get_npanels() << " panels" << std::endl;
+    std::cout << "  inside Volumes::set_geom_center with " << get_nelems() << " elements" << std::endl;
 
-    // iterate over panels, accumulating area and CM in double precision
-    using A = double;
-    A asum = 0.0;
-    A xsum = 0.0;
-    A ysum = 0.0;
-    for (size_t i=0; i<get_npanels(); i++) {
+    // iterate over elements, accumulating area and CM
+    S asum = 0.0;
+    S xsum = 0.0;
+    S ysum = 0.0;
+    for (size_t i=0; i<get_nelems(); i++) {
       const size_t j   = idx[2*i];
       const size_t jp1 = idx[2*i+1];
-      std::cout << "elem " << i << " from " << (*this->ux)[0][j] << " " << (*this->ux)[1][j] << " to " << (*this->ux)[0][jp1] << " " << (*this->ux)[1][jp1] << std::endl;
-      // assume a triangle from 0,0 to two ends of each panel
-      const A xc = (0.0 + (*this->ux)[0][j] + (*this->ux)[0][jp1]) / 3.0;
-      const A yc = (0.0 + (*this->ux)[1][j] + (*this->ux)[1][jp1]) / 3.0;
-      const A panelx = (*this->ux)[0][jp1] - (*this->ux)[0][j];
-      const A panely = (*this->ux)[1][jp1] - (*this->ux)[1][j];
+      // assume a triangle from 0,0 to two ends of each element
+      const S xc = (0.0 + (*this->ux)[0][j] + (*this->ux)[0][jp1]) / 3.0;
+      const S yc = (0.0 + (*this->ux)[1][j] + (*this->ux)[1][jp1]) / 3.0;
+      const S panelx = (*this->ux)[0][jp1] - (*this->ux)[0][j];
+      const S panely = (*this->ux)[1][jp1] - (*this->ux)[1][j];
       // and the side lengths
-      const A a = std::sqrt(std::pow((*this->ux)[0][j],2)+std::pow((*this->ux)[1][j],2));
-      const A b = std::sqrt(std::pow(panelx,2)+std::pow(panely,2));
-      const A c = std::sqrt(std::pow((*this->ux)[0][jp1],2)+std::pow((*this->ux)[1][jp1],2));
-      std::cout << "  panel " << i << " has side lens " << a << " " << b << " " << c << std::endl;
+      const S a = std::sqrt(std::pow((*this->ux)[0][j],2)+std::pow((*this->ux)[1][j],2));
+      const S b = std::sqrt(std::pow(panelx,2)+std::pow(panely,2));
+      const S c = std::sqrt(std::pow((*this->ux)[0][jp1],2)+std::pow((*this->ux)[1][jp1],2));
+      //std::cout << "  element " << i << " has side lens " << a << " " << b << " " << c << std::endl;
       // Heron's formula for the area
-      const A hs = 0.5*(a+b+c);
-      A thisarea = std::sqrt(hs*(hs-a)*(hs-b)*(hs-c));
+      const S hs = 0.5*(a+b+c);
+      S thisarea = std::sqrt(hs*(hs-a)*(hs-b)*(hs-c));
       // negate area if the winding is backwards
       if ((*this->ux)[1][j]*panelx - (*this->ux)[0][j]*panely < 0.0) thisarea = -thisarea;
       // add this to the running sums
-      std::cout << "    and area " << thisarea << " and center " << xc << " " << yc << std::endl;
-      std::cout << "    running sums " << asum << " " << xsum << " " << ysum << std::endl;
+      //std::cout << "    and area " << thisarea << " and center " << xc << " " << yc << std::endl;
       asum += thisarea;
       xsum += xc*thisarea;
       ysum += yc*thisarea;
     }
-    vol = (S)asum;
-    utc[0] = (S)(xsum/asum);
-    utc[1] = (S)(ysum/asum);
+    vol = asum;
+    utc[0] = xsum/vol;
+    utc[1] = ysum/vol;
 
     std::cout << "    geom center is " << utc[0] << " " << utc[1] << " and area is " << vol << std::endl;
   }
 
-  // need to maintain the 2x2 set of basis vectors for each panel
+  // need to maintain the 2x2 set of basis vectors for each element
   // this also calculates the triangle areas
   // always recalculate everything!
   void compute_bases(const Int nnew) {
@@ -664,7 +680,7 @@ public:
     ElementBase<S>::transform(_time);
 
     // and recalculate the basis vectors
-    compute_bases(np);
+    compute_bases(nb);
 
     if (this->B and this->M == bodybound) {
     //if (this->B) {
@@ -684,25 +700,29 @@ public:
       tc[1] = utc[1];
     }
   }
-
+*/
 
   void zero_vels() {
-    // zero the local, panel-center vels
+    // zero the local, element-center vels
+/*
     for (size_t d=0; d<Dimensions; ++d) {
       std::fill(pu[d].begin(), pu[d].end(), 0.0);
     }
+*/
     // then explicitly call the method in the base class to zero theirs
     ElementBase<S>::zero_vels();
   }
 
   void finalize_vels(const std::array<double,Dimensions>& _fs) {
-    // finalize panel-center vels first
+    // finalize element-center vels first
+/*
     const double factor = 0.5/M_PI;
     for (size_t d=0; d<Dimensions; ++d) {
-      for (size_t i=0; i<get_npanels(); ++i) {
+      for (size_t i=0; i<get_nelems(); ++i) {
         pu[d][i] = _fs[d] + pu[d][i] * factor;
       }
     }
+*/
     // must explicitly call the method in the base class, too
     ElementBase<S>::finalize_vels(_fs);
   }
@@ -711,7 +731,7 @@ public:
   // up-size all arrays to the new size, filling with sane values
   void resize(const size_t _nnew) {
     const size_t currn = this->n;
-    //std::cout << "  inside Surfaces::resize with " << currn << " " << _nnew << std::endl;
+    //std::cout << "  inside Volumes::resize with " << currn << " " << _nnew << std::endl;
 
     // must explicitly call the method in the base class - this sets n
     ElementBase<S>::resize(_nnew);
@@ -725,6 +745,7 @@ public:
       r[i] = 1.0;
     }
   }
+*/
 
   //
   // 1st order Euler advection and stretch
@@ -765,16 +786,16 @@ public:
       max_strength = 1.0;
     }
   }
-*/
 
   //
-  // return a particle version of the panels (useful during Diffusion)
+  // return a particle version of the elements (useful during Diffusion)
   // offset is in world units - NOT scaled
   //
-  std::vector<S> represent_as_particles(const S _offset, const S _vdelta) {
+/*
+  std::vector<S> represent_elems_as_particles(const S _offset, const S _vdelta) {
 
-    // how many panels?
-    const size_t num_pts = get_npanels();
+    // how many elements?
+    const size_t num_pts = get_nelems();
 
     // init the output vector (x, y, s, r)
     std::vector<S> px(num_pts*4);
@@ -788,15 +809,15 @@ public:
     for (size_t i=0; i<num_pts; i++) {
       Int id0 = idx[2*i];
       Int id1 = idx[2*i+1];
-      // start at center of panel
+      // start at center of element
       px[4*i+0] = 0.5 * (this->x[0][id1] + this->x[0][id0]);
       px[4*i+1] = 0.5 * (this->x[1][id1] + this->x[1][id0]);
-      //std::cout << "  panel center is " << px[4*i+0] << " " << px[4*i+1];
+      //std::cout << "  element center is " << px[4*i+0] << " " << px[4*i+1];
       // push out a fixed distance
       // this assumes properly resolved, vdelta and dt
       px[4*i+0] += _offset * norm[0][i];
       px[4*i+1] += _offset * norm[1][i];
-      // the panel strength is the solved strength plus the boundary condition
+      // the element strength is the solved strength plus the boundary condition
       float this_str = (*ps[0])[i];
       // add on the (vortex) bc value here
       if (this->E == reactive) this_str += (*bc[0])[i];
@@ -809,7 +830,43 @@ public:
 
     return px;
   }
+*/
 
+
+  //
+  // return a particle version of the nodes (useful during velocity evaluation)
+  // offset is in world units - NOT scaled
+  //
+  std::vector<S> represent_nodes_as_particles(const S _vdelta) {
+
+    // how many nodes?
+    const size_t num_pts = this->get_n();
+
+    // note that since this is being passed in Influence as inert, use 2 values per point
+
+    // init the output vector (x, y)
+    std::vector<S> px(num_pts*2);
+
+    for (size_t i=0; i<num_pts; i++) {
+      px[2*i+0] = this->x[0][i];
+      px[2*i+1] = this->x[1][i];
+      //std::cout << "  element center is " << px[4*i+0] << " " << px[4*i+1];
+      // the element strength is the solved strength plus the boundary condition
+      //float this_str = (*ps[0])[i];
+      // add on the (vortex) bc value here
+      //if (this->E == reactive) this_str += (*bc[0])[i];
+      // complete the element with a strength
+      //px[4*i+2] = this_str * area[i];
+      //px[4*i+2] = 0.0;
+      // and the core size (effectively field points)
+      //px[4*i+3] = 0.0;
+      //std::cout << "  new part is " << px[4*i+0] << " " << px[4*i+1] << " " << px[4*i+2] << " " << px[4*i+3] << std::endl;
+    }
+
+    return px;
+  }
+
+/*
   // find the new peak vortex strength magnitude
   S get_max_str() {
     if (ps[0]) {
@@ -820,9 +877,12 @@ public:
       return 1.0;
     }
   }
+*/
 
   // smooth the peak strength magnitude
   void update_max_str() {
+    max_strength = 1.0;
+/*
     S thismax = get_max_str();
 
     // and slowly update the current saved value
@@ -831,18 +891,20 @@ public:
     } else {
       max_strength = 0.1*thismax + 0.9*max_strength;
     }
+*/
   }
 
+/*
   // add and return the total circulation of all elements
   //   specializing the one in ElementBase because we need
-  //   to scale by panel length here
+  //   to scale by element length here
   S get_total_circ(const double _time) {
     S circ = 0.0;
 
     if (ps[0]) {
       // we have strengths, add them up
-      for (size_t i=0; i<get_npanels(); i++) {
-        // total circulation is just vortex sheet strength times panel length
+      for (size_t i=0; i<get_nelems(); i++) {
+        // total circulation is just vortex sheet strength times element length
         circ += (*ps[0])[i] * area[i];
       }
     }
@@ -867,6 +929,7 @@ public:
 
   // return the rotational speed from the previous step
   S get_last_body_circ() { return 2.0 * vol * (S)this_omega; }
+*/
 
   // compute the change in circulation of the rotating body since the last shedding event
 /*
@@ -893,21 +956,24 @@ public:
     std::array<S,Dimensions> imp;
     imp.fill(0.0);
 
+/*
     if (ps[0]) {
       // make this easy - represent as particles - do we count BCs here?!?
       std::vector<S> pts = represent_as_particles(0.0, 1.0);
 
       // now compute impulse of those
-      for (size_t i=0; i<get_npanels(); ++i) {
+      for (size_t i=0; i<get_nelems(); ++i) {
         const size_t idx = 4*i;
         imp[0] -= pts[idx+2] * pts[idx+1];
         imp[1] += pts[idx+2] * pts[idx+0];
       }
     }
+*/
 
     return imp;
   }
 
+/*
   // reset the circulation counter and saved rotation rate - useful for augmented BEM
   void reset_augmentation_vars() {
     this_omega = this->B->get_rotvel();
@@ -927,6 +993,7 @@ public:
   S get_reabsorbed() {
     return reabsorbed_gamma;
   }
+*/
 
 
 #ifdef USE_GL
@@ -950,11 +1017,11 @@ public:
               float*              _negcolor,
               float*              _defcolor) {
 
-    //std::cout << "inside Surfaces.initGL" << std::endl;
-    std::cout << "inside Surfaces.initGL with E=" << this->E << " and M=" << this->M << std::endl;
+    //std::cout << "inside Volumes.initGL" << std::endl;
+    std::cout << "inside Volumes.initGL with E=" << this->E << " and M=" << this->M << std::endl;
 
     // generate the opengl state object with space for 4 vbos and 1 shader program
-    mgl = std::make_shared<GlState>(4,1);
+    mgl = std::make_shared<GlState>(3,1);
 
     // Allocate space, but don't upload the data from CPU to GPU yet
     for (size_t i=0; i<Dimensions; ++i) {
@@ -965,18 +1032,23 @@ public:
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mgl->vbo[Dimensions]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, 0, idx.data(), GL_STATIC_DRAW);
 
+/*
     if (this->s) {
       glBindBuffer(GL_ARRAY_BUFFER, mgl->vbo[3]);
       glBufferData(GL_ARRAY_BUFFER, 0, (*ps[0]).data(), GL_STATIC_DRAW);
     }
+*/
 
-    // Load and create the blob-drawing shader program
-    mgl->spo[0] = create_draw_surface_line_prog();
+    // Load and create the quad-drawing shader program
+    mgl->spo[0] = create_vertfrag_prog(vert_shader_source, frag_shader_source);
+    //mgl->spo[0] = create_vertgeomfrag_prog(vert_shader_source, frag_shader_source);
+    //mgl->spo[0] = create_draw_quad_prog();
+    //mgl->spo[1] = create_draw_quadedges_prog();
 
     // Now do the four arrays
     prepare_opengl_buffer(mgl->spo[0], 0, "px");
     prepare_opengl_buffer(mgl->spo[0], 1, "py");
-    prepare_opengl_buffer(mgl->spo[0], 2, "rawstr");
+    //prepare_opengl_buffer(mgl->spo[0], 2, "rawstr");
 
     // and for the compute shaders! (later)
 
@@ -1007,7 +1079,7 @@ public:
 
   // this gets done every time we change the size of the index array
   void updateGL() {
-    //std::cout << "inside Surfaces.updateGL" << std::endl;
+    //std::cout << "inside Volumes.updateGL" << std::endl;
 
     // has this been init'd yet?
     if (not mgl) return;
@@ -1032,12 +1104,14 @@ public:
         // just don't upload strengths
 
       } else { // this->E is active or reactive
+/*
         // the strengths
         if (ps[0]) {
           const size_t slen = ps[0]->size()*sizeof(S);
           glBindBuffer(GL_ARRAY_BUFFER, mgl->vbo[3]);
           glBufferData(GL_ARRAY_BUFFER, slen, (*ps[0]).data(), GL_DYNAMIC_DRAW);
         }
+*/
       }
 
       glBindVertexArray(0);
@@ -1047,12 +1121,12 @@ public:
     }
   }
 
-  // OpenGL3 stuff to draw segments, called once per frame
+  // OpenGL3 stuff to draw quads, called once per frame
   void drawGL(std::vector<float>& _projmat,
               RenderParams&       _rparams,
               const float         _vdelta) {
 
-    //std::cout << "inside Surfaces.drawGL" << std::endl;
+    //std::cout << "inside Volumes.drawGL" << std::endl;
 
     // has this been init'd yet?
     if (not mgl) {
@@ -1089,7 +1163,7 @@ public:
       glUniform1f (mgl->str_scale_attribute, (const GLfloat)max_strength);
 
       // the one draw call here
-      glDrawElements(GL_LINES, mgl->num_uploaded, get_gl_type<Int>, 0);
+      //glDrawElements(GL_LINES, mgl->num_uploaded, get_gl_type<Int>, 0);
 
       // return state
       glEnable(GL_DEPTH_TEST);
@@ -1100,37 +1174,31 @@ public:
 #endif
 
   std::string to_string() const {
-    std::string retstr = " " + std::to_string(get_npanels()) + ElementBase<S>::to_string() + " Panels";
+    std::string retstr = " " + std::to_string(get_nelems()) + ElementBase<S>::to_string() + " Bricks";
     return retstr;
   }
 
 protected:
   // ElementBase.h has x, s, u, ux on the *nodes*
 
-  size_t np;				// number of panels
+  size_t nb;				// number of bricks
 
-  // element-wise variables special to triangular panels
+  // element-wise variables special to quad elements
   std::vector<Int>                 idx;	// indexes into the x array
-  Vector<S>                       area; // panel areas
-  Basis<S>                           b; // transformed basis vecs: tangent is b[0], normal is b[1], x norm is b[1][0]
-  std::array<Vector<S>,Dimensions>  pu; // velocities on panel centers - "u" is node vels in ElementBase
+  Vector<S>                       area; // brick volumes
+  //Basis<S>                           b; // transformed basis vecs: tangent is b[0], normal is b[1], x norm is b[1][0]
+  //std::array<Vector<S>,Dimensions>  pu; // velocities on element centers - "u" is node vels in ElementBase
 
   // strengths and BCs
-  Strength<S>                       ps; // panel-wise strengths per unit length (for "active" and "reactive")
-  Strength<S>                       bc; // boundary condition for the elements (only when "reactive")
-  bool           source_str_is_unknown; // should the BEM solve for source strengths?
+  //Strength<S>                       ps; // element-wise strengths per unit length (for "active" and "reactive")
+  //Strength<S>                       bc; // boundary condition for the elements (only when "reactive")
+  //bool           source_str_is_unknown; // should the BEM solve for source strengths?
 
   // parameters for the encompassing body
-  Int                           istart; // index of first entry in RHS vector and A matrix
-  S                                vol; // volume of the body - for augmented BEM solution
-  std::array<S,Dimensions>         utc; // untransformed geometric center
-  std::array<S,Dimensions>          tc; // transformed geometric center
-
-  // augmented-BEM-related
-  double                  solved_omega; // rotation rate returned from augmented row in BEM
-  double                   omega_error; // error in rotation rate from last BEM
-  double                    this_omega; // rotation rate at most recent Diffusion step
-  S                   reabsorbed_gamma; // amount of circulation reabsorbed by this collection since last Diffusion step
+  //Int                           istart; // index of first entry in RHS vector and A matrix
+  //S                                vol; // volume of the body - for augmented BEM solution
+  //std::array<S,Dimensions>         utc; // untransformed geometric center
+  //std::array<S,Dimensions>          tc; // transformed geometric center
 
 private:
 #ifdef USE_GL

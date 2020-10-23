@@ -57,7 +57,7 @@ void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
   _flist.back()->create();
   _flist.back()->generate_draw_geom();
 
-  std::cout << "  found " << _flist.back()->to_string() << std::endl;
+  std::cout << "  finished " << _flist.back()->to_string() << std::endl;
 }
 
 #ifdef USE_IMGUI
@@ -391,8 +391,6 @@ void BoundarySegment::generate_draw_geom() {
 ElementPacket<float>
 SolidCircle::init_elements(const float _ips) const {
 
-  if (not this->is_enabled()) return ElementPacket<float>();
-
   // how many panels?
   const size_t num_panels = std::min(40000, std::max(5, (int)(m_diam * M_PI / _ips)));
 
@@ -497,7 +495,6 @@ bool SolidCircle::draw_info_gui(const std::string action) {
 #endif
 
 void SolidCircle::generate_draw_geom() {
-  std::cout << "generating geom" << std::endl;
   m_draw = init_elements(m_diam/25.0);
 }
 
@@ -507,8 +504,6 @@ void SolidCircle::generate_draw_geom() {
 //
 ElementPacket<float>
 SolidOval::init_elements(const float _ips) const {
-
-  if (not this->is_enabled()) return ElementPacket<float>();
 
   // use the formula for equidistant nodes?
   // from https://math.stackexchange.com/questions/172766/calculating-equidistant-points-around-an-ellipse-arc
@@ -521,7 +516,7 @@ SolidOval::init_elements(const float _ips) const {
     circum = m_diam * M_PI;
 #else
     circum = 4.0*0.5*m_diam*std::comp_ellint_2(1.0-std::pow(m_dmin/m_diam,2));
-    std::cout << "analytic circumference is " << circum << std::endl;
+    //std::cout << "analytic circumference is " << circum << std::endl;
 #endif
   } else {
     circum = m_diam * M_PI;
@@ -1114,8 +1109,6 @@ void SolidPolygon::generate_draw_geom() {
 // Create a NACA 4-digit airfoil
 ElementPacket<float>
 SolidAirfoil::init_elements(const float _ips) const {
-  // If object has been removed, return no elements?
-  if (not this->is_enabled()) return ElementPacket<float>();
 
   // created once
   // This should be equivalent to the num_panels param other boundaries use 
@@ -1126,7 +1119,7 @@ SolidAirfoil::init_elements(const float _ips) const {
   // number of panels on top surface
   //const size_t numX = std::ceil(m_chordLength*M_PI/_ips);
   const size_t numX = chebeshev_node_2_count(0.75, 0.1, _ips/m_chordLength);
-  std::cout << "Creating NACA airfoil " << m_maxCamber << m_maxCambLoc << m_thickness << " with " << 2*numX << " panels" << std::endl;
+  std::cout << "Creating NACA 4-digit airfoil with " << 2*numX << " panels" << std::endl;
   std::vector<float> x(4*numX);
   std::vector<Int> idx(4*numX);
   
@@ -1205,7 +1198,7 @@ SolidAirfoil::debug(std::ostream& os) const {
 std::string
 SolidAirfoil::to_string() const {
   std::stringstream ss;
-  ss << " NACA " << m_maxCamber << m_maxCambLoc << m_thickness << " at (" << m_x << ", " << m_y << ") with chord length " << m_chordLength << " and " << m_theta << " aoa";
+  ss << "NACA " << m_maxCamber << m_maxCambLoc << m_thickness << " at (" << m_x << ", " << m_y << ") with chord length " << m_chordLength << " and " << m_theta << " aoa";
   return ss.str();
 }
 
