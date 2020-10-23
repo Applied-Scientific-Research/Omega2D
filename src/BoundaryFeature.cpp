@@ -391,8 +391,6 @@ void BoundarySegment::generate_draw_geom() {
 ElementPacket<float>
 SolidCircle::init_elements(const float _ips) const {
 
-  if (not this->is_enabled()) return ElementPacket<float>();
-
   // how many panels?
   const size_t num_panels = std::min(40000, std::max(5, (int)(m_diam * M_PI / _ips)));
 
@@ -497,7 +495,6 @@ bool SolidCircle::draw_info_gui(const std::string action) {
 #endif
 
 void SolidCircle::generate_draw_geom() {
-  std::cout << "generating geom" << std::endl;
   m_draw = init_elements(m_diam/25.0);
 }
 
@@ -507,8 +504,6 @@ void SolidCircle::generate_draw_geom() {
 //
 ElementPacket<float>
 SolidOval::init_elements(const float _ips) const {
-
-  if (not this->is_enabled()) return ElementPacket<float>();
 
   // use the formula for equidistant nodes?
   // from https://math.stackexchange.com/questions/172766/calculating-equidistant-points-around-an-ellipse-arc
@@ -1114,8 +1109,6 @@ void SolidPolygon::generate_draw_geom() {
 // Create a NACA 4-digit airfoil
 ElementPacket<float>
 SolidAirfoil::init_elements(const float _ips) const {
-  // If object has been removed, return no elements?
-  if (not this->is_enabled()) return ElementPacket<float>();
 
   // created once
   // This should be equivalent to the num_panels param other boundaries use 
