@@ -829,7 +829,6 @@ void Simulation::file_elements(std::vector<Collection>& _collvec,
       vols.add_new(_elems);
     }
   }
-
 }
 
 // add a new Body with the given name

@@ -55,7 +55,7 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
 }
 
 #ifdef USE_IMGUI
-bool MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &mfs, const float ips, const float &tracerScale) {
+bool MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &mfs, const float _ips, const float &_tracerScale) {
   static int item = 0;
   static int oldItem = -1;
   const char* items[] = { "single point", "measurement circle", "measurement line", "measurement grid", "element grid" };
@@ -85,7 +85,7 @@ bool MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeatur
   }
 
   bool created = false;  
-  if (mf->draw_info_gui("Add", tracerScale, ips)) {
+  if (mf->draw_info_gui("Add", _tracerScale, _ips)) {
     mf->generate_draw_geom();
     mfs.emplace_back(std::move(mf));
     mf = nullptr;
@@ -93,7 +93,7 @@ bool MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeatur
     created = true;
     ImGui::CloseCurrentPopup();
   }
-  
+
   ImGui::SameLine();
   if (ImGui::Button("Cancel", ImVec2(120,0))) {
     oldItem = -1;
@@ -294,7 +294,6 @@ MeasurementBlob::init_elements(float _ips) const {
   } else {
     return ElementPacket<float>();
   }
-
 }
 
 ElementPacket<float>
@@ -411,7 +410,7 @@ MeasurementLine::init_elements(float _ips) const {
     x.emplace_back((1.0-frac)*m_x + frac*m_xf);
     x.emplace_back((1.0-frac)*m_y + frac*m_yf);
   }
-  
+
   ElementPacket<float> packet({x, idx, vals, (size_t)ilen, (uint8_t)0});
   if (packet.verify(packet.x.size(), Dimensions)) {
     return packet;
@@ -547,7 +546,6 @@ GridPoints::init_elements(float _ips) const {
   } else {
     return ElementPacket<float>();
   }
-
 }
 
 ElementPacket<float>
