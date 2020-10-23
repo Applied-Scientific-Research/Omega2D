@@ -1126,7 +1126,7 @@ SolidAirfoil::init_elements(const float _ips) const {
   // number of panels on top surface
   //const size_t numX = std::ceil(m_chordLength*M_PI/_ips);
   const size_t numX = chebeshev_node_2_count(0.75, 0.1, _ips/m_chordLength);
-  std::cout << "Creating NACA airfoil " << m_maxCamber << m_maxCambLoc << m_thickness << " with " << 2*numX << " panels" << std::endl;
+  std::cout << "Creating NACA 4-digit airfoil with " << 2*numX << " panels" << std::endl;
   std::vector<float> x(4*numX);
   std::vector<Int> idx(4*numX);
   
@@ -1205,7 +1205,7 @@ SolidAirfoil::debug(std::ostream& os) const {
 std::string
 SolidAirfoil::to_string() const {
   std::stringstream ss;
-  ss << " NACA " << m_maxCamber << m_maxCambLoc << m_thickness << " at (" << m_x << ", " << m_y << ") with chord length " << m_chordLength << " and " << m_theta << " aoa";
+  ss << "NACA " << m_maxCamber << m_maxCambLoc << m_thickness << " at (" << m_x << ", " << m_y << ") with chord length " << m_chordLength << " and " << m_theta << " aoa";
   return ss.str();
 }
 
