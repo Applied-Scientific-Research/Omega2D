@@ -13,6 +13,7 @@
 #include "BEM.h"
 #include "Convection.h"
 #include "Diffusion.h"
+#include "Hybrid.h"
 #include "ElementPacket.h"
 #include "StatusFile.h"
 
@@ -184,6 +185,11 @@ private:
   //   also copies of the panels, which will be recreated for each step, and solutions to unknowns
   // Note that with Vc, the storage and accumulator classes have to be the same
   Convection<STORE,ACCUM,Int> conv;
+
+  // Hybrid class controls data exchange to and from an external Euler solver
+  //   to be used for near-body regions, and routines to affect existing vortex
+  //   particles from grid-based vorticity
+  Hybrid<STORE,ACCUM,Int> hybr;
 
   // status file
   StatusFile sf;
