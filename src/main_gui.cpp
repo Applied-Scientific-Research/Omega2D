@@ -48,8 +48,10 @@
 
 
 int main(int argc, char const *argv[]) {
+
   std::cout << std::endl << "Omega2D GUI" << std::endl;
-  if (VERBOSE) { std::cout << "VERBOSE is on" << std::endl; }
+  if (VERBOSE) { std::cout << "  VERBOSE is on" << std::endl; }
+
   // Set up vortex particle simulation
   Simulation sim;
   std::vector< std::unique_ptr<FlowFeature> > ffeatures;
