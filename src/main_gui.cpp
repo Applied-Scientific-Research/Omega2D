@@ -408,14 +408,18 @@ int main(int argc, char const *argv[]) {
       }
 
       if (currentItemIndex) {
+
+        // stop and clear before loading
         sim.reset();
         bfeatures.clear();
         ffeatures.clear();
         mfeatures.clear();
+
+        // load and report
         parse_json(sim, ffeatures, bfeatures, mfeatures, rparams, sims[currentItemIndex-1]);
         
-        std::cout << "Loading drawing info for features..." << std::endl;
         // clear and remake the draw geometry
+        std::cout << "Loading drawing info for features..." << std::endl;
         bdraw.clear_elements();
         for (auto const& bf : bfeatures) {
           if (bf->is_enabled()) {
@@ -486,8 +490,11 @@ int main(int argc, char const *argv[]) {
             }
           }
         
-          // finish setting up and run
+          // we have to manually set this variable
           is_viscous = sim.get_diffuse();
+
+          // autostart if file requests it
+          if (sim.autostart()) sim_is_running = true;
 
           // check and possibly resize the window to match the saved resolution
           resize_to_resolution(window, rparams.width, rparams.height);
@@ -505,9 +512,31 @@ int main(int argc, char const *argv[]) {
       ffeatures.clear();
       mfeatures.clear();
 
+      // load and report
       command_line_input = argv[1];
       nlohmann::json j = read_json(command_line_input);
       parse_json(sim, ffeatures, bfeatures, mfeatures, rparams, j);
+
+      // clear and remake the draw geometry
+      std::cout << "Loading drawing info for features..." << std::endl;
+      bdraw.clear_elements();
+      for (auto const& bf : bfeatures) {
+        if (bf->is_enabled()) {
+          bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
+        }
+      }
+      fdraw.clear_elements();
+      for (auto const& ff : ffeatures) {
+        if (ff->is_enabled()) {
+          fdraw.add_elements( ff->get_draw_packet(), ff->is_enabled() );
+        }
+      }
+      mdraw.clear_elements();
+      for (auto const& mf : mfeatures) {
+        if (mf->is_enabled()) {
+          mdraw.add_elements( mf->get_draw_packet(), mf->is_enabled() );
+        }
+      }
 
       // we have to manually set this variable
       is_viscous = sim.get_diffuse();
