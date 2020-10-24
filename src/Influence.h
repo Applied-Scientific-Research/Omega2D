@@ -559,11 +559,11 @@ void panels_affect_panels (Surfaces<S> const& src, Surfaces<S>& targ, ExecEnv& e
   // run the calculation
   panels_affect_points<S,A>(src, temppts, env);
 
-  // and copy the velocities to the real target
+  // and add the velocities to the real target
   std::array<Vector<S>,Dimensions>& fromvel = temppts.get_vel();
   std::array<Vector<S>,Dimensions>& tovel   = targ.get_vel();
   for (size_t i=0; i<Dimensions; ++i) {
-    std::copy(fromvel[i].begin(), fromvel[i].end(), tovel[i].begin());
+    std::transform(tovel[i].begin( ), tovel[i].end( ), fromvel[i].begin( ), tovel[i].begin( ), std::plus<S>( ));
   }
 }
 
@@ -591,11 +591,11 @@ void points_affect_bricks (Points<S> const& src, Volumes<S>& targ, ExecEnv& env)
   // run the calculation
   points_affect_points<S,A>(src, volsaspts, env);
 
-  // and copy the velocities to the real target
+  // and add the velocities to the real target
   std::array<Vector<S>,Dimensions>& fromvel = volsaspts.get_vel();
   std::array<Vector<S>,Dimensions>& tovel   = targ.get_vel();
   for (size_t i=0; i<Dimensions; ++i) {
-    std::copy(fromvel[i].begin(), fromvel[i].end(), tovel[i].begin());
+    std::transform(tovel[i].begin( ), tovel[i].end( ), fromvel[i].begin( ), tovel[i].begin( ), std::plus<S>( ));
   }
 
   // and the vel grads - if need be
@@ -603,8 +603,24 @@ void points_affect_bricks (Points<S> const& src, Volumes<S>& targ, ExecEnv& env)
 
 template <class S, class A>
 void panels_affect_bricks (Surfaces<S> const& src, Volumes<S>& targ, ExecEnv& env) {
+  std::cout << "    in panvol with" << env.to_string() << std::endl;
   std::cout << "    1_2 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
-  assert (false && "Surfaces cannot affect Volumes yet.");
+
+  // generate temporary collocation points as Points
+  std::vector<S> xysr = targ.represent_nodes_as_particles(0.0f);
+  Points<S> volsaspts(xysr, inert, fixed, nullptr);
+
+  // run the calculation
+  panels_affect_points<S,A>(src, volsaspts, env);
+
+  // and add the velocities to the real target
+  std::array<Vector<S>,Dimensions>& fromvel = volsaspts.get_vel();
+  std::array<Vector<S>,Dimensions>& tovel   = targ.get_vel();
+  for (size_t i=0; i<Dimensions; ++i) {
+    std::transform(tovel[i].begin( ), tovel[i].end( ), fromvel[i].begin( ), tovel[i].begin( ), std::plus<S>( ));
+  }
+
+  // and the vel grads - if need be
 }
 
 template <class S, class A>
