@@ -2,9 +2,9 @@
  * main_batch.cpp - Driver code for Omega2D + Vc vortex particle method
  *                  and boundary element method solver, batch version
  *
- * (c)2017-9 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
- *                      Blake B Hillier <blakehillier@mac.com>
+ * (c)2017-20 Applied Scientific Research, Inc.
+ *            Mark J Stock <markjstock@gmail.com>
+ *            Blake B Hillier <blakehillier@mac.com>
  */
 
 #include "FlowFeature.h"
