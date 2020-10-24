@@ -42,7 +42,7 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
   else if (ftype == "tracer line") {      _flist.emplace_back(std::make_unique<MeasurementLine>(0.0, 0.0, false, true)); }
   else if (ftype == "measurement line") { _flist.emplace_back(std::make_unique<MeasurementLine>()); }
   else if (ftype == "measurement grid") { _flist.emplace_back(std::make_unique<GridPoints>()); }
-  else if (ftype == "element field") { _flist.emplace_back(std::make_unique<GridField>()); }
+  else if (ftype == "measurement field") { _flist.emplace_back(std::make_unique<GridField>()); }
   else {
     std::cout << "  type " << ftype << " does not name an available measurement feature, ignoring" << std::endl;
     return;
@@ -635,21 +635,25 @@ GridField::init_elements(float _ips) const {
   std::vector<Int> idx;
   std::vector<float> vals;
 
-  // we know how large each array will be
-  x.resize(2*(m_nx+1)*(m_ny+1));
-  idx.resize(4*m_nx*m_ny);
+  // find out how large each array will be
+  const size_t nnx = m_nx*m_order + 1;
+  const size_t nny = m_ny*m_order + 1;
+
+  x.resize(Dimensions*nnx*nny);
+  const size_t nodesperelem = std::pow(m_order+1, 2);
+  idx.resize(nodesperelem*m_nx*m_ny);
 
   std::cout << "Creating measure field with " << (m_nx*m_ny) << " quads" << std::endl;
 
   // using nx and ny, calculate dx and dy
-  const float dx = (m_xf-m_x) / (float)m_nx;
-  const float dy = (m_yf-m_y) / (float)m_ny;
+  const float dx = (m_xf-m_x) / (float)(nnx-1);
+  const float dy = (m_yf-m_y) / (float)(nny-1);
 
   // loop over integer indices
   size_t cnt = 0;
-  for (size_t j=0; j<(size_t)m_ny+1; ++j) {
+  for (size_t j=0; j<nny; ++j) {
     const float yp = m_y + j*dy;
-    for (size_t i=0; i<(size_t)m_nx+1; ++i) {
+    for (size_t i=0; i<nnx; ++i) {
       const float xp = m_x + i*dx;
       // create a node here
       x[cnt++] = xp;
@@ -660,11 +664,26 @@ GridField::init_elements(float _ips) const {
   // now generate quad elements
   cnt = 0;
   for (size_t j=0; j<(size_t)m_ny; ++j) {
+    size_t bl = j*m_order*nnx;
+    size_t tl = (j+1)*m_order*nnx;
     for (size_t i=0; i<(size_t)m_nx; ++i) {
-      idx[cnt++] = j*(m_nx+1) + i;
-      idx[cnt++] = j*(m_nx+1) + i + 1;
-      idx[cnt++] = (j+1)*(m_nx+1) + i + 1;
-      idx[cnt++] = (j+1)*(m_nx+1) + i;
+      size_t col = m_order*i;
+      idx[cnt++] = bl + col;
+      idx[cnt++] = bl + col + m_order;
+      idx[cnt++] = tl + col + m_order;
+      idx[cnt++] = tl + col;
+      if (m_order > 1) {
+        // standard vtk bicubic quad
+        idx[cnt++] = bl + col + 1;
+        idx[cnt++] = bl + nnx + col + m_order;
+        idx[cnt++] = tl + col + 1;
+        idx[cnt++] = bl + nnx + col;
+        idx[cnt++] = bl + nnx + col + 1;
+      }
+      if (m_order > 2) {
+        // arbitrary order Lagrange elements not yet programmed
+        // see https://blog.kitware.com/modeling-arbitrary-order-lagrange-finite-elements-in-the-visualization-toolkit/
+      }
     }
   }
 
@@ -674,7 +693,6 @@ GridField::init_elements(float _ips) const {
   } else {
     return ElementPacket<float>();
   }
-
 }
 
 ElementPacket<float>
@@ -692,7 +710,9 @@ GridField::debug(std::ostream& os) const {
 std::string
 GridField::to_string() const {
   std::stringstream ss;
-  ss << "measurement field from " << m_x << " " << m_y << " to " << m_xf << " " << m_yf << " with " << m_nx*m_ny << " elems";
+  ss << "measurement field from " << m_x << " " << m_y << " to " << m_xf << " " << m_yf << " with " << m_nx*m_ny;
+  if (m_order == 2) ss << " 2nd order";
+  ss << " elems";
   return ss.str();
 }
 
@@ -710,6 +730,7 @@ GridField::from_json(const nlohmann::json j) {
   m_enabled = j.value("enabled", true);
   m_is_lagrangian = j.value("lagrangian", m_is_lagrangian);
   m_emits = j.value("emits", m_emits);
+  m_order = j.value("order", 1);
 }
 
 nlohmann::json
@@ -722,6 +743,7 @@ GridField::to_json() const {
   j["enabled"] = m_enabled;
   j["lagrangian"] = m_is_lagrangian;
   j["emits"] = m_emits;
+  j["order"] = m_order;
   return j;
 }
 
@@ -737,12 +759,14 @@ bool GridField::draw_info_gui(const std::string action, const float &tracer_scal
   float xc[2] = {m_x, m_y};
   float xf[2] = {m_xf, m_yf};
   int nx[2] = {m_nx, m_ny};
+  int order = m_order;
   bool add = false;
   const std::string buttonText = action+" grid of quad elements";
  
   ImGui::InputFloat2("lower left", xc);
   ImGui::InputFloat2("upper right", xf);
   ImGui::InputInt2("element count", nx);
+  ImGui::SliderInt("element order", &order, 1, 2);
   ImGui::TextWrapped("This feature will add %d quad elements", (int)(m_nx*m_ny));
   if (ImGui::Button(buttonText.c_str())) { add = true; }
   m_x = xc[0];
@@ -751,6 +775,7 @@ bool GridField::draw_info_gui(const std::string action, const float &tracer_scal
   m_yf = xf[1];
   m_nx = nx[0];
   m_ny = nx[1];
+  m_order = order;
 
   return add;
 }

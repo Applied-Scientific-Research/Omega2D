@@ -215,12 +215,14 @@ public:
             float _xf = 1.0,
             float _yf = 1.0,
             float _nx = 10,
-            float _ny = 10)
+            float _ny = 10,
+            float _order = 1)
     : MeasureFeature(_xs, _ys, false, false, nullptr),
       m_xf(_xf),
       m_yf(_yf),
       m_nx(_nx),
-      m_ny(_ny)
+      m_ny(_ny),
+      m_order(_order)
     {}
   GridField* copy() const override { return new GridField(*this); }
 
@@ -238,6 +240,7 @@ public:
 protected:
   float m_xf, m_yf;
   Int m_nx, m_ny;
+  Int m_order;
 };
 
 //
