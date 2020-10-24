@@ -113,7 +113,7 @@ void Convection<S,A,I>::find_vels(const std::array<double,Dimensions>& _fs,
       std::visit(visitor, src, targ);
     }
 
-    // add freestream and divide by 2pi
+    // add freestream and divide by constant
     std::visit([=](auto& elem) { elem.finalize_vels(_fs); }, targ);
   }
 
