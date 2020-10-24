@@ -35,7 +35,8 @@ public:
   void find_vels( const std::array<double,Dimensions>&,
                   std::vector<Collection>&,
                   std::vector<Collection>&,
-                  std::vector<Collection>&);
+                  std::vector<Collection>&,
+                  const bool _force = false);
   void advect_1st(const double,
                   const double,
                   const std::array<double,Dimensions>&,
@@ -73,7 +74,8 @@ template <class S, class A, class I>
 void Convection<S,A,I>::find_vels(const std::array<double,Dimensions>& _fs,
                                   std::vector<Collection>&             _vort,
                                   std::vector<Collection>&             _bdry,
-                                  std::vector<Collection>&             _targets) {
+                                  std::vector<Collection>&             _targets,
+                                  const bool                           _force) {
 
   //if (_targets.size() > 0) std::cout << std::endl << "Solving for velocities" << std::endl;
   //if (_targets.size() > 0) std::cout << std::endl;
@@ -90,6 +92,11 @@ void Convection<S,A,I>::find_vels(const std::array<double,Dimensions>& _fs,
 
   // find the influence on every field point/tracer element
   for (auto &targ : _targets) {
+
+    // only do this for Lagrangian items, or if told to (as when exporting to vtk)
+    const move_t tmt = std::visit([=](auto& elem) { return elem.get_movet(); }, targ);
+    if (not (_force or tmt == lagrangian)) continue;
+
     std::cout << "  Solving for velocities on" << to_string(targ) << std::endl;
 
     // zero velocities
