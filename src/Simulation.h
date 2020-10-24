@@ -170,6 +170,9 @@ private:
   // Object with all of the non-reactive, non-active (inert) points
   std::vector<Collection> fldpt;	// tracers and field points
 
+  // Object with all of the near-body, Eulerian solution regions
+  std::vector<Collection> euler;	// hybrid/euler regions
+
   // The need to solve for the unknown strengths of reactive elements inside both the
   //   diffusion and convection steps necessitates a BEM object here
   BEM<STORE,Int> bem;

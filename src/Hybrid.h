@@ -102,7 +102,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
                          std::vector<Collection>&             _vort,
                          std::vector<Collection>&             _bdry,
                          std::vector<Collection>&             _fldpt,
-                         std::vector<Collection>&             _hyb) {
+                         std::vector<Collection>&             _euler) {
 
   if (not active) return;
 
@@ -114,21 +114,35 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
   // transform all elements to their appropriate locations
   // isolate open/outer boundaries
+  //Points<> euler_bdry = _euler.get_bc_nodes(_time);
   // find vels there
+  //Convection::find_vels<S,A,I>(_fs, _vort, _bdry, euler_bdry);
   // convert to transferable packet
-  //find_vels<S,A,I>(_time, _fs, _vort, _bdry, _bem);
+  //find_vels<S,A,I>(_time, _fs, _vort, _bdry, _bem);  ???
 
   // part B - call Euler solver
 
   // transfer BC packet and call solver
-  //external_grid_solver(_fs, _vort, _bdry, _vort);
   //flops = external_euler_solve_f_(&ns, sx[0].data(), sx[1].data(),    ss.data(),    sr.data(),
   //                                &nt, tx[0].data(), tx[1].data(), tu[0].data(), tu[1].data());
 
+  // pull results from external solver
+  //external_euler_vorts_f_(stuff);
+
+  // convert vorticity results to drawable and writable Volume elements
+
   // part C - update particle strengths accordionly
 
-  // pull results from external solver
-  // convert vorticity results to drawable and writable Volume elements
-  // update strengths on vortex particles within the boundary
+  // "update" strengths on vortex particles within the boundary
+
+  // here's one way to do it:
+  // identify all free vortex particles inside of euler regions and remove them
+  //   (add up how much circulation we remove)
+  // re-run BEM and compute vorticity on all HO volume nodes
+  // subtract the Lagrangian-computed vort from the actual Eulerian vort on those nodes
+  // now we have the amount of vorticity we need to re-add to the Lagrangian side
+  // for each sub-node of each HO quad, run a VRM onto the existing set of Lagrangian
+  //   particles adding where necessary to satisfy at least 0th and 1st moments, if not 2nd
+
 }
 

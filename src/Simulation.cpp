@@ -513,7 +513,7 @@ void Simulation::step() {
   time += (double)dt;
 
   // call HO grid solver to recalculate vorticity at the end of this time step
-  hybr.step(time, dt, thisfs, vort, bdry, fldpt, fldpt);
+  hybr.step(time, dt, thisfs, vort, bdry, fldpt, euler);
 
   // push field points out of objects every few steps
   if (nstep%5 == 0) clear_inner_layer<STORE>(1, bdry, fldpt, (STORE)0.0, (STORE)(0.5*get_ips()));
