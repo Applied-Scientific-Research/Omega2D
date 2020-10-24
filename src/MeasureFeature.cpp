@@ -43,6 +43,7 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
   else if (ftype == "measurement line") { _flist.emplace_back(std::make_unique<MeasurementLine>()); }
   else if (ftype == "measurement grid") { _flist.emplace_back(std::make_unique<GridPoints>()); }
   else if (ftype == "measurement field") { _flist.emplace_back(std::make_unique<GridField>()); }
+  else if (ftype == "annular field") { _flist.emplace_back(std::make_unique<AnnularField>()); }
   else {
     std::cout << "  type " << ftype << " does not name an available measurement feature, ignoring" << std::endl;
     return;
@@ -58,8 +59,8 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
 bool MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &mfs, const float _ips, const float &_tracerScale) {
   static int item = 0;
   static int oldItem = -1;
-  const char* items[] = { "single point", "measurement circle", "measurement line", "measurement grid", "measurement field" };
-  ImGui::Combo("type", &item, items, 5);
+  const char* items[] = { "single point", "measurement circle", "measurement line", "measurement grid", "measurement field", "annular field" };
+  ImGui::Combo("type", &item, items, 6);
 
   // show different inputs based on what is selected
   static std::unique_ptr<MeasureFeature> mf = nullptr;
@@ -79,6 +80,9 @@ bool MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeatur
       } break;
       case 4: {
         mf = std::make_unique<GridField>();
+      } break;
+      case 5: {
+        mf = std::make_unique<AnnularField>();
       } break;
     }
     oldItem = item;
@@ -780,3 +784,172 @@ bool GridField::draw_info_gui(const std::string action, const float &tracer_scal
   return add;
 }
 #endif
+
+
+//
+// Create an annulus of static measurement elements
+//
+ElementPacket<float>
+AnnularField::init_elements(float _ips) const {
+
+  // create a new vector to pass on
+  std::vector<float> x;
+  std::vector<Int> idx;
+  std::vector<float> vals;
+
+  // find out how large each array will be
+  const size_t nnt = m_nt*m_order;
+  const size_t nnr = m_nr*m_order + 1;
+
+  x.resize(Dimensions*nnt*nnr);
+  const size_t nodesperelem = std::pow(m_order+1, 2);
+  idx.resize(nodesperelem*m_nt*m_nr);
+
+  std::cout << "Creating measure field with " << (m_nt*m_nr) << " quads" << std::endl;
+
+  // using nt and nr, calculate dt and dr
+  const float dt = (2.0*M_PI) / (float)(nnt);
+  const float dr = (m_ro-m_ri) / (float)(nnr-1);
+
+  // loop over integer indices
+  size_t cnt = 0;
+  for (size_t j=0; j<nnr; ++j) {
+    const float rad = m_ri + j*dr;
+    for (size_t i=0; i<nnt; ++i) {
+      // move around the circle clockwise to maintain ordering
+      const float theta = -(float)i*dt;
+      // create a node here
+      x[cnt++] = rad * std::cos(theta);
+      x[cnt++] = rad * std::sin(theta);
+    }
+  }
+
+  // now generate quad elements
+  cnt = 0;
+  for (size_t j=0; j<(size_t)m_nr; ++j) {
+    size_t bl = j*m_order*nnt;
+    size_t tl = (j+1)*m_order*nnt;
+    for (size_t i=0; i<(size_t)m_nt; ++i) {
+      size_t col = m_order*i;
+      idx[cnt++] = bl + col;
+      // last elem must wrap (nodes 1 and 2)
+      if (i == (size_t)m_nt - 1) {
+        idx[cnt++] = bl;
+        idx[cnt++] = tl;
+      } else {
+        idx[cnt++] = bl + col + m_order;
+        idx[cnt++] = tl + col + m_order;
+      }
+      idx[cnt++] = tl + col;
+      // now for higher-order elems
+      if (m_order > 1) {
+        // standard vtk bicubic quad
+        idx[cnt++] = bl + col + 1;
+        if (i == (size_t)m_nt - 1) {
+          idx[cnt++] = bl + nnt;
+        } else {
+          idx[cnt++] = bl + nnt + col + m_order;
+        }
+        idx[cnt++] = tl + col + 1;
+        idx[cnt++] = bl + nnt + col;
+        idx[cnt++] = bl + nnt + col + 1;
+      }
+      if (m_order > 2) {
+        // arbitrary order Lagrange elements not yet programmed
+        // see https://blog.kitware.com/modeling-arbitrary-order-lagrange-finite-elements-in-the-visualization-toolkit/
+      }
+    }
+  }
+
+  ElementPacket<float> packet({x, idx, vals, (size_t)(m_nt*m_nr), (uint8_t)2});
+  if (packet.verify(packet.x.size(), Dimensions)) {
+    return packet;
+  } else {
+    return ElementPacket<float>();
+  }
+}
+
+ElementPacket<float>
+AnnularField::step_elements(float _ips) const {
+  // does not emit
+  // but if it did, it'd emit points, one per element
+  return ElementPacket<float>();
+}
+
+void
+AnnularField::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+AnnularField::to_string() const {
+  std::stringstream ss;
+  ss << "annular field at " << m_x << " " << m_y << " with radii " << m_ri << " " << m_ro << " with " << m_nt*m_nr;
+  if (m_order == 2) ss << " 2nd order";
+  ss << " elems";
+  return ss.str();
+}
+
+void
+AnnularField::from_json(const nlohmann::json j) {
+  const std::vector<float> s = j["center"];
+  m_x = s[0];
+  m_y = s[1];
+  const std::vector<float> e = j["radii"];
+  m_ri = e[0];
+  m_ro = e[1];
+  const std::vector<Int> n = j["ndim"];
+  m_nt = n[0];
+  m_nr = n[1];
+  m_enabled = j.value("enabled", true);
+  m_is_lagrangian = j.value("lagrangian", m_is_lagrangian);
+  m_emits = j.value("emits", m_emits);
+  m_order = j.value("order", 1);
+}
+
+nlohmann::json
+AnnularField::to_json() const {
+  nlohmann::json j;
+  j["type"] = "annular field";
+  j["center"] = {m_x, m_y};
+  j["radii"] = {m_ri, m_ro};
+  j["ndim"] = {m_nt, m_nr};
+  j["enabled"] = m_enabled;
+  j["lagrangian"] = m_is_lagrangian;
+  j["emits"] = m_emits;
+  j["order"] = m_order;
+  return j;
+}
+
+void AnnularField::generate_draw_geom() {
+  SolidRect tmp = SolidRect(nullptr, true, m_x, m_y, m_ri, m_ro, 0.0);          
+  m_draw = tmp.init_elements(m_ri-m_ro);
+}
+
+#ifdef USE_IMGUI
+bool AnnularField::draw_info_gui(const std::string action, const float &tracer_scale, const float ips) {
+  float xc[2] = {m_x, m_y};
+  float rr[2] = {m_ri, m_ro};
+  int nx[2] = {m_nt, m_nr};
+  int order = m_order;
+  bool add = false;
+  const std::string buttonText = action+" grid of quad elements";
+ 
+  ImGui::InputFloat2("center", xc);
+  ImGui::InputFloat2("inner and outer radius", rr);
+  ImGui::InputInt2("elements in theta, radial", nx);
+  ImGui::SliderInt("element order", &order, 1, 2);
+  ImGui::TextWrapped("This feature will add %d quad elements", (int)(m_nt*m_nr));
+  if (ImGui::Button(buttonText.c_str())) { add = true; }
+  m_x = xc[0];
+  m_y = xc[1];
+  m_ri = rr[0];
+  m_ro = rr[1];
+  m_nt = nx[0];
+  m_nr = nx[1];
+  m_order = order;
+
+  return add;
+}
+#endif
+
