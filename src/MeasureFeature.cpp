@@ -58,7 +58,7 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
 bool MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &mfs, const float _ips, const float &_tracerScale) {
   static int item = 0;
   static int oldItem = -1;
-  const char* items[] = { "single point", "measurement circle", "measurement line", "measurement grid", "element grid" };
+  const char* items[] = { "single point", "measurement circle", "measurement line", "measurement grid", "measurement field" };
   ImGui::Combo("type", &item, items, 5);
 
   // show different inputs based on what is selected
