@@ -42,7 +42,7 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
   else if (ftype == "tracer line") {      _flist.emplace_back(std::make_unique<MeasurementLine>(0.0, 0.0, false, true)); }
   else if (ftype == "measurement line") { _flist.emplace_back(std::make_unique<MeasurementLine>()); }
   else if (ftype == "measurement grid") { _flist.emplace_back(std::make_unique<GridPoints>()); }
-  else if (ftype == "element field") { _flist.emplace_back(std::make_unique<GridField>()); }
+  else if (ftype == "measurement field") { _flist.emplace_back(std::make_unique<GridField>()); }
   else {
     std::cout << "  type " << ftype << " does not name an available measurement feature, ignoring" << std::endl;
     return;
@@ -58,7 +58,7 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
 bool MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &mfs, const float _ips, const float &_tracerScale) {
   static int item = 0;
   static int oldItem = -1;
-  const char* items[] = { "single point", "measurement circle", "measurement line", "measurement grid", "element grid" };
+  const char* items[] = { "single point", "measurement circle", "measurement line", "measurement grid", "measurement field" };
   ImGui::Combo("type", &item, items, 5);
 
   // show different inputs based on what is selected

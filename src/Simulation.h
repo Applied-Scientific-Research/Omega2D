@@ -92,9 +92,6 @@ public:
   void set_re_for_ips(float);
 
   // receive and add a set of elements
-  void add_particles(std::vector<float>);
-  void add_fldpts(std::vector<float>, const bool);
-  void add_boundary(std::shared_ptr<Body>, ElementPacket<float>);
   void add_elements(const ElementPacket<float>, const elem_t, const move_t, std::shared_ptr<Body>);
   void file_elements(std::vector<Collection>&, const ElementPacket<float>, const elem_t, const move_t, std::shared_ptr<Body>);
 

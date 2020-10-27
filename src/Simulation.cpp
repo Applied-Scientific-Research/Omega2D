@@ -312,9 +312,9 @@ std::vector<std::string> Simulation::write_vtk(const int _index,
   //clear_inner_layer<STORE>(1, bdry, vort, 1.0/std::sqrt(2.0*M_PI), get_ips());
   solve_bem<STORE,ACCUM,Int>(time, thisfs, vort, bdry, bem);
 
-  if (_do_flow)    conv.find_vels(thisfs, vort, bdry, vort);
-  if (_do_measure) conv.find_vels(thisfs, vort, bdry, fldpt);
-  if (_do_bdry)    conv.find_vels(thisfs, vort, bdry, bdry);
+  if (_do_flow)    conv.find_vels(thisfs, vort, bdry, vort, true);
+  if (_do_measure) conv.find_vels(thisfs, vort, bdry, fldpt, true);
+  if (_do_bdry)    conv.find_vels(thisfs, vort, bdry, bdry, true);
 
   // may eventually want to avoid clobbering by maintaining an internal count of the
   //   number of simulations run from this execution of the GUI
@@ -608,144 +608,7 @@ Simulation::calculate_simple_forces() {
   return forces;
 }
 
-// set up some vortex particles
-// TODO - accept elem_t and move_t from the caller!
-void Simulation::add_particles(std::vector<float> _invec) {
-
-  if (_invec.size() == 0) return;
-
-  // make sure we're getting full particles
-  assert(_invec.size() % 4 == 0 && "Input vector not a multiple of 4");
-
-  // add the vdelta to each particle and pass it on
-  const float thisvd = get_vdelta();
-  for (size_t i=3; i<_invec.size(); i+=4) {
-    _invec[i] = thisvd;
-  }
-
-  // if no collections exist
-  if (vort.size() == 0) {
-    // make a new collection
-    vort.push_back(Points<float>(_invec, active, lagrangian, nullptr));      // vortons
-
-  } else {
-    // THIS MUST USE A VISITOR
-    // HACK - add all particles to first collection
-    auto& coll = vort.back();
-    // only proceed if the last collection is Points
-    if (std::holds_alternative<Points<float>>(coll)) {
-      Points<float>& pts = std::get<Points<float>>(coll);
-      pts.add_new(_invec);
-    }
-  }
-}
-
-// add some tracer particles to new arch
-void Simulation::add_fldpts(std::vector<float> _invec, const bool _moves) {
-
-  if (_invec.size() == 0) return;
-
-  // make sure we're getting full points
-  assert(_invec.size() % Dimensions == 0 && "Input vector not a multiple of dimensions");
-
-  const move_t move_type = _moves ? lagrangian : fixed;
-
-  // add to new archtecture
-
-  // if no collections exist
-  if (fldpt.size() == 0) {
-    // make a new collection
-    fldpt.push_back(Points<float>(_invec, inert, move_type, nullptr));
-
-  } else if (move_type == lagrangian) {
-    // add this to the existing collection of tracers (keep them together)
-
-    // loop over all collections looking for a match
-    bool was_added = false;
-    for (auto &coll : fldpt) {
-      //std::visit([&](auto& elem) { elem.add_new(_invec); }, fldpt.back());
-      // eventually we will want to check every collection for matching element and move types
-      // only proceed if the collection is Points
-      if (std::holds_alternative<Points<float>>(coll)) {
-        Points<float>& pts = std::get<Points<float>>(coll);
-        if (pts.get_movet() == lagrangian) {
-          pts.add_new(_invec);
-          was_added = true;
-          break;
-        }
-      }
-    }
-
-    if (not was_added) fldpt.push_back(Points<float>(_invec, inert, move_type, nullptr));
-
-  } else {
-    // bodybound or fixed
-    // always create this as a new collection (keep separate)
-    fldpt.push_back(Points<float>(_invec, inert, move_type, nullptr));
-  }
-}
-
-// add geometry
-void Simulation::add_boundary(std::shared_ptr<Body> _bptr, ElementPacket<float> _geom) {
-
-  // this would be zero if the bfeature was disabled
-  if (_geom.idx.size() == 0) return;
-
-  // incoming collections types
-  const elem_t this_elem_type = reactive;
-  const move_t this_move_type = (_bptr ? bodybound : fixed);
-
-  // search the collections list for a match (same movement type and Body)
-  size_t imatch = 0;
-  bool no_match = true;
-  for (size_t i=0; i<bdry.size(); ++i) {
-    // assume match
-    bool this_match = true;
-
-    // check element type
-    elem_t tet = std::visit([=](auto& elem) { return elem.get_elemt(); }, bdry[i]);
-    if (this_elem_type != tet) this_match = false;
-
-    // check movement type
-    move_t tmt = std::visit([=](auto& elem) { return elem.get_movet(); }, bdry[i]);
-    if (this_move_type != tmt) this_match = false;
-
-    // check body pointer
-    if (this_move_type == bodybound and tmt == bodybound) {
-      std::shared_ptr<Body> tbp = std::visit([=](auto& elem) { return elem.get_body_ptr(); }, bdry[i]);
-      if (_bptr != tbp) this_match = false;
-    }
-
-    // check Collections type (add later)
-    //if (std::holds_alternative<Surfaces<float>>(coll) not std::holds_alternative<Surfaces<float>>(coll)) this_match = false;
-
-    if (this_match) {
-      imatch = i;
-      no_match = false;
-    }
-  }
-
-  // if no match, or no collections exist
-  if (no_match) {
-    // make a new collection - assume BEM panels
-    bdry.push_back(Surfaces<float>(_geom.x,
-                                   _geom.idx,
-                                   _geom.val,
-                                   reactive, this_move_type, _bptr));
-  } else {
-    // found a match
-    auto& coll = bdry[imatch];
-    // only proceed if the last collection is Surfaces
-    if (std::holds_alternative<Surfaces<float>>(coll)) {
-      Surfaces<float>& surf = std::get<Surfaces<float>>(coll);
-      surf.add_new(_geom.x,
-                   _geom.idx,
-                   _geom.val);
-    }
-  }
-}
-
-// add elements (general)
+// Add elements - any kind
 void Simulation::add_elements(const ElementPacket<float> _elems,
                               const elem_t _et, const move_t _mt,
                               std::shared_ptr<Body> _bptr) {
@@ -765,7 +628,7 @@ void Simulation::add_elements(const ElementPacket<float> _elems,
   }
 }
 
-// file the new elements into the correct collection
+// File the new elements into the correct collection
 void Simulation::file_elements(std::vector<Collection>& _collvec,
                                const ElementPacket<float> _elems,
                                const elem_t _et, const move_t _mt,
