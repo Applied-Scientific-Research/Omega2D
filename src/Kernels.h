@@ -2,7 +2,7 @@
  * Kernels.h - Non-class inner kernels for influence calculations
  *
  * (c)2017-20 Applied Scientific Research, Inc.
- *            Written by Mark J Stock <markjstock@gmail.com>
+ *            Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -97,24 +97,6 @@ static inline void kernel_0v_0vg (const S sx, const S sy, const S sr, const S ss
 // then some useful inlines, to pull out all of the Vc-specific language
 #ifdef USE_VC
 template <class S>
-static inline S get_vstar (const S rij2, const S rij12) {
-  return S(0.5f) * Vc::log(rij2/rij12);
-}
-template <> inline float get_vstar (const float rij2, const float rij12) {
-  return 0.5f * std::log(rij2/rij12);
-}
-template <> inline double get_vstar (const double rij2, const double rij12) {
-  return 0.5 * std::log(rij2/rij12);
-}
-#else
-template <class S>
-static inline S get_vstar (const S rij2, const S rij12) {
-  return 0.5f * std::log(rij2/rij12);
-}
-#endif
-
-#ifdef USE_VC
-template <class S>
 static inline S get_ustar (const S dx0, const S dy0, const S dx1, const S dy1) {
   S ustar = Vc::atan2(dx1, dy1) - Vc::atan2(dx0, dy0);
   Vc::where(ustar < S(-M_PI)) | ustar += S(2.0f*M_PI);
@@ -143,41 +125,6 @@ static inline S get_ustar (const S dx0, const S dy0, const S dx1, const S dy1) {
 }
 #endif
 
-// from https://developer.download.nvidia.com/cg/acos.html
-// this is 16 flops
-#ifdef USE_VC
-template <class S>
-inline S my_acos(const S _x) {
-  S negate = S(0.0f);
-  Vc::where(_x < S(0.0f)) | negate = S(1.0f);
-  //const S negate = (_x < 0.0f) ? 1.0f : 0.0f;
-  S x = Vc::abs(_x);
-  Vc::where(x > S(1.0f)) | x = S(1.0f);
-  S ret = S(-0.0187293f);
-  ret *= x;
-  ret += S(0.0742610f);
-  ret *= x;
-  ret -= S(0.2121144f);
-  ret *= x;
-  ret += S(1.5707288f);    // NOT pi/2
-  ret *= Vc::sqrt(S(1.0f)-x);
-  ret -= S(2.0f) * ret * negate;
-  return negate * S(M_PI) + ret;
-}
-template <>
-inline float my_acos(const float _x) {
-  return std::acos(_x);
-}
-template <>
-inline double my_acos(const double _x) {
-  return std::acos(_x);
-}
-#else
-template <class S>
-inline S my_acos(const S _x) {
-  return std::acos(_x);
-}
-#endif
 
 #ifdef USE_VC
 // this is flops for the Vc version
@@ -217,24 +164,6 @@ static inline S get_ustar_fast (const S a2, const S b2, const S c2, const S norm
 }
 #endif
 
-#ifdef USE_VC
-template <class S>
-static inline S get_rsqrt (const S _in) {
-  return Vc::rsqrt(_in);
-}
-template <> inline float get_rsqrt (const float _in) {
-  return 1.0f / std::sqrt(_in);
-}
-template <> inline double get_rsqrt (const double _in) {
-  return 1.0 / std::sqrt(_in);
-}
-#else
-template <class S>
-static inline S get_rsqrt (const S _in) {
-    assert(_in > 0); // Can't take the square root of a negative number; Can't divide by 0
-  return 1.0f / std::sqrt(_in);
-}
-#endif
 
 // first, the flops count (star is 3, rsqrt counts as 1)
 template <class S, class A> size_t flops_1_0v () { return 28 + 3 + flops_usf<S>(); }
@@ -263,7 +192,7 @@ static inline void kernel_1_0v (const S sx0, const S sy0,
   // compute u* and v*
   const S ustar = get_ustar<S>(dx0, dy0, dx1, dy1);
   //const S ustar = get_ustar_fast<S>(panl, rij2, rij12, px*dy0-py*dx0);
-  const S vstar = get_vstar<S>(rij2, rij12);
+  const S vstar = my_halflog<S>(rij2/rij12);
   //std::cout << "ustar is " << ustar << std::endl;
   //std::cout << "ustarf is " << ustarf << std::endl;
   //std::cout << "norm is " << (px*dy0-py*dx0) << std::endl;
@@ -273,7 +202,7 @@ static inline void kernel_1_0v (const S sx0, const S sy0,
   const S vely  = ustar*py + vstar*px;
   //std::cout << "velx is " << velx << " and vely is " << vely << std::endl;
   // assert(panl > 0); // Can't take the square root of a negative number; Can't divide by 0
-  const S mult  = str * get_rsqrt<S>(panl);
+  const S mult  = str * my_rsqrt<S>(panl);
   //std::cout << "finalx is " << (mult*velx) << " and finaly is " << (mult*vely) << std::endl;
 
   // and multiply by vortex sheet strength
@@ -310,14 +239,14 @@ static inline void kernel_1_0vs (const S sx0, const S sy0,
 
   //std::cout << "px is " << px << " and py is " << py << std::endl;
   // assert(panl > 0); // Can't take the square root of a negative number; Can't divide by 0
-  const S mult  = get_rsqrt<S>(panl);
+  const S mult  = my_rsqrt<S>(panl);
   px *= mult;
   py *= mult;
 
   // compute u* and v*
   const S ustar = get_ustar<S>(dx0, dy0, dx1, dy1);
   //const S ustar = get_ustar_fast<S>(panl, rij2, rij12, px*dy0-py*dx0);
-  const S vstar = get_vstar<S>(rij2, rij12);
+  const S vstar = my_halflog<S>(rij2/rij12);
   //std::cout << "ustar is " << ustar << " and vstar is " << vstar << std::endl;
 
   // finally, rotate back into global coordinates
@@ -363,14 +292,14 @@ static inline void kernel_1_0vps (const S sx0, const S sy0,
 
   //std::cout << "px is " << px << " and py is " << py << std::endl;
   // assert(panl > 0); // Can't take the square root of a negative number; Can't divide by 0
-  const S mult  = get_rsqrt<S>(panl);
+  const S mult  = my_rsqrt<S>(panl);
   px *= mult;
   py *= mult;
 
   // compute u* and v*
   const S ustar = get_ustar<S>(dx0, dy0, dx1, dy1);
   //const S ustar = get_ustar_fast<S>(panl, rij2, rij12, px*dy0-py*dx0);
-  const S vstar = get_vstar<S>(rij2, rij12);
+  const S vstar = my_halflog<S>(rij2/rij12);
 
   // finally, rotate back into global coordinates
   // and multiply by vortex sheet strength
