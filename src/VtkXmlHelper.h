@@ -15,6 +15,7 @@
 #include "Surfaces.h"
 #include "Volumes.h"
 #include "tinyxml2.h"
+#include "VtkXmlWriter.h"
 #include "cppcodec/base64_rfc4648.hpp"
 
 #include <vector>
@@ -80,26 +81,6 @@ void write_DataArray (tinyxml2::XMLPrinter& _p,
 
   return;
 }
-
- // interleave arrays and write to the vtk file
-/*template <class S>
-void unpack_array(tinyxml2::XMLPrinter& _p,
-                  std::array<Vector<S>,2> const & _data,
-                  bool _compress = false,
-                  bool _asbase64 = false) {
-
-  // interleave the two vectors into a new one
-  Vector<S> newvec;
-  newvec.resize(3 * _data[0].size());
-  for (size_t i=0; i<_data[0].size(); ++i) {
-    newvec[3*i+0] = _data[0][i];
-    newvec[3*i+1] = _data[1][i];
-    newvec[3*i+2] = 0.0;
-  }
-
-  // pass it on to write
-  write_DataArray<S>(_p, newvec, _compress, _asbase64);
-}*/
 
 // interleave arrays and write to the vtk file
 template <class S, long unsigned int I>
@@ -499,15 +480,16 @@ std::string write_vtk_grid(Volumes<S> const& grid, const size_t file_idx,
 
   assert(grid.get_nelems() > 0 && "Inside write_vtk_grid with no elements");
 
-  const bool compress = false;
+  //const bool compress = false;
   const bool asbase64 = true;
 
   // generate file name
   std::string prefix = "grid_";
   std::stringstream vtkfn;
   vtkfn << prefix << std::setfill('0') << std::setw(2) << file_idx << "_" << std::setw(5) << frameno << ".vtu";
+  VtkXmlWriter gridWriter = VtkXmlWriter(vtkfn.str(), asbase64);
 
-  // prepare file pointer and printer
+  /*// prepare file pointer and printer
   std::FILE* fp = std::fopen(vtkfn.str().c_str(), "wb");
   tinyxml2::XMLPrinter printer( fp );
 
@@ -525,87 +507,141 @@ std::string write_vtk_grid(Volumes<S> const& grid, const size_t file_idx,
 
   // must choose one of these two formats
   printer.OpenElement( "UnstructuredGrid" );
-  //printer.OpenElement( "PolyData" );
+  //printer.OpenElement( "PolyData" );*/
 
   // include simulation time here
-  printer.OpenElement( "FieldData" );
-  printer.OpenElement( "DataArray" );
-  printer.PushAttribute( "type", "Float64" );
-  printer.PushAttribute( "Name", "TimeValue" );
-  printer.PushAttribute( "NumberOfTuples", "1" );
+  //printer.OpenElement( "FieldData" );
+  gridWriter.addElement("FieldData");
+  //printer.OpenElement( "DataArray" );
+  std::map<std::string, std::string> attribs;
+  //printer.PushAttribute( "type", "Float64" );
+  attribs.insert({"type", "Float64"});
+  //printer.PushAttribute( "Name", "TimeValue" );
+  attribs.insert({"Name", "TimeValue"});
+  //printer.PushAttribute( "NumberOfTuples", "1" );
+  attribs.insert({"NumberOfTuples", "1"});
+  gridWriter.addElement("DataArray", attribs);
   {
     Vector<double> time_vec = {time};
-    write_DataArray(printer, time_vec, false, false);
+    //write_DataArray(printer, time_vec, false, false);
+    gridWriter.writeDataArray(time_vec);
   }
-  printer.CloseElement();	// DataArray
-  printer.CloseElement();	// FieldData
+  //printer.CloseElement();	// DataArray
+  gridWriter.closeElement();
+  //printer.CloseElement();	// FieldData
+  gridWriter.closeElement();
 
-  printer.OpenElement( "Piece" );
-  printer.PushAttribute( "NumberOfPoints", std::to_string(grid.get_n()).c_str() );
-  printer.PushAttribute( "NumberOfCells", std::to_string(grid.get_nelems()).c_str() );
+  //printer.OpenElement( "Piece" );
+  attribs.clear();
+  //printer.PushAttribute( "NumberOfPoints", std::to_string(grid.get_n()).c_str() );
+  attribs.insert({"NumberOfPoints", std::to_string(grid.get_n())});
+  //printer.PushAttribute( "NumberOfCells", std::to_string(grid.get_nelems()).c_str() );
+  attribs.insert({"NumberOfCells", std::to_string(grid.get_nelems())});
+  gridWriter.addElement("Piece", attribs);
 
-  printer.OpenElement( "Points" );
-  printer.OpenElement( "DataArray" );
-  printer.PushAttribute( "NumberOfComponents", "3" );	// SEE THIS 3?!?!? It needs to be there.
-  printer.PushAttribute( "Name", "position" );
-  printer.PushAttribute( "type", "Float32" );
-  unpack_array(printer, grid.get_pos(), compress, asbase64);
-  printer.CloseElement();	// DataArray
-  printer.CloseElement();	// Points
+  //printer.OpenElement( "Points" );
+  gridWriter.addElement("Points");
+  //printer.OpenElement( "DataArray" );
+  attribs.clear();
+  //printer.PushAttribute( "NumberOfComponents", "3" );	// SEE THIS 3?!?!? It needs to be there.
+  attribs.insert({"NumberOfComponents", "3"});
+  //printer.PushAttribute( "Name", "position" );
+  attribs.insert({"Name", "position"});
+  //printer.PushAttribute( "type", "Float32" );
+  attribs.insert({"type", "Float32"});
+  gridWriter.addElement("DataArray", attribs);
+  //unpack_array(printer, grid.get_pos(), compress, asbase64);
+  Vector<float> pos = gridWriter.unpackArray(grid.get_pos());
+  gridWriter.writeDataArray(pos);
+  //printer.CloseElement();	// DataArray
+  gridWriter.closeElement();
+  //printer.CloseElement();	// Points
+  gridWriter.closeElement();
 
-  printer.OpenElement( "Cells" );
+  //printer.OpenElement( "Cells" );
+  gridWriter.addElement("Cells");
 
   // again, all connectivities and offsets must be Int32!
-  printer.OpenElement( "DataArray" );
-  printer.PushAttribute( "Name", "connectivity" );
-  printer.PushAttribute( "type", "Int32" );
+  //printer.OpenElement( "DataArray" );
+  attribs.clear();
+  //printer.PushAttribute( "Name", "connectivity" );
+  attribs.insert({"Name", "connectivity"});
+  //printer.PushAttribute( "type", "Int32" );
+  attribs.insert({"type", "Int32"});
+  gridWriter.addElement("DataArray", attribs);
   {
     std::vector<Int> const & idx = grid.get_idx();
     Vector<int32_t> v(std::begin(idx), std::end(idx));
-    write_DataArray(printer, v, compress, asbase64);
+    //write_DataArray(printer, idx, compress, asbase64);
+    gridWriter.writeDataArray(v);
   }
-  printer.CloseElement();	// DataArray
+  //printer.CloseElement();	// DataArray
+  gridWriter.closeElement();
 
-  printer.OpenElement( "DataArray" );
-  printer.PushAttribute( "Name", "offsets" );
-  printer.PushAttribute( "type", "Int32" );
+  //printer.OpenElement( "DataArray" );
+  attribs.clear();
+  //printer.PushAttribute( "Name", "offsets" );
+  attribs.insert({"Name", "offsets"});
+  //printer.PushAttribute( "type", "Int32" );
+  attribs.insert({"type", "Int32"});
+  gridWriter.addElement("DataArray", attribs);
   {
     Vector<int32_t> v(grid.get_nelems());
     // vector of 1 to n
     std::iota(v.begin(), v.end(), 1);
     std::transform(v.begin(), v.end(), v.begin(),
                    std::bind(std::multiplies<int32_t>(), std::placeholders::_1, 4));
-    write_DataArray(printer, v, compress, asbase64);
+    //write_DataArray(printer, v, compress, asbase64);
+    gridWriter.writeDataArray(v);
   }
-  printer.CloseElement();	// DataArray
+  //printer.CloseElement();	// DataArray
+  gridWriter.closeElement();
 
-  printer.OpenElement( "DataArray" );
-  printer.PushAttribute( "Name", "types" );
-  printer.PushAttribute( "type", "UInt8" );
+  //printer.OpenElement( "DataArray" );
+  attribs.clear();
+  //printer.PushAttribute( "Name", "types" );
+  attribs.insert({"Name", "types"});
+  //printer.PushAttribute( "type", "UInt8" );
+  attribs.insert({"type", "UInt8"});
+  gridWriter.addElement("DataArray", attribs);
   Vector<uint8_t> v(grid.get_nelems());
   std::fill(v.begin(), v.end(), 9);
-  write_DataArray(printer, v, compress, asbase64);
-  printer.CloseElement();	// DataArray
+  //write_DataArray(printer, v, compress, asbase64);
+  gridWriter.writeDataArray(v);
+  //printer.CloseElement();	// DataArray
+  gridWriter.closeElement();
 
-  printer.CloseElement();	// Cells
+  //printer.CloseElement();	// Cells
+  gridWriter.closeElement();
 
+  //printer.OpenElement( "PointData" );
+  gridWriter.addElement("PointData");
+  
+  //printer.OpenElement( "DataArray" );
+  attribs.clear();
+  //printer.PushAttribute( "NumberOfComponents", "3" );
+  attribs.insert({"NumberOfComponents", "3"});
+  //printer.PushAttribute( "Name", "velocity" );
+  attribs.insert({"Name", "velocity"});
+  //printer.PushAttribute( "type", "Float32" );
+  attribs.insert({"type", "Float32"});
+  gridWriter.addElement("DataArray", attribs);
+  //unpack_array(printer, grid.get_vel(), compress, asbase64);
+  Vector<float> vel = gridWriter.unpackArray(grid.get_vel());
+  gridWriter.writeDataArray(vel);
+  //printer.CloseElement();	// DataArray
+  gridWriter.closeElement();
 
-  printer.OpenElement( "PointData" );
+  //printer.CloseElement();	// PointData 
+  gridWriter.closeElement();
 
-  printer.OpenElement( "DataArray" );
-  printer.PushAttribute( "NumberOfComponents", "3" );
-  printer.PushAttribute( "Name", "velocity" );
-  printer.PushAttribute( "type", "Float32" );
-  unpack_array(printer, grid.get_vel(), compress, asbase64);
-  printer.CloseElement();	// DataArray
+  //printer.CloseElement();	// Piece
+  gridWriter.closeElement();
+  //printer.CloseElement();	// PolyData or UnstructuredGrid
+  //printer.CloseElement();	// VTKFile
 
-  printer.CloseElement();	// PointData 
-
-  printer.CloseElement();	// Piece
-  printer.CloseElement();	// PolyData or UnstructuredGrid
-  printer.CloseElement();	// VTKFile
-
-  std::fclose(fp);
+  //std::fclose(fp);
+  gridWriter.finish();
   std::cout << "Wrote " << grid.get_nelems() << " elements to " << vtkfn.str() << std::endl;
   return vtkfn.str();
 }
