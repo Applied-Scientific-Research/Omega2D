@@ -24,21 +24,52 @@
 // velocity influence functions
 //
 // here is the naming system:
-//   kernel_NS_MT
-//     N is the number of dimensions of the source element (0=point, 2=surface)
-//     M is the number of dimensions of the target element
+//   kernelR_NS_MT
+//     R is the type of result ('p'=psi, 'u'=vel, 'g'=grad)
+//     N is the number of dimensions of the source element (0=point, 1=segment/surface)
 //     S is the type of the source element ('v'=vortex, 's'=source, 'vs'=vortex and source)
-//     T is the type of the target element
-//         first character is 'p' for a singular point, 'b' for a vortex blob
-//         second character is 'g' if gradients must be returned
+//     M is the number of dimensions of the target element
+//     T is the type of the target element ('p' for singular, 'b' for a blob/thick element)
+//
+
+//
+// Streamfunction kernels
+//
+
+// thick-cored particle on thick-cored point
+template <class S, class A> size_t flopsp_0v_0b () { return 10 + flops_tv_nograds<S>(); }
+template <class S, class A>
+static inline void kernelp_0v_0b (const S sx, const S sy, const S sr, const S ss,
+                                  const S tx, const S ty, const S tr,
+                                  A* const __restrict__ tp) {
+  // 18 flops
+  const S dx = tx - sx;
+  const S dy = ty - sy;
+  *tp -= ss * my_halflog<S>(dx*dx + dy*dy + sr*sr + tr*tr);
+}
+
+// thick-cored particle on singular point
+template <class S, class A> size_t flopsp_0v_0p () { return 10 + flops_tp_nograds<S>(); }
+template <class S, class A>
+static inline void kernelp_0v_0p (const S sx, const S sy, const S sr, const S ss,
+                                  const S tx, const S ty,
+                                  A* const __restrict__ tp) {
+  // 18 flops
+  const S dx = tx - sx;
+  const S dy = ty - sy;
+  *tp -= ss * my_halflog<S>(dx*dx + dy*dy + sr*sr);
+}
+
+//
+// Velocity kernels
 //
 
 // thick-cored particle on thick-cored point, no gradients
-template <class S, class A> size_t flops_0v_0v () { return 10 + flops_tv_nograds<S>(); }
+template <class S, class A> size_t flopsu_0v_0b () { return 10 + flops_tv_nograds<S>(); }
 template <class S, class A>
-static inline void kernel_0v_0v (const S sx, const S sy, const S sr, const S ss,
-                                 const S tx, const S ty, const S tr,
-                                 A* const __restrict__ tu, A* const __restrict__ tv) {
+static inline void kernelu_0v_0b (const S sx, const S sy, const S sr, const S ss,
+                                  const S tx, const S ty, const S tr,
+                                  A* const __restrict__ tu, A* const __restrict__ tv) {
   // 18 flops
   const S dx = tx - sx;
   const S dy = ty - sy;
@@ -48,11 +79,11 @@ static inline void kernel_0v_0v (const S sx, const S sy, const S sr, const S ss,
 }
 
 // thick-cored particle on singular point, no gradients
-template <class S, class A> size_t flops_0v_0p () { return 10 + flops_tp_nograds<S>(); }
+template <class S, class A> size_t flopsu_0v_0p () { return 10 + flops_tp_nograds<S>(); }
 template <class S, class A>
-static inline void kernel_0v_0p (const S sx, const S sy, const S sr, const S ss,
-                                 const S tx, const S ty,
-                                 A* const __restrict__ tu, A* const __restrict__ tv) {
+static inline void kernelu_0v_0p (const S sx, const S sy, const S sr, const S ss,
+                                  const S tx, const S ty,
+                                  A* const __restrict__ tu, A* const __restrict__ tv) {
   // 16 flops
   const S dx = tx - sx;
   const S dy = ty - sy;
@@ -62,14 +93,17 @@ static inline void kernel_0v_0p (const S sx, const S sy, const S sr, const S ss,
 }
 
 /*
-// gradient kernels here
-template <class S, class A> size_t flops_0v_0vg () { return 25 + flops_tv_grads<S>(); }
+//
+// Velocity gradient kernels
+//
+
+template <class S, class A> size_t flopsug_0v_0b () { return 25 + flops_tv_grads<S>(); }
 template <class S, class A>
-static inline void kernel_0v_0vg (const S sx, const S sy, const S sr, const S ss,
-                                  const S tx, const S ty, const S tr,
-                                  A* const __restrict__ tu, A* const __restrict__ tv,
-                                  A* const __restrict__ tux, A* const __restrict__ tvx,
-                                  A* const __restrict__ tuy, A* const __restrict__ tvy) {
+static inline void kernelug_0v_0b (const S sx, const S sy, const S sr, const S ss,
+                                   const S tx, const S ty, const S tr,
+                                   A* const __restrict__ tu, A* const __restrict__ tv,
+                                   A* const __restrict__ tux, A* const __restrict__ tvx,
+                                   A* const __restrict__ tuy, A* const __restrict__ tvy) {
   // 25 flops without core_func
   const S dx = tx - sx;
   const S dy = ty - sy;
@@ -166,14 +200,14 @@ static inline S get_ustar_fast (const S a2, const S b2, const S c2, const S norm
 
 
 // first, the flops count (star is 3, rsqrt counts as 1)
-template <class S, class A> size_t flops_1_0v () { return 28 + 3 + flops_usf<S>(); }
+template <class S, class A> size_t flopsu_1v_0p () { return 28 + 3 + flops_usf<S>(); }
 // then the first kernel
 template <class S, class A>
-static inline void kernel_1_0v (const S sx0, const S sy0,
-                                const S sx1, const S sy1,
-                                const S str,
-                                const S tx, const S ty,
-                                A* const __restrict__ tu, A* const __restrict__ tv) {
+static inline void kernelu_1v_0p (const S sx0, const S sy0,
+                                  const S sx1, const S sy1,
+                                  const S str,
+                                  const S tx, const S ty,
+                                  A* const __restrict__ tu, A* const __restrict__ tv) {
 
   // segment vector
   const S dx0   = tx - sx0;
@@ -216,13 +250,13 @@ static inline void kernel_1_0v (const S sx0, const S sy0,
 //   on target point ignoring the 1/2pi factor, which will be multiplied later
 //   47 flops average
 //
-template <class S, class A> size_t flops_1_0vs () { return 47; }
+template <class S, class A> size_t flopsu_1vs_0p () { return 47; }
 template <class S, class A>
-static inline void kernel_1_0vs (const S sx0, const S sy0,
-                                 const S sx1, const S sy1,
-                                 const S vs, const S ss,
-                                 const S tx, const S ty,
-                                 A* const __restrict__ tu, A* const __restrict__ tv) {
+static inline void kernelu_1vs_0p (const S sx0, const S sy0,
+                                   const S sx1, const S sy1,
+                                   const S vs, const S ss,
+                                   const S tx, const S ty,
+                                   A* const __restrict__ tu, A* const __restrict__ tv) {
 
   // segment vector
   const S dx0   = tx - sx0;
@@ -267,14 +301,14 @@ static inline void kernel_1_0vs (const S sx0, const S sy0,
 //   on target point ignoring the 1/2pi factor, and separating out each velocity
 //   45 flops average
 //
-template <class S, class A> size_t flops_1_0vps () { return 45; }
+template <class S, class A> size_t flopsu_1vos_0p () { return 45; }
 template <class S, class A>
-static inline void kernel_1_0vps (const S sx0, const S sy0,
-                                  const S sx1, const S sy1,
-                                  const S vs, const S ss,
-                                  const S tx, const S ty,
-                                  A* const __restrict__ vu, A* const __restrict__ vv,
-                                  A* const __restrict__ su, A* const __restrict__ sv) {
+static inline void kernelu_1vos_0p (const S sx0, const S sy0,
+                                    const S sx1, const S sy1,
+                                    const S vs, const S ss,
+                                    const S tx, const S ty,
+                                    A* const __restrict__ vu, A* const __restrict__ vv,
+                                    A* const __restrict__ su, A* const __restrict__ sv) {
 
   // segment vector
   const S dx0   = tx - sx0;

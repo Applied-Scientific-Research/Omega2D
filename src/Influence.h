@@ -39,7 +39,7 @@ extern "C" float external_vel_solver_d_(int*, const double*, const double*, cons
 // Vc and x86 versions of Points/Particles affecting Points/Particles
 //
 template <class S, class A>
-void points_affect_points (Points<S> const& src, Points<S>& targ, SolnType& soln, ExecEnv& env) {
+void points_affect_points (const Points<S>& src, Points<S>& targ, const SolnType& soln, const ExecEnv& env) {
 
   std::cout << "    in ptpt with" << env.to_string() << std::endl;
   auto start = std::chrono::system_clock::now();
@@ -59,8 +59,10 @@ void points_affect_points (Points<S> const& src, Points<S>& targ, SolnType& soln
     int ns = src.get_n();
     int nt = targ.get_n();
 
+    if (soln.compute_vel()) {
     flops = external_vel_solver_f_(&ns, sx[0].data(), sx[1].data(),    ss.data(),    sr.data(), 
                                    &nt, tx[0].data(), tx[1].data(), tu[0].data(), tu[1].data());
+    }
 
     auto end = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed_seconds = end-start;
@@ -108,7 +110,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ, SolnType& soln
         AccumVec accumu = 0.0;
         AccumVec accumv = 0.0;
         for (size_t j=0; j<sxv.vectorsCount(); ++j) {
-          kernel_0v_0p<StoreVec,AccumVec>(
+          kernelu_0v_0p<StoreVec,AccumVec>(
                             sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
                             txv, tyv,
                             &accumu, &accumv);
@@ -124,17 +126,26 @@ void points_affect_points (Points<S> const& src, Points<S>& targ, SolnType& soln
       for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
         A accumu = 0.0;
         A accumv = 0.0;
-        for (size_t j=0; j<src.get_n(); ++j) {
-          kernel_0v_0p<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
-                            tx[0][i], tx[1][i],
-                            &accumu, &accumv);
+        if (soln.compute_psi()) {
+          for (size_t j=0; j<src.get_n(); ++j) {
+            //kernelp_0v_0p<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
+            //                   tx[0][i], tx[1][i],
+            //                   &accump);
+          }
+        }
+        if (soln.compute_vel()) {
+          for (size_t j=0; j<src.get_n(); ++j) {
+            kernelu_0v_0p<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
+                               tx[0][i], tx[1][i],
+                               &accumu, &accumv);
+          }
         }
         tu[0][i] += accumu;
         tu[1][i] += accumv;
         //std::cout << "pt " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
       }
     }
-    flops *= 2.0 + (float)flops_0v_0p<S,A>() * (float)src.get_n();
+    flops *= 2.0 + (float)flopsu_0v_0p<S,A>() * (float)src.get_n();
 
   //
   // targets are particles, with a core radius ===================================================
@@ -165,7 +176,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ, SolnType& soln
         AccumVec accumu = 0.0;
         AccumVec accumv = 0.0;
         for (size_t j=0; j<sxv.vectorsCount(); ++j) {
-          kernel_0v_0v<StoreVec,AccumVec>(
+          kernelu_0v_0b<StoreVec,AccumVec>(
                             sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
                             txv, tyv, trv,
                             &accumu, &accumv);
@@ -187,16 +198,16 @@ void points_affect_points (Points<S> const& src, Points<S>& targ, SolnType& soln
         A accumu = 0.0;
         A accumv = 0.0;
         for (size_t j=0; j<src.get_n(); ++j) {
-          kernel_0v_0v<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
-                            tx[0][i], tx[1][i], tr[i],
-                            &accumu, &accumv);
+          kernelu_0v_0b<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
+                             tx[0][i], tx[1][i], tr[i],
+                             &accumu, &accumv);
         }
         tu[0][i] += accumu;
         tu[1][i] += accumv;
       }
       //std::cout << "part " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
     }
-    flops *= 2.0 + (float)flops_0v_0v<S,A>() * (float)src.get_n();
+    flops *= 2.0 + (float)flopsu_0v_0b<S,A>() * (float)src.get_n();
 
   //
   // end conditional over whether targets are field points (with no core radius)
@@ -214,7 +225,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ, SolnType& soln
 // Vc and x86 versions of Panels/Surfaces affecting Points/Particles
 //
 template <class S, class A>
-void panels_affect_points (Surfaces<S> const& src, Points<S>& targ, SolnType& soln, ExecEnv& env) {
+void panels_affect_points (const Surfaces<S>& src, Points<S>& targ, const SolnType& soln, const ExecEnv& env) {
 
   std::cout << "    in panpt with" << env.to_string() << std::endl;
   std::cout << "    1_0 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
@@ -300,11 +311,11 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ, SolnType& so
       if (have_source_strengths) {
         for (size_t j=0; j<vsvs.vectorsCount(); ++j) {
           // note that this is the same kernel as panels_affect_points!
-          kernel_1_0vs<StoreVec,AccumVec>(vsx0.vector(j), vsy0.vector(j),
-                                          vsx1.vector(j), vsy1.vector(j),
-                                          vsvs.vector(j), vsss.vector(j),
-                                          vtx, vty,
-                                          &resultu, &resultv);
+          kernelu_1vs_0p<StoreVec,AccumVec>(vsx0.vector(j), vsy0.vector(j),
+                                            vsx1.vector(j), vsy1.vector(j),
+                                            vsvs.vector(j), vsss.vector(j),
+                                            vtx, vty,
+                                            &resultu, &resultv);
           accumu += resultu;
           accumv += resultv;
         }
@@ -312,11 +323,11 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ, SolnType& so
         // only vortex strengths
         for (size_t j=0; j<vsvs.vectorsCount(); ++j) {
           // note that this is the same kernel as panels_affect_points!
-          kernel_1_0v<StoreVec,AccumVec>(vsx0.vector(j), vsy0.vector(j),
-                                         vsx1.vector(j), vsy1.vector(j),
-                                         vsvs.vector(j),
-                                         vtx, vty,
-                                         &resultu, &resultv);
+          kernelu_1v_0p<StoreVec,AccumVec>(vsx0.vector(j), vsy0.vector(j),
+                                           vsx1.vector(j), vsy1.vector(j),
+                                           vsvs.vector(j),
+                                           vtx, vty,
+                                           &resultu, &resultv);
           accumu += resultu;
           accumv += resultv;
         }
@@ -346,11 +357,11 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ, SolnType& so
           const size_t jp1 = si[2*j+1];
 
           // note that this is the same kernel as points_affect_panels
-          kernel_1_0vs<S,A>(sx[0][jp0], sx[1][jp0], 
-                            sx[0][jp1], sx[1][jp1],
-                            vs[j],      ss[j],
-                            tx[0][i],   tx[1][i],
-                            &resultu, &resultv);
+          kernelu_1vs_0p<S,A>(sx[0][jp0], sx[1][jp0], 
+                              sx[0][jp1], sx[1][jp1],
+                              vs[j],      ss[j],
+                              tx[0][i],   tx[1][i],
+                              &resultu, &resultv);
 
           accumu += resultu;
           accumv += resultv;
@@ -362,11 +373,11 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ, SolnType& so
           const size_t jp1 = si[2*j+1];
 
           // note that this is the same kernel as points_affect_panels
-          kernel_1_0v<S,A>(sx[0][jp0], sx[1][jp0], 
-                           sx[0][jp1], sx[1][jp1],
-                           vs[j],
-                           tx[0][i],   tx[1][i],
-                           &resultu, &resultv);
+          kernelu_1v_0p<S,A>(sx[0][jp0], sx[1][jp0], 
+                             sx[0][jp1], sx[1][jp1],
+                             vs[j],
+                             tx[0][i],   tx[1][i],
+                             &resultu, &resultv);
 
           accumu += resultu;
           accumv += resultv;
@@ -381,9 +392,9 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ, SolnType& so
   }
 
   if (have_source_strengths) {
-    flops *= 2.0 + (float)flops_1_0vs<S,A>() * (float)src.get_npanels();
+    flops *= 2.0 + (float)flopsu_1vs_0p<S,A>() * (float)src.get_npanels();
   } else {
-    flops *= 2.0 + (float)flops_1_0v<S,A>() * (float)src.get_npanels();
+    flops *= 2.0 + (float)flopsu_1v_0p<S,A>() * (float)src.get_npanels();
   }
 
   auto end = std::chrono::system_clock::now();
@@ -396,7 +407,7 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ, SolnType& so
 // Vc and x86 versions of Volumes affecting Points/Particles
 //
 template <class S, class A>
-void bricks_affect_points (Volumes<S> const& src, Points<S>& targ, SolnType& soln, ExecEnv& env) {
+void bricks_affect_points (const Volumes<S>& src, Points<S>& targ, const SolnType& soln, const ExecEnv& env) {
   std::cout << "    2_0 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   assert (false && "Volume elements cannot affect points yet.");
 }
@@ -408,7 +419,7 @@ void bricks_affect_points (Volumes<S> const& src, Points<S>& targ, SolnType& sol
 // Vc and x86 versions of Points/Particles affecting Panels/Surfaces
 //
 template <class S, class A>
-void points_affect_panels (Points<S> const& src, Surfaces<S>& targ, SolnType& soln, ExecEnv& env) {
+void points_affect_panels (const Points<S>& src, Surfaces<S>& targ, const SolnType& soln, const ExecEnv& env) {
 
   std::cout << "    in ptpan with" << env.to_string() << std::endl;
   std::cout << "    0_1 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
@@ -465,11 +476,11 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ, SolnType& so
 
       for (size_t j=0; j<vsv.vectorsCount(); ++j) {
         // note that this is the same kernel as panels_affect_points!
-        kernel_1_0v<StoreVec,AccumVec>(vtx0, vty0,
-                                       vtx1, vty1,
-                                       vsv.vector(j),
-                                       sxv.vector(j), syv.vector(j),
-                                       &resultu, &resultv);
+        kernelu_1v_0p<StoreVec,AccumVec>(vtx0, vty0,
+                                         vtx1, vty1,
+                                         vsv.vector(j),
+                                         sxv.vector(j), syv.vector(j),
+                                         &resultu, &resultv);
         accumu += resultu;
         accumv += resultv;
       }
@@ -505,11 +516,11 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ, SolnType& so
 
       for (size_t j=0; j<src.get_n(); ++j) {
         // note that this is the same kernel as panels_affect_points!
-        kernel_1_0v<S,A>(tx[0][ip0], tx[1][ip0],
-                         tx[0][ip1], tx[1][ip1],
-                         vs[j],
-                         sx[0][j],   sx[1][j],
-                         &resultu, &resultv);
+        kernelu_1v_0p<S,A>(tx[0][ip0], tx[1][ip0],
+                           tx[0][ip1], tx[1][ip1],
+                           vs[j],
+                           sx[0][j],   sx[1][j],
+                           &resultu, &resultv);
         //std::cout << "    part " << j << " at " << sx[0][j] << " " << sx[1][j] << " has str " << vs[j];// << std::endl;
         //std::cout << " adds vel " << (-plen*resultu) << " " << (-plen*resultv);// << std::endl;
         accumu += resultu;
@@ -519,9 +530,9 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ, SolnType& so
         if (false) {
           A testu = 0.0;
           A testv = 0.0;
-          kernel_0v_0v<S,A>(sx[0][j], sx[1][j], 0.5*0.189737, vs[j], 
-                            0.5*(tx[0][ip0]+tx[0][ip1]), 0.5*(tx[1][ip0]+tx[1][ip1]), 0.5*0.189737,
-                            &testu, &testv);
+          kernelu_0v_0b<S,A>(sx[0][j], sx[1][j], 0.5*0.189737, vs[j], 
+                             0.5*(tx[0][ip0]+tx[0][ip1]), 0.5*(tx[1][ip0]+tx[1][ip1]), 0.5*0.189737,
+                             &testu, &testv);
           std::cout << " pp vel " << testu << " " << testv << std::endl;
         }
       }
@@ -538,7 +549,7 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ, SolnType& so
     }
   }
 
-  flops *= 11.0 + (float)flops_1_0v<S,A>() * (float)src.get_n();
+  flops *= 11.0 + (float)flopsu_1v_0p<S,A>() * (float)src.get_n();
 
   auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
@@ -548,7 +559,7 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ, SolnType& so
 
 
 template <class S, class A>
-void panels_affect_panels (Surfaces<S> const& src, Surfaces<S>& targ, SolnType& soln, ExecEnv& env) {
+void panels_affect_panels (const Surfaces<S>& src, Surfaces<S>& targ, const SolnType& soln, const ExecEnv& env) {
   std::cout << "    1_1 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
 
   // run panels_affect_points instead
@@ -570,7 +581,7 @@ void panels_affect_panels (Surfaces<S> const& src, Surfaces<S>& targ, SolnType& 
 
 
 template <class S, class A>
-void bricks_affect_panels (Volumes<S> const& src, Surfaces<S>& targ, SolnType& soln, ExecEnv& env) {
+void bricks_affect_panels (const Volumes<S>& src, Surfaces<S>& targ, const SolnType& soln, const ExecEnv& env) {
   std::cout << "    2_1 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   assert (false && "Volume elements cannot affect panels yet.");
 }
@@ -580,7 +591,7 @@ void bricks_affect_panels (Volumes<S> const& src, Surfaces<S>& targ, SolnType& s
 
 
 template <class S, class A>
-void points_affect_bricks (Points<S> const& src, Volumes<S>& targ, SolnType& soln, ExecEnv& env) {
+void points_affect_bricks (const Points<S>& src, Volumes<S>& targ, const SolnType& soln, const ExecEnv& env) {
   std::cout << "    in ptvol with" << env.to_string() << std::endl;
   std::cout << "    0_2 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   //assert (false && "Points cannot affect Volumes yet.");
@@ -603,13 +614,13 @@ void points_affect_bricks (Points<S> const& src, Volumes<S>& targ, SolnType& sol
 }
 
 template <class S, class A>
-void panels_affect_bricks (Surfaces<S> const& src, Volumes<S>& targ, SolnType& soln, ExecEnv& env) {
+void panels_affect_bricks (const Surfaces<S>& src, Volumes<S>& targ, const SolnType& soln, const ExecEnv& env) {
   std::cout << "    1_2 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   assert (false && "Surfaces cannot affect Volumes yet.");
 }
 
 template <class S, class A>
-void bricks_affect_bricks (Volumes<S> const& src, Volumes<S>& targ, SolnType& soln, ExecEnv& env) {
+void bricks_affect_bricks (const Volumes<S>& src, Volumes<S>& targ, const SolnType& soln, const ExecEnv& env) {
   std::cout << "    2_2 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   assert (false && "Volume elements cannot affect themselves yet.");
 }
@@ -623,15 +634,15 @@ void bricks_affect_bricks (Volumes<S> const& src, Volumes<S>& targ, SolnType& so
 template <class A>
 struct InfluenceVisitor {
   // source collection, target collection, solution type, execution environment
-  void operator()(Points<float> const& src,   Points<float>& targ)   { points_affect_points<float,A>(src, targ, soln, env); }
-  void operator()(Surfaces<float> const& src, Points<float>& targ)   { panels_affect_points<float,A>(src, targ, soln, env); }
-  void operator()(Volumes<float> const& src,  Points<float>& targ)   { bricks_affect_points<float,A>(src, targ, soln, env); }
-  void operator()(Points<float> const& src,   Surfaces<float>& targ) { points_affect_panels<float,A>(src, targ, soln, env); }
-  void operator()(Surfaces<float> const& src, Surfaces<float>& targ) { panels_affect_panels<float,A>(src, targ, soln, env); }
-  void operator()(Volumes<float> const& src,  Surfaces<float>& targ) { bricks_affect_panels<float,A>(src, targ, soln, env); }
-  void operator()(Points<float> const& src,   Volumes<float>& targ)  { points_affect_bricks<float,A>(src, targ, soln, env); }
-  void operator()(Surfaces<float> const& src, Volumes<float>& targ)  { panels_affect_bricks<float,A>(src, targ, soln, env); }
-  void operator()(Volumes<float> const& src,  Volumes<float>& targ)  { bricks_affect_bricks<float,A>(src, targ, soln, env); }
+  void operator()(const Points<float>& src,   Points<float>& targ)   { points_affect_points<float,A>(src, targ, soln, env); }
+  void operator()(const Surfaces<float>& src, Points<float>& targ)   { panels_affect_points<float,A>(src, targ, soln, env); }
+  void operator()(const Volumes<float>& src,  Points<float>& targ)   { bricks_affect_points<float,A>(src, targ, soln, env); }
+  void operator()(const Points<float>& src,   Surfaces<float>& targ) { points_affect_panels<float,A>(src, targ, soln, env); }
+  void operator()(const Surfaces<float>& src, Surfaces<float>& targ) { panels_affect_panels<float,A>(src, targ, soln, env); }
+  void operator()(const Volumes<float>& src,  Surfaces<float>& targ) { bricks_affect_panels<float,A>(src, targ, soln, env); }
+  void operator()(const Points<float>& src,   Volumes<float>& targ)  { points_affect_bricks<float,A>(src, targ, soln, env); }
+  void operator()(const Surfaces<float>& src, Volumes<float>& targ)  { panels_affect_bricks<float,A>(src, targ, soln, env); }
+  void operator()(const Volumes<float>& src,  Volumes<float>& targ)  { bricks_affect_bricks<float,A>(src, targ, soln, env); }
 
   SolnType soln;
   ExecEnv env;

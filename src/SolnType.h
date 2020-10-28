@@ -40,6 +40,10 @@ public:
     : SolnType(_type==psionly, _type!=psionly, _type==velandgrad)
     {}
 
+  bool compute_psi() const { return m_psi; }
+  bool compute_vel() const { return m_vel; }
+  bool compute_grad() const { return m_grad; }
+
   std::string to_string() const {
     std::string mystr;
     bool first = true;
