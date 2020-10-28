@@ -12,6 +12,7 @@
 #include "Kernels.h"
 #include "Points.h"
 #include "Surfaces.h"
+#include "SolnType.h"
 #include "ExecEnv.h"
 
 #ifdef EXTERNAL_VEL_SOLVE
@@ -38,7 +39,7 @@ extern "C" float external_vel_solver_d_(int*, const double*, const double*, cons
 // Vc and x86 versions of Points/Particles affecting Points/Particles
 //
 template <class S, class A>
-void points_affect_points (Points<S> const& src, Points<S>& targ, ExecEnv& env) {
+void points_affect_points (Points<S> const& src, Points<S>& targ, SolnType& soln, ExecEnv& env) {
 
   std::cout << "    in ptpt with" << env.to_string() << std::endl;
   auto start = std::chrono::system_clock::now();
@@ -213,7 +214,7 @@ void points_affect_points (Points<S> const& src, Points<S>& targ, ExecEnv& env) 
 // Vc and x86 versions of Panels/Surfaces affecting Points/Particles
 //
 template <class S, class A>
-void panels_affect_points (Surfaces<S> const& src, Points<S>& targ, ExecEnv& env) {
+void panels_affect_points (Surfaces<S> const& src, Points<S>& targ, SolnType& soln, ExecEnv& env) {
 
   std::cout << "    in panpt with" << env.to_string() << std::endl;
   std::cout << "    1_0 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
@@ -395,7 +396,7 @@ void panels_affect_points (Surfaces<S> const& src, Points<S>& targ, ExecEnv& env
 // Vc and x86 versions of Volumes affecting Points/Particles
 //
 template <class S, class A>
-void bricks_affect_points (Volumes<S> const& src, Points<S>& targ, ExecEnv& env) {
+void bricks_affect_points (Volumes<S> const& src, Points<S>& targ, SolnType& soln, ExecEnv& env) {
   std::cout << "    2_0 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   assert (false && "Volume elements cannot affect points yet.");
 }
@@ -407,7 +408,7 @@ void bricks_affect_points (Volumes<S> const& src, Points<S>& targ, ExecEnv& env)
 // Vc and x86 versions of Points/Particles affecting Panels/Surfaces
 //
 template <class S, class A>
-void points_affect_panels (Points<S> const& src, Surfaces<S>& targ, ExecEnv& env) {
+void points_affect_panels (Points<S> const& src, Surfaces<S>& targ, SolnType& soln, ExecEnv& env) {
 
   std::cout << "    in ptpan with" << env.to_string() << std::endl;
   std::cout << "    0_1 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
@@ -547,7 +548,7 @@ void points_affect_panels (Points<S> const& src, Surfaces<S>& targ, ExecEnv& env
 
 
 template <class S, class A>
-void panels_affect_panels (Surfaces<S> const& src, Surfaces<S>& targ, ExecEnv& env) {
+void panels_affect_panels (Surfaces<S> const& src, Surfaces<S>& targ, SolnType& soln, ExecEnv& env) {
   std::cout << "    1_1 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
 
   // run panels_affect_points instead
@@ -557,7 +558,7 @@ void panels_affect_panels (Surfaces<S> const& src, Surfaces<S>& targ, ExecEnv& e
   Points<float> temppts(xysr, active, lagrangian, nullptr);
 
   // run the calculation
-  panels_affect_points<S,A>(src, temppts, env);
+  panels_affect_points<S,A>(src, temppts, soln, env);
 
   // and copy the velocities to the real target
   std::array<Vector<S>,Dimensions>& fromvel = temppts.get_vel();
@@ -569,7 +570,7 @@ void panels_affect_panels (Surfaces<S> const& src, Surfaces<S>& targ, ExecEnv& e
 
 
 template <class S, class A>
-void bricks_affect_panels (Volumes<S> const& src, Surfaces<S>& targ, ExecEnv& env) {
+void bricks_affect_panels (Volumes<S> const& src, Surfaces<S>& targ, SolnType& soln, ExecEnv& env) {
   std::cout << "    2_1 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   assert (false && "Volume elements cannot affect panels yet.");
 }
@@ -579,7 +580,7 @@ void bricks_affect_panels (Volumes<S> const& src, Surfaces<S>& targ, ExecEnv& en
 
 
 template <class S, class A>
-void points_affect_bricks (Points<S> const& src, Volumes<S>& targ, ExecEnv& env) {
+void points_affect_bricks (Points<S> const& src, Volumes<S>& targ, SolnType& soln, ExecEnv& env) {
   std::cout << "    in ptvol with" << env.to_string() << std::endl;
   std::cout << "    0_2 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   //assert (false && "Points cannot affect Volumes yet.");
@@ -589,7 +590,7 @@ void points_affect_bricks (Points<S> const& src, Volumes<S>& targ, ExecEnv& env)
   Points<S> volsaspts(xysr, inert, fixed, nullptr);
 
   // run the calculation
-  points_affect_points<S,A>(src, volsaspts, env);
+  points_affect_points<S,A>(src, volsaspts, soln, env);
 
   // and copy the velocities to the real target
   std::array<Vector<S>,Dimensions>& fromvel = volsaspts.get_vel();
@@ -602,13 +603,13 @@ void points_affect_bricks (Points<S> const& src, Volumes<S>& targ, ExecEnv& env)
 }
 
 template <class S, class A>
-void panels_affect_bricks (Surfaces<S> const& src, Volumes<S>& targ, ExecEnv& env) {
+void panels_affect_bricks (Surfaces<S> const& src, Volumes<S>& targ, SolnType& soln, ExecEnv& env) {
   std::cout << "    1_2 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   assert (false && "Surfaces cannot affect Volumes yet.");
 }
 
 template <class S, class A>
-void bricks_affect_bricks (Volumes<S> const& src, Volumes<S>& targ, ExecEnv& env) {
+void bricks_affect_bricks (Volumes<S> const& src, Volumes<S>& targ, SolnType& soln, ExecEnv& env) {
   std::cout << "    2_2 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   assert (false && "Volume elements cannot affect themselves yet.");
 }
@@ -621,17 +622,18 @@ void bricks_affect_bricks (Volumes<S> const& src, Volumes<S>& targ, ExecEnv& env
 //
 template <class A>
 struct InfluenceVisitor {
-  // source collection, target collection, execution environment
-  void operator()(Points<float> const& src,   Points<float>& targ)   { points_affect_points<float,A>(src, targ, env); }
-  void operator()(Surfaces<float> const& src, Points<float>& targ)   { panels_affect_points<float,A>(src, targ, env); }
-  void operator()(Volumes<float> const& src,  Points<float>& targ)   { bricks_affect_points<float,A>(src, targ, env); }
-  void operator()(Points<float> const& src,   Surfaces<float>& targ) { points_affect_panels<float,A>(src, targ, env); }
-  void operator()(Surfaces<float> const& src, Surfaces<float>& targ) { panels_affect_panels<float,A>(src, targ, env); }
-  void operator()(Volumes<float> const& src,  Surfaces<float>& targ) { bricks_affect_panels<float,A>(src, targ, env); }
-  void operator()(Points<float> const& src,   Volumes<float>& targ)  { points_affect_bricks<float,A>(src, targ, env); }
-  void operator()(Surfaces<float> const& src, Volumes<float>& targ)  { panels_affect_bricks<float,A>(src, targ, env); }
-  void operator()(Volumes<float> const& src,  Volumes<float>& targ)  { bricks_affect_bricks<float,A>(src, targ, env); }
+  // source collection, target collection, solution type, execution environment
+  void operator()(Points<float> const& src,   Points<float>& targ)   { points_affect_points<float,A>(src, targ, soln, env); }
+  void operator()(Surfaces<float> const& src, Points<float>& targ)   { panels_affect_points<float,A>(src, targ, soln, env); }
+  void operator()(Volumes<float> const& src,  Points<float>& targ)   { bricks_affect_points<float,A>(src, targ, soln, env); }
+  void operator()(Points<float> const& src,   Surfaces<float>& targ) { points_affect_panels<float,A>(src, targ, soln, env); }
+  void operator()(Surfaces<float> const& src, Surfaces<float>& targ) { panels_affect_panels<float,A>(src, targ, soln, env); }
+  void operator()(Volumes<float> const& src,  Surfaces<float>& targ) { bricks_affect_panels<float,A>(src, targ, soln, env); }
+  void operator()(Points<float> const& src,   Volumes<float>& targ)  { points_affect_bricks<float,A>(src, targ, soln, env); }
+  void operator()(Surfaces<float> const& src, Volumes<float>& targ)  { panels_affect_bricks<float,A>(src, targ, soln, env); }
+  void operator()(Volumes<float> const& src,  Volumes<float>& targ)  { bricks_affect_bricks<float,A>(src, targ, soln, env); }
 
+  SolnType soln;
   ExecEnv env;
 };
 
