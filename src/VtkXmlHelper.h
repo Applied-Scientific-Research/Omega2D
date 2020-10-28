@@ -131,7 +131,6 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx,
 
   assert(pts.get_n() > 0 && "Inside write_vtu_points with no points");
 
-  const bool compress = false;
   const bool asbase64 = true;
 
   bool has_radii = true;
@@ -146,137 +145,131 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx,
   // generate file name
   std::stringstream vtkfn;
   vtkfn << prefix << std::setfill('0') << std::setw(2) << file_idx << "_" << std::setw(5) << frameno << ".vtu";
-
-  // prepare file pointer and printer
-  std::FILE* fp = std::fopen(vtkfn.str().c_str(), "wb");
-  tinyxml2::XMLPrinter printer( fp );
-
-  // write <?xml version="1.0"?>
-  printer.PushHeader(false, true);
-
-  printer.OpenElement( "VTKFile" );
-  printer.PushAttribute( "type", "UnstructuredGrid" );
-  //printer.PushAttribute( "type", "PolyData" );
-  printer.PushAttribute( "version", "0.1" );
-  printer.PushAttribute( "byte_order", "LittleEndian" );
-  // note this is still unsigned even though all indices later are signed!
-  printer.PushAttribute( "header_type", "UInt32" );
-
+  VtkXmlWriter ptsWriter = VtkXmlWriter(vtkfn.str(), asbase64);
   // push comment with sim time?
 
-  // must choose one of these two formats
-  printer.OpenElement( "UnstructuredGrid" );
-  //printer.OpenElement( "PolyData" );
-
   // include simulation time here
-  printer.OpenElement( "FieldData" );
-  printer.OpenElement( "DataArray" );
-  printer.PushAttribute( "type", "Float64" );
-  printer.PushAttribute( "Name", "TimeValue" );
-  printer.PushAttribute( "NumberOfTuples", "1" );
+  ptsWriter.addElement("FieldData");
+
   {
+    std::map<std::string, std::string> attribs = {{"type",           "Float64"},
+                                                  {"Name",           "TimeValue"},
+                                                  {"NumberOfTuples", "1"}};
+    ptsWriter.addElement("DataArray", attribs);
     Vector<double> time_vec = {time};
-    write_DataArray(printer, time_vec, false, false);
+    ptsWriter.writeDataArray(time_vec);
   }
-  printer.CloseElement();	// DataArray
-  printer.CloseElement();	// FieldData
+  // DataArray
+  ptsWriter.closeElement();
+  // FieldData
+  ptsWriter.closeElement();
 
-  printer.OpenElement( "Piece" );
-  printer.PushAttribute( "NumberOfPoints", std::to_string(pts.get_n()).c_str() );
-  printer.PushAttribute( "NumberOfCells", std::to_string(pts.get_n()).c_str() );
+  {
+    std::map<std::string, std::string> attribs = {{"NumberOfPoints", std::to_string(pts.get_n()).c_str()},
+                                                  {"NumberOfCells", std::to_string(pts.get_n()).c_str()}};
+    ptsWriter.addElement("Piece", attribs);
+  }
+  
+  ptsWriter.addElement("Points");
+  {
+    std::map<std::string, std::string> attribs = {{"NumberOfComponents", "3"},
+                                                  {"Name",               "position"},
+                                                  {"type",               "Float32"}};
+    ptsWriter.addElement("DataArray", attribs);
+    Vector<float> pos = ptsWriter.unpackArray(pts.get_pos());
+    ptsWriter.writeDataArray(pos);
+  }
+  // DataArray
+  ptsWriter.closeElement();
+  // Points
+  ptsWriter.closeElement();
 
-  printer.OpenElement( "Points" );
-  printer.OpenElement( "DataArray" );
-  printer.PushAttribute( "NumberOfComponents", "3" );
-  printer.PushAttribute( "Name", "position" );
-  printer.PushAttribute( "type", "Float32" );
-  unpack_array(printer, pts.get_pos(), compress, asbase64);
-  printer.CloseElement();	// DataArray
-  printer.CloseElement();	// Points
-
-  printer.OpenElement( "Cells" );
-
+  ptsWriter.addElement("Cells");
+  
   // https://discourse.paraview.org/t/cannot-open-vtu-files-with-paraview-5-8/3759
   // apparently the Vtk format documents indicate that connectivities and offsets
   //   must be in Int32, not UIntAnything. Okay...
-  printer.OpenElement( "DataArray" );
-  printer.PushAttribute( "Name", "connectivity" );
-  printer.PushAttribute( "type", "Int32" );
   {
+    std::map<std::string, std::string> attribs = {{"Name", "connectivity"},
+                                                  {"type", "Int32"}};
+    ptsWriter.addElement("DataArray", attribs);
     Vector<int32_t> v(pts.get_n());
     std::iota(v.begin(), v.end(), 0);
-    write_DataArray(printer, v, compress, asbase64);
+    ptsWriter.writeDataArray(v);
   }
-  printer.CloseElement();	// DataArray
+  // DataArray
+  ptsWriter.closeElement();
 
-  printer.OpenElement( "DataArray" );
-  printer.PushAttribute( "Name", "offsets" );
-  printer.PushAttribute( "type", "Int32" );
   {
+    std::map<std::string, std::string> attribs = {{"Name", "offsets"},
+                                                  {"type", "Int32"}};
+    ptsWriter.addElement("DataArray", attribs);
     Vector<int32_t> v(pts.get_n());
     std::iota(v.begin(), v.end(), 1);
-    write_DataArray(printer, v, compress, asbase64);
+    ptsWriter.writeDataArray(v);
   }
-  printer.CloseElement();	// DataArray
+  // DataArray
+  ptsWriter.closeElement();
 
   // except these, they can be chars
-  printer.OpenElement( "DataArray" );
-  printer.PushAttribute( "Name", "types" );
-  printer.PushAttribute( "type", "UInt8" );
   {
+    std::map<std::string, std::string> attribs = {{"Name", "types"},
+                                                  {"type", "UInt8"}};
+    ptsWriter.addElement("DataArray", attribs);
     Vector<uint8_t> v(pts.get_n());
     std::fill(v.begin(), v.end(), 1);
-    write_DataArray (printer, v, compress, asbase64);
+    ptsWriter.writeDataArray(v);
   }
-  printer.CloseElement();	// DataArray
+  // DataArray
+  ptsWriter.closeElement();
+  // Cells
+  ptsWriter.closeElement();
 
-  printer.CloseElement();	// Cells
-
-
-  printer.OpenElement( "PointData" );
-  std::string vector_list;
-  std::string scalar_list;
-
-  vector_list.append("velocity,");
-  if (has_strengths) scalar_list.append("circulation,");
-  if (has_radii) scalar_list.append("radius,");
-
-  if (vector_list.size()>1) {
-    vector_list.pop_back();
-    printer.PushAttribute( "Vectors", vector_list.c_str() );
+  {
+    std::map<std::string, std::string> attribs = {{"Vectors", "velocity"}};
+    std::string scalar_list;
+    if (has_strengths) scalar_list.append("circulation,");
+    if (has_radii) scalar_list.append("radius,");
+    if (scalar_list.size()>1) {
+      scalar_list.pop_back();
+      attribs.insert({"Scalars", scalar_list});
+    }
+    ptsWriter.addElement("PointData", attribs);
   }
-  if (scalar_list.size()>1) {
-    scalar_list.pop_back();
-    printer.PushAttribute( "Scalars", scalar_list.c_str() );
-  }
+
+
 
   if (has_strengths) {
-    printer.OpenElement( "DataArray" );
-    printer.PushAttribute( "Name", "circulation" );
-    printer.PushAttribute( "type", "Float32" );
-    write_DataArray(printer, pts.get_str(), compress, asbase64);
-    printer.CloseElement();	// DataArray
+    std::map<std::string, std::string> attribs = {{"Name", "circulation"},
+                                                  {"type", "Float32"}};
+    ptsWriter.addElement("DataArray", attribs);
+    ptsWriter.writeDataArray(pts.get_str());
+    // DataArray
+    ptsWriter.closeElement();
   }
 
   if (has_radii) {
-    printer.OpenElement( "DataArray" );
-    printer.PushAttribute( "Name", "radius" );
-    printer.PushAttribute( "type", "Float32" );
-    write_DataArray(printer, pts.get_rad(), compress, asbase64);
-    printer.CloseElement();	// DataArray
+    std::map<std::string, std::string> attribs = {{"Name", "radius"},
+                                                  {"type", "Float32"}};
+    ptsWriter.addElement("DataArray", attribs);
+    ptsWriter.writeDataArray(pts.get_rad());
+    // DataArray
+    ptsWriter.closeElement();
   }
 
-  printer.OpenElement( "DataArray" );
-  printer.PushAttribute( "NumberOfComponents", "3" );
-  printer.PushAttribute( "Name", "velocity" );
-  printer.PushAttribute( "type", "Float32" );
-  unpack_array (printer, pts.get_vel(), compress, asbase64);
-  printer.CloseElement();	// DataArray
+  {
+    std::map<std::string, std::string> attribs = {{"NumberOfComponents", "3"},
+                                                  {"Name",               "velocity"},
+                                                  {"type",               "Float32"}};
+    ptsWriter.addElement("DataArray", attribs);
+    Vector<float> vel = ptsWriter.unpackArray(pts.get_vel());
+    ptsWriter.writeDataArray(vel);
+  }
+  // DataArray
+  ptsWriter.closeElement();
 
-  printer.CloseElement();	// PointData
-
-  //printer.OpenElement( "CellData" );
-  //printer.CloseElement();	// CellData
+  // Point Data 
+  ptsWriter.closeElement();
 
   // here's the problem: ParaView's VTK/XML reader is not able to read "raw" bytestreams
   // it parses each character and inevitably sees a > or <, so complains about mismatched
@@ -302,12 +295,9 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx,
   printer.CloseElement();	// AppendedData
 */
 
-  printer.CloseElement();	// Piece
-  printer.CloseElement();	// PolyData or UnstructuredGrid
-  printer.CloseElement();	// VTKFile
-
-  std::fclose(fp);
-
+  // Piece 
+  ptsWriter.closeElement();
+  ptsWriter.finish();
   std::cout << "Wrote " << pts.get_n() << " points to " << vtkfn.str() << std::endl;
   return vtkfn.str();
 }
