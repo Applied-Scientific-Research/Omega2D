@@ -48,8 +48,10 @@
 
 
 int main(int argc, char const *argv[]) {
+
   std::cout << std::endl << "Omega2D GUI" << std::endl;
-  if (VERBOSE) { std::cout << "VERBOSE is on" << std::endl; }
+  if (VERBOSE) { std::cout << "  VERBOSE is on" << std::endl; }
+
   // Set up vortex particle simulation
   Simulation sim;
   std::vector< std::unique_ptr<FlowFeature> > ffeatures;
@@ -208,7 +210,6 @@ int main(int argc, char const *argv[]) {
 
       // initialize particle distributions
       for (auto const& ff: ffeatures) {
-        //if (ff->is_enabled()) sim.add_particles( ff->init_particles(sim.get_ips()) );
         if (ff->is_enabled()) {
           ElementPacket<float> newpacket = ff->init_elements(sim.get_ips());
           sim.add_elements( newpacket, active, lagrangian, ff->get_body() );
@@ -217,7 +218,6 @@ int main(int argc, char const *argv[]) {
 
       // initialize solid objects
       for (auto const& bf : bfeatures) {
-        //if (bf->is_enabled()) sim.add_boundary( bf->get_body(), bf->init_elements(sim.get_ips()) );
         if (bf->is_enabled()) {
           ElementPacket<float> newpacket = bf->init_elements(sim.get_ips());
           const move_t newMoveType = (bf->get_body() ? bodybound : fixed);
@@ -227,7 +227,6 @@ int main(int argc, char const *argv[]) {
 
       // initialize measurement features
       for (auto const& mf: mfeatures) {
-        //if (mf->is_enabled()) sim.add_fldpts( mf->init_particles(rparams.tracer_scale*sim.get_ips()), mf->moves() );
         if (mf->is_enabled()) {
           ElementPacket<float> newpacket = mf->init_elements(rparams.tracer_scale*sim.get_ips());
           const move_t newMoveType = (mf->get_is_lagrangian() ? lagrangian : fixed);
@@ -326,7 +325,6 @@ int main(int argc, char const *argv[]) {
         }
 
         for (auto const& mf: mfeatures) {
-          //if (mf->is_enabled()) sim.add_fldpts( mf->init_particles(rparams.tracer_scale*sim.get_ips()), mf->moves() );
           if (mf->is_enabled()) {
             move_t newMoveType = fixed;
             if (mf->moves() or mf->emits()) {
@@ -411,14 +409,18 @@ int main(int argc, char const *argv[]) {
       }
 
       if (currentItemIndex) {
+
+        // stop and clear before loading
         sim.reset();
         bfeatures.clear();
         ffeatures.clear();
         mfeatures.clear();
+
+        // load and report
         parse_json(sim, ffeatures, bfeatures, mfeatures, rparams, sims[currentItemIndex-1]);
         
-        std::cout << "Loading drawing info for features..." << std::endl;
         // clear and remake the draw geometry
+        std::cout << "Loading drawing info for features..." << std::endl;
         bdraw.clear_elements();
         for (auto const& bf : bfeatures) {
           if (bf->is_enabled()) {
@@ -489,8 +491,11 @@ int main(int argc, char const *argv[]) {
             }
           }
         
-          // finish setting up and run
+          // we have to manually set this variable
           is_viscous = sim.get_diffuse();
+
+          // autostart if file requests it
+          if (sim.autostart()) sim_is_running = true;
 
           // check and possibly resize the window to match the saved resolution
           resize_to_resolution(window, rparams.width, rparams.height);
@@ -508,19 +513,37 @@ int main(int argc, char const *argv[]) {
       ffeatures.clear();
       mfeatures.clear();
 
+      // load and report
       command_line_input = argv[1];
       nlohmann::json j = read_json(command_line_input);
       parse_json(sim, ffeatures, bfeatures, mfeatures, rparams, j);
 
+      // clear and remake the draw geometry
+      std::cout << "Loading drawing info for features..." << std::endl;
+      bdraw.clear_elements();
+      for (auto const& bf : bfeatures) {
+        if (bf->is_enabled()) {
+          bdraw.add_elements( bf->get_draw_packet(), bf->is_enabled() );
+        }
+      }
+      fdraw.clear_elements();
+      for (auto const& ff : ffeatures) {
+        if (ff->is_enabled()) {
+          fdraw.add_elements( ff->get_draw_packet(), ff->is_enabled() );
+        }
+      }
+      mdraw.clear_elements();
+      for (auto const& mf : mfeatures) {
+        if (mf->is_enabled()) {
+          mdraw.add_elements( mf->get_draw_packet(), mf->is_enabled() );
+        }
+      }
+
       // we have to manually set this variable
       is_viscous = sim.get_diffuse();
 
-      // run one step so we know what we have, or autostart
-      if (sim.autostart()) {
-        sim_is_running = true;
-      } else {
-        begin_single_step = true;
-      }
+      // autostart if file requests it
+      if (sim.autostart()) sim_is_running = true;
 
       // check and possibly resize the window to match the saved resolution
       resize_to_resolution(window, rparams.width, rparams.height);

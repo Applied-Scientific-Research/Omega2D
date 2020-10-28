@@ -3,7 +3,7 @@
  *
  * (c)2017-20 Applied Scientific Research, Inc.
  *            Mark J Stock <markjstock@gmail.com>
- *            Blake Hillier <blakehillier@mac.com>
+ *            Blake B Hillier <blakehillier@mac.com>
  */
 
 #include "BoundaryFeature.h"
@@ -51,7 +51,7 @@ void parse_flow_json(std::vector<std::unique_ptr<FlowFeature>>& _flist,
   // and pass the json object to the specific parser
   _flist.back()->from_json(_jin);
 
-  std::cout << "  found " << ftype << std::endl;
+  std::cout << "  finished " << _flist.back()->to_string() << std::endl;
 }
 
 #ifdef USE_IMGUI
@@ -155,6 +155,7 @@ void FlowFeature::draw_feature_list(std::vector<std::unique_ptr<FlowFeature>> &f
 //
 ElementPacket<float>
 SingleParticle::init_elements(float _ips) const {
+  std::cout << "Creating single particle" << std::endl;
   //if (this->is_enabled()) return std::vector<float>({m_x, m_y, m_str, 0.0});
   //else return std::vector<float>();
   std::vector<float> x = {m_x, m_y};
@@ -238,11 +239,11 @@ VortexBlob::init_elements(float _ips) const {
   std::vector<Int> idx;
   std::vector<float> vals;
 
-  //if (not this->is_enabled()) return x;
-
   // what size 2D integer array will we loop over
   int irad = 1 + (m_rad + 0.5*m_softness) / _ips;
-  std::cout << "blob needs " << (-irad) << " to " << irad << " spaces" << std::endl;
+  //std::cout << "blob needs " << (-irad) << " to " << irad << " spaces" << std::endl;
+
+  std::cout << "Creating vortex blob with up to " << std::pow(2*irad+1,2) << " particles" << std::endl;
 
   // and a counter for the total circulation
   double tot_circ = 0.0;
@@ -363,12 +364,11 @@ AsymmetricBlob::init_elements(float _ips) const {
   std::vector<Int> idx;
   std::vector<float> vals;
 
-  //if (not this->is_enabled()) return x;
-
   // what size 2D integer array will we loop over
   int irad = 1 + (m_rad    + 0.5*m_softness) / _ips;
   int jrad = 1 + (m_minrad + 0.5*m_softness) / _ips;
-  std::cout << "blob needs " << (-irad) << " to " << irad << " spaces" << std::endl;
+  //std::cout << "blob needs " << (-irad) << " to " << irad << " spaces" << std::endl;
+  std::cout << "Creating asym vortex blob with up to " << (2*irad+1)*(2*jrad+1) << " particles" << std::endl;
 
   // and a counter for the total circulation
   double tot_circ = 0.0;
@@ -503,7 +503,8 @@ GaussianBlob::init_elements(float _ips) const {
 
   // what size 2D integer array will we loop over
   int irad = 1 + (3.0*m_stddev) / _ips;
-  std::cout << "blob needs " << (-irad) << " to " << irad << " spaces" << std::endl;
+  //std::cout << "blob needs " << (-irad) << " to " << irad << " spaces" << std::endl;
+  std::cout << "Creating Gaussian blob with up to " << std::pow(2*irad+1,2) << " particles" << std::endl;
 
   // and a counter for the total circulation
   double tot_circ = 0.0;
@@ -616,7 +617,8 @@ UniformBlock::init_elements(float _ips) const {
   // what size 2D integer array will we loop over
   int isize = 1 + m_xsize / _ips;
   int jsize = 1 + m_ysize / _ips;
-  std::cout << "block needs " << isize << " by " << jsize << " particles" << std::endl;
+  std::cout << "Creating block with " << (isize*jsize) << " particles" << std::endl;
+  //std::cout << "block needs " << isize << " by " << jsize << " particles" << std::endl;
 
   // create a new vector to pass on
   std::vector<float> x(2*isize*jsize);
@@ -719,6 +721,8 @@ bool UniformBlock::draw_info_gui(const std::string action, const float ips) {
 //
 ElementPacket<float>
 BlockOfRandom::init_elements(float _ips) const {
+  std::cout << "Creating random block with " << m_num << " particles" << std::endl;
+
   // set up the random number generator
   static std::random_device rd;  //Will be used to obtain a seed for the random number engine
   static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
@@ -841,6 +845,7 @@ bool BlockOfRandom::draw_info_gui(const std::string action, const float ips) {
 //
 ElementPacket<float>
 ParticleEmitter::init_elements(float _ips) const {
+  std::cout << "Creating particle emitter" << std::endl;
   return ElementPacket<float>();
 }
 
