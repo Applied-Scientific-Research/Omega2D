@@ -315,7 +315,6 @@ std::string write_vtu_panels(Surfaces<S> const& surf, const size_t file_idx,
   // Cells
   panelWriter.closeElement();
 
-  panelWriter.addElement("CellData");
   {
     std::map<std::string, std::string> attribs = {{"Vectors", "velocity"}};
     std::string scalar_list;
@@ -326,7 +325,7 @@ std::string write_vtu_panels(Surfaces<S> const& surf, const size_t file_idx,
       scalar_list.pop_back();
       attribs.insert({"Scalars", scalar_list});
     }
-    panelWriter.addElement("PointData", attribs);
+    panelWriter.addElement("CellData", attribs);
   }
 
   if (has_vort_str) {
