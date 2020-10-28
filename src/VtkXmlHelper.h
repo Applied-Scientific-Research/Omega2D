@@ -158,9 +158,9 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx,
     ptsWriter.addElement("DataArray", attribs);
     Vector<double> time_vec = {time};
     ptsWriter.writeDataArray(time_vec);
+    // DataArray
+    ptsWriter.closeElement();
   }
-  // DataArray
-  ptsWriter.closeElement();
   // FieldData
   ptsWriter.closeElement();
 
@@ -178,9 +178,9 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx,
     ptsWriter.addElement("DataArray", attribs);
     Vector<float> pos = ptsWriter.unpackArray(pts.get_pos());
     ptsWriter.writeDataArray(pos);
+    // DataArray
+    ptsWriter.closeElement();
   }
-  // DataArray
-  ptsWriter.closeElement();
   // Points
   ptsWriter.closeElement();
 
@@ -196,9 +196,9 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx,
     Vector<int32_t> v(pts.get_n());
     std::iota(v.begin(), v.end(), 0);
     ptsWriter.writeDataArray(v);
+    // DataArray
+    ptsWriter.closeElement();
   }
-  // DataArray
-  ptsWriter.closeElement();
 
   {
     std::map<std::string, std::string> attribs = {{"Name", "offsets"},
@@ -207,9 +207,9 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx,
     Vector<int32_t> v(pts.get_n());
     std::iota(v.begin(), v.end(), 1);
     ptsWriter.writeDataArray(v);
+    // DataArray
+    ptsWriter.closeElement();
   }
-  // DataArray
-  ptsWriter.closeElement();
 
   // except these, they can be chars
   {
@@ -219,9 +219,9 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx,
     Vector<uint8_t> v(pts.get_n());
     std::fill(v.begin(), v.end(), 1);
     ptsWriter.writeDataArray(v);
+    // DataArray
+    ptsWriter.closeElement();
   }
-  // DataArray
-  ptsWriter.closeElement();
   // Cells
   ptsWriter.closeElement();
 
@@ -479,92 +479,90 @@ std::string write_vtk_grid(Volumes<S> const& grid, const size_t file_idx,
 
   // include simulation time here
   gridWriter.addElement("FieldData");
-  std::map<std::string, std::string> attribs;
-  attribs.insert({"type", "Float64"});
-  attribs.insert({"Name", "TimeValue"});
-  attribs.insert({"NumberOfTuples", "1"});
-  gridWriter.addElement("DataArray", attribs);
   {
+    std::map<std::string, std::string> attribs = {{"type", "Float64"},
+                                                  {"Name", "TimeValue"},
+                                                  {"NumberOfTuples", "1"}};
+    gridWriter.addElement("DataArray", attribs);
     Vector<double> time_vec = {time};
     gridWriter.writeDataArray(time_vec);
+    gridWriter.closeElement();
   }
-  // DataArray
-  gridWriter.closeElement();
   // FieldData
   gridWriter.closeElement();
 
-  attribs.clear();
-  attribs.insert({"NumberOfPoints", std::to_string(grid.get_n())});
-  attribs.insert({"NumberOfCells", std::to_string(grid.get_nelems())});
-  gridWriter.addElement("Piece", attribs);
+  {
+    std::map<std::string, std::string> attribs = {{"NumberOfPoints", std::to_string(grid.get_n())},
+                                                  {"NumberOfCells", std::to_string(grid.get_nelems())}};
+    gridWriter.addElement("Piece", attribs);
+  }
 
   gridWriter.addElement("Points");
-  attribs.clear();
-  attribs.insert({"NumberOfComponents", "3"});
-  attribs.insert({"Name", "position"});
-  attribs.insert({"type", "Float32"});
-  gridWriter.addElement("DataArray", attribs);
-  Vector<float> pos = gridWriter.unpackArray(grid.get_pos());
-  gridWriter.writeDataArray(pos);
-  // DataArray
-  gridWriter.closeElement();
+  {
+    std::map<std::string, std::string> attribs = {{"NumberOfComponents", "3"},
+                                                  {"Name", "position"},
+                                                  {"type", "Float32"}};
+    gridWriter.addElement("DataArray", attribs);
+    Vector<float> pos = gridWriter.unpackArray(grid.get_pos());
+    gridWriter.writeDataArray(pos);
+    gridWriter.closeElement();
+  }
   // Points
   gridWriter.closeElement();
 
   gridWriter.addElement("Cells");
 
   // again, all connectivities and offsets must be Int32!
-  attribs.clear();
-  attribs.insert({"Name", "connectivity"});
-  attribs.insert({"type", "Int32"});
-  gridWriter.addElement("DataArray", attribs);
   {
+    std::map<std::string, std::string> attribs = {{"Name", "connectivity"},
+                                                  {"type", "Int32"}};
+    gridWriter.addElement("DataArray", attribs);
     std::vector<Int> const & idx = grid.get_idx();
     Vector<int32_t> v(std::begin(idx), std::end(idx));
     gridWriter.writeDataArray(v);
+    // DataArray
+    gridWriter.closeElement();
   }
-  // DataArray
-  gridWriter.closeElement();
 
-  attribs.clear();
-  attribs.insert({"Name", "offsets"});
-  attribs.insert({"type", "Int32"});
-  gridWriter.addElement("DataArray", attribs);
   {
+    std::map<std::string, std::string> attribs = {{"Name", "offsets"},
+                                                  {"type", "Int32"}};
+    gridWriter.addElement("DataArray", attribs);
     Vector<int32_t> v(grid.get_nelems());
     // vector of 1 to n
     std::iota(v.begin(), v.end(), 1);
     std::transform(v.begin(), v.end(), v.begin(),
                    std::bind(std::multiplies<int32_t>(), std::placeholders::_1, 4));
     gridWriter.writeDataArray(v);
+    // DataArray
+    gridWriter.closeElement();
   }
-  // DataArray
-  gridWriter.closeElement();
 
-  attribs.clear();
-  attribs.insert({"Name", "types"});
-  attribs.insert({"type", "UInt8"});
-  gridWriter.addElement("DataArray", attribs);
-  Vector<uint8_t> v(grid.get_nelems());
-  std::fill(v.begin(), v.end(), 9);
-  gridWriter.writeDataArray(v);
-  // DataArray
-  gridWriter.closeElement();
+  {
+    std::map<std::string, std::string> attribs = {{"Name", "types"},
+                                                  {"type", "UInt8"}};
+    gridWriter.addElement("DataArray", attribs);
+    Vector<uint8_t> v(grid.get_nelems());
+    std::fill(v.begin(), v.end(), 9);
+    gridWriter.writeDataArray(v);
+    // DataArray
+    gridWriter.closeElement();
+  }
   // Cells
-
   gridWriter.closeElement();
   gridWriter.addElement("PointData");
   
-  attribs.clear();
-  attribs.insert({"NumberOfComponents", "3"});
-  attribs.insert({"Name", "velocity"});
-  attribs.insert({"type", "Float32"});
-  gridWriter.addElement("DataArray", attribs);
-  Vector<float> vel = gridWriter.unpackArray(grid.get_vel());
-  gridWriter.writeDataArray(vel);
-  // DataArray
-  gridWriter.closeElement();
-  
+  {
+    std::map<std::string, std::string> attribs = {{"NumberOfComponents", "3"},
+                                                  {"Name", "velocity"},
+                                                  {"type", "Float32"}};
+    gridWriter.addElement("DataArray", attribs);
+    Vector<float> vel = gridWriter.unpackArray(grid.get_vel());
+    gridWriter.writeDataArray(vel);
+    // DataArray
+    gridWriter.closeElement();
+  }
+ 
   // PointData
   gridWriter.closeElement();
   // Piece
