@@ -67,14 +67,14 @@ Vector<S> panels_on_points_coeff (Surfaces<S> const& src, Points<S>& targ) {
     for (size_t j=0; j<src.get_n(); ++j) {
       const size_t jp0 = si[2*j];
       const size_t jp1 = si[2*j+1];
-      //kernel_1_0v<S,A>(&sx[2*si[2*j]], &sx[2*si[2*j+1]], ss[j],
-      //                &tx[2*i], accum.data());
-      kernel_1_0s<S,A>(sx[0][jp0], sx[1][jp0], sx[2][jp0],
-                       sx[0][jp1], sx[1][jp1], sx[2][jp1],
-                       ss[0][j], ss[1][j], ss[2][j],
-                       tx[0][i], tx[1][i], tx[2][i],
-                       //accum.data());
-                       &accumu, &accumv, &accumw);
+      //kernelu_1v_0p<S,A>(&sx[2*si[2*j]], &sx[2*si[2*j+1]], ss[j],
+      //                   &tx[2*i], accum.data());
+      kernelu_1s_0p<S,A>(sx[0][jp0], sx[1][jp0], sx[2][jp0],
+                         sx[0][jp1], sx[1][jp1], sx[2][jp1],
+                         ss[0][j], ss[1][j], ss[2][j],
+                         tx[0][i], tx[1][i], tx[2][i],
+                         //accum.data());
+                         &accumu, &accumv, &accumw);
     }
     //tu[0][i] += accum[0];
     //tu[1][i] += accum[1];
@@ -119,14 +119,14 @@ Vector<S> points_on_panels_coeff (Points<S> const& src, Surfaces<S>& targ) {
     const size_t ip1 = ti[2*i+1];
     for (size_t j=0; j<src.get_n(); ++j) {
       // note that this is the same kernel as panels_on_points_coeff!
-      //kernel_1_0v<S,A>(&tx[2*ti[2*i]], &tx[2*ti[2*i+1]], ss[j],
-      //                 &sx[2*j], accum.data());
-      kernel_1_0s<S,A>(tx[0][ip0], tx[1][ip0], tx[2][ip0],
-                       tx[0][ip1], tx[1][ip1], tx[2][ip1],
-                       ss[0][j], ss[1][j], ss[2][j],
-                       sx[0][j], sx[1][j], sx[2][j],
-                       //accum.data());
-                       &accumu, &accumv, &accumw);
+      //kernelu_1v_0p<S,A>(&tx[2*ti[2*i]], &tx[2*ti[2*i+1]], ss[j],
+      //                   &sx[2*j], accum.data());
+      kernelu_1s_0p<S,A>(tx[0][ip0], tx[1][ip0], tx[2][ip0],
+                         tx[0][ip1], tx[1][ip1], tx[2][ip1],
+                         ss[0][j], ss[1][j], ss[2][j],
+                         sx[0][j], sx[1][j], sx[2][j],
+                         //accum.data());
+                         &accumu, &accumv, &accumw);
     }
     // we use it backwards, so the resulting velocities are negative
     //tu[0][i] -= accum[0];
@@ -229,10 +229,10 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
         // vortex and source strengths
         StoreVec vortu, vortv, srcu, srcv;
         // influence of vortex panel j with unit circulation on center of panel i
-        kernel_1_0vps<StoreVec,StoreVec>(sx0, sy0, sx1, sy1,
-                                         StoreVec(1.0), StoreVec(1.0),
-                                         xi, yi,
-                                         &vortu, &vortv, &srcu, &srcv);
+        kernelu_1vos_0p<StoreVec,StoreVec>(sx0, sy0, sx1, sy1,
+                                           StoreVec(1.0), StoreVec(1.0),
+                                           xi, yi,
+                                           &vortu, &vortv, &srcu, &srcv);
 
         // dot product of vortex influence with tangent vector
         StoreVec c1e1 = vortu*ttx + vortv*tty;
@@ -246,10 +246,10 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
         // average this with the point-affects-panel influence
         if (use_two_way) {
           // flipping source and target returns negative of desired influence
-          kernel_1_0vps<StoreVec,StoreVec>(tx0, ty0, tx1, ty1,
-                                           StoreVec(1.0), StoreVec(1.0),
-                                           StoreVec(0.5)*(sx0+sx1), StoreVec(0.5)*(sy0+sy1),
-                                           &vortu, &vortv, &srcu, &srcv);
+          kernelu_1vos_0p<StoreVec,StoreVec>(tx0, ty0, tx1, ty1,
+                                             StoreVec(1.0), StoreVec(1.0),
+                                             StoreVec(0.5)*(sx0+sx1), StoreVec(0.5)*(sy0+sy1),
+                                             &vortu, &vortv, &srcu, &srcv);
           // subtract off the sum
           const StoreVec fac = sa[j]/tva;
           c1e1 -= (vortu*ttx + vortv*tty) * fac;
@@ -276,8 +276,8 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
       } else {
         // influence of vortex panel j with unit circulation on center of panel i
         StoreVec vortu, vortv;
-        kernel_1_0v<StoreVec,StoreVec>(sx0, sy0, sx1, sy1, StoreVec(1.0),
-                                       xi, yi, &vortu, &vortv);
+        kernelu_1v_0p<StoreVec,StoreVec>(sx0, sy0, sx1, sy1, StoreVec(1.0),
+                                         xi, yi, &vortu, &vortv);
 
         // dot product with tangent vector
         StoreVec newcoeffs = vortu*ttx + vortv*tty;
@@ -285,9 +285,9 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
         // average this with the point-affects-panel influence
         if (use_two_way) {
           // flipping source and target returns negative of desired influence
-          kernel_1_0v<StoreVec,StoreVec>(tx0, ty0, tx1, ty1, StoreVec(1.0),
-                                         StoreVec(0.5)*(sx0+sx1), StoreVec(0.5)*(sy0+sy1),
-                                         &vortu, &vortv);
+          kernelu_1v_0p<StoreVec,StoreVec>(tx0, ty0, tx1, ty1, StoreVec(1.0),
+                                           StoreVec(0.5)*(sx0+sx1), StoreVec(0.5)*(sy0+sy1),
+                                           &vortu, &vortv);
           newcoeffs -= (vortu*ttx + vortv*tty) * (sa[j]/tva);
           // take the average
           newcoeffs *= StoreVec(0.5);
@@ -322,7 +322,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
         // vortex and source strengths
         S vortu, vortv, srcu, srcv;
         // influence of vortex panel j with unit circulation on center of panel i
-        kernel_1_0vps<S,S>(sx0, sy0, sx1, sy1, 1.0, 1.0, xi, yi, &vortu, &vortv, &srcu, &srcv);
+        kernelu_1vos_0p<S,S>(sx0, sy0, sx1, sy1, 1.0, 1.0, xi, yi, &vortu, &vortv, &srcu, &srcv);
 
         // dot product of vortex influence with tangent vector
         col1[rptr] = vortu*tt[0][i] + vortv*tt[1][i];
@@ -335,7 +335,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
 
         // average this with the point-affects-panel influence
         if (use_two_way) {
-          kernel_1_0vps<S,S>(tx0, ty0, tx1, ty1, 1.0, 1.0, 0.5*(sx0+sx1), 0.5*(sy0+sy1), &vortu, &vortv, &srcu, &srcv);
+          kernelu_1vos_0p<S,S>(tx0, ty0, tx1, ty1, 1.0, 1.0, 0.5*(sx0+sx1), 0.5*(sy0+sy1), &vortu, &vortv, &srcu, &srcv);
           const float fact = sa[j]/ta[i];
           col1[rptr] -= fact*(vortu*tt[0][i] + vortv*tt[1][i]);
           col1[rptr+1] -= fact*(vortu*tn[0][i] + vortv*tn[1][i]);
@@ -354,7 +354,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
         // vortex-strengths only
         // influence of vortex panel j with unit circulation on center of panel i
         S vortu, vortv;
-        kernel_1_0v<S,S>(sx0, sy0, sx1, sy1, 1.0, xi, yi, &vortu, &vortv);
+        kernelu_1v_0p<S,S>(sx0, sy0, sx1, sy1, 1.0, xi, yi, &vortu, &vortv);
 
         // dot product with tangent vector
         col1[rptr] = vortu*tt[0][i] + vortv*tt[1][i];
@@ -362,7 +362,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
         // average this with the point-affects-panel influence
         if (use_two_way) {
           // flipping source and target returns negative of desired influence
-          kernel_1_0v<S,S>(tx0, ty0, tx1, ty1, 1.0, 0.5*(sx0+sx1), 0.5*(sy0+sy1), &vortu, &vortv);
+          kernelu_1v_0p<S,S>(tx0, ty0, tx1, ty1, 1.0, 0.5*(sx0+sx1), 0.5*(sy0+sy1), &vortu, &vortv);
           col1[rptr] -= (vortu*tt[0][i] + vortv*tt[1][i]) * (sa[j]/ta[i]);
           // take the average
           col1[rptr] *= 0.5;
@@ -404,7 +404,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
   // update the flop count
   flops += (float)nsrc * (float)ntarg * (use_two_way ? 2.0 : 1.0) *
               (4.0 +
-               (float)(src_have_src ? flops_1_0vps<S,S>() : flops_1_0v<S,S>()) +
+               (float)(src_have_src ? flopsu_1vos_0p<S,S>() : flopsu_1v_0p<S,S>()) +
                (targ_have_src ? 12.0 : 3.0));
 
   // scale all influences by the constant

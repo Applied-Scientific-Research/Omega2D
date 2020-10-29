@@ -2,7 +2,7 @@
  * CoreFunc.h - Non-class core function inlines for influence calculations
  *
  * (c)2020 Applied Scientific Research, Inc.
- *         Written by Mark J Stock <markjstock@gmail.com>
+ *         Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -10,6 +10,8 @@
 #ifdef _WIN32
 #define __restrict__ __restrict
 #endif
+
+#include "MathHelper.h"
 
 #ifdef USE_VC
 #include <Vc/Vc>
@@ -22,69 +24,6 @@
 //#define USE_WL_KERNEL
 #define USE_V2_KERNEL
 //#define USE_V3_KERNEL
-
-
-// helper functions: recip, rsqrt, rcbrt
-
-#ifdef USE_VC
-template <class S>
-static inline S my_recip(const S _in) {
-  return Vc::reciprocal(_in);
-}
-template <>
-inline float my_recip(const float _in) {
-  return 1.0f / _in;
-}
-template <>
-inline double my_recip(const double _in) {
-  return 1.0 / _in;
-}
-#else
-template <class S>
-static inline S my_recip(const S _in) {
-  return S(1.0) / _in;
-}
-#endif
-
-#ifdef USE_VC
-template <class S>
-static inline S my_rsqrt(const S _in) {
-  return Vc::rsqrt(_in);
-}
-template <>
-inline float my_rsqrt(const float _in) {
-  return 1.0f / std::sqrt(_in);
-}
-template <>
-inline double my_rsqrt(const double _in) {
-  return 1.0 / std::sqrt(_in);
-}
-#else
-template <class S>
-static inline S my_rsqrt(const S _in) {
-  return S(1.0) / std::sqrt(_in);
-}
-#endif
-
-#ifdef USE_VC
-template <class S>
-static inline S my_rcbrt(const S _in) {
-  return Vc::exp(S(-0.3333333)*Vc::log(_in));
-}
-template <>
-inline float my_rcbrt(const float _in) {
-  return 1.0f / std::cbrt(_in);
-}
-template <>
-inline double my_rcbrt(const double _in) {
-  return 1.0 / std::cbrt(_in);
-}
-#else
-template <class S>
-static inline S my_rcbrt(const S _in) {
-  return S(1.0) / std::cbrt(_in);
-}
-#endif
 
 
 #ifdef USE_RM_KERNEL
