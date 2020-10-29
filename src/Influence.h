@@ -639,7 +639,7 @@ void points_affect_bricks (const Points<S>& src, Volumes<S>& targ, const SolnTyp
 }
 
 template <class S, class A>
-void panels_affect_bricks (Surfaces<S> const& src, Volumes<S>& targ, ExecEnv& env) {
+void panels_affect_bricks (const Surfaces<S>& src, Volumes<S>& targ, const SolnType& soln, const ExecEnv& env) {
   std::cout << "    in panvol with" << env.to_string() << std::endl;
   std::cout << "    1_2 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   assert (!soln.compute_psi() && "Surface elements cannot compute streamfunction yet.");
@@ -650,7 +650,7 @@ void panels_affect_bricks (Surfaces<S> const& src, Volumes<S>& targ, ExecEnv& en
   Points<S> volsaspts(xysr, inert, fixed, nullptr);
 
   // run the calculation
-  panels_affect_points<S,A>(src, volsaspts, env);
+  panels_affect_points<S,A>(src, volsaspts, soln, env);
 
   // and add the velocities to the real target
   std::array<Vector<S>,Dimensions>& fromvel = volsaspts.get_vel();
