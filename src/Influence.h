@@ -197,26 +197,50 @@ void points_affect_points (const Points<S>& src, Points<S>& targ, const SolnType
         tu[1][i] += accumv.sum();
         //std::cout << "part " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
       }
+      flops *= 2.0 + (float)flopsu_0v_0b<S,A>() * (float)src.get_n();
     } else
 #endif  // no Vc
     {
-      #pragma omp parallel for
-      for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
-        A accumu = 0.0;
-        A accumv = 0.0;
-        if (soln.compute_vel()) {
-          for (size_t j=0; j<src.get_n(); ++j) {
-            kernelu_0v_0b<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
-                               tx[0][i], tx[1][i], tr[i],
-                               &accumu, &accumv);
+      if (soln.compute_vel() and not soln.compute_vort()) {
+        #pragma omp parallel for
+        for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+          A accumu = 0.0;
+          A accumv = 0.0;
+          if (soln.compute_vel()) {
+            for (size_t j=0; j<src.get_n(); ++j) {
+              kernelu_0v_0b<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
+                                 tx[0][i], tx[1][i], tr[i],
+                                 &accumu, &accumv);
+            }
           }
+          tu[0][i] += accumu;
+          tu[1][i] += accumv;
         }
-        tu[0][i] += accumu;
-        tu[1][i] += accumv;
+        flops *= 2.0 + (float)flopsu_0v_0b<S,A>() * (float)src.get_n();
+      }
+      if (soln.compute_vel() and soln.compute_vort()) {
+        Vector<S>& tw = targ.get_vort();
+
+        #pragma omp parallel for
+        for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+          A accumu = 0.0;
+          A accumv = 0.0;
+          A accumw = 0.0;
+          if (soln.compute_vel()) {
+            for (size_t j=0; j<src.get_n(); ++j) {
+              kerneluw_0v_0b<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
+                                  tx[0][i], tx[1][i], tr[i],
+                                  &accumu, &accumv, &accumw);
+            }
+          }
+          tu[0][i] += accumu;
+          tu[1][i] += accumv;
+          tw[i] += accumw;
+        }
+        flops *= 2.0 + (float)flopsuw_0v_0b<S,A>() * (float)src.get_n();
       }
       //std::cout << "part " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
     }
-    flops *= 2.0 + (float)flopsu_0v_0b<S,A>() * (float)src.get_n();
 
   //
   // end conditional over whether targets are field points (with no core radius)

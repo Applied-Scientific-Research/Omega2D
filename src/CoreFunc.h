@@ -19,10 +19,10 @@
 
 #include <cmath>
 
-//#define USE_RM_KERNEL
+#define USE_RM_KERNEL
 //#define USE_EXPONENTIAL_KERNEL
 //#define USE_WL_KERNEL
-#define USE_V2_KERNEL
+//#define USE_V2_KERNEL
 //#define USE_V3_KERNEL
 
 
