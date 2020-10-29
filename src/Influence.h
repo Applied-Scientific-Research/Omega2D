@@ -42,6 +42,9 @@ template <class S, class A>
 void points_affect_points (const Points<S>& src, Points<S>& targ, const SolnType& soln, const ExecEnv& env) {
 
   std::cout << "    in ptpt with" << env.to_string() << std::endl;
+  assert (!soln.compute_psi() && "Point elements cannot compute streamfunction yet.");
+  assert (!soln.compute_grad() && "Point elements cannot compute velocity gradients yet.");
+
   auto start = std::chrono::system_clock::now();
   float flops = (float)targ.get_n();
 
@@ -109,11 +112,13 @@ void points_affect_points (const Points<S>& src, Points<S>& targ, const SolnType
         const StoreVec tyv = tx[1][i];
         AccumVec accumu = 0.0;
         AccumVec accumv = 0.0;
+        if (soln.compute_vel()) {
         for (size_t j=0; j<sxv.vectorsCount(); ++j) {
           kernelu_0v_0p<StoreVec,AccumVec>(
                             sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
                             txv, tyv,
                             &accumu, &accumv);
+        }
         }
         tu[0][i] += accumu.sum();
         tu[1][i] += accumv.sum();
@@ -175,6 +180,7 @@ void points_affect_points (const Points<S>& src, Points<S>& targ, const SolnType
         const StoreVec trv = tr[i];
         AccumVec accumu = 0.0;
         AccumVec accumv = 0.0;
+        if (soln.compute_vel()) {
         for (size_t j=0; j<sxv.vectorsCount(); ++j) {
           kernelu_0v_0b<StoreVec,AccumVec>(
                             sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
@@ -185,6 +191,7 @@ void points_affect_points (const Points<S>& src, Points<S>& targ, const SolnType
             StoreVec temp = sxv.vector(j,0);
             std::cout << "src " << j << " has sxv " << temp << std::endl;
           } */
+        }
         }
         tu[0][i] += accumu.sum();
         tu[1][i] += accumv.sum();
@@ -197,10 +204,12 @@ void points_affect_points (const Points<S>& src, Points<S>& targ, const SolnType
       for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
         A accumu = 0.0;
         A accumv = 0.0;
-        for (size_t j=0; j<src.get_n(); ++j) {
-          kernelu_0v_0b<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
-                             tx[0][i], tx[1][i], tr[i],
-                             &accumu, &accumv);
+        if (soln.compute_vel()) {
+          for (size_t j=0; j<src.get_n(); ++j) {
+            kernelu_0v_0b<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
+                               tx[0][i], tx[1][i], tr[i],
+                               &accumu, &accumv);
+          }
         }
         tu[0][i] += accumu;
         tu[1][i] += accumv;
@@ -229,6 +238,9 @@ void panels_affect_points (const Surfaces<S>& src, Points<S>& targ, const SolnTy
 
   std::cout << "    in panpt with" << env.to_string() << std::endl;
   std::cout << "    1_0 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
+  assert (!soln.compute_psi() && "Surface elements cannot compute streamfunction yet.");
+  assert (!soln.compute_grad() && "Surface elements cannot compute velocity gradients yet.");
+
   auto start = std::chrono::system_clock::now();
   float flops = (float)targ.get_n();
 
@@ -311,11 +323,13 @@ void panels_affect_points (const Surfaces<S>& src, Points<S>& targ, const SolnTy
       if (have_source_strengths) {
         for (size_t j=0; j<vsvs.vectorsCount(); ++j) {
           // note that this is the same kernel as panels_affect_points!
+          if (soln.compute_vel()) {
           kernelu_1vs_0p<StoreVec,AccumVec>(vsx0.vector(j), vsy0.vector(j),
                                             vsx1.vector(j), vsy1.vector(j),
                                             vsvs.vector(j), vsss.vector(j),
                                             vtx, vty,
                                             &resultu, &resultv);
+          }
           accumu += resultu;
           accumv += resultv;
         }
@@ -323,11 +337,13 @@ void panels_affect_points (const Surfaces<S>& src, Points<S>& targ, const SolnTy
         // only vortex strengths
         for (size_t j=0; j<vsvs.vectorsCount(); ++j) {
           // note that this is the same kernel as panels_affect_points!
+          if (soln.compute_vel()) {
           kernelu_1v_0p<StoreVec,AccumVec>(vsx0.vector(j), vsy0.vector(j),
                                            vsx1.vector(j), vsy1.vector(j),
                                            vsvs.vector(j),
                                            vtx, vty,
                                            &resultu, &resultv);
+          }
           accumu += resultu;
           accumv += resultv;
         }
@@ -357,11 +373,13 @@ void panels_affect_points (const Surfaces<S>& src, Points<S>& targ, const SolnTy
           const size_t jp1 = si[2*j+1];
 
           // note that this is the same kernel as points_affect_panels
+          if (soln.compute_vel()) {
           kernelu_1vs_0p<S,A>(sx[0][jp0], sx[1][jp0], 
                               sx[0][jp1], sx[1][jp1],
                               vs[j],      ss[j],
                               tx[0][i],   tx[1][i],
                               &resultu, &resultv);
+          }
 
           accumu += resultu;
           accumv += resultv;
@@ -373,11 +391,13 @@ void panels_affect_points (const Surfaces<S>& src, Points<S>& targ, const SolnTy
           const size_t jp1 = si[2*j+1];
 
           // note that this is the same kernel as points_affect_panels
+          if (soln.compute_vel()) {
           kernelu_1v_0p<S,A>(sx[0][jp0], sx[1][jp0], 
                              sx[0][jp1], sx[1][jp1],
                              vs[j],
                              tx[0][i],   tx[1][i],
                              &resultu, &resultv);
+          }
 
           accumu += resultu;
           accumv += resultv;
@@ -410,6 +430,8 @@ template <class S, class A>
 void bricks_affect_points (const Volumes<S>& src, Points<S>& targ, const SolnType& soln, const ExecEnv& env) {
   std::cout << "    2_0 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   assert (false && "Volume elements cannot affect points yet.");
+  assert (!soln.compute_psi() && "Volume elements cannot compute streamfunction yet.");
+  assert (!soln.compute_grad() && "Volume elements cannot compute velocity gradients yet.");
 }
 
 
@@ -423,6 +445,9 @@ void points_affect_panels (const Points<S>& src, Surfaces<S>& targ, const SolnTy
 
   std::cout << "    in ptpan with" << env.to_string() << std::endl;
   std::cout << "    0_1 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
+  assert (!soln.compute_psi() && "Point elements cannot compute streamfunction yet.");
+  assert (!soln.compute_grad() && "Point elements cannot compute velocity gradients yet.");
+
   auto start = std::chrono::system_clock::now();
   float flops = (float)targ.get_npanels();
 
@@ -476,11 +501,13 @@ void points_affect_panels (const Points<S>& src, Surfaces<S>& targ, const SolnTy
 
       for (size_t j=0; j<vsv.vectorsCount(); ++j) {
         // note that this is the same kernel as panels_affect_points!
+        if (soln.compute_vel()) {
         kernelu_1v_0p<StoreVec,AccumVec>(vtx0, vty0,
                                          vtx1, vty1,
                                          vsv.vector(j),
                                          sxv.vector(j), syv.vector(j),
                                          &resultu, &resultv);
+        }
         accumu += resultu;
         accumv += resultv;
       }
@@ -516,25 +543,17 @@ void points_affect_panels (const Points<S>& src, Surfaces<S>& targ, const SolnTy
 
       for (size_t j=0; j<src.get_n(); ++j) {
         // note that this is the same kernel as panels_affect_points!
+        if (soln.compute_vel()) {
         kernelu_1v_0p<S,A>(tx[0][ip0], tx[1][ip0],
                            tx[0][ip1], tx[1][ip1],
                            vs[j],
                            sx[0][j],   sx[1][j],
                            &resultu, &resultv);
+        }
         //std::cout << "    part " << j << " at " << sx[0][j] << " " << sx[1][j] << " has str " << vs[j];// << std::endl;
         //std::cout << " adds vel " << (-plen*resultu) << " " << (-plen*resultv);// << std::endl;
         accumu += resultu;
         accumv += resultv;
-
-        // testing - convert the panel to a point and find the vel there
-        if (false) {
-          A testu = 0.0;
-          A testv = 0.0;
-          kernelu_0v_0b<S,A>(sx[0][j], sx[1][j], 0.5*0.189737, vs[j], 
-                             0.5*(tx[0][ip0]+tx[0][ip1]), 0.5*(tx[1][ip0]+tx[1][ip1]), 0.5*0.189737,
-                             &testu, &testv);
-          std::cout << " pp vel " << testu << " " << testv << std::endl;
-        }
       }
 
       //std::cout << "  panel " << i << " at " << tx[0][ip0] << " " << tx[1][ip0] << " has plen " << plen << std::endl;
@@ -561,6 +580,8 @@ void points_affect_panels (const Points<S>& src, Surfaces<S>& targ, const SolnTy
 template <class S, class A>
 void panels_affect_panels (const Surfaces<S>& src, Surfaces<S>& targ, const SolnType& soln, const ExecEnv& env) {
   std::cout << "    1_1 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
+  assert (!soln.compute_psi() && "Surface elements cannot compute streamfunction yet.");
+  assert (!soln.compute_grad() && "Surface elements cannot compute velocity gradients yet.");
 
   // run panels_affect_points instead
 
@@ -584,6 +605,8 @@ template <class S, class A>
 void bricks_affect_panels (const Volumes<S>& src, Surfaces<S>& targ, const SolnType& soln, const ExecEnv& env) {
   std::cout << "    2_1 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   assert (false && "Volume elements cannot affect panels yet.");
+  assert (!soln.compute_psi() && "Volume elements cannot compute streamfunction yet.");
+  assert (!soln.compute_grad() && "Volume elements cannot compute velocity gradients yet.");
 }
 
 
@@ -595,6 +618,8 @@ void points_affect_bricks (const Points<S>& src, Volumes<S>& targ, const SolnTyp
   std::cout << "    in ptvol with" << env.to_string() << std::endl;
   std::cout << "    0_2 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   //assert (false && "Points cannot affect Volumes yet.");
+  assert (!soln.compute_psi() && "Point elements cannot compute streamfunction yet.");
+  assert (!soln.compute_grad() && "Point elements cannot compute velocity gradients yet.");
 
   // generate temporary collocation points as Points
   std::vector<S> xysr = targ.represent_nodes_as_particles(0.0f);
@@ -617,12 +642,16 @@ template <class S, class A>
 void panels_affect_bricks (const Surfaces<S>& src, Volumes<S>& targ, const SolnType& soln, const ExecEnv& env) {
   std::cout << "    1_2 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   assert (false && "Surfaces cannot affect Volumes yet.");
+  assert (!soln.compute_psi() && "Surface elements cannot compute streamfunction yet.");
+  assert (!soln.compute_grad() && "Surface elements cannot compute velocity gradients yet.");
 }
 
 template <class S, class A>
 void bricks_affect_bricks (const Volumes<S>& src, Volumes<S>& targ, const SolnType& soln, const ExecEnv& env) {
   std::cout << "    2_2 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   assert (false && "Volume elements cannot affect themselves yet.");
+  assert (!soln.compute_psi() && "Volume elements cannot compute streamfunction yet.");
+  assert (!soln.compute_grad() && "Volume elements cannot compute velocity gradients yet.");
 }
 
 
