@@ -1179,7 +1179,109 @@ public:
   }
 
   std::string write_vtk(const size_t _index, const size_t _frameno, const double _time) {
-    return "Volumes";
+    assert(this->nb > 0 && "Inside write_vtk_grid with no elements");
+    const bool asbase64 = true;
+  
+    // generate file name
+    std::string prefix = "grid_";
+    std::stringstream vtkfn;
+    vtkfn << prefix << std::setfill('0') << std::setw(2) << _index << "_" << std::setw(5) << _frameno << ".vtu";
+    VtkXmlWriter gridWriter = VtkXmlWriter(vtkfn.str(), asbase64);
+  
+    // include simulation time here
+    gridWriter.addElement("FieldData");
+    {
+      std::map<std::string, std::string> attribs = {{"type", "Float64"},
+                                                    {"Name", "TimeValue"},
+                                                    {"NumberOfTuples", "1"}};
+      gridWriter.addElement("DataArray", attribs);
+      Vector<double> time_vec = {_time};
+      gridWriter.writeDataArray(time_vec);
+      gridWriter.closeElement();
+    }
+    // FieldData
+    gridWriter.closeElement();
+  
+    {
+      std::map<std::string, std::string> attribs = {{"NumberOfPoints", std::to_string(this->n)},
+                                                    {"NumberOfCells", std::to_string(this->nb)}};
+      gridWriter.addElement("Piece", attribs);
+    }
+  
+    gridWriter.addElement("Points");
+    {
+      std::map<std::string, std::string> attribs = {{"NumberOfComponents", "3"},
+                                                    {"Name", "position"},
+                                                    {"type", "Float32"}};
+      gridWriter.addElement("DataArray", attribs);
+      Vector<float> pos = gridWriter.unpackArray(this->x);
+      gridWriter.writeDataArray(pos);
+      gridWriter.closeElement();
+    }
+    // Points
+    gridWriter.closeElement();
+  
+    gridWriter.addElement("Cells");
+  
+    // again, all connectivities and offsets must be Int32!
+    {
+      std::map<std::string, std::string> attribs = {{"Name", "connectivity"},
+                                                    {"type", "Int32"}};
+      gridWriter.addElement("DataArray", attribs);
+      std::vector<Int> const & idx = this->idx;
+      Vector<int32_t> v(std::begin(idx), std::end(idx));
+      gridWriter.writeDataArray(v);
+      // DataArray
+      gridWriter.closeElement();
+    }
+  
+    {
+      std::map<std::string, std::string> attribs = {{"Name", "offsets"},
+                                                    {"type", "Int32"}};
+      gridWriter.addElement("DataArray", attribs);
+      Vector<int32_t> v(this->nb);
+      // vector of 1 to n
+      std::iota(v.begin(), v.end(), 1);
+      std::transform(v.begin(), v.end(), v.begin(),
+                     std::bind(std::multiplies<int32_t>(), std::placeholders::_1, 4));
+      gridWriter.writeDataArray(v);
+      // DataArray
+      gridWriter.closeElement();
+    }
+  
+    {
+      std::map<std::string, std::string> attribs = {{"Name", "types"},
+                                                    {"type", "UInt8"}};
+      gridWriter.addElement("DataArray", attribs);
+      Vector<uint8_t> v(this->nb);
+      std::fill(v.begin(), v.end(), 9);
+      gridWriter.writeDataArray(v);
+      // DataArray
+      gridWriter.closeElement();
+    }
+    // Cells
+    gridWriter.closeElement();
+    gridWriter.addElement("PointData");
+    
+    {
+      std::map<std::string, std::string> attribs = {{"NumberOfComponents", "3"},
+                                                    {"Name", "velocity"},
+                                                    {"type", "Float32"}};
+      gridWriter.addElement("DataArray", attribs);
+      Vector<float> vel = gridWriter.unpackArray(this->u);
+      gridWriter.writeDataArray(vel);
+      // DataArray
+      gridWriter.closeElement();
+    }
+   
+    // PointData
+    gridWriter.closeElement();
+    // Piece
+    gridWriter.closeElement();
+  
+    gridWriter.finish();
+    std::cout << "Wrote " << this->n << " elements to " << vtkfn.str() << std::endl;
+    return vtkfn.str();
   }
 
 protected:

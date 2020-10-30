@@ -336,8 +336,18 @@ std::vector<std::string> Simulation::write_vtk(const int _index,
       std::visit([&](auto &&elem) { files.emplace_back(elem.write_vtk(idx++, stepnum, time)); }, vort[i]);
     }
   }
-  if (_do_measure) write_vtk_files<float>(fldpt, stepnum, time, files);
-  if (_do_bdry)    write_vtk_files<float>(bdry, stepnum, time, files);
+  //if (_do_measure) write_vtk_files<float>(fldpt, stepnum, time, files);
+  if (_do_measure) {
+    for (int i=0; i<fldpt.size(); i++) {
+      std::visit([&](auto &&elem) { files.emplace_back(elem.write_vtk(idx++, stepnum, time)); }, fldpt[i]);
+    }
+  }
+  //if (_do_bdry)    write_vtk_files<float>(bdry, stepnum, time, files);
+  if (_do_bdry) {
+    for (int i=0; i<bdry.size(); i++) {
+      std::visit([&](auto &&elem) { files.emplace_back(elem.write_vtk(idx++, stepnum, time)); }, bdry[i]);
+    }
+  }
 
   return files;
 }
