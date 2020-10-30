@@ -106,51 +106,85 @@ void points_affect_points (const Points<S>& src, Points<S>& targ, const SolnType
       Vc::Memory<StoreVec> srv = stdvec_to_vcvec<S>(sr,    1.0);
       Vc::Memory<StoreVec> ssv = stdvec_to_vcvec<S>(ss,    0.0);
 
-      #pragma omp parallel for
-      for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
-        const StoreVec txv = tx[0][i];
-        const StoreVec tyv = tx[1][i];
-        AccumVec accumu = 0.0;
-        AccumVec accumv = 0.0;
-        if (soln.compute_vel()) {
-        for (size_t j=0; j<sxv.vectorsCount(); ++j) {
-          kernelu_0v_0p<StoreVec,AccumVec>(
-                            sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
-                            txv, tyv,
-                            &accumu, &accumv);
+      if (soln.get_soln_type() == velonly) {
+        #pragma omp parallel for
+        for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+          const StoreVec txv = tx[0][i];
+          const StoreVec tyv = tx[1][i];
+          AccumVec accumu = 0.0;
+          AccumVec accumv = 0.0;
+          for (size_t j=0; j<sxv.vectorsCount(); ++j) {
+            kernelu_0v_0p<StoreVec,AccumVec>(
+                              sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
+                              txv, tyv,
+                              &accumu, &accumv);
+          }
+          tu[0][i] += accumu.sum();
+          tu[1][i] += accumv.sum();
         }
-        }
-        tu[0][i] += accumu.sum();
-        tu[1][i] += accumv.sum();
         //std::cout << "pt " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
+        flops *= 2.0 + (float)flopsu_0v_0p<S,A>() * (float)src.get_n();
+      }
+      if (soln.get_soln_type() == velandvort) {
+        Vector<S>& tw = targ.get_vort();
+        #pragma omp parallel for
+        for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+          const StoreVec txv = tx[0][i];
+          const StoreVec tyv = tx[1][i];
+          AccumVec accumu = 0.0;
+          AccumVec accumv = 0.0;
+          AccumVec accumw = 0.0;
+          for (size_t j=0; j<sxv.vectorsCount(); ++j) {
+            kerneluw_0v_0p<StoreVec,AccumVec>(
+                              sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
+                              txv, tyv,
+                              &accumu, &accumv, &accumw);
+          }
+          tu[0][i] += accumu.sum();
+          tu[1][i] += accumv.sum();
+          tw[i] += accumw.sum();
+        }
+        //std::cout << "pt " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
+        flops *= 2.0 + (float)flopsuw_0v_0p<S,A>() * (float)src.get_n();
       }
     } else
 #endif  // no Vc
     {
-      #pragma omp parallel for
-      for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
-        A accumu = 0.0;
-        A accumv = 0.0;
-        if (soln.compute_psi()) {
-          for (size_t j=0; j<src.get_n(); ++j) {
-            //kernelp_0v_0p<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
-            //                   tx[0][i], tx[1][i],
-            //                   &accump);
-          }
-        }
-        if (soln.compute_vel()) {
+      if (soln.get_soln_type() == velonly) {
+        #pragma omp parallel for
+        for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+          A accumu = 0.0;
+          A accumv = 0.0;
           for (size_t j=0; j<src.get_n(); ++j) {
             kernelu_0v_0p<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
                                tx[0][i], tx[1][i],
                                &accumu, &accumv);
           }
+          tu[0][i] += accumu;
+          tu[1][i] += accumv;
         }
-        tu[0][i] += accumu;
-        tu[1][i] += accumv;
-        //std::cout << "pt " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
+        flops *= 2.0 + (float)flopsu_0v_0p<S,A>() * (float)src.get_n();
+      }
+      if (soln.get_soln_type() == velandvort) {
+        Vector<S>& tw = targ.get_vort();
+        #pragma omp parallel for
+        for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+          A accumu = 0.0;
+          A accumv = 0.0;
+          A accumw = 0.0;
+          for (size_t j=0; j<src.get_n(); ++j) {
+            kerneluw_0v_0p<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
+                                tx[0][i], tx[1][i],
+                                &accumu, &accumv, &accumw);
+          }
+          tu[0][i] += accumu;
+          tu[1][i] += accumv;
+          tw[i] += accumw;
+          //std::cout << "pt " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
+        }
+        flops *= 2.0 + (float)flopsuw_0v_0p<S,A>() * (float)src.get_n();
       }
     }
-    flops *= 2.0 + (float)flopsu_0v_0p<S,A>() * (float)src.get_n();
 
   //
   // targets are particles, with a core radius ===================================================
@@ -173,35 +207,58 @@ void points_affect_points (const Points<S>& src, Points<S>& targ, const SolnType
       Vc::Memory<StoreVec> srv = stdvec_to_vcvec<S>(sr,    1.0);
       Vc::Memory<StoreVec> ssv = stdvec_to_vcvec<S>(ss,    0.0);
 
-      #pragma omp parallel for
-      for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
-        const StoreVec txv = tx[0][i];
-        const StoreVec tyv = tx[1][i];
-        const StoreVec trv = tr[i];
-        AccumVec accumu = 0.0;
-        AccumVec accumv = 0.0;
-        if (soln.compute_vel()) {
-        for (size_t j=0; j<sxv.vectorsCount(); ++j) {
-          kernelu_0v_0b<StoreVec,AccumVec>(
-                            sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
-                            txv, tyv, trv,
-                            &accumu, &accumv);
-          /* if (false) {
-            // this is how to print
-            StoreVec temp = sxv.vector(j,0);
-            std::cout << "src " << j << " has sxv " << temp << std::endl;
-          } */
+      if (soln.get_soln_type() == velonly) {
+        #pragma omp parallel for
+        for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+          const StoreVec txv = tx[0][i];
+          const StoreVec tyv = tx[1][i];
+          const StoreVec trv = tr[i];
+          AccumVec accumu = 0.0;
+          AccumVec accumv = 0.0;
+          for (size_t j=0; j<sxv.vectorsCount(); ++j) {
+            kernelu_0v_0b<StoreVec,AccumVec>(
+                              sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
+                              txv, tyv, trv,
+                              &accumu, &accumv);
+            /* if (false) {
+              // this is how to print
+              StoreVec temp = sxv.vector(j,0);
+              std::cout << "src " << j << " has sxv " << temp << std::endl;
+            } */
+          }
+          tu[0][i] += accumu.sum();
+          tu[1][i] += accumv.sum();
+          //std::cout << "part " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
         }
-        }
-        tu[0][i] += accumu.sum();
-        tu[1][i] += accumv.sum();
-        //std::cout << "part " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
+        flops *= 2.0 + (float)flopsu_0v_0b<S,A>() * (float)src.get_n();
       }
-      flops *= 2.0 + (float)flopsu_0v_0b<S,A>() * (float)src.get_n();
+      if (soln.get_soln_type() == velandvort) {
+        Vector<S>& tw = targ.get_vort();
+        #pragma omp parallel for
+        for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+          const StoreVec txv = tx[0][i];
+          const StoreVec tyv = tx[1][i];
+          const StoreVec trv = tr[i];
+          AccumVec accumu = 0.0;
+          AccumVec accumv = 0.0;
+          AccumVec accumw = 0.0;
+          for (size_t j=0; j<sxv.vectorsCount(); ++j) {
+            kerneluw_0v_0b<StoreVec,AccumVec>(
+                              sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
+                              txv, tyv, trv,
+                              &accumu, &accumv, &accumw);
+          }
+          tu[0][i] += accumu.sum();
+          tu[1][i] += accumv.sum();
+          tw[i] += accumw.sum();
+          //std::cout << "part " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
+        }
+        flops *= 2.0 + (float)flopsu_0v_0b<S,A>() * (float)src.get_n();
+      }
     } else
 #endif  // no Vc
     {
-      if (soln.compute_vel() and not soln.compute_vort()) {
+      if (soln.get_soln_type() == velonly) {
         #pragma omp parallel for
         for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
           A accumu = 0.0;
@@ -218,9 +275,8 @@ void points_affect_points (const Points<S>& src, Points<S>& targ, const SolnType
         }
         flops *= 2.0 + (float)flopsu_0v_0b<S,A>() * (float)src.get_n();
       }
-      if (soln.compute_vel() and soln.compute_vort()) {
+      if (soln.get_soln_type() == velandvort) {
         Vector<S>& tw = targ.get_vort();
-
         #pragma omp parallel for
         for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
           A accumu = 0.0;
@@ -657,6 +713,13 @@ void points_affect_bricks (const Points<S>& src, Volumes<S>& targ, const SolnTyp
   std::array<Vector<S>,Dimensions>& tovel   = targ.get_vel();
   for (size_t i=0; i<Dimensions; ++i) {
     std::copy(fromvel[i].begin(), fromvel[i].end(), tovel[i].begin());
+  }
+
+  // and the vorticity also
+  if (soln.compute_vort()) {
+    Vector<S>& fromvort = volsaspts.get_vort();
+    Vector<S>& tovort   = targ.get_vort();
+    std::copy(fromvort.begin(), fromvort.end(), tovort.begin());
   }
 
   // and the vel grads - if need be

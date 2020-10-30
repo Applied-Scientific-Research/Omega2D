@@ -47,8 +47,13 @@ public:
   const std::array<Vector<S>,Dimensions>& get_vel() const  { return u; }
   std::array<Vector<S>,Dimensions>&       get_vel()        { return u; }
 
-  //const Vector<S>& get_vort() const { return *w; }
+  const bool has_vort() const { return (bool)w; }
+  const Vector<S>& get_vort() const {
+    // can't change this object, so return what we have
+    return *w;
+  }
   Vector<S>& get_vort() {
+    // allowed to change this object, to resize or create the Vector
     if (w) {
       // check size before returning
       if (w->size() != n) w->resize(n);
