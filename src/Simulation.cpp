@@ -329,7 +329,13 @@ std::vector<std::string> Simulation::write_vtk(const int _index,
   }
 
   // ask Vtk to write files for each collection
-  if (_do_flow)    write_vtk_files<float>(vort, stepnum, time, files);
+  size_t idx = 0;
+  //if (_do_flow)    write_vtk_files<float>(vort, stepnum, time, files);
+  if (_do_flow) { 
+    for (int i=0; i<vort.size(); i++) {
+      std::visit([&](auto &&elem) { files.emplace_back(elem.write_vtk(idx++, stepnum, time)); }, vort[i]);
+    }
+  }
   if (_do_measure) write_vtk_files<float>(fldpt, stepnum, time, files);
   if (_do_bdry)    write_vtk_files<float>(bdry, stepnum, time, files);
 

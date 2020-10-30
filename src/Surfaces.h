@@ -1104,6 +1104,10 @@ public:
     return retstr;
   }
 
+  std::string write_vtk(const size_t _index, const size_t _frameno, const double _time) {
+    return "Surfaces";
+  }
+
 protected:
   // ElementBase.h has x, s, u, ux on the *nodes*
 

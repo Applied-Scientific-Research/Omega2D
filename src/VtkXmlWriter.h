@@ -7,6 +7,8 @@
  *            Mark J Stock <markjstock@gmail.com>
  *            Blake B Hillier <blakehillier@mac.com>
  */
+#ifndef VTK_H
+#define VTK_H
 
 #include <cstdint>
 #include <cstdio>
@@ -127,3 +129,4 @@ private:
   int m_openElements;
   std::unique_ptr<tinyxml2::XMLPrinter> m_p;
 };
+#endif
