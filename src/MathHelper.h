@@ -17,7 +17,27 @@
 
 #include <cmath>
 
-// helper functions: recip, rsqrt, rcbrt, acos
+// helper functions: exp, recip, rsqrt, rcbrt, acos
+
+#ifdef USE_VC
+template <class S>
+static inline S my_exp(const S _in) {
+  return Vc::exp(_in);
+}
+template <>
+inline float my_exp(const float _in) {
+  return std::exp(_in);
+}
+template <>
+inline double my_exp(const double _in) {
+  return std::exp(_in);
+}
+#else
+template <class S>
+static inline S my_exp(const S _in) {
+  return std::exp(_in);
+}
+#endif
 
 #ifdef USE_VC
 template <class S>
