@@ -39,13 +39,33 @@ public:
   elem_t                                  get_elemt() const { return E; }
   move_t                                  get_movet() const { return M; }
   const std::shared_ptr<Body>             get_body_ptr() const { return B; }
-  std::shared_ptr<Body>                   get_body_ptr()  { return B; }
-  const std::array<Vector<S>,Dimensions>& get_pos() const { return x; }
-  std::array<Vector<S>,Dimensions>&       get_pos()       { return x; }
-  const Vector<S>&                        get_str() const { return *s; }
-  Vector<S>&                              get_str()       { return *s; }
-  const std::array<Vector<S>,Dimensions>& get_vel() const { return u; }
-  std::array<Vector<S>,Dimensions>&       get_vel()       { return u; }
+  std::shared_ptr<Body>                   get_body_ptr()   { return B; }
+  const std::array<Vector<S>,Dimensions>& get_pos() const  { return x; }
+  std::array<Vector<S>,Dimensions>&       get_pos()        { return x; }
+  const Vector<S>&                        get_str() const  { return *s; }
+  Vector<S>&                              get_str()        { return *s; }
+  const std::array<Vector<S>,Dimensions>& get_vel() const  { return u; }
+  std::array<Vector<S>,Dimensions>&       get_vel()        { return u; }
+
+  const bool has_vort() const { return (bool)w; }
+  const Vector<S>& get_vort() const {
+    // can't change this object, so return what we have
+    return *w;
+  }
+  Vector<S>& get_vort() {
+    // allowed to change this object, to resize or create the Vector
+    if (w) {
+      // check size before returning
+      if (w->size() != n) w->resize(n);
+    } else {
+      // allocate and zero before returning
+      Vector<S> new_vort;
+      new_vort.resize(n);
+      w = std::move(new_vort);
+      std::fill((*w).begin(), (*w).end(), 0.0);
+    }
+    return *w;
+  }
 
   void set_str(const size_t ioffset, const size_t icnt, Vector<S> _in) {
     assert(s && "Strength array does not exist");
@@ -172,17 +192,29 @@ public:
     n = _nnew;
   }
 
+  // should rename these zero_results
   void zero_vels() {
     for (size_t d=0; d<Dimensions; ++d) {
       std::fill(u[d].begin(), u[d].end(), 0.0);
     }
+    if (w) {
+      if (w->size() != n) w->resize(n);
+      std::fill((*w).begin(), (*w).end(), 0.0);
+    }
   }
 
+  // should rename these finalize_results
   void finalize_vels(const std::array<double,Dimensions>& _fs) {
     const double factor = 0.5/M_PI;
     for (size_t d=0; d<Dimensions; ++d) {
       for (size_t i=0; i<get_n(); ++i) {
         u[d][i] = _fs[d] + u[d][i] * factor;
+      }
+    }
+    if (w) {
+      assert(w->size() == n && "Vorticity vector not sized properly in finalize_vels");
+      for (size_t i=0; i<get_n(); ++i) {
+        (*w)[i] *= factor;
       }
     }
   }
@@ -345,6 +377,7 @@ protected:
 
   // time derivative of state vector
   std::array<Vector<S>,Dimensions> u;                   // velocity at nodes
+  std::optional<Vector<S>> w;                           // vorticity at nodes
   //std::optional<std::array<Vector<S>,Dimensions>> dsdt; // strength change
 
   // for objects moving with a body

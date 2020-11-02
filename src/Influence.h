@@ -12,7 +12,7 @@
 #include "Kernels.h"
 #include "Points.h"
 #include "Surfaces.h"
-#include "SolnType.h"
+#include "ResultsType.h"
 #include "ExecEnv.h"
 
 #ifdef EXTERNAL_VEL_SOLVE
@@ -39,11 +39,11 @@ extern "C" float external_vel_solver_d_(int*, const double*, const double*, cons
 // Vc and x86 versions of Points/Particles affecting Points/Particles
 //
 template <class S, class A>
-void points_affect_points (const Points<S>& src, Points<S>& targ, const SolnType& soln, const ExecEnv& env) {
+void points_affect_points (const Points<S>& src, Points<S>& targ, const ResultsType& restype, const ExecEnv& env) {
 
   std::cout << "    in ptpt with" << env.to_string() << std::endl;
-  assert (!soln.compute_psi() && "Point elements cannot compute streamfunction yet.");
-  assert (!soln.compute_grad() && "Point elements cannot compute velocity gradients yet.");
+  assert (!restype.compute_psi() && "Point elements cannot compute streamfunction yet.");
+  assert (!restype.compute_grad() && "Point elements cannot compute velocity gradients yet.");
 
   auto start = std::chrono::system_clock::now();
   float flops = (float)targ.get_n();
@@ -62,7 +62,7 @@ void points_affect_points (const Points<S>& src, Points<S>& targ, const SolnType
     int ns = src.get_n();
     int nt = targ.get_n();
 
-    if (soln.compute_vel()) {
+    if (restype.compute_vel()) {
     flops = external_vel_solver_f_(&ns, sx[0].data(), sx[1].data(),    ss.data(),    sr.data(), 
                                    &nt, tx[0].data(), tx[1].data(), tu[0].data(), tu[1].data());
     }
@@ -106,51 +106,85 @@ void points_affect_points (const Points<S>& src, Points<S>& targ, const SolnType
       Vc::Memory<StoreVec> srv = stdvec_to_vcvec<S>(sr,    1.0);
       Vc::Memory<StoreVec> ssv = stdvec_to_vcvec<S>(ss,    0.0);
 
-      #pragma omp parallel for
-      for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
-        const StoreVec txv = tx[0][i];
-        const StoreVec tyv = tx[1][i];
-        AccumVec accumu = 0.0;
-        AccumVec accumv = 0.0;
-        if (soln.compute_vel()) {
-        for (size_t j=0; j<sxv.vectorsCount(); ++j) {
-          kernelu_0v_0p<StoreVec,AccumVec>(
-                            sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
-                            txv, tyv,
-                            &accumu, &accumv);
+      if (restype.get_type() == velonly) {
+        #pragma omp parallel for
+        for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+          const StoreVec txv = tx[0][i];
+          const StoreVec tyv = tx[1][i];
+          AccumVec accumu = 0.0;
+          AccumVec accumv = 0.0;
+          for (size_t j=0; j<sxv.vectorsCount(); ++j) {
+            kernelu_0v_0p<StoreVec,AccumVec>(
+                              sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
+                              txv, tyv,
+                              &accumu, &accumv);
+          }
+          tu[0][i] += accumu.sum();
+          tu[1][i] += accumv.sum();
         }
-        }
-        tu[0][i] += accumu.sum();
-        tu[1][i] += accumv.sum();
         //std::cout << "pt " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
+        flops *= 2.0 + (float)flopsu_0v_0p<S,A>() * (float)src.get_n();
+      }
+      if (restype.get_type() == velandvort) {
+        Vector<S>& tw = targ.get_vort();
+        #pragma omp parallel for
+        for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+          const StoreVec txv = tx[0][i];
+          const StoreVec tyv = tx[1][i];
+          AccumVec accumu = 0.0;
+          AccumVec accumv = 0.0;
+          AccumVec accumw = 0.0;
+          for (size_t j=0; j<sxv.vectorsCount(); ++j) {
+            kerneluw_0v_0p<StoreVec,AccumVec>(
+                              sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
+                              txv, tyv,
+                              &accumu, &accumv, &accumw);
+          }
+          tu[0][i] += accumu.sum();
+          tu[1][i] += accumv.sum();
+          tw[i] += accumw.sum();
+        }
+        //std::cout << "pt " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
+        flops *= 2.0 + (float)flopsuw_0v_0p<S,A>() * (float)src.get_n();
       }
     } else
 #endif  // no Vc
     {
-      #pragma omp parallel for
-      for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
-        A accumu = 0.0;
-        A accumv = 0.0;
-        if (soln.compute_psi()) {
-          for (size_t j=0; j<src.get_n(); ++j) {
-            //kernelp_0v_0p<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
-            //                   tx[0][i], tx[1][i],
-            //                   &accump);
-          }
-        }
-        if (soln.compute_vel()) {
+      if (restype.get_type() == velonly) {
+        #pragma omp parallel for
+        for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+          A accumu = 0.0;
+          A accumv = 0.0;
           for (size_t j=0; j<src.get_n(); ++j) {
             kernelu_0v_0p<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
                                tx[0][i], tx[1][i],
                                &accumu, &accumv);
           }
+          tu[0][i] += accumu;
+          tu[1][i] += accumv;
         }
-        tu[0][i] += accumu;
-        tu[1][i] += accumv;
-        //std::cout << "pt " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
+        flops *= 2.0 + (float)flopsu_0v_0p<S,A>() * (float)src.get_n();
+      }
+      if (restype.get_type() == velandvort) {
+        Vector<S>& tw = targ.get_vort();
+        #pragma omp parallel for
+        for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+          A accumu = 0.0;
+          A accumv = 0.0;
+          A accumw = 0.0;
+          for (size_t j=0; j<src.get_n(); ++j) {
+            kerneluw_0v_0p<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
+                                tx[0][i], tx[1][i],
+                                &accumu, &accumv, &accumw);
+          }
+          tu[0][i] += accumu;
+          tu[1][i] += accumv;
+          tw[i] += accumw;
+          //std::cout << "pt " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
+        }
+        flops *= 2.0 + (float)flopsuw_0v_0p<S,A>() * (float)src.get_n();
       }
     }
-    flops *= 2.0 + (float)flopsu_0v_0p<S,A>() * (float)src.get_n();
 
   //
   // targets are particles, with a core radius ===================================================
@@ -173,50 +207,96 @@ void points_affect_points (const Points<S>& src, Points<S>& targ, const SolnType
       Vc::Memory<StoreVec> srv = stdvec_to_vcvec<S>(sr,    1.0);
       Vc::Memory<StoreVec> ssv = stdvec_to_vcvec<S>(ss,    0.0);
 
-      #pragma omp parallel for
-      for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
-        const StoreVec txv = tx[0][i];
-        const StoreVec tyv = tx[1][i];
-        const StoreVec trv = tr[i];
-        AccumVec accumu = 0.0;
-        AccumVec accumv = 0.0;
-        if (soln.compute_vel()) {
-        for (size_t j=0; j<sxv.vectorsCount(); ++j) {
-          kernelu_0v_0b<StoreVec,AccumVec>(
-                            sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
-                            txv, tyv, trv,
-                            &accumu, &accumv);
-          /* if (false) {
-            // this is how to print
-            StoreVec temp = sxv.vector(j,0);
-            std::cout << "src " << j << " has sxv " << temp << std::endl;
-          } */
+      if (restype.get_type() == velonly) {
+        #pragma omp parallel for
+        for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+          const StoreVec txv = tx[0][i];
+          const StoreVec tyv = tx[1][i];
+          const StoreVec trv = tr[i];
+          AccumVec accumu = 0.0;
+          AccumVec accumv = 0.0;
+          for (size_t j=0; j<sxv.vectorsCount(); ++j) {
+            kernelu_0v_0b<StoreVec,AccumVec>(
+                              sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
+                              txv, tyv, trv,
+                              &accumu, &accumv);
+            /* if (false) {
+              // this is how to print
+              StoreVec temp = sxv.vector(j,0);
+              std::cout << "src " << j << " has sxv " << temp << std::endl;
+            } */
+          }
+          tu[0][i] += accumu.sum();
+          tu[1][i] += accumv.sum();
+          //std::cout << "part " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
         }
+        flops *= 2.0 + (float)flopsu_0v_0b<S,A>() * (float)src.get_n();
+      }
+      if (restype.get_type() == velandvort) {
+        Vector<S>& tw = targ.get_vort();
+        #pragma omp parallel for
+        for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+          const StoreVec txv = tx[0][i];
+          const StoreVec tyv = tx[1][i];
+          const StoreVec trv = tr[i];
+          AccumVec accumu = 0.0;
+          AccumVec accumv = 0.0;
+          AccumVec accumw = 0.0;
+          for (size_t j=0; j<sxv.vectorsCount(); ++j) {
+            kerneluw_0v_0b<StoreVec,AccumVec>(
+                              sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
+                              txv, tyv, trv,
+                              &accumu, &accumv, &accumw);
+          }
+          tu[0][i] += accumu.sum();
+          tu[1][i] += accumv.sum();
+          tw[i] += accumw.sum();
+          //std::cout << "part " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
         }
-        tu[0][i] += accumu.sum();
-        tu[1][i] += accumv.sum();
-        //std::cout << "part " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
+        flops *= 2.0 + (float)flopsu_0v_0b<S,A>() * (float)src.get_n();
       }
     } else
 #endif  // no Vc
     {
-      #pragma omp parallel for
-      for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
-        A accumu = 0.0;
-        A accumv = 0.0;
-        if (soln.compute_vel()) {
-          for (size_t j=0; j<src.get_n(); ++j) {
-            kernelu_0v_0b<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
-                               tx[0][i], tx[1][i], tr[i],
-                               &accumu, &accumv);
+      if (restype.get_type() == velonly) {
+        #pragma omp parallel for
+        for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+          A accumu = 0.0;
+          A accumv = 0.0;
+          if (restype.compute_vel()) {
+            for (size_t j=0; j<src.get_n(); ++j) {
+              kernelu_0v_0b<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
+                                 tx[0][i], tx[1][i], tr[i],
+                                 &accumu, &accumv);
+            }
           }
+          tu[0][i] += accumu;
+          tu[1][i] += accumv;
         }
-        tu[0][i] += accumu;
-        tu[1][i] += accumv;
+        flops *= 2.0 + (float)flopsu_0v_0b<S,A>() * (float)src.get_n();
+      }
+      if (restype.get_type() == velandvort) {
+        Vector<S>& tw = targ.get_vort();
+        #pragma omp parallel for
+        for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+          A accumu = 0.0;
+          A accumv = 0.0;
+          A accumw = 0.0;
+          if (restype.compute_vel()) {
+            for (size_t j=0; j<src.get_n(); ++j) {
+              kerneluw_0v_0b<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
+                                  tx[0][i], tx[1][i], tr[i],
+                                  &accumu, &accumv, &accumw);
+            }
+          }
+          tu[0][i] += accumu;
+          tu[1][i] += accumv;
+          tw[i] += accumw;
+        }
+        flops *= 2.0 + (float)flopsuw_0v_0b<S,A>() * (float)src.get_n();
       }
       //std::cout << "part " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
     }
-    flops *= 2.0 + (float)flopsu_0v_0b<S,A>() * (float)src.get_n();
 
   //
   // end conditional over whether targets are field points (with no core radius)
@@ -234,12 +314,12 @@ void points_affect_points (const Points<S>& src, Points<S>& targ, const SolnType
 // Vc and x86 versions of Panels/Surfaces affecting Points/Particles
 //
 template <class S, class A>
-void panels_affect_points (const Surfaces<S>& src, Points<S>& targ, const SolnType& soln, const ExecEnv& env) {
+void panels_affect_points (const Surfaces<S>& src, Points<S>& targ, const ResultsType& restype, const ExecEnv& env) {
 
   std::cout << "    in panpt with" << env.to_string() << std::endl;
   std::cout << "    1_0 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
-  assert (!soln.compute_psi() && "Surface elements cannot compute streamfunction yet.");
-  assert (!soln.compute_grad() && "Surface elements cannot compute velocity gradients yet.");
+  assert (!restype.compute_psi() && "Surface elements cannot compute streamfunction yet.");
+  assert (!restype.compute_grad() && "Surface elements cannot compute velocity gradients yet.");
 
   auto start = std::chrono::system_clock::now();
   float flops = (float)targ.get_n();
@@ -323,7 +403,7 @@ void panels_affect_points (const Surfaces<S>& src, Points<S>& targ, const SolnTy
       if (have_source_strengths) {
         for (size_t j=0; j<vsvs.vectorsCount(); ++j) {
           // note that this is the same kernel as panels_affect_points!
-          if (soln.compute_vel()) {
+          if (restype.compute_vel()) {
           kernelu_1vs_0p<StoreVec,AccumVec>(vsx0.vector(j), vsy0.vector(j),
                                             vsx1.vector(j), vsy1.vector(j),
                                             vsvs.vector(j), vsss.vector(j),
@@ -337,7 +417,7 @@ void panels_affect_points (const Surfaces<S>& src, Points<S>& targ, const SolnTy
         // only vortex strengths
         for (size_t j=0; j<vsvs.vectorsCount(); ++j) {
           // note that this is the same kernel as panels_affect_points!
-          if (soln.compute_vel()) {
+          if (restype.compute_vel()) {
           kernelu_1v_0p<StoreVec,AccumVec>(vsx0.vector(j), vsy0.vector(j),
                                            vsx1.vector(j), vsy1.vector(j),
                                            vsvs.vector(j),
@@ -373,7 +453,7 @@ void panels_affect_points (const Surfaces<S>& src, Points<S>& targ, const SolnTy
           const size_t jp1 = si[2*j+1];
 
           // note that this is the same kernel as points_affect_panels
-          if (soln.compute_vel()) {
+          if (restype.compute_vel()) {
           kernelu_1vs_0p<S,A>(sx[0][jp0], sx[1][jp0], 
                               sx[0][jp1], sx[1][jp1],
                               vs[j],      ss[j],
@@ -391,7 +471,7 @@ void panels_affect_points (const Surfaces<S>& src, Points<S>& targ, const SolnTy
           const size_t jp1 = si[2*j+1];
 
           // note that this is the same kernel as points_affect_panels
-          if (soln.compute_vel()) {
+          if (restype.compute_vel()) {
           kernelu_1v_0p<S,A>(sx[0][jp0], sx[1][jp0], 
                              sx[0][jp1], sx[1][jp1],
                              vs[j],
@@ -427,11 +507,11 @@ void panels_affect_points (const Surfaces<S>& src, Points<S>& targ, const SolnTy
 // Vc and x86 versions of Volumes affecting Points/Particles
 //
 template <class S, class A>
-void bricks_affect_points (const Volumes<S>& src, Points<S>& targ, const SolnType& soln, const ExecEnv& env) {
+void bricks_affect_points (const Volumes<S>& src, Points<S>& targ, const ResultsType& restype, const ExecEnv& env) {
   std::cout << "    2_0 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   assert (false && "Volume elements cannot affect points yet.");
-  assert (!soln.compute_psi() && "Volume elements cannot compute streamfunction yet.");
-  assert (!soln.compute_grad() && "Volume elements cannot compute velocity gradients yet.");
+  assert (!restype.compute_psi() && "Volume elements cannot compute streamfunction yet.");
+  assert (!restype.compute_grad() && "Volume elements cannot compute velocity gradients yet.");
 }
 
 
@@ -441,12 +521,12 @@ void bricks_affect_points (const Volumes<S>& src, Points<S>& targ, const SolnTyp
 // Vc and x86 versions of Points/Particles affecting Panels/Surfaces
 //
 template <class S, class A>
-void points_affect_panels (const Points<S>& src, Surfaces<S>& targ, const SolnType& soln, const ExecEnv& env) {
+void points_affect_panels (const Points<S>& src, Surfaces<S>& targ, const ResultsType& restype, const ExecEnv& env) {
 
   std::cout << "    in ptpan with" << env.to_string() << std::endl;
   std::cout << "    0_1 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
-  assert (!soln.compute_psi() && "Point elements cannot compute streamfunction yet.");
-  assert (!soln.compute_grad() && "Point elements cannot compute velocity gradients yet.");
+  assert (!restype.compute_psi() && "Point elements cannot compute streamfunction yet.");
+  assert (!restype.compute_grad() && "Point elements cannot compute velocity gradients yet.");
 
   auto start = std::chrono::system_clock::now();
   float flops = (float)targ.get_npanels();
@@ -501,7 +581,7 @@ void points_affect_panels (const Points<S>& src, Surfaces<S>& targ, const SolnTy
 
       for (size_t j=0; j<vsv.vectorsCount(); ++j) {
         // note that this is the same kernel as panels_affect_points!
-        if (soln.compute_vel()) {
+        if (restype.compute_vel()) {
         kernelu_1v_0p<StoreVec,AccumVec>(vtx0, vty0,
                                          vtx1, vty1,
                                          vsv.vector(j),
@@ -543,7 +623,7 @@ void points_affect_panels (const Points<S>& src, Surfaces<S>& targ, const SolnTy
 
       for (size_t j=0; j<src.get_n(); ++j) {
         // note that this is the same kernel as panels_affect_points!
-        if (soln.compute_vel()) {
+        if (restype.compute_vel()) {
         kernelu_1v_0p<S,A>(tx[0][ip0], tx[1][ip0],
                            tx[0][ip1], tx[1][ip1],
                            vs[j],
@@ -578,10 +658,10 @@ void points_affect_panels (const Points<S>& src, Surfaces<S>& targ, const SolnTy
 
 
 template <class S, class A>
-void panels_affect_panels (const Surfaces<S>& src, Surfaces<S>& targ, const SolnType& soln, const ExecEnv& env) {
+void panels_affect_panels (const Surfaces<S>& src, Surfaces<S>& targ, const ResultsType& restype, const ExecEnv& env) {
   std::cout << "    1_1 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
-  assert (!soln.compute_psi() && "Surface elements cannot compute streamfunction yet.");
-  assert (!soln.compute_grad() && "Surface elements cannot compute velocity gradients yet.");
+  assert (!restype.compute_psi() && "Surface elements cannot compute streamfunction yet.");
+  assert (!restype.compute_grad() && "Surface elements cannot compute velocity gradients yet.");
 
   // run panels_affect_points instead
 
@@ -590,7 +670,7 @@ void panels_affect_panels (const Surfaces<S>& src, Surfaces<S>& targ, const Soln
   Points<float> temppts(xysr, active, lagrangian, nullptr);
 
   // run the calculation
-  panels_affect_points<S,A>(src, temppts, soln, env);
+  panels_affect_points<S,A>(src, temppts, restype, env);
 
   // and add the velocities to the real target
   std::array<Vector<S>,Dimensions>& fromvel = temppts.get_vel();
@@ -602,11 +682,11 @@ void panels_affect_panels (const Surfaces<S>& src, Surfaces<S>& targ, const Soln
 
 
 template <class S, class A>
-void bricks_affect_panels (const Volumes<S>& src, Surfaces<S>& targ, const SolnType& soln, const ExecEnv& env) {
+void bricks_affect_panels (const Volumes<S>& src, Surfaces<S>& targ, const ResultsType& restype, const ExecEnv& env) {
   std::cout << "    2_1 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   assert (false && "Volume elements cannot affect panels yet.");
-  assert (!soln.compute_psi() && "Volume elements cannot compute streamfunction yet.");
-  assert (!soln.compute_grad() && "Volume elements cannot compute velocity gradients yet.");
+  assert (!restype.compute_psi() && "Volume elements cannot compute streamfunction yet.");
+  assert (!restype.compute_grad() && "Volume elements cannot compute velocity gradients yet.");
 }
 
 
@@ -614,25 +694,32 @@ void bricks_affect_panels (const Volumes<S>& src, Surfaces<S>& targ, const SolnT
 
 
 template <class S, class A>
-void points_affect_bricks (const Points<S>& src, Volumes<S>& targ, const SolnType& soln, const ExecEnv& env) {
+void points_affect_bricks (const Points<S>& src, Volumes<S>& targ, const ResultsType& restype, const ExecEnv& env) {
   std::cout << "    in ptvol with" << env.to_string() << std::endl;
   std::cout << "    0_2 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   //assert (false && "Points cannot affect Volumes yet.");
-  assert (!soln.compute_psi() && "Point elements cannot compute streamfunction yet.");
-  assert (!soln.compute_grad() && "Point elements cannot compute velocity gradients yet.");
+  assert (!restype.compute_psi() && "Point elements cannot compute streamfunction yet.");
+  assert (!restype.compute_grad() && "Point elements cannot compute velocity gradients yet.");
 
   // generate temporary collocation points as Points
   std::vector<S> xysr = targ.represent_nodes_as_particles(0.0f);
   Points<S> volsaspts(xysr, inert, fixed, nullptr);
 
   // run the calculation
-  points_affect_points<S,A>(src, volsaspts, soln, env);
+  points_affect_points<S,A>(src, volsaspts, restype, env);
 
   // and add the velocities to the real target
   std::array<Vector<S>,Dimensions>& fromvel = volsaspts.get_vel();
   std::array<Vector<S>,Dimensions>& tovel   = targ.get_vel();
   for (size_t i=0; i<Dimensions; ++i) {
     std::transform(tovel[i].begin( ), tovel[i].end( ), fromvel[i].begin( ), tovel[i].begin( ), std::plus<S>( ));
+  }
+
+  // and the vorticity also
+  if (restype.compute_vort()) {
+    Vector<S>& fromvort = volsaspts.get_vort();
+    Vector<S>& tovort   = targ.get_vort();
+    std::copy(fromvort.begin(), fromvort.end(), tovort.begin());
   }
 
   // and the vel grads - if need be
@@ -663,11 +750,11 @@ void panels_affect_bricks (const Surfaces<S>& src, Volumes<S>& targ, const SolnT
 }
 
 template <class S, class A>
-void bricks_affect_bricks (const Volumes<S>& src, Volumes<S>& targ, const SolnType& soln, const ExecEnv& env) {
+void bricks_affect_bricks (const Volumes<S>& src, Volumes<S>& targ, const ResultsType& restype, const ExecEnv& env) {
   std::cout << "    2_2 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   assert (false && "Volume elements cannot affect themselves yet.");
-  assert (!soln.compute_psi() && "Volume elements cannot compute streamfunction yet.");
-  assert (!soln.compute_grad() && "Volume elements cannot compute velocity gradients yet.");
+  assert (!restype.compute_psi() && "Volume elements cannot compute streamfunction yet.");
+  assert (!restype.compute_grad() && "Volume elements cannot compute velocity gradients yet.");
 }
 
 
@@ -679,17 +766,17 @@ void bricks_affect_bricks (const Volumes<S>& src, Volumes<S>& targ, const SolnTy
 template <class A>
 struct InfluenceVisitor {
   // source collection, target collection, solution type, execution environment
-  void operator()(const Points<float>& src,   Points<float>& targ)   { points_affect_points<float,A>(src, targ, soln, env); }
-  void operator()(const Surfaces<float>& src, Points<float>& targ)   { panels_affect_points<float,A>(src, targ, soln, env); }
-  void operator()(const Volumes<float>& src,  Points<float>& targ)   { bricks_affect_points<float,A>(src, targ, soln, env); }
-  void operator()(const Points<float>& src,   Surfaces<float>& targ) { points_affect_panels<float,A>(src, targ, soln, env); }
-  void operator()(const Surfaces<float>& src, Surfaces<float>& targ) { panels_affect_panels<float,A>(src, targ, soln, env); }
-  void operator()(const Volumes<float>& src,  Surfaces<float>& targ) { bricks_affect_panels<float,A>(src, targ, soln, env); }
-  void operator()(const Points<float>& src,   Volumes<float>& targ)  { points_affect_bricks<float,A>(src, targ, soln, env); }
-  void operator()(const Surfaces<float>& src, Volumes<float>& targ)  { panels_affect_bricks<float,A>(src, targ, soln, env); }
-  void operator()(const Volumes<float>& src,  Volumes<float>& targ)  { bricks_affect_bricks<float,A>(src, targ, soln, env); }
+  void operator()(const Points<float>& src,   Points<float>& targ)   { points_affect_points<float,A>(src, targ, restype, env); }
+  void operator()(const Surfaces<float>& src, Points<float>& targ)   { panels_affect_points<float,A>(src, targ, restype, env); }
+  void operator()(const Volumes<float>& src,  Points<float>& targ)   { bricks_affect_points<float,A>(src, targ, restype, env); }
+  void operator()(const Points<float>& src,   Surfaces<float>& targ) { points_affect_panels<float,A>(src, targ, restype, env); }
+  void operator()(const Surfaces<float>& src, Surfaces<float>& targ) { panels_affect_panels<float,A>(src, targ, restype, env); }
+  void operator()(const Volumes<float>& src,  Surfaces<float>& targ) { bricks_affect_panels<float,A>(src, targ, restype, env); }
+  void operator()(const Points<float>& src,   Volumes<float>& targ)  { points_affect_bricks<float,A>(src, targ, restype, env); }
+  void operator()(const Surfaces<float>& src, Volumes<float>& targ)  { panels_affect_bricks<float,A>(src, targ, restype, env); }
+  void operator()(const Volumes<float>& src,  Volumes<float>& targ)  { bricks_affect_bricks<float,A>(src, targ, restype, env); }
 
-  SolnType soln;
+  ResultsType restype;
   ExecEnv env;
 };
 

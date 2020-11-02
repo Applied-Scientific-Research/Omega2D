@@ -172,6 +172,7 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx,
     has_radii = false;
     prefix = "fldpt_";
   }
+  const bool has_vorticity = pts.has_vort();
 
   // generate file name
   std::stringstream vtkfn;
@@ -270,6 +271,7 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx,
   vector_list.append("velocity,");
   if (has_strengths) scalar_list.append("circulation,");
   if (has_radii) scalar_list.append("radius,");
+  if (has_vorticity) scalar_list.append("vorticity,");
 
   if (vector_list.size()>1) {
     vector_list.pop_back();
@@ -293,6 +295,14 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx,
     printer.PushAttribute( "Name", "radius" );
     printer.PushAttribute( "type", "Float32" );
     write_DataArray (printer, pts.get_rad(), compress, asbase64);
+    printer.CloseElement();	// DataArray
+  }
+
+  if (has_vorticity) {
+    printer.OpenElement( "DataArray" );
+    printer.PushAttribute( "Name", "vorticity" );
+    printer.PushAttribute( "type", "Float32" );
+    write_DataArray (printer, pts.get_vort(), compress, asbase64);
     printer.CloseElement();	// DataArray
   }
 
@@ -660,6 +670,32 @@ std::string write_vtk_grid(Volumes<S> const& grid, const size_t file_idx,
 
 
   printer.OpenElement( "PointData" );
+  std::string vector_list;
+  std::string scalar_list;
+
+  const bool has_vorticity = grid.has_vort();
+
+  vector_list.append("velocity,");
+  //if (has_strengths) scalar_list.append("circulation,");
+  //if (has_radii) scalar_list.append("radius,");
+  if (has_vorticity) scalar_list.append("vorticity,");
+
+  if (vector_list.size()>1) {
+    vector_list.pop_back();
+    printer.PushAttribute( "Vectors", vector_list.c_str() );
+  }
+  if (scalar_list.size()>1) {
+    scalar_list.pop_back();
+    printer.PushAttribute( "Scalars", scalar_list.c_str() );
+  }
+
+  if (has_vorticity) {
+    printer.OpenElement( "DataArray" );
+    printer.PushAttribute( "Name", "vorticity" );
+    printer.PushAttribute( "type", "Float32" );
+    write_DataArray (printer, grid.get_vort(), compress, asbase64);
+    printer.CloseElement();	// DataArray
+  }
 
   printer.OpenElement( "DataArray" );
   printer.PushAttribute( "NumberOfComponents", "3" );

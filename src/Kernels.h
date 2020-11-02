@@ -25,7 +25,7 @@
 //
 // here is the naming system:
 //   kernelR_NS_MT
-//     R is the type of result ('p'=psi, 'u'=vel, 'g'=grad)
+//     R is the type of result ('p'=psi, 'u'=vel, 'g'=grad, 'w'=vort)
 //     N is the number of dimensions of the source element (0=point, 1=segment/surface)
 //     S is the type of the source element ('v'=vortex, 's'=source, 'vs'=vortex and source)
 //     M is the number of dimensions of the target element
@@ -92,7 +92,6 @@ static inline void kernelu_0v_0p (const S sx, const S sy, const S sr, const S ss
   *tv += r2 * dx;
 }
 
-/*
 //
 // Velocity gradient kernels
 //
@@ -108,7 +107,7 @@ static inline void kernelug_0v_0b (const S sx, const S sy, const S sr, const S s
   const S dx = tx - sx;
   const S dy = ty - sy;
   S r2, bbb;
-  core_func<S>(dx*dx + dy*dy, sr, tr);
+  (void) core_func<S>(dx*dx + dy*dy, sr, tr, &r2, &bbb);
   r2 *= ss;
   bbb *= ss;
   *tu -= r2 * dy;
@@ -119,7 +118,48 @@ static inline void kernelug_0v_0b (const S sx, const S sy, const S sr, const S s
   *tvx +=  bbb*dx*dx + r2;
   *tvy +=  bbb*dx*dy;
 }
-*/
+
+template <class S, class A> size_t flopsuw_0v_0p () { return 19 + flops_tp_grads<S>(); }
+template <class S, class A>
+static inline void kerneluw_0v_0p (const S sx, const S sy, const S sr, const S ss,
+                                   const S tx, const S ty,
+                                   A* const __restrict__ tu, A* const __restrict__ tv,
+                                   A* const __restrict__ tw) {
+  // 19 flops without core_func
+  const S dx = tx - sx;
+  const S dy = ty - sy;
+  S r2, bbb;
+  (void) core_func<S>(dx*dx + dy*dy, sr, &r2, &bbb);
+  r2 *= ss;
+  bbb *= ss;
+  *tu -= r2 * dy;
+  *tv += r2 * dx;
+  // and the grads
+  const S dudy = -bbb*dy*dy - r2;
+  const S dvdx =  bbb*dx*dx + r2;
+  *tw += dvdx - dudy;
+}
+
+template <class S, class A> size_t flopsuw_0v_0b () { return 19 + flops_tv_grads<S>(); }
+template <class S, class A>
+static inline void kerneluw_0v_0b (const S sx, const S sy, const S sr, const S ss,
+                                   const S tx, const S ty, const S tr,
+                                   A* const __restrict__ tu, A* const __restrict__ tv,
+                                   A* const __restrict__ tw) {
+  // 19 flops without core_func
+  const S dx = tx - sx;
+  const S dy = ty - sy;
+  S r2, bbb;
+  (void) core_func<S>(dx*dx + dy*dy, sr, tr, &r2, &bbb);
+  r2 *= ss;
+  bbb *= ss;
+  *tu -= r2 * dy;
+  *tv += r2 * dx;
+  // and the grads
+  const S dudy = -bbb*dy*dy - r2;
+  const S dvdx =  bbb*dx*dx + r2;
+  *tw += dvdx - dudy;
+}
 
 
 //
