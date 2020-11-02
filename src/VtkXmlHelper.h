@@ -62,6 +62,7 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx,
     has_radii = false;
     prefix = "fldpt_";
   }
+  const bool has_vorticity = pts.has_vort();
 
   // generate file name
   std::stringstream vtkfn;
@@ -151,6 +152,7 @@ std::string write_vtu_points(Points<S> const& pts, const size_t file_idx,
     std::string scalar_list;
     if (has_strengths) scalar_list.append("circulation,");
     if (has_radii) scalar_list.append("radius,");
+    if (has_vorticity) scalar_list.append("vorticity,");
     if (scalar_list.size()>1) {
       scalar_list.pop_back();
       attribs.insert({"Scalars", scalar_list});
