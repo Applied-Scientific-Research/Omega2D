@@ -198,6 +198,7 @@ public:
       std::fill(u[d].begin(), u[d].end(), 0.0);
     }
     if (w) {
+      if (w->size() != n) w->resize(n);
       std::fill((*w).begin(), (*w).end(), 0.0);
     }
   }
@@ -211,6 +212,7 @@ public:
       }
     }
     if (w) {
+      assert(w->size() == n && "Vorticity vector not sized properly in finalize_vels");
       for (size_t i=0; i<get_n(); ++i) {
         (*w)[i] *= factor;
       }
