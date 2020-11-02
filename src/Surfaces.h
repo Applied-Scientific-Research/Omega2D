@@ -1104,6 +1104,141 @@ public:
     return retstr;
   }
 
+  std::string write_vtk(const size_t _index, const size_t _frameno, const double _time) {
+    assert(this->np > 0 && "Inside write_vtu_panels with no panels");
+  
+    const bool asbase64 = true;
+    bool has_vort_str = false;
+    bool has_src_str = false;
+    std::string prefix = "panel_";
+    if (not this->E) {
+      has_vort_str = true;
+      has_src_str = (bool)this->ps[1];
+    }
+  
+    // generate file name
+    std::stringstream vtkfn;
+    vtkfn << prefix << std::setfill('0') << std::setw(2) << _index << "_" << std::setw(5) << _frameno << ".vtu";
+    VtkXmlWriter panelWriter = VtkXmlWriter(vtkfn.str(), asbase64);
+    // push comment with sim time?
+  
+    // include simulation time here
+    panelWriter.addElement("FieldData");
+    {
+      std::map<std::string, std::string> attribs = {{"type",           "Float64"},
+                                                    {"Name",           "TimeValue"},
+                                                    {"NumberOfTuples", "1"}};
+      panelWriter.addElement("DataArray", attribs);
+      Vector<double> time_vec = {_time};
+      panelWriter.writeDataArray(time_vec);
+      panelWriter.closeElement();
+    }
+    // FieldData
+    panelWriter.closeElement();
+  
+    {
+      std::map<std::string, std::string> attribs = {{"NumberOfPoints", std::to_string(this->n).c_str()},
+                                                    {"NumberOfCells", std::to_string(this->np).c_str()}};
+      panelWriter.addElement("Piece", attribs);
+    }
+  
+    panelWriter.addElement("Points");
+    {
+      std::map<std::string, std::string> attribs = {{"NumberOfComponents", "3"},
+                                                    {"Name",               "position"},
+                                                    {"type",               "Float32"}}; 
+      panelWriter.addElement("DataArray", attribs);
+      Vector<float> pos = panelWriter.unpackArray(this->x);
+      panelWriter.writeDataArray(pos);
+      panelWriter.closeElement();
+    }
+    // Points
+    panelWriter.closeElement();
+  
+    panelWriter.addElement("Cells");
+    // again, all connectivities and offsets must be Int32!
+    {
+      std::map<std::string, std::string> attribs = {{"Name", "connectivity"},
+                                                    {"type", "Int32"}};
+      panelWriter.addElement("DataArray", attribs);
+      std::vector<Int> const & idx = this->idx;
+      Vector<int32_t> v(std::begin(idx), std::end(idx));
+      panelWriter.writeDataArray(v);
+      panelWriter.closeElement();
+    }
+  
+    {
+      std::map<std::string, std::string> attribs = {{"Name", "offsets"},
+                                                    {"type", "Int32"}};
+      panelWriter.addElement("DataArray", attribs);
+      Vector<int32_t> v(this->np);
+      std::iota(v.begin(), v.end(), 1);
+      std::transform(v.begin(), v.end(), v.begin(),
+                     std::bind(std::multiplies<int32_t>(), std::placeholders::_1, 2));
+      panelWriter.writeDataArray(v);
+      panelWriter.closeElement();
+    }
+  
+    {
+      std::map<std::string, std::string> attribs = {{"Name", "types"},
+                                                    {"type", "UInt8"}};
+      panelWriter.addElement("DataArray", attribs);
+      Vector<uint8_t> v(this->np);
+      std::fill(v.begin(), v.end(), 3);
+      panelWriter.writeDataArray(v);
+      panelWriter.closeElement();
+    }
+    // Cells
+    panelWriter.closeElement();
+  
+    {
+      std::map<std::string, std::string> attribs = {{"Vectors", "velocity"}};
+      std::string scalar_list;
+      if (has_vort_str) scalar_list.append("vortex sheet strength,");
+      if (has_src_str) scalar_list.append("source sheet strength,");
+      //if (has_radii) scalar_list.append("area,");
+      if (scalar_list.size()>1) {
+        scalar_list.pop_back();
+        attribs.insert({"Scalars", scalar_list});
+      }
+      panelWriter.addElement("CellData", attribs);
+    }
+  
+    if (has_vort_str) {
+      std::map<std::string, std::string> attribs = {{"Name", "vortex sheet strength"},
+                                                    {"type", "Float32"}};
+      panelWriter.addElement("DataArray", attribs);
+      panelWriter.writeDataArray(*this->ps[0]);
+      panelWriter.closeElement();
+    }
+  
+    if (has_src_str) {
+      std::map<std::string, std::string> attribs = {{"Name", "source sheet strength"},
+                                                    {"type", "Float32"}};
+      panelWriter.addElement("DataArray", attribs);
+      panelWriter.writeDataArray(*this->ps[1]);
+      panelWriter.closeElement();
+    }
+  
+    {
+      std::map<std::string, std::string> attribs = {{"NumberOfComponents", "3"},
+                                                    {"Name",               "velocity"},
+                                                    {"type",               "Float32"}}; 
+      panelWriter.addElement("DataArray", attribs);
+      Vector<float> vel = panelWriter.unpackArray(this->u);
+      panelWriter.writeDataArray(vel);
+      panelWriter.closeElement();
+    }
+    // CellData
+    panelWriter.closeElement();
+    // Piece 
+    panelWriter.closeElement();
+  
+    panelWriter.finish();
+    std::cout << "Wrote " << this->np << " panels to " << vtkfn.str() << std::endl;
+    return "Surfaces";
+  }
+
 protected:
   // ElementBase.h has x, s, u, ux on the *nodes*
 
