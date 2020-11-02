@@ -726,7 +726,7 @@ void points_affect_bricks (const Points<S>& src, Volumes<S>& targ, const Results
 }
 
 template <class S, class A>
-void panels_affect_bricks (const Surfaces<S>& src, Volumes<S>& targ, const SolnType& soln, const ExecEnv& env) {
+void panels_affect_bricks (const Surfaces<S>& src, Volumes<S>& targ, const ResultsType& soln, const ExecEnv& env) {
   std::cout << "    in panvol with" << env.to_string() << std::endl;
   std::cout << "    1_2 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
   assert (!soln.compute_psi() && "Surface elements cannot compute streamfunction yet.");
