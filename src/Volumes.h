@@ -1232,6 +1232,10 @@ public:
     gridWriter.closeElement();
   
     gridWriter.addElement("Cells");
+
+    // useful: what kinds of elements are these?
+    const int32_t nper = (int32_t)(idx.size() / nb);
+    assert((nper==4 or nper==9) && "Volumes vtu writer only supports vtk elem types 9 and 28");
   
     // again, all connectivities and offsets must be Int32!
     {
@@ -1252,8 +1256,9 @@ public:
       Vector<int32_t> v(this->nb);
       // vector of 1 to n
       std::iota(v.begin(), v.end(), 1);
+      // how much do we scale it? nper=4 if linear quads, 9 if biquadratic quads
       std::transform(v.begin(), v.end(), v.begin(),
-                     std::bind(std::multiplies<int32_t>(), std::placeholders::_1, 4));
+                     std::bind(std::multiplies<int32_t>(), std::placeholders::_1, nper));
       gridWriter.writeDataArray(v);
       // DataArray
       gridWriter.closeElement();
@@ -1264,7 +1269,9 @@ public:
                                                     {"type", "UInt8"}};
       gridWriter.addElement("DataArray", attribs);
       Vector<uint8_t> v(this->nb);
-      std::fill(v.begin(), v.end(), 9);
+      // switch on vtk element type
+      const uint8_t etype = (nper==4 ? 9 : 28);
+      std::fill(v.begin(), v.end(), etype);
       gridWriter.writeDataArray(v);
       // DataArray
       gridWriter.closeElement();
