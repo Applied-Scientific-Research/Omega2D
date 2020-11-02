@@ -35,6 +35,7 @@ public:
                   std::vector<Collection>&,
                   std::vector<Collection>&,
                   std::vector<Collection>&,
+                  const results_t _results = velonly,
                   const bool _force = false);
   void advect_1st(const double,
                   const double,
@@ -74,15 +75,15 @@ void Convection<S,A,I>::find_vels(const std::array<double,Dimensions>& _fs,
                                   std::vector<Collection>&             _vort,
                                   std::vector<Collection>&             _bdry,
                                   std::vector<Collection>&             _targets,
+                                  const results_t                      _results,
                                   const bool                           _force) {
 
   //if (_targets.size() > 0) std::cout << std::endl << "Solving for velocities" << std::endl;
   //if (_targets.size() > 0) std::cout << std::endl;
 
   // need this for dispatching velocity influence calls, template param is accumulator type
-  // should the solution_t be an argument to the constructor?
   // member variable is passed-in execution environment
-  InfluenceVisitor<A> visitor = {SolnType(velonly), conv_env};
+  InfluenceVisitor<A> visitor = {ResultsType(_results), conv_env};
 
   // add vortex and source strengths to account for rotating bodies
   for (auto &src : _bdry) {
@@ -96,7 +97,7 @@ void Convection<S,A,I>::find_vels(const std::array<double,Dimensions>& _fs,
     const move_t tmt = std::visit([=](auto& elem) { return elem.get_movet(); }, targ);
     if (not (_force or tmt == lagrangian)) continue;
 
-    std::cout << "  Solving for velocities on" << to_string(targ) << std::endl;
+    std::cout << "  Solving" << ResultsType(_results).to_string() << " on" << to_string(targ) << std::endl;
 
     // zero velocities
     std::visit([=](auto& elem) { elem.zero_vels(); }, targ);
