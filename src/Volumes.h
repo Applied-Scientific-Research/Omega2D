@@ -1268,7 +1268,7 @@ public:
       std::map<std::string, std::string> attribs = {{"Vectors", "velocity"}};
 
       std::string scalar_list;
-      //if (this->has_vort()) scalar_list.append("vorticity,");
+      if (this->has_vort()) scalar_list.append("vorticity,");
       if (scalar_list.size()>1) {
         scalar_list.pop_back();
         attribs.insert({"Scalars", scalar_list});
@@ -1277,7 +1277,6 @@ public:
       gridWriter.addElement("PointData", attribs);
     }
 
-/*
     if (this->has_vort()) {
       std::map<std::string, std::string> attribs = {{"Name", "vorticity"},
                                                     {"type", "Float32"}};
@@ -1285,7 +1284,6 @@ public:
       gridWriter.writeDataArray(*(this->w));
       gridWriter.closeElement(); // DataArray
     }
-*/
 
     {
       std::map<std::string, std::string> attribs = {{"NumberOfComponents", "3"},

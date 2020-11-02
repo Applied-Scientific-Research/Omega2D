@@ -751,7 +751,7 @@ public:
       std::string scalar_list;
       if (has_strengths) scalar_list.append("circulation,");
       if (has_radii) scalar_list.append("radius,");
-      //if (this->has_vort()) scalar_list.append("vorticity,");
+      if (this->has_vort()) scalar_list.append("vorticity,");
       if (scalar_list.size()>1) {
         scalar_list.pop_back();
         attribs.insert({"Scalars", scalar_list});
@@ -767,7 +767,7 @@ public:
       ptsWriter.writeDataArray(*(this->s));
       ptsWriter.closeElement(); // DataArray
     }
-  
+
     if (has_radii) {
       std::map<std::string, std::string> attribs = {{"Name", "radius"},
                                                     {"type", "Float32"}};
@@ -775,8 +775,7 @@ public:
       ptsWriter.writeDataArray(this->r);
       ptsWriter.closeElement(); // DataArray
     }
-  
-/*
+
     if (this->has_vort()) {
       std::map<std::string, std::string> attribs = {{"Name", "vorticity"},
                                                     {"type", "Float32"}};
@@ -784,8 +783,7 @@ public:
       ptsWriter.writeDataArray(*(this->w));
       ptsWriter.closeElement(); // DataArray
     }
-*/
-  
+
     {
       std::map<std::string, std::string> attribs = {{"NumberOfComponents", "3"},
                                                     {"Name",               "velocity"},
@@ -795,7 +793,7 @@ public:
       ptsWriter.writeDataArray(vel);
       ptsWriter.closeElement(); // DataArray
     }
-  
+
     // Point Data 
     ptsWriter.closeElement();
   
