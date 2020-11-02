@@ -135,8 +135,8 @@ static inline void kerneluw_0v_0p (const S sx, const S sy, const S sr, const S s
   *tu -= r2 * dy;
   *tv += r2 * dx;
   // and the grads
-  const float dudy = -bbb*dy*dy - r2;
-  const float dvdx =  bbb*dx*dx + r2;
+  const S dudy = -bbb*dy*dy - r2;
+  const S dvdx =  bbb*dx*dx + r2;
   *tw += dvdx - dudy;
 }
 
@@ -156,8 +156,8 @@ static inline void kerneluw_0v_0b (const S sx, const S sy, const S sr, const S s
   *tu -= r2 * dy;
   *tv += r2 * dx;
   // and the grads
-  const float dudy = -bbb*dy*dy - r2;
-  const float dvdx =  bbb*dx*dx + r2;
+  const S dudy = -bbb*dy*dy - r2;
+  const S dvdx =  bbb*dx*dx + r2;
   *tw += dvdx - dudy;
 }
 
