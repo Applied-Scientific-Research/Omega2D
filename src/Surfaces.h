@@ -581,7 +581,7 @@ public:
     for (size_t i=0; i<get_npanels(); i++) {
       const size_t j   = idx[2*i];
       const size_t jp1 = idx[2*i+1];
-      std::cout << "elem " << i << " from " << (*this->ux)[0][j] << " " << (*this->ux)[1][j] << " to " << (*this->ux)[0][jp1] << " " << (*this->ux)[1][jp1] << std::endl;
+      //std::cout << "elem " << i << " from " << (*this->ux)[0][j] << " " << (*this->ux)[1][j] << " to " << (*this->ux)[0][jp1] << " " << (*this->ux)[1][jp1] << std::endl;
       // assume a triangle from 0,0 to two ends of each panel
       const A xc = (0.0 + (*this->ux)[0][j] + (*this->ux)[0][jp1]) / 3.0;
       const A yc = (0.0 + (*this->ux)[1][j] + (*this->ux)[1][jp1]) / 3.0;
@@ -591,15 +591,15 @@ public:
       const A a = std::sqrt(std::pow((*this->ux)[0][j],2)+std::pow((*this->ux)[1][j],2));
       const A b = std::sqrt(std::pow(panelx,2)+std::pow(panely,2));
       const A c = std::sqrt(std::pow((*this->ux)[0][jp1],2)+std::pow((*this->ux)[1][jp1],2));
-      std::cout << "  panel " << i << " has side lens " << a << " " << b << " " << c << std::endl;
+      //std::cout << "  panel " << i << " has side lens " << a << " " << b << " " << c << std::endl;
       // Heron's formula for the area
       const A hs = 0.5*(a+b+c);
       A thisarea = std::sqrt(hs*(hs-a)*(hs-b)*(hs-c));
       // negate area if the winding is backwards
       if ((*this->ux)[1][j]*panelx - (*this->ux)[0][j]*panely < 0.0) thisarea = -thisarea;
       // add this to the running sums
-      std::cout << "    and area " << thisarea << " and center " << xc << " " << yc << std::endl;
-      std::cout << "    running sums " << asum << " " << xsum << " " << ysum << std::endl;
+      //std::cout << "    and area " << thisarea << " and center " << xc << " " << yc << std::endl;
+      //std::cout << "    running sums " << asum << " " << xsum << " " << ysum << std::endl;
       asum += thisarea;
       xsum += xc*thisarea;
       ysum += yc*thisarea;

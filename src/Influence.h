@@ -672,11 +672,11 @@ void panels_affect_panels (const Surfaces<S>& src, Surfaces<S>& targ, const Resu
   // run the calculation
   panels_affect_points<S,A>(src, temppts, restype, env);
 
-  // and copy the velocities to the real target
+  // and add the velocities to the real target
   std::array<Vector<S>,Dimensions>& fromvel = temppts.get_vel();
   std::array<Vector<S>,Dimensions>& tovel   = targ.get_vel();
   for (size_t i=0; i<Dimensions; ++i) {
-    std::copy(fromvel[i].begin(), fromvel[i].end(), tovel[i].begin());
+    std::transform(tovel[i].begin( ), tovel[i].end( ), fromvel[i].begin( ), tovel[i].begin( ), std::plus<S>( ));
   }
 }
 
@@ -708,11 +708,11 @@ void points_affect_bricks (const Points<S>& src, Volumes<S>& targ, const Results
   // run the calculation
   points_affect_points<S,A>(src, volsaspts, restype, env);
 
-  // and copy the velocities to the real target
+  // and add the velocities to the real target
   std::array<Vector<S>,Dimensions>& fromvel = volsaspts.get_vel();
   std::array<Vector<S>,Dimensions>& tovel   = targ.get_vel();
   for (size_t i=0; i<Dimensions; ++i) {
-    std::copy(fromvel[i].begin(), fromvel[i].end(), tovel[i].begin());
+    std::transform(tovel[i].begin( ), tovel[i].end( ), fromvel[i].begin( ), tovel[i].begin( ), std::plus<S>( ));
   }
 
   // and the vorticity also
@@ -726,11 +726,27 @@ void points_affect_bricks (const Points<S>& src, Volumes<S>& targ, const Results
 }
 
 template <class S, class A>
-void panels_affect_bricks (const Surfaces<S>& src, Volumes<S>& targ, const ResultsType& restype, const ExecEnv& env) {
+void panels_affect_bricks (const Surfaces<S>& src, Volumes<S>& targ, const ResultsType& soln, const ExecEnv& env) {
+  std::cout << "    in panvol with" << env.to_string() << std::endl;
   std::cout << "    1_2 compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
-  assert (false && "Surfaces cannot affect Volumes yet.");
-  assert (!restype.compute_psi() && "Surface elements cannot compute streamfunction yet.");
-  assert (!restype.compute_grad() && "Surface elements cannot compute velocity gradients yet.");
+  assert (!soln.compute_psi() && "Surface elements cannot compute streamfunction yet.");
+  assert (!soln.compute_grad() && "Surface elements cannot compute velocity gradients yet.");
+
+  // generate temporary collocation points as Points
+  std::vector<S> xysr = targ.represent_nodes_as_particles(0.0f);
+  Points<S> volsaspts(xysr, inert, fixed, nullptr);
+
+  // run the calculation
+  panels_affect_points<S,A>(src, volsaspts, soln, env);
+
+  // and add the velocities to the real target
+  std::array<Vector<S>,Dimensions>& fromvel = volsaspts.get_vel();
+  std::array<Vector<S>,Dimensions>& tovel   = targ.get_vel();
+  for (size_t i=0; i<Dimensions; ++i) {
+    std::transform(tovel[i].begin( ), tovel[i].end( ), fromvel[i].begin( ), tovel[i].begin( ), std::plus<S>( ));
+  }
+
+  // and the vel grads - if need be
 }
 
 template <class S, class A>

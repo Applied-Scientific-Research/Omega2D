@@ -56,17 +56,18 @@ public:
   Volumes(const std::vector<S>&   _x,
           const std::vector<Int>& _idx,
           const std::vector<S>&   _val,
+          const size_t _nelems,
           const elem_t _e,
           const move_t _m,
           std::shared_ptr<Body> _bp)
     : ElementBase<S>(0, _e, _m, _bp),
-      nb(0),
+      nb(_nelems),
       max_strength(-1.0) {
 
     // assume all elements are 1st order quads (4 corner indices)
-    const size_t nper = 4;
-    assert(_idx.size() % nper == 0 && "Index array is not an even multiple of 4");
-    const size_t nelems = _idx.size() / nper;
+    const size_t nper = _idx.size() / nb;
+    assert(_idx.size() == nb*nper && "Index array is not an even size");
+    assert((nper == 4 or nper == 9) && "Index array is not multiple of 4 or 9");
 
     // always initialize the ps element strength optionals
 /*
@@ -79,7 +80,7 @@ public:
 */
 
     // if no surfs, quit out now
-    if (nelems == 0) {
+    if (nb == 0) {
       // but still initialize ux (untransformed positions) before we go (in case first bfeature is not enabled)
       if (_bp) this->ux = this->x;
       return;
@@ -91,7 +92,7 @@ public:
     // Important: Volumes hold properties on nodes, not on elements!!!
     assert(_val.size() % nnodes == 0 && "Value array is not an even multiple of node count");
 
-    std::cout << "  new collection with " << nelems << " elements and " << nnodes << " nodes" << std::endl;
+    std::cout << "  new collection with " << nb << " elements and " << nnodes << " nodes" << std::endl;
 
     // pull out the node locations, they go in the base class
     for (size_t d=0; d<Dimensions; ++d) {
@@ -109,7 +110,7 @@ public:
     // copy over the node indices (with a possible type change)
     bool idx_are_all_good = true;
     idx.resize(_idx.size());
-    for (size_t i=0; i<nper*nelems; ++i) {
+    for (size_t i=0; i<nper*nb; ++i) {
       // make sure it exists in the nodes array
       if (_idx[i] >= nnodes) idx_are_all_good = false;
       idx[i] = _idx[i];
@@ -117,7 +118,7 @@ public:
     assert(idx_are_all_good && "Some indicies are bad");
 
     // compute all basis vectors and element areas
-    //compute_bases(nelems);
+    //compute_bases(nb);
 
     // are strengths/values on a per-node or per-element basis? - per element now
 
@@ -148,7 +149,7 @@ public:
       // make space for the unknown sheet strengths
       for (size_t d=0; d<2; ++d) {
         if (ps[d]) {
-          ps[d]->resize(nelems);
+          ps[d]->resize(nb);
           std::fill(ps[d]->begin(), ps[d]->end(), 0.0);
         }
       }
@@ -171,20 +172,27 @@ public:
 */
 
     // debug print
-    if (true) {
+    if (false) {
       std::cout << "Nodes" << std::endl;
       for (size_t i=0; i<nnodes; ++i) {
-        std::cout << "  " << i << " " << this->x[0][i] << " " << this->x[1][i] << std::endl;
+        std::cout << "  " << i;
+        for (size_t j=0; j<Dimensions; ++j) {
+          std::cout << " " << this->x[j][i];
+        }
+        std::cout << std::endl;
       }
       std::cout << "Elems" << std::endl;
-      for (size_t i=0; i<nelems; ++i) {
-        std::cout << "  " << i << " " << idx[4*i] << " " << idx[4*i+1] << " " << idx[4*i+2] << " " << idx[4*i+3] << std::endl;
+      for (size_t i=0; i<nb; ++i) {
+        std::cout << "  " << i;
+        for (size_t j=0; j<nper; ++j) {
+          std::cout << " " << idx[i*nper+j];
+        }
+        std::cout << std::endl;
       }
     }
 
     // need to reset the base class n and the local nb
     this->n = nnodes;
-    nb = nelems;
 
     // find geometric center
 /*
@@ -199,7 +207,7 @@ public:
           const elem_t _e,
           const move_t _m,
           std::shared_ptr<Body> _bp)
-    : Volumes(_elems.x, _elems.idx, _elems.val, _e, _m, _bp)
+    : Volumes(_elems.x, _elems.idx, _elems.val, _elems.nelem, _e, _m, _bp)
   { }
 
   size_t                            get_nelems()     const { return nb; }
@@ -442,6 +450,8 @@ public:
     // ensure that this packet really is Surfaces
     assert(_in.idx.size() != 0 && "Input ElementPacket is not Volumes");
     assert(_in.ndim == 2 && "Input ElementPacket is not Volumes");
+
+    assert("We are not yet checking for matching element orders!");
 
     // and that it has the right number of values per element/node
     //if (this->E == inert) assert(_in.val.size() == 0 && "Input ElementPacket with inert Volumes has nonzero val array");
@@ -1222,6 +1232,10 @@ public:
     gridWriter.closeElement();
   
     gridWriter.addElement("Cells");
+
+    // useful: what kinds of elements are these?
+    const int32_t nper = (int32_t)(idx.size() / nb);
+    assert((nper==4 or nper==9) && "Volumes vtu writer only supports vtk elem types 9 and 28");
   
     // again, all connectivities and offsets must be Int32!
     {
@@ -1242,8 +1256,9 @@ public:
       Vector<int32_t> v(this->nb);
       // vector of 1 to n
       std::iota(v.begin(), v.end(), 1);
+      // how much do we scale it? nper=4 if linear quads, 9 if biquadratic quads
       std::transform(v.begin(), v.end(), v.begin(),
-                     std::bind(std::multiplies<int32_t>(), std::placeholders::_1, 4));
+                     std::bind(std::multiplies<int32_t>(), std::placeholders::_1, nper));
       gridWriter.writeDataArray(v);
       // DataArray
       gridWriter.closeElement();
@@ -1254,7 +1269,9 @@ public:
                                                     {"type", "UInt8"}};
       gridWriter.addElement("DataArray", attribs);
       Vector<uint8_t> v(this->nb);
-      std::fill(v.begin(), v.end(), 9);
+      // switch on vtk element type
+      const uint8_t etype = (nper==4 ? 9 : 28);
+      std::fill(v.begin(), v.end(), etype);
       gridWriter.writeDataArray(v);
       // DataArray
       gridWriter.closeElement();

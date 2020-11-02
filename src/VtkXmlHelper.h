@@ -433,6 +433,7 @@ std::string write_vtk_grid(Volumes<S> const& grid, const size_t file_idx,
     Vector<int32_t> v(grid.get_nelems());
     // vector of 1 to n
     std::iota(v.begin(), v.end(), 1);
+    // how much do we scale it? nper=4 if linear quads, 9 if bicubic quads
     std::transform(v.begin(), v.end(), v.begin(),
                    std::bind(std::multiplies<int32_t>(), std::placeholders::_1, 4));
     gridWriter.writeDataArray(v);
