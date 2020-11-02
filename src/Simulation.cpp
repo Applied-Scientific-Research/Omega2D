@@ -8,7 +8,6 @@
 #include "Simulation.h"
 #include "Reflect.h"
 #include "BEMHelper.h"
-#include "VtkXmlHelper.h"
 #include "GuiHelper.h"
 
 #include <cassert>
