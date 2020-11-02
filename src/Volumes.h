@@ -1261,8 +1261,32 @@ public:
     }
     // Cells
     gridWriter.closeElement();
-    gridWriter.addElement("PointData");
-    
+
+
+    // point-wise data
+    {
+      std::map<std::string, std::string> attribs = {{"Vectors", "velocity"}};
+
+      std::string scalar_list;
+      //if (this->has_vort()) scalar_list.append("vorticity,");
+      if (scalar_list.size()>1) {
+        scalar_list.pop_back();
+        attribs.insert({"Scalars", scalar_list});
+      }
+
+      gridWriter.addElement("PointData", attribs);
+    }
+
+/*
+    if (this->has_vort()) {
+      std::map<std::string, std::string> attribs = {{"Name", "vorticity"},
+                                                    {"type", "Float32"}};
+      gridWriter.addElement("DataArray", attribs);
+      gridWriter.writeDataArray(*(this->w));
+      gridWriter.closeElement(); // DataArray
+    }
+*/
+
     {
       std::map<std::string, std::string> attribs = {{"NumberOfComponents", "3"},
                                                     {"Name", "velocity"},

@@ -654,6 +654,7 @@ public:
     assert(this->n > 0 && "Inside write_vtk with no points");
   
     const bool asbase64 = true;
+
     bool has_radii = true;
     bool has_strengths = true;
     std::string prefix = "part_";
@@ -746,13 +747,16 @@ public:
   
     {
       std::map<std::string, std::string> attribs = {{"Vectors", "velocity"}};
+
       std::string scalar_list;
       if (has_strengths) scalar_list.append("circulation,");
       if (has_radii) scalar_list.append("radius,");
+      //if (this->has_vort()) scalar_list.append("vorticity,");
       if (scalar_list.size()>1) {
         scalar_list.pop_back();
         attribs.insert({"Scalars", scalar_list});
       }
+
       ptsWriter.addElement("PointData", attribs);
     }
   
@@ -761,8 +765,7 @@ public:
                                                     {"type", "Float32"}};
       ptsWriter.addElement("DataArray", attribs);
       ptsWriter.writeDataArray(*(this->s));
-      // DataArray
-      ptsWriter.closeElement();
+      ptsWriter.closeElement(); // DataArray
     }
   
     if (has_radii) {
@@ -770,9 +773,18 @@ public:
                                                     {"type", "Float32"}};
       ptsWriter.addElement("DataArray", attribs);
       ptsWriter.writeDataArray(this->r);
-      // DataArray
-      ptsWriter.closeElement();
+      ptsWriter.closeElement(); // DataArray
     }
+  
+/*
+    if (this->has_vort()) {
+      std::map<std::string, std::string> attribs = {{"Name", "vorticity"},
+                                                    {"type", "Float32"}};
+      ptsWriter.addElement("DataArray", attribs);
+      ptsWriter.writeDataArray(*(this->w));
+      ptsWriter.closeElement(); // DataArray
+    }
+*/
   
     {
       std::map<std::string, std::string> attribs = {{"NumberOfComponents", "3"},
@@ -781,9 +793,8 @@ public:
       ptsWriter.addElement("DataArray", attribs);
       Vector<float> vel = ptsWriter.unpackArray(this->u);
       ptsWriter.writeDataArray(vel);
+      ptsWriter.closeElement(); // DataArray
     }
-    // DataArray
-    ptsWriter.closeElement();
   
     // Point Data 
     ptsWriter.closeElement();
