@@ -10,6 +10,7 @@
 #include "Omega2D.h"
 #include "VectorHelper.h"
 #include "ElementBase.h"
+#include "VtkXmlWriter.h"
 
 #ifdef USE_GL
 #include "GlState.h"
@@ -647,6 +648,184 @@ public:
   std::string to_string() const {
     std::string retstr = " " + std::to_string(this->n) + ElementBase<S>::to_string() + " Points";
     return retstr;
+  }
+
+  std::string write_vtk(const size_t _index, const size_t _frameno, const double _time) {
+    assert(this->n > 0 && "Inside write_vtk with no points");
+  
+    const bool asbase64 = true;
+
+    bool has_radii = true;
+    bool has_strengths = true;
+    std::string prefix = "part_";
+    if (this->E==inert) {
+      has_strengths = false;
+      has_radii = false;
+      prefix = "fldpt_";
+    }
+  
+    // generate file name
+    std::stringstream vtkfn;
+    vtkfn << prefix << std::setfill('0') << std::setw(2) << _index << "_" << std::setw(5) << _frameno << ".vtu";
+    VtkXmlWriter ptsWriter = VtkXmlWriter(vtkfn.str(), asbase64);
+  
+    // include simulation time here
+    ptsWriter.addElement("FieldData");
+    {
+      std::map<std::string, std::string> attribs = {{"type",           "Float64"},
+                                                    {"Name",           "TimeValue"},
+                                                    {"NumberOfTuples", "1"}};
+      ptsWriter.addElement("DataArray", attribs);
+      Vector<double> time_vec = {_time};
+      ptsWriter.writeDataArray(time_vec);
+      // DataArray
+      ptsWriter.closeElement();
+    }
+    // FieldData
+    ptsWriter.closeElement();
+  
+    {
+      std::map<std::string, std::string> attribs = {{"NumberOfPoints", std::to_string(this->n).c_str()},
+                                                    {"NumberOfCells", std::to_string(this->n).c_str()}};
+      ptsWriter.addElement("Piece", attribs);
+    }
+    
+    ptsWriter.addElement("Points");
+    {
+      std::map<std::string, std::string> attribs = {{"NumberOfComponents", "3"},
+                                                    {"Name",               "position"},
+                                                    {"type",               "Float32"}};
+      ptsWriter.addElement("DataArray", attribs);
+      Vector<float> pos = ptsWriter.unpackArray(this->x);
+      ptsWriter.writeDataArray(pos);
+      // DataArray
+      ptsWriter.closeElement();
+    }
+    // Points
+    ptsWriter.closeElement();
+  
+    ptsWriter.addElement("Cells");
+    
+    // https://discourse.paraview.org/t/cannot-open-vtu-files-with-paraview-5-8/3759
+    // apparently the Vtk format documents indicate that connectivities and offsets
+    //   must be in Int32, not UIntAnything. Okay...
+    {
+      std::map<std::string, std::string> attribs = {{"Name", "connectivity"},
+                                                    {"type", "Int32"}};
+      ptsWriter.addElement("DataArray", attribs);
+      Vector<int32_t> v(this->n);
+      std::iota(v.begin(), v.end(), 0);
+      ptsWriter.writeDataArray(v);
+      // DataArray
+      ptsWriter.closeElement();
+    }
+  
+    {
+      std::map<std::string, std::string> attribs = {{"Name", "offsets"},
+                                                    {"type", "Int32"}};
+      ptsWriter.addElement("DataArray", attribs);
+      Vector<int32_t> v(this->n);
+      std::iota(v.begin(), v.end(), 1);
+      ptsWriter.writeDataArray(v);
+      // DataArray
+      ptsWriter.closeElement();
+    }
+  
+    // except these, they can be chars
+    {
+      std::map<std::string, std::string> attribs = {{"Name", "types"},
+                                                    {"type", "UInt8"}};
+      ptsWriter.addElement("DataArray", attribs);
+      Vector<uint8_t> v(this->n);
+      std::fill(v.begin(), v.end(), 1);
+      ptsWriter.writeDataArray(v);
+      // DataArray
+      ptsWriter.closeElement();
+    }
+    // Cells
+    ptsWriter.closeElement();
+  
+    {
+      std::map<std::string, std::string> attribs = {{"Vectors", "velocity"}};
+
+      std::string scalar_list;
+      if (has_strengths) scalar_list.append("circulation,");
+      if (has_radii) scalar_list.append("radius,");
+      if (this->has_vort()) scalar_list.append("vorticity,");
+      if (scalar_list.size()>1) {
+        scalar_list.pop_back();
+        attribs.insert({"Scalars", scalar_list});
+      }
+
+      ptsWriter.addElement("PointData", attribs);
+    }
+  
+    if (has_strengths) {
+      std::map<std::string, std::string> attribs = {{"Name", "circulation"},
+                                                    {"type", "Float32"}};
+      ptsWriter.addElement("DataArray", attribs);
+      ptsWriter.writeDataArray(*(this->s));
+      ptsWriter.closeElement(); // DataArray
+    }
+
+    if (has_radii) {
+      std::map<std::string, std::string> attribs = {{"Name", "radius"},
+                                                    {"type", "Float32"}};
+      ptsWriter.addElement("DataArray", attribs);
+      ptsWriter.writeDataArray(this->r);
+      ptsWriter.closeElement(); // DataArray
+    }
+
+    if (this->has_vort()) {
+      std::map<std::string, std::string> attribs = {{"Name", "vorticity"},
+                                                    {"type", "Float32"}};
+      ptsWriter.addElement("DataArray", attribs);
+      ptsWriter.writeDataArray(*(this->w));
+      ptsWriter.closeElement(); // DataArray
+    }
+
+    {
+      std::map<std::string, std::string> attribs = {{"NumberOfComponents", "3"},
+                                                    {"Name",               "velocity"},
+                                                    {"type",               "Float32"}};
+      ptsWriter.addElement("DataArray", attribs);
+      Vector<float> vel = ptsWriter.unpackArray(this->u);
+      ptsWriter.writeDataArray(vel);
+      ptsWriter.closeElement(); // DataArray
+    }
+
+    // Point Data 
+    ptsWriter.closeElement();
+  
+    // here's the problem: ParaView's VTK/XML reader is not able to read "raw" bytestreams
+    // it parses each character and inevitably sees a > or <, so complains about mismatched
+    //   tags, and doesn't seem to point to the right place
+    // everyone who complains about raw data in the AppendedData section makes the mistake
+    //   of forgetting the 4-byte length - I've got that
+    // it's VTK's fault here
+    // Jesus, for how inefficient saving 2D particle data is, it's compounded by having to 
+    //   do it all in ascii!!! VTK just sucks. That's really what my 6 hours of wasted work
+    //   has taught me. It just sucks. Don't use it. Not that anything else is better.
+  /*
+    printer.OpenElement( "AppendedData" );
+    printer.PushAttribute( "encoding", "raw" );
+    printer.PushText( " " );
+    printer.PushText( "_" );
+    uint32_t arry_len = s.size() * sizeof(s[0]);
+    char* ptr = (char*)(&arry_len);
+    std::cout << "  writing " << arry_len << " bytes to appended data" << std::endl;
+    //std::fwrite(&arry_len, sizeof(uint32_t), 1, fp);
+    std::fwrite(ptr, sizeof(uint32_t), 1, fp);
+    std::fwrite(s.data(), sizeof(s[0]), s.size(), fp);
+    printer.PushText( " " );
+    printer.CloseElement();	// AppendedData
+  */
+  
+    // Piece 
+    ptsWriter.closeElement();
+    ptsWriter.finish();
+    std::cout << "Wrote " << this->n << " points to " << vtkfn.str() << std::endl;
+    return vtkfn.str();
   }
 
 protected:

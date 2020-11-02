@@ -206,7 +206,7 @@ protected:
 };
 
 //
-// Concrete class for a grid of measurement points
+// Concrete class for a rectangular field of measurement elements
 //
 class GridField: public MeasureFeature {
 public:
@@ -215,12 +215,14 @@ public:
             float _xf = 1.0,
             float _yf = 1.0,
             float _nx = 10,
-            float _ny = 10)
+            float _ny = 10,
+            float _order = 1)
     : MeasureFeature(_xs, _ys, false, false, nullptr),
       m_xf(_xf),
       m_yf(_yf),
       m_nx(_nx),
-      m_ny(_ny)
+      m_ny(_ny),
+      m_order(_order)
     {}
   GridField* copy() const override { return new GridField(*this); }
 
@@ -238,6 +240,45 @@ public:
 protected:
   float m_xf, m_yf;
   Int m_nx, m_ny;
+  Int m_order;
+};
+
+//
+// Concrete class for an annular field of measurement elements
+//
+class AnnularField: public MeasureFeature {
+public:
+  AnnularField(float _xs = -1.0,
+               float _ys = -1.0,
+               float _ri = 0.5,
+               float _ro = 1.0,
+               float _nt = 60,
+               float _nr = 10,
+               float _order = 1)
+    : MeasureFeature(_xs, _ys, false, false, nullptr),
+      m_ri(_ri),
+      m_ro(_ro),
+      m_nt(_nt),
+      m_nr(_nr),
+      m_order(_order)
+    {}
+  AnnularField* copy() const override { return new AnnularField(*this); }
+
+  void debug(std::ostream& os) const override;
+  std::string to_string() const override;
+  void from_json(const nlohmann::json) override;
+  nlohmann::json to_json() const override;
+  ElementPacket<float> init_elements(float) const override;
+  ElementPacket<float> step_elements(float) const override;
+  void generate_draw_geom() override;
+#ifdef USE_IMGUI
+  bool draw_info_gui(const std::string, const float&, const float) override;
+#endif
+
+protected:
+  float m_ri, m_ro;	// radii: inner and outer
+  Int m_nt, m_nr;	// counts: theta and radial direction
+  Int m_order;		// element order, 1 or 2
 };
 
 //
