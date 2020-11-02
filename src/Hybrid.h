@@ -71,8 +71,8 @@ private:
 // Initialize external high-order (HO) solver
 //
 template <class S, class A, class I>
-void Hybrid<S,A,I>::init(std::vector<Collection>& _hyb) {
-  std::cout << "Inside Hybrid::init with " << _hyb.size() << " volumes" << std::endl;
+void Hybrid<S,A,I>::init(std::vector<Collection>& _euler) {
+  std::cout << "Inside Hybrid::init with " << _euler.size() << " volumes" << std::endl;
 
   // call the external solver with the current geometry
   // this will calculate the Jacobian and other cell-specific properties
@@ -106,7 +106,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
   if (not active) return;
 
-  if (not initialized) init(_hyb);
+  if (not initialized) init(_euler);
 
   std::cout << "Inside Hybrid::step at t=" << _time << " and dt=" << _dt << std::endl;
 
