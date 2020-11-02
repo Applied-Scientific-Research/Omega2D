@@ -1236,7 +1236,7 @@ public:
   
     panelWriter.finish();
     std::cout << "Wrote " << this->np << " panels to " << vtkfn.str() << std::endl;
-    return "Surfaces";
+    return vtkfn.str();
   }
 
 protected:
