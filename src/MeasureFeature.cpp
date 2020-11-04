@@ -229,8 +229,9 @@ SinglePoint::to_json() const {
 
 void SinglePoint::generate_draw_geom() {
   const float diam = 0.02;
-  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, diam);
-  m_draw = tmp->init_elements(diam/25.0);
+  SolidCircle tmp = SolidCircle(nullptr, true, m_x, m_y, diam);
+  (void) tmp.create();
+  m_draw = tmp.init_elements(diam/25.0);
 }
 
 #ifdef USE_IMGUI
@@ -360,8 +361,10 @@ MeasurementBlob::to_json() const {
 }
 
 void MeasurementBlob::generate_draw_geom() {
-  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, m_rad*2.0);
-  m_draw = tmp->init_elements(m_rad/12.5);
+  const float diam = m_rad*2.0;
+  SolidCircle tmp = SolidCircle(nullptr, true, m_x, m_y, diam);
+  (void) tmp.create();
+  m_draw = tmp.init_elements(diam/25.0);
 }
 
 #ifdef USE_IMGUI
@@ -487,9 +490,9 @@ MeasurementLine::to_json() const {
 }
 
 void MeasurementLine::generate_draw_geom() {
-  std::unique_ptr<BoundarySegment> tmp = std::make_unique<BoundarySegment>(nullptr, true, m_x, m_y,
-                                                                           m_xf, m_yf, 0.0, 0.0);
-  m_draw = tmp->init_elements(1.0);
+  BoundarySegment tmp = BoundarySegment(nullptr, true, m_x, m_y, m_xf, m_yf, 0.0, 0.0);
+  (void) tmp.create();
+  m_draw = tmp.init_elements(1.0);
 }
 
 #ifdef USE_IMGUI
@@ -600,9 +603,9 @@ GridPoints::to_json() const {
 void GridPoints::generate_draw_geom() {
   const float xc = (m_x+m_xf)/2;
   const float yc = (m_y+m_yf)/2;
-  std::unique_ptr<SolidRect> tmp = std::make_unique<SolidRect>(nullptr, true, xc, yc,
-                                                               m_xf-m_x, m_yf-m_y, 0.0);          
-  m_draw = tmp->init_elements(m_xf-m_x);
+  SolidRect tmp = SolidRect(nullptr, true, xc, yc, m_xf-m_x, m_yf-m_y, 0.0);          
+  (void) tmp.create();
+  m_draw = tmp.init_elements(m_xf-m_x);
 }
 
 #ifdef USE_IMGUI
@@ -755,6 +758,7 @@ void GridField::generate_draw_geom() {
   const float xc = (m_x+m_xf)/2;
   const float yc = (m_y+m_yf)/2;
   SolidRect tmp = SolidRect(nullptr, true, xc, yc, m_xf-m_x, m_yf-m_y, 0.0);          
+  (void) tmp.create();
   m_draw = tmp.init_elements(m_xf-m_x);
 }
 
@@ -922,8 +926,10 @@ AnnularField::to_json() const {
 }
 
 void AnnularField::generate_draw_geom() {
-  SolidRect tmp = SolidRect(nullptr, true, m_x, m_y, m_ri, m_ro, 0.0);          
-  m_draw = tmp.init_elements(m_ri-m_ro);
+  const float diam = 2.0*m_ro;
+  SolidCircle tmp = SolidCircle(nullptr, true, m_x, m_y, diam);
+  (void) tmp.create();
+  m_draw = tmp.init_elements(diam/25.0);
 }
 
 #ifdef USE_IMGUI
