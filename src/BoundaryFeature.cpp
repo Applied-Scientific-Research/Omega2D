@@ -11,6 +11,7 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_stdlib.h"
 #include "Simulation.h"
+#include "../extern/gmsh-reader/src/read_MSH_Mesh.h"
 
 #define __STDCPP_WANT_MATH_SPEC_FUNCS__ 1
 #include <cassert>

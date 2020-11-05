@@ -154,6 +154,7 @@ ELSEIF( APPLE )
     SET (VC_LIBS "")
   ENDIF()
 
+  SET( CMAKE_MACOSX_RPATH 1 )
   SET( BASE_LIBS ${VC_LIBS} ${CMAKE_THREAD_LIBS_INIT} )
   SET( GUI_LIBS ${FRAMEWORK_LIBS} ${COCOA_LIBRARY} ${IOKIT_LIBRARY} ${COREVIDEO_LIBRARY} ${OpenGL_LIBRARY} )
 
@@ -238,8 +239,7 @@ ENDIF()
 SET( EXTERNAL_LIBS ${FASTSUM_LIBS} )
 
 # Enable submodules
-
-#add_subdirectory(extern/gmsh-reader)
+add_subdirectory(extern/gmsh-reader)
 
 
 # Define files and targets
