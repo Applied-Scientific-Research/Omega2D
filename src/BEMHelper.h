@@ -14,7 +14,6 @@
 #include "Coefficients.h"
 #include "RHS.h"
 #include "BEM.h"
-#include "ExecEnv.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -57,9 +56,9 @@ void solve_bem(const double                         _time,
   // need this for dispatching velocity influence calls, template param is accumulator type,
   //   member variable is default execution environment
 #ifdef USE_VC
-  InfluenceVisitor<A> ivisitor = {ExecEnv(true, direct, cpu_vc)};
+  InfluenceVisitor<A> ivisitor = {ResultsType(velonly), ExecEnv(true, direct, cpu_vc)};
 #else
-  InfluenceVisitor<A> ivisitor = {ExecEnv(true, direct, cpu_x86)};
+  InfluenceVisitor<A> ivisitor = {ResultsType(velonly), ExecEnv(true, direct, cpu_x86)};
 #endif
   RHSVisitor rvisitor;
 

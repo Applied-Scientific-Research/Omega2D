@@ -43,6 +43,7 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
   else if (ftype == "measurement line") { _flist.emplace_back(std::make_unique<MeasurementLine>()); }
   else if (ftype == "measurement grid") { _flist.emplace_back(std::make_unique<GridPoints>()); }
   else if (ftype == "measurement field") { _flist.emplace_back(std::make_unique<GridField>()); }
+  else if (ftype == "annular field") { _flist.emplace_back(std::make_unique<AnnularField>()); }
   else {
     std::cout << "  type " << ftype << " does not name an available measurement feature, ignoring" << std::endl;
     return;
@@ -58,8 +59,8 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
 bool MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &mfs, const float _ips, const float &_tracerScale) {
   static int item = 0;
   static int oldItem = -1;
-  const char* items[] = { "single point", "measurement circle", "measurement line", "measurement grid", "measurement field" };
-  ImGui::Combo("type", &item, items, 5);
+  const char* items[] = { "single point", "measurement circle", "measurement line", "measurement grid", "measurement field", "annular field" };
+  ImGui::Combo("type", &item, items, 6);
 
   // show different inputs based on what is selected
   static std::unique_ptr<MeasureFeature> mf = nullptr;
@@ -79,6 +80,9 @@ bool MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeatur
       } break;
       case 4: {
         mf = std::make_unique<GridField>();
+      } break;
+      case 5: {
+        mf = std::make_unique<AnnularField>();
       } break;
     }
     oldItem = item;
@@ -225,8 +229,9 @@ SinglePoint::to_json() const {
 
 void SinglePoint::generate_draw_geom() {
   const float diam = 0.02;
-  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, diam);
-  m_draw = tmp->init_elements(diam/25.0);
+  SolidCircle tmp = SolidCircle(nullptr, true, m_x, m_y, diam);
+  (void) tmp.create();
+  m_draw = tmp.init_elements(diam/25.0);
 }
 
 #ifdef USE_IMGUI
@@ -356,8 +361,10 @@ MeasurementBlob::to_json() const {
 }
 
 void MeasurementBlob::generate_draw_geom() {
-  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, m_rad*2.0);
-  m_draw = tmp->init_elements(m_rad/12.5);
+  const float diam = m_rad*2.0;
+  SolidCircle tmp = SolidCircle(nullptr, true, m_x, m_y, diam);
+  (void) tmp.create();
+  m_draw = tmp.init_elements(diam/25.0);
 }
 
 #ifdef USE_IMGUI
@@ -483,9 +490,9 @@ MeasurementLine::to_json() const {
 }
 
 void MeasurementLine::generate_draw_geom() {
-  std::unique_ptr<BoundarySegment> tmp = std::make_unique<BoundarySegment>(nullptr, true, m_x, m_y,
-                                                                           m_xf, m_yf, 0.0, 0.0);
-  m_draw = tmp->init_elements(1.0);
+  BoundarySegment tmp = BoundarySegment(nullptr, true, m_x, m_y, m_xf, m_yf, 0.0, 0.0);
+  (void) tmp.create();
+  m_draw = tmp.init_elements(1.0);
 }
 
 #ifdef USE_IMGUI
@@ -596,9 +603,9 @@ GridPoints::to_json() const {
 void GridPoints::generate_draw_geom() {
   const float xc = (m_x+m_xf)/2;
   const float yc = (m_y+m_yf)/2;
-  std::unique_ptr<SolidRect> tmp = std::make_unique<SolidRect>(nullptr, true, xc, yc,
-                                                               m_xf-m_x, m_yf-m_y, 0.0);          
-  m_draw = tmp->init_elements(m_xf-m_x);
+  SolidRect tmp = SolidRect(nullptr, true, xc, yc, m_xf-m_x, m_yf-m_y, 0.0);          
+  (void) tmp.create();
+  m_draw = tmp.init_elements(m_xf-m_x);
 }
 
 #ifdef USE_IMGUI
@@ -635,21 +642,25 @@ GridField::init_elements(float _ips) const {
   std::vector<Int> idx;
   std::vector<float> vals;
 
-  // we know how large each array will be
-  x.resize(2*(m_nx+1)*(m_ny+1));
-  idx.resize(4*m_nx*m_ny);
+  // find out how large each array will be
+  const size_t nnx = m_nx*m_order + 1;
+  const size_t nny = m_ny*m_order + 1;
+
+  x.resize(Dimensions*nnx*nny);
+  const size_t nodesperelem = std::pow(m_order+1, 2);
+  idx.resize(nodesperelem*m_nx*m_ny);
 
   std::cout << "Creating measure field with " << (m_nx*m_ny) << " quads" << std::endl;
 
   // using nx and ny, calculate dx and dy
-  const float dx = (m_xf-m_x) / (float)m_nx;
-  const float dy = (m_yf-m_y) / (float)m_ny;
+  const float dx = (m_xf-m_x) / (float)(nnx-1);
+  const float dy = (m_yf-m_y) / (float)(nny-1);
 
   // loop over integer indices
   size_t cnt = 0;
-  for (size_t j=0; j<(size_t)m_ny+1; ++j) {
+  for (size_t j=0; j<nny; ++j) {
     const float yp = m_y + j*dy;
-    for (size_t i=0; i<(size_t)m_nx+1; ++i) {
+    for (size_t i=0; i<nnx; ++i) {
       const float xp = m_x + i*dx;
       // create a node here
       x[cnt++] = xp;
@@ -660,11 +671,26 @@ GridField::init_elements(float _ips) const {
   // now generate quad elements
   cnt = 0;
   for (size_t j=0; j<(size_t)m_ny; ++j) {
+    size_t bl = j*m_order*nnx;
+    size_t tl = (j+1)*m_order*nnx;
     for (size_t i=0; i<(size_t)m_nx; ++i) {
-      idx[cnt++] = j*(m_nx+1) + i;
-      idx[cnt++] = j*(m_nx+1) + i + 1;
-      idx[cnt++] = (j+1)*(m_nx+1) + i + 1;
-      idx[cnt++] = (j+1)*(m_nx+1) + i;
+      size_t col = m_order*i;
+      idx[cnt++] = bl + col;
+      idx[cnt++] = bl + col + m_order;
+      idx[cnt++] = tl + col + m_order;
+      idx[cnt++] = tl + col;
+      if (m_order > 1) {
+        // standard vtk bicubic quad
+        idx[cnt++] = bl + col + 1;
+        idx[cnt++] = bl + nnx + col + m_order;
+        idx[cnt++] = tl + col + 1;
+        idx[cnt++] = bl + nnx + col;
+        idx[cnt++] = bl + nnx + col + 1;
+      }
+      if (m_order > 2) {
+        // arbitrary order Lagrange elements not yet programmed
+        // see https://blog.kitware.com/modeling-arbitrary-order-lagrange-finite-elements-in-the-visualization-toolkit/
+      }
     }
   }
 
@@ -674,7 +700,6 @@ GridField::init_elements(float _ips) const {
   } else {
     return ElementPacket<float>();
   }
-
 }
 
 ElementPacket<float>
@@ -692,7 +717,9 @@ GridField::debug(std::ostream& os) const {
 std::string
 GridField::to_string() const {
   std::stringstream ss;
-  ss << "measurement field from " << m_x << " " << m_y << " to " << m_xf << " " << m_yf << " with " << m_nx*m_ny << " elems";
+  ss << "measurement field from " << m_x << " " << m_y << " to " << m_xf << " " << m_yf << " with " << m_nx*m_ny;
+  if (m_order == 2) ss << " 2nd order";
+  ss << " elems";
   return ss.str();
 }
 
@@ -710,6 +737,7 @@ GridField::from_json(const nlohmann::json j) {
   m_enabled = j.value("enabled", true);
   m_is_lagrangian = j.value("lagrangian", m_is_lagrangian);
   m_emits = j.value("emits", m_emits);
+  m_order = j.value("order", 1);
 }
 
 nlohmann::json
@@ -722,6 +750,7 @@ GridField::to_json() const {
   j["enabled"] = m_enabled;
   j["lagrangian"] = m_is_lagrangian;
   j["emits"] = m_emits;
+  j["order"] = m_order;
   return j;
 }
 
@@ -729,6 +758,7 @@ void GridField::generate_draw_geom() {
   const float xc = (m_x+m_xf)/2;
   const float yc = (m_y+m_yf)/2;
   SolidRect tmp = SolidRect(nullptr, true, xc, yc, m_xf-m_x, m_yf-m_y, 0.0);          
+  (void) tmp.create();
   m_draw = tmp.init_elements(m_xf-m_x);
 }
 
@@ -737,12 +767,14 @@ bool GridField::draw_info_gui(const std::string action, const float &tracer_scal
   float xc[2] = {m_x, m_y};
   float xf[2] = {m_xf, m_yf};
   int nx[2] = {m_nx, m_ny};
+  int order = m_order;
   bool add = false;
   const std::string buttonText = action+" grid of quad elements";
  
   ImGui::InputFloat2("lower left", xc);
   ImGui::InputFloat2("upper right", xf);
   ImGui::InputInt2("element count", nx);
+  ImGui::SliderInt("element order", &order, 1, 2);
   ImGui::TextWrapped("This feature will add %d quad elements", (int)(m_nx*m_ny));
   if (ImGui::Button(buttonText.c_str())) { add = true; }
   m_x = xc[0];
@@ -751,7 +783,179 @@ bool GridField::draw_info_gui(const std::string action, const float &tracer_scal
   m_yf = xf[1];
   m_nx = nx[0];
   m_ny = nx[1];
+  m_order = order;
 
   return add;
 }
 #endif
+
+
+//
+// Create an annulus of static measurement elements
+//
+ElementPacket<float>
+AnnularField::init_elements(float _ips) const {
+
+  // create a new vector to pass on
+  std::vector<float> x;
+  std::vector<Int> idx;
+  std::vector<float> vals;
+
+  // find out how large each array will be
+  const size_t nnt = m_nt*m_order;
+  const size_t nnr = m_nr*m_order + 1;
+
+  x.resize(Dimensions*nnt*nnr);
+  const size_t nodesperelem = std::pow(m_order+1, 2);
+  idx.resize(nodesperelem*m_nt*m_nr);
+
+  std::cout << "Creating measure field with " << (m_nt*m_nr) << " quads" << std::endl;
+
+  // using nt and nr, calculate dt and dr
+  const float dt = (2.0*M_PI) / (float)(nnt);
+  const float dr = (m_ro-m_ri) / (float)(nnr-1);
+
+  // loop over integer indices
+  size_t cnt = 0;
+  for (size_t j=0; j<nnr; ++j) {
+    const float rad = m_ri + j*dr;
+    for (size_t i=0; i<nnt; ++i) {
+      // move around the circle clockwise to maintain ordering
+      const float theta = -(float)i*dt;
+      // create a node here
+      x[cnt++] = rad * std::cos(theta);
+      x[cnt++] = rad * std::sin(theta);
+    }
+  }
+
+  // now generate quad elements
+  cnt = 0;
+  for (size_t j=0; j<(size_t)m_nr; ++j) {
+    size_t bl = j*m_order*nnt;
+    size_t tl = (j+1)*m_order*nnt;
+    for (size_t i=0; i<(size_t)m_nt; ++i) {
+      size_t col = m_order*i;
+      idx[cnt++] = bl + col;
+      // last elem must wrap (nodes 1 and 2)
+      if (i == (size_t)m_nt - 1) {
+        idx[cnt++] = bl;
+        idx[cnt++] = tl;
+      } else {
+        idx[cnt++] = bl + col + m_order;
+        idx[cnt++] = tl + col + m_order;
+      }
+      idx[cnt++] = tl + col;
+      // now for higher-order elems
+      if (m_order > 1) {
+        // standard vtk bicubic quad
+        idx[cnt++] = bl + col + 1;
+        if (i == (size_t)m_nt - 1) {
+          idx[cnt++] = bl + nnt;
+        } else {
+          idx[cnt++] = bl + nnt + col + m_order;
+        }
+        idx[cnt++] = tl + col + 1;
+        idx[cnt++] = bl + nnt + col;
+        idx[cnt++] = bl + nnt + col + 1;
+      }
+      if (m_order > 2) {
+        // arbitrary order Lagrange elements not yet programmed
+        // see https://blog.kitware.com/modeling-arbitrary-order-lagrange-finite-elements-in-the-visualization-toolkit/
+      }
+    }
+  }
+
+  ElementPacket<float> packet({x, idx, vals, (size_t)(m_nt*m_nr), (uint8_t)2});
+  if (packet.verify(packet.x.size(), Dimensions)) {
+    return packet;
+  } else {
+    return ElementPacket<float>();
+  }
+}
+
+ElementPacket<float>
+AnnularField::step_elements(float _ips) const {
+  // does not emit
+  // but if it did, it'd emit points, one per element
+  return ElementPacket<float>();
+}
+
+void
+AnnularField::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+AnnularField::to_string() const {
+  std::stringstream ss;
+  ss << "annular field at " << m_x << " " << m_y << " with radii " << m_ri << " " << m_ro << " with " << m_nt*m_nr;
+  if (m_order == 2) ss << " 2nd order";
+  ss << " elems";
+  return ss.str();
+}
+
+void
+AnnularField::from_json(const nlohmann::json j) {
+  const std::vector<float> s = j["center"];
+  m_x = s[0];
+  m_y = s[1];
+  const std::vector<float> e = j["radii"];
+  m_ri = e[0];
+  m_ro = e[1];
+  const std::vector<Int> n = j["ndim"];
+  m_nt = n[0];
+  m_nr = n[1];
+  m_enabled = j.value("enabled", true);
+  m_is_lagrangian = j.value("lagrangian", m_is_lagrangian);
+  m_emits = j.value("emits", m_emits);
+  m_order = j.value("order", 1);
+}
+
+nlohmann::json
+AnnularField::to_json() const {
+  nlohmann::json j;
+  j["type"] = "annular field";
+  j["center"] = {m_x, m_y};
+  j["radii"] = {m_ri, m_ro};
+  j["ndim"] = {m_nt, m_nr};
+  j["enabled"] = m_enabled;
+  j["lagrangian"] = m_is_lagrangian;
+  j["emits"] = m_emits;
+  j["order"] = m_order;
+  return j;
+}
+
+void AnnularField::generate_draw_geom() {
+  const float diam = 2.0*m_ro;
+  SolidCircle tmp = SolidCircle(nullptr, true, m_x, m_y, diam);
+  (void) tmp.create();
+  m_draw = tmp.init_elements(diam/25.0);
+}
+
+#ifdef USE_IMGUI
+bool AnnularField::draw_info_gui(const std::string action, const float &tracer_scale, const float ips) {
+  float xc[2] = {m_x, m_y};
+  float rr[2] = {m_ri, m_ro};
+  int nx[2] = {m_nt, m_nr};
+  int order = m_order;
+  bool add = false;
+  const std::string buttonText = action+" grid of quad elements";
+ 
+  ImGui::InputFloat2("center", xc);
+  ImGui::InputFloat2("inner and outer radius", rr);
+  ImGui::InputInt2("elements in theta, radial", nx);
+  ImGui::SliderInt("element order", &order, 1, 2);
+  ImGui::TextWrapped("This feature will add %d quad elements", (int)(m_nt*m_nr));
+  if (ImGui::Button(buttonText.c_str())) { add = true; }
+  m_x = xc[0];
+  m_y = xc[1];
+  m_ri = rr[0];
+  m_ro = rr[1];
+  m_nt = nx[0];
+  m_nr = nx[1];
+  m_order = order;
+
+  return add;
+}
+#endif
+

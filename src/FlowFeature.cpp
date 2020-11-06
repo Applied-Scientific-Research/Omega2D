@@ -207,8 +207,8 @@ SingleParticle::to_json() const {
 
 void SingleParticle::generate_draw_geom() {
   const float diam = 0.01;
-  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, diam);
-  m_draw = tmp->init_elements(diam/25.0);
+  SolidCircle tmp = SolidCircle(nullptr, true, m_x, m_y, diam);
+  m_draw = tmp.init_elements(diam/25.0);
   std::fill(m_draw.val.begin(), m_draw.val.end(), m_str);
 }
 
@@ -331,8 +331,8 @@ VortexBlob::to_json() const {
 }
 
 void VortexBlob::generate_draw_geom() {
-  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, m_rad*2);
-  m_draw = tmp->init_elements(m_rad/12.5);
+  SolidCircle tmp = SolidCircle(nullptr, true, m_x, m_y, m_rad*2);
+  m_draw = tmp.init_elements(m_rad/12.5);
   std::fill(m_draw.val.begin(), m_draw.val.end(), m_str);
 }
 
@@ -466,8 +466,8 @@ AsymmetricBlob::to_json() const {
 }
 
 void AsymmetricBlob::generate_draw_geom() {
-  std::unique_ptr<SolidOval> tmp = std::make_unique<SolidOval>(nullptr, true, m_x, m_y, m_rad*2, m_minrad*2);
-  m_draw = tmp->init_elements(m_rad/12.5);
+  SolidOval tmp = SolidOval(nullptr, true, m_x, m_y, m_rad*2, m_minrad*2);
+  m_draw = tmp.init_elements(m_rad/12.5);
   std::fill(m_draw.val.begin(), m_draw.val.end(), m_str);
 }
 
@@ -586,8 +586,8 @@ GaussianBlob::to_json() const {
 }
 
 void GaussianBlob::generate_draw_geom() {
-  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, m_stddev*6);
-  m_draw = tmp->init_elements(m_stddev*6/25);
+  SolidCircle tmp = SolidCircle(nullptr, true, m_x, m_y, m_stddev*6);
+  m_draw = tmp.init_elements(m_stddev*6.0/25.0);
   std::fill(m_draw.val.begin(), m_draw.val.end(), m_str);
 }
 
@@ -689,9 +689,9 @@ UniformBlock::to_json() const {
 }
 
 void UniformBlock::generate_draw_geom() {
-  std::unique_ptr<SolidRect> tmp = std::make_unique<SolidRect>(nullptr, true, m_x, m_y, m_xsize, m_ysize);
-  tmp->create();
-  m_draw = tmp->init_elements(std::min(m_xsize, m_ysize));
+  SolidRect tmp = SolidRect(nullptr, true, m_x, m_y, m_xsize, m_ysize);
+  (void) tmp.create();
+  m_draw = tmp.init_elements(std::min(m_xsize, m_ysize));
   std::cout << "x " << m_draw.x.size() << " val " << m_draw.val.size() << std::endl;
   std::fill(m_draw.val.begin(), m_draw.val.end(), m_str);
 }
@@ -813,9 +813,9 @@ struct RandomGenerator {
 int RandomGenerator::instances = 0;
 
 void BlockOfRandom::generate_draw_geom() {
-  std::unique_ptr<SolidRect> tmp = std::make_unique<SolidRect>(nullptr, true, m_x, m_y, m_xsize*2, m_ysize*2);
-  tmp->create();
-  m_draw = tmp->init_elements(m_xsize*2);
+  SolidRect tmp = SolidRect(nullptr, true, m_x, m_y, m_xsize*2, m_ysize*2);
+  (void) tmp.create();
+  m_draw = tmp.init_elements(m_xsize*2);
   std::generate(m_draw.val.begin(), m_draw.val.end(), RandomGenerator(m_minstr, m_maxstr));
 }
 
@@ -895,8 +895,8 @@ ParticleEmitter::to_json() const {
 
 void ParticleEmitter::generate_draw_geom() {
   const float diam = 0.01;
-  std::unique_ptr<SolidCircle> tmp = std::make_unique<SolidCircle>(nullptr, true, m_x, m_y, diam);
-  m_draw = tmp->init_elements(diam/25.0);
+  SolidCircle tmp = SolidCircle(nullptr, true, m_x, m_y, diam);
+  m_draw = tmp.init_elements(diam/25.0);
   std::fill(m_draw.val.begin(), m_draw.val.end(), m_str);
 }
 

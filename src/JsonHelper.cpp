@@ -30,6 +30,7 @@ json read_json (const std::string filename) {
   std::cout << "  loading simulation " << filename << std::endl;
   std::ifstream json_in(filename);
   json j;
+  // TODO: this next line is where we crash if the file is not present!
   json_in >> j;
   return j;
 }
