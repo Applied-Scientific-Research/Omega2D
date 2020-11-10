@@ -352,6 +352,7 @@ public:
   bool draw_info_gui(const std::string) override;
 #endif
   void generate_draw_geom() override;
+
 protected:
   int m_maxCamber;
   int m_maxCambLoc;
@@ -360,3 +361,30 @@ protected:
   float m_chordLength;
 };
 
+// This loads points from a .msh file
+class FromMsh : public BoundaryFeature {
+public:
+  FromMsh(std::shared_ptr<Body> _bp = nullptr,
+          bool _ext = true,
+          float _x = 0.0,
+          float _y = 0.0)
+    : BoundaryFeature(_bp, _ext, _x, _y)
+    {}
+  ~FromMsh() = default;
+  FromMsh* copy() const override { return new FromMsh(*this); }
+ 
+  void debug(std::ostream& os) const override;
+  std::string to_string() const override;
+  std::string to_short_string() const override { return "from msh file"; }
+  void from_json(const nlohmann::json) override;
+  nlohmann::json to_json() const override;
+  void create() override { }
+  ElementPacket<float> init_elements(const float) const override;
+#ifdef USE_IMGUI
+  bool draw_info_gui(const std::string) override;
+#endif
+  void generate_draw_geom() override;
+
+protected:
+  std::list<BoundarySegment> m_bsl;
+};

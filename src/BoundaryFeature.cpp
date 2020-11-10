@@ -46,6 +46,7 @@ void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
   else if (ftype == "segment") { _flist.emplace_back(std::make_unique<BoundarySegment>(_bp)); }
   else if (ftype == "polygon") { _flist.emplace_back(std::make_unique<SolidPolygon>(_bp)); }
   else if (ftype == "airfoil") { _flist.emplace_back(std::make_unique<SolidAirfoil>(_bp)); }
+  else if (ftype == "msh") { _flist.emplace_back(std::make_unique<FromMsh>(_bp)); }
   else {
     std::cout << "  type " << ftype << " does not name an available boundary feature, ignoring" << std::endl;
     return;
@@ -125,8 +126,8 @@ bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeat
   // define geometry second
   static int item = 0;
   static int oldItem = -1;
-  static int numItems = 7;
-  const char* items[] = { "circle", "square", "oval", "rectangle", "segment", "polygon", "NACA 4-digit" };
+  static int numItems = 8;
+  const char* items[] = { "circle", "square", "oval", "rectangle", "segment", "polygon", "NACA 4-digit", "Msh File" };
 
   ImGui::Combo("geometry type", &item, items, numItems);
   
@@ -157,6 +158,9 @@ bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeat
       case 6: {
         bf = std::make_unique<SolidAirfoil>();
       } break;
+      case 7: {
+        bf = std::make_unique<FromMsh>();
+      } break;
     } // end switch for geometry
     oldItem = item;
   }
@@ -182,7 +186,7 @@ bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeat
     oldItem = -1;
     created = false;
   }
-  
+  std::cout << "End of create_gui" << std::endl;  
   return created;
 }
 
@@ -1269,4 +1273,65 @@ bool SolidAirfoil::draw_info_gui(const std::string action) {
 
 void SolidAirfoil::generate_draw_geom() {
   m_draw = init_elements(m_chordLength/20.0);
+}
+
+// Initialize elements
+ElementPacket<float>
+FromMsh::init_elements(const float _ips) const {
+  // iterate through the boundary segments
+  return ElementPacket<float>();
+}
+
+void
+FromMsh::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+FromMsh::to_string() const {
+  std::stringstream ss;
+  ss << "From Msh file";
+  return ss.str();
+}
+
+void
+FromMsh::from_json(const nlohmann::json j) {
+  // Something
+}
+
+nlohmann::json
+FromMsh::to_json() const {
+  // make an object for the mesh
+  nlohmann::json mesh = nlohmann::json::object();
+  mesh["geometry"] = "msh";
+  // How do we store the data?
+  return mesh;
+}
+
+#ifdef USE_IMGUI
+bool FromMsh::draw_info_gui(const std::string action) {
+  bool add = false;
+  bool try_it = false;
+  static bool selectFile = false;
+  static std::string infile = "input.msh";
+  const std::string buttonText = action+" object";
+  const float fontSize = 20;
+  std::vector<std::string> tmp;
+  
+  std::cout << "In frommsh" << std::endl;
+  if (fileIOWindow(try_it, infile, tmp,  buttonText.c_str(), {"*.msh", "*.*"}, true, ImVec2(200+26*fontSize,300))) {
+    if (try_it and !infile.empty()) {
+      std::cout << infile << std::endl;
+      selectFile = false;
+      add = true;
+    }
+  }
+  
+  std::cout << "finished frommsh" << std::endl;
+  return add;
+}
+#endif
+
+void FromMsh::generate_draw_geom() {
+  m_draw = init_elements(1.0);
 }
