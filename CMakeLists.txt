@@ -239,7 +239,9 @@ ENDIF()
 SET( EXTERNAL_LIBS ${FASTSUM_LIBS} )
 
 # Enable submodules
-add_subdirectory(extern/gmsh-reader)
+ADD_SUBDIRECTORY( extern/gmsh-reader )
+INCLUDE_DIRECTORIES( "extern/gmsh-reader/src" )
+SET( EXTERNAL_LIBS ${EXTERNAL_LIBS} gmsh-reader-static )
 
 
 # Define files and targets

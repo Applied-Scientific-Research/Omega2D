@@ -11,7 +11,7 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_stdlib.h"
 #include "Simulation.h"
-#include "../extern/gmsh-reader/src/read_MSH_Mesh.h"
+#include "read_MSH_Mesh.h"
 
 #define __STDCPP_WANT_MATH_SPEC_FUNCS__ 1
 #include <cassert>
@@ -1278,6 +1278,21 @@ void SolidAirfoil::generate_draw_geom() {
 // Initialize elements
 ElementPacket<float>
 FromMsh::init_elements(const float _ips) const {
+
+  // read gmsh file
+  ReadMsh::Mesh mesh;
+  std::string _infile = "input.msh";
+  int32_t retval = mesh.read_msh_file(_infile.c_str());
+  std::cout << "MSH file (" << _infile << ")";
+  if (retval == 1) {
+    std::cout << " contains " << mesh.get_nnodes() << " nodes";
+    std::cout << " and " << mesh.get_nelems() << " elems" << std::endl;
+  } else {
+    std::cout << " does not exist or did not read properly (code=";
+    std::cout << retval << "), skipping." << std::endl;
+    return ElementPacket<float>();
+  }
+
   // iterate through the boundary segments
   return ElementPacket<float>();
 }
