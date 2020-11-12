@@ -55,7 +55,8 @@ void parse_flow_json(std::vector<std::unique_ptr<FlowFeature>>& _flist,
 }
 
 #ifdef USE_IMGUI
-bool FlowFeature::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &ffs, const float ips) {
+// 0 means keep open, 1 means create, 2 means cancel
+int FlowFeature::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &ffs, const float ips) {
   static int item = 1;
   static int oldItem = -1;
   const char* items[] = { "single particle", "round vortex blob", "Gaussian vortex blob", "asymmetric vortex blob", "block of vorticity", "random particles", "particle emitter" };
@@ -90,23 +91,21 @@ bool FlowFeature::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &f
     oldItem = item;
   }
 
-  bool created = false;
+  int created = 0;
   if (ff->draw_info_gui("Add", ips)) {
     ff->generate_draw_geom();
     ffs.emplace_back(std::move(ff));
     ff = nullptr;
-    created = true;
+    created = 1;
     oldItem = -1;
-    ImGui::CloseCurrentPopup();
   }
  
   ImGui::SameLine(); 
   if (ImGui::Button("Cancel", ImVec2(120,0))) { 
     oldItem = -1;
-    ImGui::CloseCurrentPopup();
+    created = 2;
   }
 
-  ImGui::EndPopup();
   return created;
 }
 

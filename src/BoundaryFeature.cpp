@@ -92,7 +92,8 @@ int BoundaryFeature::obj_movement_gui(int &mitem, char* strx, char* stry, char* 
   return changed;
 }
 
-bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeature>>& bfs, Simulation& sim) {
+// 0 means keep open, 1 means create, 2 means cancel
+int BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeature>>& _bfs, Simulation& _sim) {
   // define movement first
   static int mitem = 0;
   static char strx[512] = "0.0*t";
@@ -107,11 +108,11 @@ bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeat
     switch(mitem) {
       case 0:
          // this geometry is fixed (attached to inertial)
-         bp = sim.get_pointer_to_body("ground");
+         bp = _sim.get_pointer_to_body("ground");
          break;
       case 1:
          // this geometry is attached to the previous geometry (or ground)
-         bp = sim.get_last_body();
+         bp = _sim.get_last_body();
          break;
       case 2:
          // this geometry is attached to a new moving body
@@ -133,7 +134,6 @@ bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeat
   
 
   // show different inputs based on what is selected
-  bool created = false;
   static std::unique_ptr<BoundaryFeature> bf = nullptr;
   if (oldItem != item) {
     switch(item) {
@@ -165,28 +165,28 @@ bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeat
     oldItem = item;
   }
 
+  int created = 0;
   if (bf->draw_info_gui("Add")) {
     if (!bp) { abort(); }
     if (mitem == 2) {
       bp->set_name(bf->to_short_string());
-      sim.add_body(bp);
+      _sim.add_body(bp);
     }
     bf->set_body(bp);
     bf->create();
     bf->generate_draw_geom();
-    bfs.emplace_back(std::move(bf));
+    _bfs.emplace_back(std::move(bf));
     bf = nullptr;
     oldItem = -1;
-    created = true;
+    created = 1;
   }
 
   ImGui::SameLine();
   if (ImGui::Button("Cancel", ImVec2(120,0))) {
-    ImGui::CloseCurrentPopup();
     oldItem = -1;
-    created = false;
+    created = 2;
   }
-  std::cout << "End of create_gui" << std::endl;  
+ 
   return created;
 }
 
@@ -1312,22 +1312,28 @@ FromMsh::to_json() const {
 bool FromMsh::draw_info_gui(const std::string action) {
   bool add = false;
   bool try_it = false;
+  static bool finish = false;
   static bool selectFile = false;
   static std::string infile = "input.msh";
   const std::string buttonText = action+" object";
   const float fontSize = 20;
   std::vector<std::string> tmp;
-  
-  std::cout << "In frommsh" << std::endl;
-  if (fileIOWindow(try_it, infile, tmp,  buttonText.c_str(), {"*.msh", "*.*"}, true, ImVec2(200+26*fontSize,300))) {
-    if (try_it and !infile.empty()) {
-      std::cout << infile << std::endl;
-      selectFile = false;
-      add = true;
+
+  if (!finish) {
+    const std::string fileIO_text = "Load " + infile;
+    if (fileIOWindow(try_it, infile, tmp,  fileIO_text.c_str(), {"*.msh", "*.*"}, true, ImVec2(200+26*fontSize,300))) {
+      finish = true;
     }
   }
   
-  std::cout << "finished frommsh" << std::endl;
+  if (ImGui::Button(buttonText.c_str())) {
+    if (try_it and !infile.empty()) {
+      std::cout << infile << std::endl;
+    } else {
+      std::cout << "ERROR LOADING FILE FROM .msh FILE" << std::endl;
+    }
+    add = true;
+  }
   return add;
 }
 #endif

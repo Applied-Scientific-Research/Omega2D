@@ -44,7 +44,7 @@ public:
 #endif 
   
 #ifdef USE_IMGUI
-  static bool draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &, const float);
+  static int draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &, const float);
   static void draw_feature_list(std::vector<std::unique_ptr<FlowFeature>> &, std::unique_ptr<FlowFeature> &, int &,
                                 int &, bool &, int &);
 #endif

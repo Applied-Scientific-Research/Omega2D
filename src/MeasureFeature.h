@@ -53,7 +53,7 @@ public:
   bool get_is_lagrangian() { return m_is_lagrangian; }
 
 #ifdef USE_IMGUI
-  static bool draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float, const float &);
+  static int draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float, const float &);
   static void draw_feature_list(std::vector<std::unique_ptr<MeasureFeature>> &, std::unique_ptr<MeasureFeature> &,
                                 int &, int &, bool &, int &);
 #endif
