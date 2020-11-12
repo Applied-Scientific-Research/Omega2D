@@ -367,7 +367,8 @@ public:
   FromMsh(std::shared_ptr<Body> _bp = nullptr,
           bool _ext = true,
           float _x = 0.0,
-          float _y = 0.0)
+          float _y = 0.0,
+          std::string _infile = "input.msh")
     : BoundaryFeature(_bp, _ext, _x, _y)
     {}
   ~FromMsh() = default;
@@ -386,5 +387,6 @@ public:
   void generate_draw_geom() override;
 
 protected:
+  std::string m_infile;
   std::list<BoundarySegment> m_bsl;
 };
