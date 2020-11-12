@@ -44,6 +44,7 @@ public:
   virtual nlohmann::json to_json() const = 0;
   virtual void create() = 0;
   virtual ElementPacket<float> init_elements(const float) const = 0;
+  virtual std::vector<ElementPacket<float>> init_hybrid(const float) const = 0;
   virtual void generate_draw_geom() = 0;
 #ifdef USE_IMGUI
   virtual bool draw_info_gui(const std::string) = 0;
@@ -120,6 +121,7 @@ public:
   nlohmann::json to_json() const override;
   void create() override { }
   ElementPacket<float> init_elements(const float) const override;
+  std::vector<ElementPacket<float>> init_hybrid(const float) const override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string) override;
 #endif
@@ -153,6 +155,7 @@ public:
   nlohmann::json to_json() const override;
   void create() override { }
   ElementPacket<float> init_elements(const float) const override;
+  std::vector<ElementPacket<float>> init_hybrid(const float) const override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string) override;
 #endif
@@ -189,6 +192,7 @@ public:
   nlohmann::json to_json() const override;
   void create() override { }
   ElementPacket<float> init_elements(const float) const override;
+  std::vector<ElementPacket<float>> init_hybrid(const float) const override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string) override;
 #endif
@@ -225,6 +229,7 @@ public:
   nlohmann::json to_json() const override;
   void create() override;
   ElementPacket<float> init_elements(const float) const override;
+  std::vector<ElementPacket<float>> init_hybrid(const float) const override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string) override;
 #endif
@@ -262,6 +267,7 @@ public:
   nlohmann::json to_json() const override;
   void create() override;
   ElementPacket<float> init_elements(const float) const override;
+  std::vector<ElementPacket<float>> init_hybrid(const float) const override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string) override;
 #endif
@@ -303,6 +309,7 @@ public:
   nlohmann::json to_json() const override;
   void create() override;
   ElementPacket<float> init_elements(const float) const override;
+  std::vector<ElementPacket<float>> init_hybrid(const float) const override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string) override;
 #endif
@@ -348,6 +355,7 @@ public:
   nlohmann::json to_json() const override;
   void create() override { }
   ElementPacket<float> init_elements(const float) const override;
+  std::vector<ElementPacket<float>> init_hybrid(const float) const override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string) override;
 #endif
@@ -381,6 +389,7 @@ public:
   nlohmann::json to_json() const override;
   void create() override { }
   ElementPacket<float> init_elements(const float) const override;
+  std::vector<ElementPacket<float>> init_hybrid(const float) const override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string) override;
 #endif

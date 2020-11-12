@@ -333,6 +333,14 @@ BoundarySegment::init_elements(const float _ips) const {
   }
 }
 
+//
+// Create the volume and boundary grids for this feature
+//
+std::vector<ElementPacket<float>>
+BoundarySegment::init_hybrid(const float _ips) const {
+  return std::vector<ElementPacket<float>>();
+}
+
 void
 BoundarySegment::debug(std::ostream& os) const {
   os << to_string();
@@ -449,6 +457,14 @@ SolidCircle::init_elements(const float _ips) const {
     return ElementPacket<float>();
   }
    
+}
+
+//
+// Create the volume and boundary grids for this feature
+//
+std::vector<ElementPacket<float>>
+SolidCircle::init_hybrid(const float _ips) const {
+  return std::vector<ElementPacket<float>>();
 }
 
 void
@@ -646,6 +662,14 @@ SolidOval::init_elements(const float _ips) const {
   }
 }
 
+//
+// Create the volume and boundary grids for this feature
+//
+std::vector<ElementPacket<float>>
+SolidOval::init_hybrid(const float _ips) const {
+  return std::vector<ElementPacket<float>>();
+}
+
 void
 SolidOval::debug(std::ostream& os) const {
   os << to_string();
@@ -772,6 +796,14 @@ SolidSquare::init_elements(const float _ips) const {
   }
 }
 
+//
+// Create the volume and boundary grids for this feature
+//
+std::vector<ElementPacket<float>>
+SolidSquare::init_hybrid(const float _ips) const {
+  return std::vector<ElementPacket<float>>();
+}
+
 void
 SolidSquare::debug(std::ostream& os) const {
   os << to_string();
@@ -894,6 +926,14 @@ SolidRect::init_elements(const float _ips) const {
     // Has to be a better way
     return ElementPacket<float>();
   }
+}
+
+//
+// Create the volume and boundary grids for this feature
+//
+std::vector<ElementPacket<float>>
+SolidRect::init_hybrid(const float _ips) const {
+  return std::vector<ElementPacket<float>>();
 }
 
 void
@@ -1030,6 +1070,14 @@ SolidPolygon::init_elements(const float _ips) const {
     // Has to be a better way
     return ElementPacket<float>();
   }
+}
+
+//
+// Create the volume and boundary grids for this feature
+//
+std::vector<ElementPacket<float>>
+SolidPolygon::init_hybrid(const float _ips) const {
+  return std::vector<ElementPacket<float>>();
 }
 
 void
@@ -1209,6 +1257,14 @@ SolidAirfoil::init_elements(const float _ips) const {
   }
 }
 
+//
+// Create the volume and boundary grids for this feature
+//
+std::vector<ElementPacket<float>>
+SolidAirfoil::init_hybrid(const float _ips) const {
+  return std::vector<ElementPacket<float>>();
+}
+
 void
 SolidAirfoil::debug(std::ostream& os) const {
   os << to_string();
@@ -1379,6 +1435,14 @@ FromMsh::init_elements(const float _ips) const {
   } else {
     return ElementPacket<float>();
   }
+}
+
+//
+// Create the volume and boundary grids for this feature
+//
+std::vector<ElementPacket<float>>
+FromMsh::init_hybrid(const float _ips) const {
+  return std::vector<ElementPacket<float>>();
 }
 
 void
