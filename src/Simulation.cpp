@@ -29,9 +29,11 @@ Simulation::Simulation()
     vort(),
     bdry(),
     fldpt(),
+    euler(),
     bem(),
     diff(),
     conv(),
+    hybr(),
     sf(),
     description(),
     time(0.0),
@@ -710,6 +712,18 @@ void Simulation::file_elements(std::vector<Collection>& _collvec,
       vols.add_new(_elems);
     }
   }
+}
+
+// Add elements - cells for hybrid calculation
+void Simulation::add_hybrid(const std::vector<ElementPacket<float>>  _elems,
+                            std::shared_ptr<Body> _bptr) {
+
+  // skip out early if nothing's here
+  if (_elems.size() == 0) return;
+
+  //_elems[0] is the volume elements - to euler
+  //_elems[1] is the wall boundaries
+  //_elems[2] is the open boundaries
 }
 
 // add a new Body with the given name

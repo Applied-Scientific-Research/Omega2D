@@ -94,6 +94,7 @@ public:
   // receive and add a set of elements
   void add_elements(const ElementPacket<float>, const elem_t, const move_t, std::shared_ptr<Body>);
   void file_elements(std::vector<Collection>&, const ElementPacket<float>, const elem_t, const move_t, std::shared_ptr<Body>);
+  void add_hybrid(const std::vector<ElementPacket<float>>, std::shared_ptr<Body>);
 
   // access body list
   void add_body(std::shared_ptr<Body>);

@@ -57,7 +57,6 @@ int main(int argc, char const *argv[]) {
   std::vector< std::unique_ptr<FlowFeature> > ffeatures;
   std::vector< std::unique_ptr<BoundaryFeature> > bfeatures;
   std::vector< std::unique_ptr<MeasureFeature> > mfeatures;
-  //std::vector< std::unique_ptr<HybridFeature> > hfeatures;
   FeatureDraw bdraw;
   FeatureDraw fdraw;
   FeatureDraw mdraw;
@@ -236,13 +235,14 @@ int main(int argc, char const *argv[]) {
       }
 
       // initialize hybrid features
-      //for (auto const& hf: hfeatures) {
-      //  if (hf->is_enabled()) {
+      for (auto const& bf : bfeatures) {
+        if (bf->is_enabled()) {
           // get interior elems and then boundaries
-      //    std::vector<ElementPacket<float>> hybpackets = hf->init_elements();
-      //    sim.add_hybrid(hybpackets, mf->get_body() );
-      //  }
-      //}
+          //std::vector<ElementPacket<float>> hybpackets = bf->init_euler();
+          std::vector<ElementPacket<float>> hybpackets;
+          sim.add_hybrid(hybpackets, bf->get_body() );
+        }
+      }
 
       sim.set_initialized();
 
