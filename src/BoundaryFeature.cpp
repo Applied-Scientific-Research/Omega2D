@@ -1442,7 +1442,80 @@ FromMsh::init_elements(const float _ips) const {
 //
 std::vector<ElementPacket<float>>
 FromMsh::init_hybrid(const float _ips) const {
-  return std::vector<ElementPacket<float>>();
+  std::vector<ElementPacket<float>> pack;
+
+  // read gmsh file
+  ReadMsh::Mesh mesh;
+  int32_t retval = mesh.read_msh_file(m_infile.c_str());
+  std::cout << "MSH file (" << m_infile << ")";
+  if (retval == 1) {
+    std::cout << " contains " << mesh.get_nnodes() << " nodes";
+    std::cout << " and " << mesh.get_nelems() << " elems" << std::endl;
+  } else {
+    std::cout << " does not exist or did not read properly (code=";
+    std::cout << retval << "), skipping." << std::endl;
+    return pack;
+  }
+
+  // prepare the data arrays for the element packet
+  std::vector<float> x;
+  std::vector<Int> idx;
+  std::vector<float> vals;
+
+  // read *all* the nodes in
+  const std::vector<ReadMsh::node>& nodes = mesh.get_nodes();
+  for (auto& thisnode : nodes) {
+    const ReadMsh::Cmpnts2& thispos = thisnode.coor;
+    x.push_back(thispos.x);
+    x.push_back(thispos.y);
+  }
+  const Int nn = x.size() / 2;
+  std::cout << "  read in " << nn << " nodes" << std::endl;
+
+  //
+  // first EP is the volume elements
+  //
+  std::cout << "Generate Grid Cells" << std::endl;
+
+  // get a reference to the complete edge list
+  const std::vector<ReadMsh::element2d>& elems = mesh.get_elems();
+
+  // find out how large each array will be
+  const size_t ne = elems.size();
+  std::cout << "  reading " << ne << " elems" << std::endl;
+  // number of nodes per element - must be constant!
+  size_t nnpe = 0;
+  for (auto& thiselem : elems) {
+    std::cout << "  elem with " << thiselem.N_nodes << " nodes: ";
+    if (nnpe == 0) nnpe = thiselem.N_nodes;
+    assert(nnpe == thiselem.N_nodes && "ReadMsh does not support different element types!");
+
+    // using VTK/GMSH node ordering! CCW corners, then CCW side nodes, then middle
+    assert(thiselem.N_nodes > 2 && "Elem does not have enough nodes!");
+    // assign indices
+    for (size_t i=0; i<thiselem.N_nodes; ++i) {
+      std::cout << " " << thiselem.nodes[i];
+      idx.push_back(thiselem.nodes[i]);
+    }
+    std::cout << " " << std::endl;
+  }
+  // if that was successful, then nnpe is the correct number of nodes per element
+
+  // check all nodes for validity? or is that in the ctor?
+  pack.emplace_back(ElementPacket<float>({x, idx, vals, (size_t)(ne), (uint8_t)2}));
+
+  //
+  // second EP is the wall
+  //
+  std::cout << "Generate Wall Boundary" << std::endl;
+  pack.emplace_back(init_elements(1.0));
+
+  //
+  // third EP is the open boundary
+  //
+  std::cout << "Generate Open Boundary" << std::endl;
+
+  return pack;
 }
 
 void
