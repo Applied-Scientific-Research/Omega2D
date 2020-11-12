@@ -185,6 +185,7 @@ int BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeatu
   if (ImGui::Button("Cancel", ImVec2(120,0))) {
     oldItem = -1;
     created = 2;
+    bf = nullptr;
   }
  
   return created;

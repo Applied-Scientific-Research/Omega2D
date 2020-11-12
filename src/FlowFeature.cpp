@@ -104,6 +104,7 @@ int FlowFeature::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &ff
   if (ImGui::Button("Cancel", ImVec2(120,0))) { 
     oldItem = -1;
     created = 2;
+    ff = nullptr;
   }
 
   return created;
