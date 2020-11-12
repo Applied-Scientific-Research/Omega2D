@@ -46,10 +46,23 @@ void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
   else if (ftype == "segment") { _flist.emplace_back(std::make_unique<BoundarySegment>(_bp)); }
   else if (ftype == "polygon") { _flist.emplace_back(std::make_unique<SolidPolygon>(_bp)); }
   else if (ftype == "airfoil") { _flist.emplace_back(std::make_unique<SolidAirfoil>(_bp)); }
-  else if (ftype == "msh") { _flist.emplace_back(std::make_unique<FromMsh>(_bp)); }
   else {
-    std::cout << "  type " << ftype << " does not name an available boundary feature, ignoring" << std::endl;
-    return;
+    // assume unknown keyword is a file
+
+    // first, shrink to just the file name
+    const size_t lastslash = ftype.find_last_of("/\\");
+    const std::string filename = ftype.substr(lastslash+1);
+    // then, pull out the extension
+    const size_t lastdot = filename.find_last_of(".");
+    const std::string extension = filename.substr(lastdot+1);
+
+    // finally, split on that extension
+    if (extension == "msh") { _flist.emplace_back(std::make_unique<FromMsh>(_bp)); }
+    //else if (ftype == "dat") { airfoil data file }
+    else {
+      std::cout << "  type " << filename << " is not an available boundary feature or file type, ignoring" << std::endl;
+      return;
+    }
   }
 
   // and pass the json object to the specific parser
@@ -1342,9 +1355,9 @@ FromMsh::init_elements(const float _ips) const {
       // this node is not used in the wall boundary
     } else {
       // this node *is* used
-      // move it backwards
-      x[2*nnodesused]   = x[2*i];
-      x[2*nnodesused+1] = x[2*i+1];
+      // move it backwards AND translate it
+      x[2*nnodesused]   = x[2*i]   + m_x;
+      x[2*nnodesused+1] = x[2*i+1] + m_y;
       // and tell the index where it moved to
       newidx[i] = nnodesused;
       // increment the counter
