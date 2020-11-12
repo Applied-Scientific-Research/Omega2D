@@ -720,10 +720,18 @@ void Simulation::add_hybrid(const std::vector<ElementPacket<float>>  _elems,
 
   // skip out early if nothing's here
   if (_elems.size() == 0) return;
+  // or if hybrid isn't turned on
+  if (not hybr.is_active()) return;
 
-  //_elems[0] is the volume elements - to euler
+  // make sure we've got the right data
+  assert(_elems.size() == 3 && "Improper number of ElementPackets in add_hybrid");
+
+  //_elems[0] is the volume elements - always add unique Collection to euler
+  euler.push_back(Volumes<float>(_elems[0], hybrid, fixed, _bptr));
   //_elems[1] is the wall boundaries
+  //euler.back().addWall(Surfaces<float>(_elems[1], hybrid, fixed, _bptr));
   //_elems[2] is the open boundaries
+  //euler.back().addOpen(Surfaces<float>(_elems[2], hybrid, fixed, _bptr));
 }
 
 // add a new Body with the given name

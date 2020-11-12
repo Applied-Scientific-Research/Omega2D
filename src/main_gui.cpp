@@ -237,8 +237,8 @@ int main(int argc, char const *argv[]) {
       // initialize hybrid features
       for (auto const& bf : bfeatures) {
         if (bf->is_enabled()) {
-          // get interior elems and then boundaries
-          //std::vector<ElementPacket<float>> hybpackets = bf->init_euler();
+          // get interior elems and then boundaries (when merged with Gmsh branch)
+          //std::vector<ElementPacket<float>> hybpackets = bf->init_hybrid();
           std::vector<ElementPacket<float>> hybpackets;
           sim.add_hybrid(hybpackets, bf->get_body() );
         }
