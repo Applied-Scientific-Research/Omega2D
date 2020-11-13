@@ -118,7 +118,7 @@ public:
     assert(idx_are_all_good && "Some indicies are bad");
 
     // compute all basis vectors and element areas
-    //compute_bases(nb);
+    compute_bases(nb);
 
     // are strengths/values on a per-node or per-element basis? - per element now
 
@@ -216,7 +216,7 @@ public:
 
   // element geometry
   const std::vector<Int>&                  get_idx()  const { return idx; }
-  //const Vector<S>&                         get_area() const { return area; }
+  const Vector<S>&                         get_area() const { return area; }
 /*
   const std::array<Vector<S>,Dimensions>&  get_tang() const { return b[0]; }
   const std::array<Vector<S>,Dimensions>&  get_norm() const { return b[1]; }
@@ -373,7 +373,7 @@ public:
     assert(idx_are_all_good && "Some indicies are bad");
 
     // compute all basis vectors and element areas
-    //compute_bases(neold+nelems);
+    compute_bases(neold+nelems);
 
     // now, depending on the element type, put the value somewhere - but element-wise, so here
     if (this->E == active) {
@@ -636,54 +636,86 @@ public:
 
     std::cout << "    geom center is " << utc[0] << " " << utc[1] << " and area is " << vol << std::endl;
   }
+*/
 
-  // need to maintain the 2x2 set of basis vectors for each element
-  // this also calculates the triangle areas
+  // calculates the element areas
   // always recalculate everything!
-  void compute_bases(const Int nnew) {
+  void compute_areas(const Int nnew) {
 
     assert(2*nnew == idx.size() && "Array size mismatch");
 
-    // resize any vectors
-    for (size_t i=0; i<Dimensions; ++i) {
-      for (size_t j=0; j<Dimensions; ++j) {
-        b[i][j].resize(nnew);
-      }
-    }
     area.resize(nnew);
 
     // we'll reuse these vectors
-    std::array<S,Dimensions> x1, norm;
+    //std::array<S,Dimensions> x1, norm;
+    const size_t nper = idx.size() / nnew;
+
+    // lambdas let you define functions inside of functions
+    // https://stackoverflow.com/questions/4324763/can-we-have-functions-inside-functions-in-c
+    auto get_tri_area = [&] (const Int j0, const Int j1, const Int j2) {
+      // https://demonstrations.wolfram.com/Signed2DTriangleAreaFromTheCrossProductOfEdgeVectors/
+      return 0.5*(-this->x[1][j0]*this->x[0][j1]
+                  +this->x[0][j0]*this->x[1][j1]
+                  +this->x[1][j0]*this->x[0][j2]
+                  -this->x[1][j1]*this->x[0][j2]
+                  -this->x[0][j0]*this->x[1][j2]
+                  +this->x[0][j1]*this->x[1][j2]);
+    };
 
     // update everything
     for (size_t i=0; i<nnew; ++i) {
-      const size_t id0 = idx[2*i];
-      const size_t id1 = idx[2*i+1];
-      //std::cout << "elem near " << this->x[0][id0] << " " << this->x[1][id0] << std::endl;
 
-      // x1 vector is along direction from node 0 to node 1
-      for (size_t j=0; j<Dimensions; ++j) x1[j] = this->x[j][id1] - this->x[j][id0];
-      const S base = std::sqrt(x1[0]*x1[0] + x1[1]*x1[1]);
-      for (size_t j=0; j<Dimensions; ++j) x1[j] *= (1.0/base);
-      //std::cout << "  has x1 " << x1[0] << " " << x1[1] << std::endl;
+      S thisarea = 0.0;
 
-      // now we have the area
-      area[i] = base;
-      //std::cout << "elem near " << this->x[0][id0] << " " << this->x[1][id0] << " has area " << area[i] << std::endl;
+      // how many nodes we have determines how many triangles we need to compute
+      if (nper == 3) {
+        // just one triangle per element
+        thisarea += get_tri_area(idx[3*i+0], idx[3*i+1], idx[3*i+2]);
+      } else if (nper == 4) {
+        // two triangles per element
+        thisarea += get_tri_area(idx[4*i+0], idx[4*i+1], idx[4*i+2]);
+        thisarea += get_tri_area(idx[4*i+0], idx[4*i+2], idx[4*i+3]);
+      } else if (nper == 9) {
+        // eight triangles per element
+        thisarea += get_tri_area(idx[9*i+0], idx[9*i+4], idx[9*i+8]);
+        thisarea += get_tri_area(idx[9*i+0], idx[9*i+8], idx[9*i+7]);
+        thisarea += get_tri_area(idx[9*i+0], idx[9*i+8], idx[9*i+7]);
+        thisarea += get_tri_area(idx[9*i+0], idx[9*i+8], idx[9*i+7]);
+        thisarea += get_tri_area(idx[9*i+0], idx[9*i+8], idx[9*i+7]);
+        thisarea += get_tri_area(idx[9*i+0], idx[9*i+8], idx[9*i+7]);
+        thisarea += get_tri_area(idx[9*i+0], idx[9*i+8], idx[9*i+7]);
+        thisarea += get_tri_area(idx[9*i+0], idx[9*i+8], idx[9*i+7]);
+      } else {
+        // should not get here
+        assert("Unsupported number of nodes per volume element!");
+      }
 
-      // the normal vector points into the fluid (to the left when walking from nodes 0 to 1)
-      norm[0] = -x1[1];
-      norm[1] =  x1[0];
-      //std::cout << "  norm " << norm[0] << " " << norm[1] << std::endl;
-
-      // and assign
-      for (size_t j=0; j<Dimensions; ++j) b[0][j][i] = x1[j];
-      for (size_t j=0; j<Dimensions; ++j) b[1][j][i] = norm[j];
+      // finally assign
+      area[i] = thisarea;
 
       //std::cout << "elem near " << this->x[0][id0] << " " << this->x[1][id0] << " has norm " << b[1][0][i] << " " << b[1][1][i] << " and tang " << b[0][0][i] << " " << b[0][1][i] << std::endl;
     }
   }
 
+  // maintain the 2x2 set of basis vectors for each element?
+  void compute_bases(const Int nnew) {
+    compute_areas(nnew);
+
+    // resize any vectors
+    //for (size_t i=0; i<Dimensions; ++i) {
+    //  for (size_t j=0; j<Dimensions; ++j) {
+    //    b[i][j].resize(nnew);
+    //  }
+    //}
+
+      // and assign
+      //for (size_t j=0; j<Dimensions; ++j) b[0][j][i] = x1[j];
+      //for (size_t j=0; j<Dimensions; ++j) b[1][j][i] = norm[j];
+
+      //std::cout << "elem near " << this->x[0][id0] << " " << this->x[1][id0] << " has norm " << b[1][0][i] << " " << b[1][1][i] << " and tang " << b[0][0][i] << " " << b[0][1][i] << std::endl;
+  }
+
+/*
   // when transforming a body-bound object to a new time, we must also transform the geometric center
   void transform(const double _time) {
     // must explicitly call the method in the base class
