@@ -8,6 +8,8 @@
 #pragma once
 
 #include "Omega2D.h"
+#include "Collection.h"
+#include "BEM.h"
 
 #include <iostream>
 #include <vector>
@@ -48,7 +50,7 @@ public:
              const std::array<double,Dimensions>&,
              std::vector<Collection>&,
              std::vector<Collection>&,
-             std::vector<Collection>&,
+             BEM<S,I>&,
              std::vector<Collection>&);
 
 private:
@@ -101,7 +103,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
                          const std::array<double,Dimensions>& _fs,
                          std::vector<Collection>&             _vort,
                          std::vector<Collection>&             _bdry,
-                         std::vector<Collection>&             _fldpt,
+                         BEM<S,I>&                            _bem,
                          std::vector<Collection>&             _euler) {
 
   if (not active) return;
@@ -113,21 +115,33 @@ void Hybrid<S,A,I>::step(const double                         _time,
   // part A - prepare BCs for Euler solver
 
   // transform all elements to their appropriate locations
-  // isolate open/outer boundaries
-  //Points<> euler_bdry = _euler.get_bc_nodes(_time);
-  // find vels there
-  //Convection::find_vels<S,A,I>(_fs, _vort, _bdry, euler_bdry);
-  // convert to transferable packet
-  //find_vels<S,A,I>(_time, _fs, _vort, _bdry, _bem);  ???
+  for (auto &coll : _euler) {
+    std::visit([=](auto& elem) { elem.move(_time, _dt); }, coll);
+  }
+  // update the BEM solution
+  solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
+  // get vels on each euler region
+  for (auto &coll : _euler) {
+    // isolate open/outer boundaries
+    //Points<S> euler_bdry = std::visit([=](auto& elem) { elem.get_bc_nodes(_time); }, coll);
+    // find vels there
+    //Convection::find_vels<S,A,I>(_fs, _vort, _bdry, euler_bdry);
+    // convert to transferable packet
+    //std::vector<A> openvels = euler_bdry.get_vels();
+    // where do we put these?
+  }
 
   // part B - call Euler solver
 
-  // transfer BC packet and call solver
-  //flops = external_euler_solve_f_(&ns, sx[0].data(), sx[1].data(),    ss.data(),    sr.data(),
-  //                                &nt, tx[0].data(), tx[1].data(), tu[0].data(), tu[1].data());
+  // transfer BC packet
+  //(void) hosolver_setopenvels_d_(np, openvels[0], openvels[1]);
+
+  // call solver
+  //(void) hosolver_solveto_d_(_time);
 
   // pull results from external solver
-  //external_euler_vorts_f_(stuff);
+  //std::vector<A> allvorts;
+  //(void) hosolver_getallvorts_d_(np, allvorts);
 
   // convert vorticity results to drawable and writable Volume elements
 
@@ -143,6 +157,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
   // now we have the amount of vorticity we need to re-add to the Lagrangian side
   // for each sub-node of each HO quad, run a VRM onto the existing set of Lagrangian
   //   particles adding where necessary to satisfy at least 0th and 1st moments, if not 2nd
+  // simple way: just create a new particle at the centroid of each element, let merge deal
 
 }
 
