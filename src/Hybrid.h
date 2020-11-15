@@ -53,6 +53,10 @@ public:
              BEM<S,I>&,
              std::vector<Collection>&);
 
+  // read/write parameters
+  void from_json(const nlohmann::json);
+  void add_to_json(nlohmann::json&) const;
+
 private:
   // are we even using the hybrid scheme?
   bool active;
@@ -160,4 +164,31 @@ void Hybrid<S,A,I>::step(const double                         _time,
   // simple way: just create a new particle at the centroid of each element, let merge deal
 
 }
+//
+// read/write parameters to json
+//
 
+// read "simparams" json object
+template <class S, class A, class I>
+void Hybrid<S,A,I>::from_json(const nlohmann::json j) {
+  active = j.value("enabled", false);
+/*  elementOrder = j.value("elementOrder", 1);
+  timeOrder = j.value("timeOrder", 1);
+  numSubsteps = j.value("numSubsteps", 100);
+  preconditioner = j.value("preconditioner", "none");
+  solverType = j.value("solverType", "fgmres"); */
+}
+
+// create and write a json object for all diffusion parameters
+template <class S, class A, class I>
+void Hybrid<S,A,I>::add_to_json(nlohmann::json& simj) const {
+  nlohmann::json j;
+  j["enabled"] = active;
+  j["elementOrder"] = 1; //1-5
+  j["timeOrder"] = 1; //1,2,4
+  j["numSubsteps"] = 100; //1-1000
+  j["preconditioner"] = "none";
+  j["solverType"] = "fgmres";
+
+  simj["hybrid"] = j;
+}

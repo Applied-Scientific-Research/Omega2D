@@ -201,6 +201,7 @@ Simulation::from_json(const nlohmann::json j) {
   // set diffusion-specific parameters
   // Diffusion will find and set "viscous", "VRM" and "AMR" parameters
   diff.from_json(j);
+  hybr.from_json(j);
 }
 
 // create and write a json object for "simparams"
@@ -215,6 +216,7 @@ Simulation::to_json() const {
 
   // Diffusion will write "viscous", "VRM" and "AMR" parameters
   diff.add_to_json(j);
+  hybr.add_to_json(j);
 
   return j;
 }
