@@ -36,8 +36,8 @@ public:
     : Volumes<S>(_velems, _e, _m, _bp),
       wall_s(Surfaces<S>(_welems, _e, _m, _bp)),
       open_s(Surfaces<S>(_oelems, _e, _m, _bp)),
-      open_p(Points<S>(ElementPacket<S>(), _e, _m, _bp, 0.0)),
-      soln_p(Points<S>(ElementPacket<S>(), _e, _m, _bp, 0.0))
+      open_p(Points<S>(ElementPacket<S>((uint8_t)0), _e, _m, _bp, 0.0)),
+      soln_p(Points<S>(ElementPacket<S>((uint8_t)0), _e, _m, _bp, 0.0))
   { }
 
   // return a Collection of the nodes on the open boundary

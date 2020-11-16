@@ -28,6 +28,12 @@ public:
     {}
   ~ElementPacket<S>() = default;
 
+  // empty packet constructor (forces dimension)
+  ElementPacket<S>(uint8_t _ndim)
+    : ElementPacket<S>(std::vector<S>(), std::vector<Int>(),
+                       std::vector<S>(), 0, _ndim)
+    {}
+
   ElementPacket<S>(ElementPacket<S> const&) = default; //allow copy
   ElementPacket<S>(ElementPacket<S>&&) = default; //allow move
   ElementPacket<S>& operator=(ElementPacket<S> const&) = default; //allow copy
