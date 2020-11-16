@@ -721,6 +721,9 @@ void Simulation::file_elements(std::vector<Collection>& _collvec,
 void Simulation::add_hybrid(const std::vector<ElementPacket<float>>  _elems,
                             std::shared_ptr<Body> _bptr) {
 
+  std::cout << "In Simulation::add_hybrid" << std::endl;
+  //std::cout << "  incoming vector has " << _elems.size() << " ElementPackets" << std::endl;
+
   // skip out early if nothing's here
   if (_elems.size() == 0) return;
   // or if hybrid isn't turned on
@@ -733,6 +736,7 @@ void Simulation::add_hybrid(const std::vector<ElementPacket<float>>  _elems,
   //_elems[1] is the wall boundaries
   //_elems[2] is the open boundaries
   euler.emplace_back(HOVolumes<float>(_elems[0], _elems[1], _elems[2], hybrid, fixed, _bptr));
+  std::cout << "  euler now has " << euler.size() << " HOVolumes" << std::endl;
 
   // alternate way to assign the wall and open bc elements
   //euler.back().add_wall(_elems[1]);
