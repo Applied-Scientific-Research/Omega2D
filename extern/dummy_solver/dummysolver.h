@@ -27,13 +27,13 @@ public:
   const std::vector<uint32_t>& get_elems() { return elems; }
 
   // functions that an external driver program should call
-  void hosolver_set_re_d_(const double _re) { re = _re; }
-  void hosolver_init_d_(std::vector<double>, std::vector<uint32_t>, std::vector<uint32_t>, std::vector<uint32_t>);
-  std::vector<double> hosolver_getsolnpts_d_();
-  std::vector<double> hosolver_getopenpts_d_();
-  void hosolver_setopenvels_d_(std::vector<double>);
-  void hosolver_solveto_d_(const double);
-  std::vector<double> hosolver_getallvorts_d_();
+  void set_re_d_(const double _re) { re = _re; }
+  void init_d_(std::vector<double>, std::vector<uint32_t>, std::vector<uint32_t>, std::vector<uint32_t>);
+  std::vector<double> getsolnpts_d_();
+  std::vector<double> getopenpts_d_();
+  void setopenvels_d_(std::vector<double>);
+  void solveto_d_(const double);
+  std::vector<double> getallvorts_d_();
 
 private:
   uint32_t N_nodes = 0;     //# of nodes read from msh file
