@@ -243,6 +243,9 @@ ADD_SUBDIRECTORY( extern/gmsh-reader )
 INCLUDE_DIRECTORIES( "extern/gmsh-reader/src" )
 SET( EXTERNAL_LIBS ${EXTERNAL_LIBS} gmsh-reader-static )
 
+ADD_SUBDIRECTORY( extern/dummy_solver )
+INCLUDE_DIRECTORIES( "extern/dummy_solver" )
+SET( EXTERNAL_LIBS ${EXTERNAL_LIBS} dummy_solver-static )
 
 # Define files and targets
 
