@@ -39,7 +39,7 @@ Solver::set_timeorder_d_(const uint8_t _to) {
 
 void
 Solver::set_numsteps_d_(const uint32_t _ns) {
-  std::cout << "DummySolver set element order= " << _ns << std::endl;
+  std::cout << "DummySolver set num substeps= " << _ns << std::endl;
   num_substeps = _ns;
 }
 
