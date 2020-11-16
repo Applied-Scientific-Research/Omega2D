@@ -16,6 +16,33 @@
 
 namespace DummySolver {
 
+//
+// setters for HO solver runtime parameters
+//
+void
+Solver::set_re_d_(const double _re) {
+  std::cout << "DummySolver set re= " << _re << std::endl;
+  reynolds = _re;
+}
+
+void
+Solver::set_elemorder_d_(const uint8_t _eo) {
+  std::cout << "DummySolver set element order= " << _eo << std::endl;
+  elem_order = _eo;
+}
+
+void
+Solver::set_timeorder_d_(const uint8_t _to) {
+  std::cout << "DummySolver set time integration order= " << _to << std::endl;
+  time_order = _to;
+}
+
+void
+Solver::set_numsteps_d_(const uint32_t _ns) {
+  std::cout << "DummySolver set element order= " << _ns << std::endl;
+  num_substeps = _ns;
+}
+
 
 //
 // receive node locations and element indices for internal cells, walls, and open boundaries
@@ -25,6 +52,8 @@ Solver::init_d_(std::vector<double> _pts,
                 std::vector<uint32_t> _cidx,
                 std::vector<uint32_t> _widx,
                 std::vector<uint32_t> _oidx) {
+
+  std::cout << "DummySolver initializing with " << _pts.size()/2 << " nodes" << std::endl;
   return;
 }
 
@@ -61,6 +90,7 @@ Solver::setopenvels_d_(std::vector<double> _vels) {
 //
 void
 Solver::solveto_d_(const double _endtime) {
+  std::cout << "DummySolver solving to t= " << _endtime << " with " << num_substeps << " substeps" << std::endl;
   return;
 }
 

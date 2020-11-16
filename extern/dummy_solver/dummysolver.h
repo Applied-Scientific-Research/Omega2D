@@ -3,6 +3,7 @@
 //
 // (c)2020 Applied Scientific Research, Inc.
 //         Mark J. Stock <markjstock@gmail.com>
+
 #pragma once
 
 #include <iostream>
@@ -27,7 +28,10 @@ public:
   const std::vector<uint32_t>& get_elems() { return elems; }
 
   // functions that an external driver program should call
-  void set_re_d_(const double _re) { re = _re; }
+  void set_re_d_(const double);
+  void set_elemorder_d_(const uint8_t);
+  void set_timeorder_d_(const uint8_t);
+  void set_numsteps_d_(const uint32_t);
   void init_d_(std::vector<double>, std::vector<uint32_t>, std::vector<uint32_t>, std::vector<uint32_t>);
   std::vector<double> getsolnpts_d_();
   std::vector<double> getopenpts_d_();
@@ -41,7 +45,10 @@ private:
   std::vector<double> nodes;  // coordinates of the nodes
   std::vector<uint32_t> elems;  // coordinates of the nodes
 
-  double re;		// reynolds number
+  double reynolds;	// reynolds number
+  uint8_t elem_order;	// internal element order
+  uint8_t time_order;	// internal time integration order
+  uint32_t num_substeps;// number of internel substeps per external time step
 
 }; // end class Solver
 

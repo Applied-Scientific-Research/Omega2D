@@ -72,7 +72,7 @@ private:
   // parameters from json for the solver
   uint8_t elementOrder;
   uint8_t timeOrder;
-  uint8_t numSubsteps;
+  uint32_t numSubsteps;
   std::string preconditioner;
   std::string solverType;
 
@@ -96,6 +96,11 @@ private:
 template <class S, class A, class I>
 void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
   std::cout << "Inside Hybrid::init with " << _euler.size() << " volumes" << std::endl;
+
+  solver.set_re_d_(100.0);
+  solver.set_elemorder_d_(elementOrder);
+  solver.set_timeorder_d_(timeOrder);
+  solver.set_numsteps_d_(numSubsteps);
 
   for (auto &coll : _euler) {
     // transform to current position
