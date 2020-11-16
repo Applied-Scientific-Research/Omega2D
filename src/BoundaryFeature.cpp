@@ -1389,7 +1389,7 @@ FromMsh::init_elements(const float _ips) const {
   const size_t np = wall.N_edges;
   std::cout << "wall has " << np << " edges" << std::endl;
   for (uint32_t thisedge : wall.edges) {
-    std::cout << "  edge " << thisedge << " has " << edges[thisedge].N_nodes << " nodes" << std::endl;
+    //std::cout << "  edge " << thisedge << " has " << edges[thisedge].N_nodes << " nodes" << std::endl;
     // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
     assert(edges[thisedge].N_nodes > 1 && "Edge does not have enough nodes!");
     // HACK - annular gmsh meshes have wall defined CCW (right wall is to fluid), not CW (left wall is)
@@ -1442,6 +1442,11 @@ FromMsh::init_elements(const float _ips) const {
 //
 std::vector<ElementPacket<float>>
 FromMsh::init_hybrid(const float _ips) const {
+
+  // we need to have three ElementPacket objects in this vector:
+  //   first one is the Volumes (2D) elements
+  //   second is the wall Surfaces (1D) elements
+  //   last is the open Surfaces (1D) elements
   std::vector<ElementPacket<float>> pack;
 
   // read gmsh file
@@ -1486,7 +1491,7 @@ FromMsh::init_hybrid(const float _ips) const {
   // number of nodes per element - must be constant!
   size_t nnpe = 0;
   for (auto& thiselem : elems) {
-    std::cout << "  elem with " << thiselem.N_nodes << " nodes: ";
+    //std::cout << "  elem with " << thiselem.N_nodes << " nodes: ";
     if (nnpe == 0) nnpe = thiselem.N_nodes;
     assert(nnpe == thiselem.N_nodes && "ReadMsh does not support different element types!");
 
@@ -1494,10 +1499,10 @@ FromMsh::init_hybrid(const float _ips) const {
     assert(thiselem.N_nodes > 2 && "Elem does not have enough nodes!");
     // assign indices
     for (size_t i=0; i<thiselem.N_nodes; ++i) {
-      std::cout << " " << thiselem.nodes[i];
+      //std::cout << " " << thiselem.nodes[i];
       idx.push_back(thiselem.nodes[i]);
     }
-    std::cout << " " << std::endl;
+    //std::cout << " " << std::endl;
   }
   // if that was successful, then nnpe is the correct number of nodes per element
 
@@ -1508,12 +1513,17 @@ FromMsh::init_hybrid(const float _ips) const {
   // second EP is the wall
   //
   std::cout << "Generate Wall Boundary" << std::endl;
+  // bad way: make the call
   pack.emplace_back(init_elements(1.0));
+  // better way: do it right here with what we already have in memory
 
   //
   // third EP is the open boundary
   //
   std::cout << "Generate Open Boundary" << std::endl;
+  // bad way: make the call
+  pack.emplace_back(init_elements(1.0));
+  // better way: do it right here with what we already have in memory
 
   return pack;
 }
