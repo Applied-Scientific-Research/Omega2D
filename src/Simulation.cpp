@@ -290,6 +290,7 @@ void Simulation::reset() {
   vort.clear();
   bdry.clear();
   fldpt.clear();
+  euler.clear();
   bem.reset();
   sf.reset_sim();
   sim_is_initialized = false;
@@ -729,11 +730,13 @@ void Simulation::add_hybrid(const std::vector<ElementPacket<float>>  _elems,
   assert(_elems.size() == 3 && "Improper number of ElementPackets in add_hybrid");
 
   //_elems[0] is the volume elements - always add unique Collection to euler
-  euler.push_back(Volumes<float>(_elems[0], hybrid, fixed, _bptr));
   //_elems[1] is the wall boundaries
-  //euler.back().add_wall(Surfaces<float>(_elems[1], hybrid, fixed, _bptr));
   //_elems[2] is the open boundaries
-  //euler.back().add_open(Surfaces<float>(_elems[2], hybrid, fixed, _bptr));
+  euler.emplace_back(HOVolumes<float>(_elems[0], _elems[1], _elems[2], hybrid, fixed, _bptr));
+
+  // alternate way to assign the wall and open bc elements
+  //euler.back().add_wall(_elems[1]);
+  //euler.back().add_open(_elems[2]);
 }
 
 // add a new Body with the given name

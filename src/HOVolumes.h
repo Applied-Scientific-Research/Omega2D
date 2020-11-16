@@ -27,11 +27,17 @@ class HOVolumes: public Volumes<S> {
 public:
 
   // use parent constructor
-  HOVolumes(const ElementPacket<S>& _elems,
+  HOVolumes(const ElementPacket<S>& _velems,
+            const ElementPacket<S>& _welems,
+            const ElementPacket<S>& _oelems,
             const elem_t _e,
             const move_t _m,
             std::shared_ptr<Body> _bp)
-    : Volumes(_elems, _e, _m, _bp)
+    : Volumes<S>(_velems, _e, _m, _bp),
+      wall_s(Surfaces<S>(_welems, _e, _m, _bp)),
+      open_s(Surfaces<S>(_oelems, _e, _m, _bp)),
+      open_p(Points<S>(ElementPacket<S>(), _e, _m, _bp, 0.0)),
+      soln_p(Points<S>(ElementPacket<S>(), _e, _m, _bp, 0.0))
   { }
 
   // return a Collection of the nodes on the open boundary
@@ -42,171 +48,38 @@ public:
   const Points<S>& get_vol_nodes(const S _time) const { return soln_p; }
   Points<S>&       get_vol_nodes(const S _time)       { return soln_p; }
 
-
-  // add more nodes and elements to this collection
-  void add_new(const std::vector<S>&   _x,
-               const std::vector<Int>& _idx,
-               const std::vector<S>&   _val) {
-
-    // remember old sizes of nodes and element arrays
-    const size_t nnold = this->n;
-    const size_t neold = get_nelems();
-
-    // make sure input arrays are correctly-sized
-
-    // assume all elements are 1st order quads (4 corner indices)
-    const size_t nper = 4;
-    assert(_idx.size() % nper == 0 && "Index array is not an even multiple of 4");
-    const size_t nelems = _idx.size() / nper;
-    // if no surfs, quit out now
-    if (nelems == 0) return;
-
-    assert(_x.size() % Dimensions == 0 && "Position array is not an even multiple of dimensions");
-    const size_t nnodes = _x.size() / Dimensions;
-
-    assert(_val.size() % nnodes == 0 && "Value array is not an even multiple of node count");
-
-    std::cout << "  adding " << nelems << " new elements and " << nnodes << " new points to collection..." << std::endl;
-
-    // DON'T call the method in the base class, because we do things differently here
-    //ElementBase<S>::add_new(_in);
-
-    // pull out the node locations, they are base class
-    for (size_t d=0; d<Dimensions; ++d) {
-      this->x[d].resize(nnold+nnodes);
-      for (size_t i=0; i<nnodes; ++i) {
-        this->x[d][nnold+i] = _x[Dimensions*i+d];
-      }
-    }
-
-    // save them as untransformed if we have a Body pointer
-    if (this->B) {
-      for (size_t d=0; d<Dimensions; ++d) {
-        (*this->ux)[d].resize(nnold+nnodes);
-        for (size_t i=nnold; i<nnold+nnodes; ++i) {
-          (*this->ux)[d][i] = this->x[d][i];
-        }
-      }
-    }
-
-    // copy over the node indices, taking care to offset into the new array
-    bool idx_are_all_good = true;
-    idx.resize(4*neold + _idx.size());
-    for (size_t i=0; i<nper*nelems; ++i) {
-      // make sure it exists in the nodes array
-      if (_idx[i] >= nnold+nnodes) idx_are_all_good = false;
-      idx[nper*neold+i] = nnold + _idx[i];
-    }
-    assert(idx_are_all_good && "Some indicies are bad");
-
-    // compute all basis vectors and element areas
-    compute_bases(neold+nelems);
-
-    // now, depending on the element type, put the value somewhere - but element-wise, so here
-    if (this->E == active) {
-/*
-      // value is a fixed strength for the element
-      ps[0]->reserve(neold+nelems); 
-      ps[0]->insert(ps[0]->end(), _val.begin(), _val.end());
-      // HACK - should use the size of _val to determine whether we have data here
-      ps[1]->reserve(neold+nelems); 
-      ps[1]->insert(ps[1]->end(), _val.begin(), _val.end());
-*/
-
-    } else if (this->E == reactive) {
-/*
-      // value is a boundary condition
-      bc[0]->reserve(neold+nelems); 
-      bc[0]->insert(bc[0]->end(), _val.begin(), _val.end());
-      // HACK - should use the size of _val to determine whether we have data here
-      bc[1]->reserve(neold+nelems); 
-      bc[1]->insert(bc[1]->end(), _val.begin(), _val.end());
-
-      // upsize vortex sheet and raw strength arrays, too
-      for (size_t d=0; d<2; ++d) {
-        if (ps[d]) {
-          ps[d]->resize(neold+nelems);
-          //std::fill(ps[d]->begin(), ps[d]->end(), 0.0);
-        }
-      }
-*/
-
-    } else if (this->E == inert) {
-      // value is ignored (probably zero)
-    }
-
-    // velocity is in the base class - just resize it here
-    for (size_t d=0; d<Dimensions; ++d) {
-      this->u[d].resize(nnold+nnodes);
-    }
-
-    // element velocity is here
-/*
-    for (size_t d=0; d<Dimensions; ++d) {
-      pu[d].resize(neold+nelems);
-    }
-*/
-
-    // debug print
-    if (false) {
-      std::cout << "Nodes" << std::endl;
-      for (size_t i=0; i<nnold+nnodes; ++i) {
-        std::cout << "  " << i << " " << this->x[0][i] << " " << this->x[1][i] << std::endl;
-      }
-      std::cout << "Elems" << std::endl;
-      for (size_t i=0; i<neold+nelems; ++i) {
-        std::cout << "  " << i << " " << idx[4*i] << " " << idx[4*i+1] << " " << idx[4*i+2] << " " << idx[4*i+3] << std::endl;
-      }
-    }
-
-    // need to reset the base class n
-    this->n += nnodes;
-    nb += nelems;
-
-    // re-find geometric center
-/*
-    if (this->M == bodybound) {
-      set_geom_center();
-    }
-*/
-  }
-
-  // append a Surfaces to the object
+  // append a Surfaces to the object for the wall-boundary geometry
   void add_wall(const ElementPacket<float>& _in) {
 
     // ensure that this packet really is Surfaces
-    assert(_in.idx.size() != 0 && "Input ElementPacket is not Volumes");
-    assert(_in.ndim == 2 && "Input ElementPacket is not Volumes");
+    assert(_in.idx.size() != 0 && "Input ElementPacket is empty");
+    assert(_in.ndim == 1 && "Input ElementPacket is not Surfaces");
 
     assert("We are not yet checking for matching element orders!");
 
-    wall_s = _in;
+    wall_s = Surfaces<S>(_in, this->E, this->M, this->B);
 
     // and that it has the right number of values per element/node
     //if (this->E == inert) assert(_in.val.size() == 0 && "Input ElementPacket with inert Volumes has nonzero val array");
     //else assert(_in.val.size() == _in.nelem && "Input ElementPacket with Volumes has bad val array size");
   }
 
+  // append a Surfaces to the object for the open-boundary geometry
+  void add_open(const ElementPacket<float>& _in) {
 
-/*
-  // up-size all arrays to the new size, filling with sane values
-  void resize(const size_t _nnew) {
-    const size_t currn = this->n;
-    //std::cout << "  inside Volumes::resize with " << currn << " " << _nnew << std::endl;
+    // ensure that this packet really is Surfaces
+    assert(_in.idx.size() != 0 && "Input ElementPacket is empty");
+    assert(_in.ndim == 1 && "Input ElementPacket is not Surfaces");
 
-    // must explicitly call the method in the base class - this sets n
-    ElementBase<S>::resize(_nnew);
+    assert("We are not yet checking for matching element orders!");
 
-    if (_nnew == currn) return;
+    open_s = Surfaces<S>(_in, this->E, this->M, this->B);
 
-    // radii here
-    const size_t thisn = r.size();
-    r.resize(_nnew);
-    for (size_t i=thisn; i<_nnew; ++i) {
-      r[i] = 1.0;
-    }
+    // and that it has the right number of values per element/node
+    //if (this->E == inert) assert(_in.val.size() == 0 && "Input ElementPacket with inert Volumes has nonzero val array");
+    //else assert(_in.val.size() == _in.nelem && "Input ElementPacket with Volumes has bad val array size");
   }
-*/
+
 
   //
   // return a particle version of the elements (useful during Diffusion)

@@ -48,7 +48,7 @@ public:
   void activate() { active = true; }
   void deactivate() { active = false; }
 
-  void init( std::vector<Collection>&);
+  void init( std::vector<HOVolumes<S>>&);
   void reset();
   void step( const double,
              const double,
@@ -56,7 +56,7 @@ public:
              std::vector<Collection>&,
              std::vector<Collection>&,
              BEM<S,I>&,
-             std::vector<Collection>&);
+             std::vector<HOVolumes<S>>&);
 
   // read/write parameters
   void from_json(const nlohmann::json);
@@ -89,7 +89,7 @@ private:
 // Initialize external high-order (HO) solver
 //
 template <class S, class A, class I>
-void Hybrid<S,A,I>::init(std::vector<Collection>& _euler) {
+void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
   std::cout << "Inside Hybrid::init with " << _euler.size() << " volumes" << std::endl;
 
   // call the external solver with the current geometry
@@ -120,7 +120,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
                          std::vector<Collection>&             _vort,
                          std::vector<Collection>&             _bdry,
                          BEM<S,I>&                            _bem,
-                         std::vector<Collection>&             _euler) {
+                         std::vector<HOVolumes<S>>&           _euler) {
 
   if (not active) return;
 
@@ -130,23 +130,26 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
   // part A - prepare BCs for Euler solver
 
-  // transform all elements to their appropriate locations
-  for (auto &coll : _euler) {
-    std::visit([=](auto& elem) { elem.move(_time, _dt); }, coll);
+  // transform all elements to their appropriate locations (do we need to do this?)
+  for (auto &coll : _vort) {
   }
+
   // update the BEM solution
   solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
   // get vels on each euler region
   for (auto &coll : _euler) {
+    // transform to current position
+    coll.move(_time, _dt);
+
     // isolate open/outer boundaries
     //Points<A> euler_bdry = std::visit([=](auto& elem) { elem.get_bc_nodes(_time); }, coll);
-    //Points<A> euler_bdry = coll.get_bc_nodes(_time);
+    Points<S> euler_bdry = coll.get_bc_nodes(_time);
 
     // find vels there
-    //Convection::find_vels<A,A,I>(_fs, _vort, _bdry, euler_bdry);
+    //Convection<S,A,I>::find_vels(_fs, _vort, _bdry, euler_bdry);
 
     // convert to transferable packet
-    //std::array<Vector<A>,Dimensions> openvels = euler_bdry.get_vel();
+    //std::array<Vector<S>,Dimensions> openvels = euler_bdry.get_vel();
 
     // transfer BC packet to solver
     //(void) hosolver_setopenvels_d_(coll.get_n(), openvels[0], openvels[1]);
@@ -172,8 +175,10 @@ void Hybrid<S,A,I>::step(const double                         _time,
   //   (add up how much circulation we remove) - or not?
 
   // re-run BEM and compute vorticity on all HO volume nodes - bem already run
-  //Points<S> euler_vol = coll.get_vol_nodes(_time);
-  //Convection::find_vels<S,A,I>(_fs, _vort, _bdry, euler_vol, velandvort);
+  for (auto &coll : _euler) {
+    Points<S> euler_vol = coll.get_vol_nodes(_time);
+    //Convection<S,A,I>::find_vels(_fs, _vort, _bdry, euler_vol, velandvort);
+  }
 
   // subtract the Lagrangian-computed vort from the actual Eulerian vort on those nodes
   // now we have the amount of vorticity we need to re-add to the Lagrangian side
