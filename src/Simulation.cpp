@@ -731,9 +731,9 @@ void Simulation::add_hybrid(const std::vector<ElementPacket<float>>  _elems,
   //_elems[0] is the volume elements - always add unique Collection to euler
   euler.push_back(Volumes<float>(_elems[0], hybrid, fixed, _bptr));
   //_elems[1] is the wall boundaries
-  //euler.back().addWall(Surfaces<float>(_elems[1], hybrid, fixed, _bptr));
+  //euler.back().add_wall(Surfaces<float>(_elems[1], hybrid, fixed, _bptr));
   //_elems[2] is the open boundaries
-  //euler.back().addOpen(Surfaces<float>(_elems[2], hybrid, fixed, _bptr));
+  //euler.back().add_open(Surfaces<float>(_elems[2], hybrid, fixed, _bptr));
 }
 
 // add a new Body with the given name

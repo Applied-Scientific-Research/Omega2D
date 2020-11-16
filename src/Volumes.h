@@ -9,7 +9,6 @@
 
 #include "Omega2D.h"
 #include "VectorHelper.h"
-#include "Surfaces.h"
 
 #ifdef USE_GL
 #include "GlState.h"
@@ -447,7 +446,7 @@ public:
   // append nodes and bricks to this collection
   void add_new(const ElementPacket<float>& _in) {
 
-    // ensure that this packet really is Surfaces
+    // ensure that this packet really is Volumes
     assert(_in.idx.size() != 0 && "Input ElementPacket is not Volumes");
     assert(_in.ndim == 2 && "Input ElementPacket is not Volumes");
 
@@ -1363,10 +1362,6 @@ protected:
   // element-wise variables special to quad elements
   std::vector<Int>                 idx; // indexes into the x array
   Vector<S>                       area; // brick volumes
-
-  // boundary elements (only used when this is an euler/hybrid Collection)
-  std::optional<Surfaces<S>>      wall;
-  std::optional<Surfaces<S>>      open;
 
   //Basis<S>                           b; // transformed basis vecs: tangent is b[0], normal is b[1], x norm is b[1][0]
   //std::array<Vector<S>,Dimensions>  pu; // velocities on element centers - "u" is node vels in ElementBase
