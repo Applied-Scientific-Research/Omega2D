@@ -214,13 +214,17 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
 // read "simparams" json object
 template <class S, class A, class I>
-void Hybrid<S,A,I>::from_json(const nlohmann::json j) {
-  active = j.value("enabled", false);
-  elementOrder = j.value("elementOrder", 1);
-  timeOrder = j.value("timeOrder", 1);
-  numSubsteps = j.value("numSubsteps", 100);
-  preconditioner = j.value("preconditioner", "none");
-  solverType = j.value("solverType", "fgmres");
+void Hybrid<S,A,I>::from_json(const nlohmann::json simj) {
+  if (simj.find("hybrid") != simj.end()) {
+    nlohmann::json j = simj["hybrid"];
+
+    active = j.value("enabled", false);
+    elementOrder = j.value("elementOrder", 1);
+    timeOrder = j.value("timeOrder", 1);
+    numSubsteps = j.value("numSubsteps", 100);
+    preconditioner = j.value("preconditioner", "none");
+    solverType = j.value("solverType", "fgmres");
+  }
 }
 
 // create and write a json object for all diffusion parameters
