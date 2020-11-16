@@ -62,15 +62,17 @@ public:
   void from_json(const nlohmann::json);
   void add_to_json(nlohmann::json&) const;
 
+  void draw_advanced();
+
 private:
   // are we even using the hybrid scheme?
   bool active;
   bool initialized;
 
   // parameters from json for the solver
-  uint8_t elementOrder;
+  int elementOrder;
   uint8_t timeOrder;
-  uint8_t numSubsteps;
+  int numSubsteps;
   std::string preconditioner;
   std::string solverType;
 
@@ -212,3 +214,49 @@ void Hybrid<S,A,I>::add_to_json(nlohmann::json& simj) const {
 
   simj["hybrid"] = j;
 }
+
+#ifdef USE_IMGUI
+//
+// draw advanced options parts of the GUI
+//
+template <class S, class A, class I>
+void Hybrid<S,A,I>::draw_advanced() {
+
+  ImGui::Separator();
+  ImGui::Spacing();
+  ImGui::Text("Hybrid/Grid settings");
+
+  ImGui::Checkbox("Enabled", &active);
+  if (ImGui::InputInt("Element Order", &elementOrder)) {
+    if (elementOrder < 1) { elementOrder = 1; }
+    else if (elementOrder > 5) { elementOrder = 5; }
+  }
+
+  const int numTimeOrders = 3;
+  static int timeI = 0;
+  const char* timeOrders[] = {"1", "2", "4"};
+  ImGui::Combo("Select Time Order", &timeI, timeOrders, numTimeOrders);
+  switch (timeI) {
+    case 0: timeOrder = 1; break;
+    case 1: timeOrder = 2; break;
+    case 2: timeOrder = 4; break;
+  }
+
+  if (ImGui::InputInt("Number of Substeps", &numSubsteps)) {
+    if (numSubsteps < 1) { numSubsteps = 1; }
+    else if (numSubsteps > 1000) { numSubsteps = 1000; }
+  }
+  
+  const int numPreconditioners = 1;
+  static int preconI = 0;
+  const char* preconditioners[] = {"none"};
+  ImGui::Combo("Select Preconditioner", &preconI, preconditioners, numPreconditioners);
+  preconditioner = preconditioners[preconI];
+  
+  const int numSolvers = 1;
+  static int solverI = 0;
+  const char* solvers[] = {"fgmres"};
+  ImGui::Combo("Select Solver", &solverI, solvers, numSolvers);
+solverType = solvers[solverI];
+}
+#endif

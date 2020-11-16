@@ -233,6 +233,9 @@ void Simulation::draw_advanced() {
 
   // set the diffusion parameters in Diffusion.h
   diff.draw_advanced();
+  
+  // set the hybrid parameters in Hybrid.h
+  hybr.draw_advanced();
 }
 #endif
 
