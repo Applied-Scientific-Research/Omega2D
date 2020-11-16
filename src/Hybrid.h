@@ -62,6 +62,9 @@ private:
   bool active;
   bool initialized;
 
+  // parameters from json for the solver
+  //uint8_t elementOrder;
+
   // local copies of particle data
   //Particles<S> temp;
 
@@ -127,18 +130,20 @@ void Hybrid<S,A,I>::step(const double                         _time,
   // get vels on each euler region
   for (auto &coll : _euler) {
     // isolate open/outer boundaries
-    //Points<S> euler_bdry = std::visit([=](auto& elem) { elem.get_bc_nodes(_time); }, coll);
+    //Points<A> euler_bdry = std::visit([=](auto& elem) { elem.get_bc_nodes(_time); }, coll);
+    //Points<A> euler_bdry = coll.get_bc_nodes(_time);
+
     // find vels there
-    //Convection::find_vels<S,A,I>(_fs, _vort, _bdry, euler_bdry);
+    //Convection::find_vels<A,A,I>(_fs, _vort, _bdry, euler_bdry);
+
     // convert to transferable packet
-    //std::vector<A> openvels = euler_bdry.get_vels();
-    // where do we put these?
+    //std::array<Vector<A>,Dimensions> openvels = euler_bdry.get_vel();
+
+    // transfer BC packet to solver
+    //(void) hosolver_setopenvels_d_(coll.get_n(), openvels[0], openvels[1]);
   }
 
   // part B - call Euler solver
-
-  // transfer BC packet
-  //(void) hosolver_setopenvels_d_(np, openvels[0], openvels[1]);
 
   // call solver
   //(void) hosolver_solveto_d_(_time);
@@ -155,15 +160,21 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
   // here's one way to do it:
   // identify all free vortex particles inside of euler regions and remove them
-  //   (add up how much circulation we remove)
-  // re-run BEM and compute vorticity on all HO volume nodes
+  //   (add up how much circulation we remove) - or not?
+
+  // re-run BEM and compute vorticity on all HO volume nodes - bem already run
+  //Points<S> euler_vol = coll.get_vol_nodes(_time);
+  //Convection::find_vels<S,A,I>(_fs, _vort, _bdry, euler_vol, velandvort);
+
   // subtract the Lagrangian-computed vort from the actual Eulerian vort on those nodes
   // now we have the amount of vorticity we need to re-add to the Lagrangian side
   // for each sub-node of each HO quad, run a VRM onto the existing set of Lagrangian
   //   particles adding where necessary to satisfy at least 0th and 1st moments, if not 2nd
+
   // simple way: just create a new particle at the centroid of each element, let merge deal
 
 }
+
 //
 // read/write parameters to json
 //
