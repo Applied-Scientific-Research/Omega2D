@@ -56,7 +56,8 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
 }
 
 #ifdef USE_IMGUI
-bool MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &mfs, const float _ips, const float &_tracerScale) {
+// 0 means keep open, 1 means create, 2 means cancel
+int MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &mfs, const float _ips, const float &_tracerScale) {
   static int item = 0;
   static int oldItem = -1;
   const char* items[] = { "single point", "measurement circle", "measurement line", "measurement grid", "measurement field", "annular field" };
@@ -88,24 +89,22 @@ bool MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeatur
     oldItem = item;
   }
 
-  bool created = false;  
+  int created = 0;  
   if (mf->draw_info_gui("Add", _tracerScale, _ips)) {
     mf->generate_draw_geom();
     mfs.emplace_back(std::move(mf));
     mf = nullptr;
     oldItem = -1;
-    created = true;
-    ImGui::CloseCurrentPopup();
+    created = 1;
   }
 
   ImGui::SameLine();
   if (ImGui::Button("Cancel", ImVec2(120,0))) {
     oldItem = -1;
     mf = nullptr;
-    ImGui::CloseCurrentPopup();
+    created = 2;
   }
 
-  ImGui::EndPopup();
   return created;
 }
 

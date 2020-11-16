@@ -238,9 +238,9 @@ int main(int argc, char const *argv[]) {
       for (auto const& bf : bfeatures) {
         if (bf->is_enabled()) {
           // get interior elems and then boundaries (when merged with Gmsh branch)
-          //std::vector<ElementPacket<float>> hybpackets = bf->init_hybrid();
-          std::vector<ElementPacket<float>> hybpackets;
-          sim.add_hybrid(hybpackets, bf->get_body() );
+          //std::vector<ElementPacket<float>> hybpackets = bf->init_hybrid(1.0);
+          //std::vector<ElementPacket<float>> hybpackets;
+          //sim.add_hybrid(hybpackets, bf->get_body() );
         }
       }
 
@@ -462,7 +462,6 @@ int main(int argc, char const *argv[]) {
     if (show_json_input_window) {
       bool try_it = false;
       static std::string infile = "input.json";
-
       if (fileIOWindow( try_it, infile, recent_json_files, "Open", {"*.json", "*.*"}, true, ImVec2(200+26*fontSize,300))) {
         show_json_input_window = false;
 
@@ -656,36 +655,59 @@ int main(int argc, char const *argv[]) {
       ImGui::Spacing();
 
       // button and modal window for adding new boundary objects
-      if (ImGui::Button("Add boundary")) ImGui::OpenPopup("New boundary structure");
-      ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
-      if (ImGui::BeginPopupModal("New boundary structure"))
-      {
-        if (BoundaryFeature::draw_creation_gui(bfeatures, sim)) {
-          bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
+      // if (ImGui::Button("Add boundary")) ImGui::OpenPopup("New boundary structure");
+      static bool create_bdry_f = false;
+      if (ImGui::Button("Add boundary")) { create_bdry_f = true; }
+      if (create_bdry_f) {
+        ImGui::SetNextWindowPos(ImVec2(100, 100), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(400, 275), ImGuiCond_FirstUseEver);
+        ImGui::Begin("New boundary structure");
+        int status = BoundaryFeature::draw_creation_gui(bfeatures, sim);
+        if (status == 1) {
+            bdraw.add_elements(bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled());
+            create_bdry_f = false;
+        } else if (status == 2) {
+            create_bdry_f = false;
         }
-        ImGui::EndPopup();
+        ImGui::End();
       }
 
       // button and modal window for adding new flow structures
       ImGui::SameLine();
-      if (ImGui::Button("Add vortex")) ImGui::OpenPopup("New flow structure");
-      ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiCond_FirstUseEver);
-      if (ImGui::BeginPopupModal("New flow structure"))
-      {
-        if (FlowFeature::draw_creation_gui(ffeatures, sim.get_ips())) {
-          fdraw.add_elements( ffeatures.back()->get_draw_packet(), ffeatures.back()->is_enabled() );
+      static bool create_flow_f = false;
+      if (ImGui::Button("Add vortex")) { create_flow_f = true; }
+      //ImGui::OpenPopup("New flow structure");
+      if (create_flow_f) {
+        ImGui::SetNextWindowPos(ImVec2(100, 100), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
+        ImGui::Begin("New flow structure");
+        int status = FlowFeature::draw_creation_gui(ffeatures, sim.get_ips());
+        if (status == 1) {
+            fdraw.add_elements(ffeatures.back()->get_draw_packet(), ffeatures.back()->is_enabled());
+            create_flow_f = false;
+        } else if (status == 2) {
+            create_flow_f = false;
         }
+        ImGui::End();
       }
 
       // button and modal window for adding new measurement objects
       ImGui::SameLine();
-      if (ImGui::Button("Add measurement")) ImGui::OpenPopup("New measurement structure");
-      ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiCond_FirstUseEver);
-      if (ImGui::BeginPopupModal("New measurement structure"))
-      {
-        if (MeasureFeature::draw_creation_gui(mfeatures, sim.get_ips(), rparams.tracer_scale)) {
-          mdraw.add_elements( mfeatures.back()->get_draw_packet(), mfeatures.back()->is_enabled() );
+      //if (ImGui::Button("Add measurement")) ImGui::OpenPopup("New measurement structure");
+      static bool create_ms_f = false;
+      if (ImGui::Button("Add measurement")) { create_ms_f = true; }
+      if (create_ms_f) {
+        ImGui::SetNextWindowPos(ImVec2(100, 100), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiCond_FirstUseEver);
+        ImGui::Begin("New measurement structure");
+        int status = MeasureFeature::draw_creation_gui(mfeatures, sim.get_ips(), rparams.tracer_scale);
+        if (status == 1) {
+          mdraw.add_elements(mfeatures.back()->get_draw_packet(), mfeatures.back()->is_enabled());
+          create_ms_f = false;
+        } else if (status == 2) {
+          create_ms_f = false;
         }
+        ImGui::End();
       }
 
       ImGui::Spacing();

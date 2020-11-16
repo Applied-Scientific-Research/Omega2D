@@ -40,7 +40,9 @@ ELSE ()
   ADD_DEFINITIONS(-DEXAMPLES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples")
 ENDIF ()
 
-# Split on compiler
+
+# Define compiler-specific options
+
 IF (CMAKE_COMPILER_IS_GNUCXX)
   # support Core2 at a minimum, haswell ideally
   #SET (CMAKE_CXX_FLAGS "-Wall -Wformat -Wno-int-in-bool-context -std=c++17 -march=core2 -mtune=haswell")
@@ -59,7 +61,9 @@ ELSEIF (MSVC)
   SET (CMAKE_CXX_FLAGS_RELEASE "/O2")
 ENDIF ()
 
-# Split on operating system
+
+# Define platform-specific libraries and options
+
 IF( WIN32 )
   # because clang is stupid
   IF (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -150,6 +154,7 @@ ELSEIF( APPLE )
     SET (VC_LIBS "")
   ENDIF()
 
+  SET( CMAKE_MACOSX_RPATH 1 )
   SET( BASE_LIBS ${VC_LIBS} ${CMAKE_THREAD_LIBS_INIT} )
   SET( GUI_LIBS ${FRAMEWORK_LIBS} ${COCOA_LIBRARY} ${IOKIT_LIBRARY} ${COREVIDEO_LIBRARY} ${OpenGL_LIBRARY} )
 
@@ -205,6 +210,7 @@ ELSEIF( UNIX )
   SET( GUI_LIBS ${FRAMEWORK_LIBS} ${GLFW_LIBRARIES} )
 ENDIF()
 
+
 # Enable plugins
 
 # adaptive VRM
@@ -232,6 +238,13 @@ ENDIF()
 #SET( EXTERNAL_LIBS ${FASTSUM_LIBS} gfortran )
 SET( EXTERNAL_LIBS ${FASTSUM_LIBS} )
 
+# Enable submodules
+ADD_SUBDIRECTORY( extern/gmsh-reader )
+INCLUDE_DIRECTORIES( "extern/gmsh-reader/src" )
+SET( EXTERNAL_LIBS ${EXTERNAL_LIBS} gmsh-reader-static )
+
+
+# Define files and targets
 
 ADD_DEFINITIONS (${CPREPROCDEFS})
 
