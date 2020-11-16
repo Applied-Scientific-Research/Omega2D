@@ -641,13 +641,13 @@ public:
   // always recalculate everything!
   void compute_areas(const Int nnew) {
 
-    assert(2*nnew == idx.size() && "Array size mismatch");
 
     area.resize(nnew);
 
     // we'll reuse these vectors
     //std::array<S,Dimensions> x1, norm;
     const size_t nper = idx.size() / nnew;
+    assert(nper*nnew == idx.size() && "Array size mismatch");
 
     // lambdas let you define functions inside of functions
     // https://stackoverflow.com/questions/4324763/can-we-have-functions-inside-functions-in-c
