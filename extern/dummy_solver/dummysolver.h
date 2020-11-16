@@ -26,17 +26,22 @@ public:
   const std::vector<double>& get_nodes() { return nodes; }
   const std::vector<uint32_t>& get_elems() { return elems; }
 
-  // read the given mesh file and populate the data structures
-  int32_t read_msh_file(const char* const filename);
-
-  // find a searchname in the MSH file and return the file stream after that line
-  //bool locate_in_file(std::ifstream& filestream, const std::string& searchname);
+  // functions that an external driver program should call
+  void hosolver_set_re_d_(const double _re) { re = _re; }
+  void hosolver_init_d_(std::vector<double>, std::vector<uint32_t>, std::vector<uint32_t>, std::vector<uint32_t>);
+  std::vector<double> hosolver_getsolnpts_d_();
+  std::vector<double> hosolver_getopenpts_d_();
+  void hosolver_setopenvels_d_(std::vector<double>);
+  void hosolver_solveto_d_(const double);
+  std::vector<double> hosolver_getallvorts_d_();
 
 private:
   uint32_t N_nodes = 0;     //# of nodes read from msh file
   uint32_t N_elements = 0;  //# of elements read from msh file
   std::vector<double> nodes;  // coordinates of the nodes
   std::vector<uint32_t> elems;  // coordinates of the nodes
+
+  double re;		// reynolds number
 
 }; // end class Solver
 
