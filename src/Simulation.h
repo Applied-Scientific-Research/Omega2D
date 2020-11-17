@@ -10,6 +10,7 @@
 #include "Omega2D.h"
 #include "Body.h"
 #include "Collection.h"
+#include "HOVolumes.h"
 #include "BEM.h"
 #include "Convection.h"
 #include "Diffusion.h"
@@ -169,7 +170,7 @@ private:
   std::vector<Collection> fldpt;	// tracers and field points
 
   // Object with all of the near-body, Eulerian solution regions
-  std::vector<Collection> euler;	// hybrid/euler regions
+  std::vector<HOVolumes<STORE>> euler;	// hybrid/euler regions
 
   // The need to solve for the unknown strengths of reactive elements inside both the
   //   diffusion and convection steps necessitates a BEM object here
