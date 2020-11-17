@@ -494,6 +494,9 @@ void Simulation::first_step() {
   // update BEM and find vels on any particles but DO NOT ADVECT
   conv.advect_1st(time, 0.0, thisfs, get_ips(), vort, bdry, fldpt, bem);
 
+  // call HO grid solver, but only to send first velocity results and initialize vorticity
+  hybr.first_step(time, thisfs, vort, bdry, bem, conv, euler);
+
   // and write status file
   dump_stats_to_status();
 }
@@ -536,7 +539,7 @@ void Simulation::step() {
   time += (double)dt;
 
   // call HO grid solver to recalculate vorticity at the end of this time step
-  hybr.step(time, dt, thisfs, vort, bdry, bem, euler);
+  hybr.step(time, dt, thisfs, vort, bdry, bem, conv, euler);
 
   // push field points out of objects every few steps
   if (nstep%5 == 0) clear_inner_layer<STORE>(1, bdry, fldpt, (STORE)0.0, (STORE)(0.5*get_ips()));

@@ -9,6 +9,7 @@
 
 #include "Omega2D.h"
 #include "Collection.h"
+#include "Convection.h"
 #include "BEM.h"
 #include "dummysolver.h"
 
@@ -52,12 +53,20 @@ public:
 
   void init( std::vector<HOVolumes<S>>&);
   void reset();
+  void first_step( const double,
+             const std::array<double,Dimensions>&,
+             std::vector<Collection>&,
+             std::vector<Collection>&,
+             BEM<S,I>&,
+             Convection<S,A,I>&,
+             std::vector<HOVolumes<S>>&);
   void step( const double,
              const double,
              const std::array<double,Dimensions>&,
              std::vector<Collection>&,
              std::vector<Collection>&,
              BEM<S,I>&,
+             Convection<S,A,I>&,
              std::vector<HOVolumes<S>>&);
 
   // read/write parameters
@@ -133,6 +142,47 @@ void Hybrid<S,A,I>::reset() {
 
 
 //
+// Send first set of velocities to solver
+//
+template <class S, class A, class I>
+void Hybrid<S,A,I>::first_step(const double                   _time,
+                         const std::array<double,Dimensions>& _fs,
+                         std::vector<Collection>&             _vort,
+                         std::vector<Collection>&             _bdry,
+                         BEM<S,I>&                            _bem,
+                         Convection<S,A,I>&                   _conv,
+                         std::vector<HOVolumes<S>>&           _euler) {
+
+  if (not active) return;
+  if (not initialized) init(_euler);
+
+  std::cout << "Inside Hybrid::first_step at t=" << _time << std::endl;
+
+  // make a list of euler boundary regions
+  std::vector<Collection> euler_bdrys;
+  for (auto &coll : _euler) {
+    // transform to current position
+    coll.move(_time, 0.0);
+
+    // isolate open/outer boundaries
+    euler_bdrys.emplace_back(coll.get_bc_nodes(_time));
+  }
+
+  // get vels on each euler region
+  _conv.find_vels(_fs, _vort, _bdry, euler_bdrys);
+
+  for (auto &coll : euler_bdrys) {
+    // convert to transferable packet
+    std::array<Vector<S>,Dimensions> openvels = std::visit([=](auto& elem) { return elem.get_vel(); }, coll);
+
+    // convert to a std::vector<double>
+
+    // transfer BC packet to solver
+    //(void) solver.setopenvels_d_(openvels);
+  }
+}
+
+//
 // Forward integration step
 //
 template <class S, class A, class I>
@@ -142,10 +192,10 @@ void Hybrid<S,A,I>::step(const double                         _time,
                          std::vector<Collection>&             _vort,
                          std::vector<Collection>&             _bdry,
                          BEM<S,I>&                            _bem,
+                         Convection<S,A,I>&                   _conv,
                          std::vector<HOVolumes<S>>&           _euler) {
 
   if (not active) return;
-
   if (not initialized) init(_euler);
 
   std::cout << "Inside Hybrid::step at t=" << _time << " and dt=" << _dt << std::endl;
@@ -164,7 +214,6 @@ void Hybrid<S,A,I>::step(const double                         _time,
     coll.move(_time, _dt);
 
     // isolate open/outer boundaries
-    //Points<A> euler_bdry = std::visit([=](auto& elem) { elem.get_bc_nodes(_time); }, coll);
     Points<S> euler_bdry = coll.get_bc_nodes(_time);
 
     // find vels there
@@ -199,7 +248,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
   // re-run BEM and compute vorticity on all HO volume nodes - bem already run
   for (auto &coll : _euler) {
     Points<S> euler_vol = coll.get_vol_nodes(_time);
-    //Convection<S,A,I>::find_vels(_fs, _vort, _bdry, euler_vol, velandvort);
+    //_conv.find_vels(_fs, _vort, _bdry, euler_vol, velandvort);
   }
 
   // subtract the Lagrangian-computed vort from the actual Eulerian vort on those nodes
