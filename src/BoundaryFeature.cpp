@@ -1487,7 +1487,7 @@ FromMsh::init_hybrid(const float _ips) const {
 
   // find out how large each array will be
   const size_t ne = elems.size();
-  std::cout << "  reading " << ne << " elems" << std::endl;
+  std::cout << "  volume has " << ne << " elems" << std::endl;
   // number of nodes per element - must be constant!
   size_t nnpe = 0;
   for (auto& thiselem : elems) {
@@ -1513,17 +1513,74 @@ FromMsh::init_hybrid(const float _ips) const {
   // second EP is the wall
   //
   std::cout << "Generate Wall Boundary" << std::endl;
-  // bad way: make the call
-  pack.emplace_back(init_elements(1.0));
   // better way: do it right here with what we already have in memory
+
+  // get a reference to the complete edge list
+  const std::vector<ReadMsh::edge>& edges = mesh.get_edges();
+
+  // get the boundary corresponding to the wall
+  const ReadMsh::boundary wall = mesh.get_bdry("wall");
+  if (wall.N_edges == 0) {
+    std::cout << "  no boundary called 'wall' in this msh file, skipping." << std::endl;
+    pack.emplace_back(ElementPacket<float>());
+
+  } else {
+
+    // set the idx pointers to the new surface elements
+    const size_t np = wall.N_edges;
+    std::cout << "  wall has " << np << " edges" << std::endl;
+    idx.clear();
+    for (uint32_t thisedge : wall.edges) {
+      //std::cout << "  edge " << thisedge << " has " << edges[thisedge].N_nodes << " nodes" << std::endl;
+      // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
+      assert(edges[thisedge].N_nodes > 1 && "Edge does not have enough nodes!");
+      // HACK - annular gmsh meshes have wall defined CCW (right wall is to fluid), not CW (left wall is)
+      idx.push_back(edges[thisedge].nodes[1]);
+      idx.push_back(edges[thisedge].nodes[0]);
+    }
+
+    // set boundary condition value to 0.0 (velocity BC)
+    vals.resize(np);
+    std::fill(vals.begin(), vals.end(), 0.0);
+
+    // return the element packet (will have many unused nodes - that's OK)
+    pack.emplace_back(ElementPacket<float>({x, idx, vals, (size_t)(np), (uint8_t)1}));
+  }
 
   //
   // third EP is the open boundary
   //
   std::cout << "Generate Open Boundary" << std::endl;
-  // bad way: make the call
-  pack.emplace_back(init_elements(1.0));
   // better way: do it right here with what we already have in memory
+
+  // get the boundary corresponding to the open side
+  const ReadMsh::boundary open = mesh.get_bdry("open");
+  if (open.N_edges == 0) {
+    std::cout << "  no boundary called 'open' in this msh file, skipping." << std::endl;
+    pack.emplace_back(ElementPacket<float>());
+
+  } else {
+
+    // set the idx pointers to the new surface elements
+    const size_t np = open.N_edges;
+    std::cout << "  open has " << np << " edges" << std::endl;
+    idx.clear();
+    for (uint32_t thisedge : open.edges) {
+      //std::cout << "  edge " << thisedge << " has " << edges[thisedge].N_nodes << " nodes" << std::endl;
+      // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
+      assert(edges[thisedge].N_nodes > 1 && "Edge does not have enough nodes!");
+      // note - annular gmsh meshes have open defined CCW, which is correct here
+      idx.push_back(edges[thisedge].nodes[0]);
+      idx.push_back(edges[thisedge].nodes[1]);
+    }
+
+    // set boundary condition value to 0.0 (velocity BC)
+    vals.resize(np);
+    std::fill(vals.begin(), vals.end(), 0.0);
+
+    // return the element packet (will have many unused nodes - that's OK)
+    pack.emplace_back(ElementPacket<float>({x, idx, vals, (size_t)(np), (uint8_t)1}));
+  }
 
   return pack;
 }
