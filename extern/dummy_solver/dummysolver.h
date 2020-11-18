@@ -40,15 +40,26 @@ public:
   std::vector<double> getallvorts_d_();
 
 private:
+
+  // the physical geometry
   uint32_t N_nodes = 0;     //# of nodes read from msh file
   uint32_t N_elements = 0;  //# of elements read from msh file
   std::vector<double> nodes;  // coordinates of the nodes
-  std::vector<uint32_t> elems;  // coordinates of the nodes
+  std::vector<uint32_t> elems;  // pointers to nodes for all elements (4 or 9 per elem)
+  std::vector<uint32_t> wbdry;  // pointers to nodes of wall boundary elements (2 or 3 per elem)
+  std::vector<uint32_t> obdry;  // pointers to nodes of open boundary elements (2 or 3 per elem)
+
+  // the solution points
+  uint32_t N_snodes = 0;     //# of nodes in the solution space (order+1)^2 per element
+  uint32_t N_selements = 0;  //# of 2d elements in the solution space
+  std::vector<double> snodes;  // coordinates of the solution nodes
+  std::vector<uint32_t> selems;  // pointers to nodes for all solution elements
+  std::vector<uint32_t> sopts;  // pointers to nodes for all solution elements on open boundaries
 
   double reynolds;	// reynolds number
+  uint32_t num_substeps;// number of internel substeps per external time step
   uint8_t elem_order;	// internal element order
   uint8_t time_order;	// internal time integration order
-  uint32_t num_substeps;// number of internel substeps per external time step
 
 }; // end class Solver
 
