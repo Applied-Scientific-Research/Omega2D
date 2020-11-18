@@ -11,7 +11,7 @@
 #include "Body.h"
 #include "ElementPacket.h"
 #include "Feature.h"
-#include "json/json.hpp"
+#include <json.hpp>
 #include "Omega2D.h"
 #include "Simulation.h"
 

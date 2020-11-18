@@ -15,7 +15,7 @@
 #include "Body.h"
 #include "RenderParams.h"
 #include "FeatureDraw.h"
-#include "json/json.hpp"
+#include <json.hpp>
 #include "main_gui_functions.cpp"
 #include "imgui/imgui_internal.h"
 
