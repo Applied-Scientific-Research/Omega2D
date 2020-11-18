@@ -168,8 +168,8 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
     euler_bdrys.emplace_back(coll.get_bc_nodes(_time));
   }
 
-  // get vels on each euler region
-  _conv.find_vels(_fs, _vort, _bdry, euler_bdrys);
+  // get vels and vorts on each euler region - and force it
+  _conv.find_vels(_fs, _vort, _bdry, euler_bdrys, velandvort, true);
 
   for (auto &coll : euler_bdrys) {
     // convert to transferable packet
