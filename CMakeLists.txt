@@ -235,6 +235,7 @@ SET( EXTERNAL_LIBS ${FASTSUM_LIBS} )
 
 ADD_DEFINITIONS (${CPREPROCDEFS})
 
+INCLUDE_DIRECTORIES( "lib" )
 INCLUDE_DIRECTORIES( "lib/cppcodec" )
 INCLUDE_DIRECTORIES( "lib/glad" )
 INCLUDE_DIRECTORIES( "lib/json" )
@@ -244,10 +245,10 @@ INCLUDE_DIRECTORIES( "lib/tinyxml2" )
 INCLUDE_DIRECTORIES( "src" )
 
 IF (CMAKE_COMPILER_IS_GNUCXX)
-  SET_SOURCE_FILES_PROPERTIES("src/imgui/imgui_draw.cpp" PROPERTIES COMPILE_FLAGS -Wno-maybe-uninitialized)
+  SET_SOURCE_FILES_PROPERTIES("lib/imgui/imgui_draw.cpp" PROPERTIES COMPILE_FLAGS -Wno-maybe-uninitialized)
 ENDIF()
 
-FILE(GLOB IMGUISOURCES "src/imgui/*.cpp" )
+FILE(GLOB IMGUISOURCES "lib/imgui/imgui*.cpp" )
 SET(SOURCES "src/Simulation.cpp"
             "src/FlowFeature.cpp"
             "src/CollectionHelper.cpp"
