@@ -17,7 +17,7 @@
 #include "FeatureDraw.h"
 #include <json.hpp>
 #include "main_gui_functions.cpp"
-#include "imgui/imgui_internal.h"
+#include <imgui/imgui_internal.h>
 
 #ifdef _WIN32
   // for glad
