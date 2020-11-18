@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-#include "cppcodec/base64_rfc4648.hpp"
+#include <base64_rfc4648.hpp>
 #include "tinyxml2.h"
 
 class VtkXmlWriter {

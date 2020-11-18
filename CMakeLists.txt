@@ -239,7 +239,7 @@ INCLUDE_DIRECTORIES( "src/glad" )
 FILE(GLOB IMGUISOURCES "src/imgui/*.cpp" )
 INCLUDE_DIRECTORIES( "src/tinyxml2" )
 INCLUDE_DIRECTORIES( "src/tinyexpr" )
-INCLUDE_DIRECTORIES( "src/cppcodec" )
+INCLUDE_DIRECTORIES( "lib/cppcodec" )
 INCLUDE_DIRECTORIES( "lib/miniz" )
 INCLUDE_DIRECTORIES( "src" )
 
