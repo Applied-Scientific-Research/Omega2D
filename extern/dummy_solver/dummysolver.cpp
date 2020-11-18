@@ -53,7 +53,7 @@ Solver::init_d_(std::vector<double> _pts,
                 std::vector<uint32_t> _widx,
                 std::vector<uint32_t> _oidx) {
 
-  std::cout << "DummySolver initializing with " << _pts.size()/2 << " nodes" << std::endl;
+  std::cout << "  DummySolver initializing" << std::endl;
 
   //
   // the solver receives geometry nodes and elements and boundaries - save them
@@ -63,23 +63,23 @@ Solver::init_d_(std::vector<double> _pts,
   assert(_pts.size() % 2 == 0 && "WARN (Solver::init_d_) input _pts is not even");
   nodes = _pts;
   N_nodes = nodes.size()/2;
-  std::cout << "  received " << N_nodes << " nodes" << std::endl;
+  std::cout << "    received " << N_nodes << " nodes" << std::endl;
 
   // 2d volume elements, assume 4 nodes per element
   //const size_t nper = _cidx.size() / 4;
   assert(_cidx.size() % 4 == 0 && "WARN (Solver::init_d_) input _cidx not a multiple of 4");
   elems = _cidx;
   N_elements = elems.size()/4;
-  std::cout << "  received " << N_elements << " 2d elements" << std::endl;
+  std::cout << "    received " << N_elements << " 2d elements" << std::endl;
 
   // the boundaries
   assert(_widx.size() % 2 == 0 && "WARN (Solver::init_d_) input _widx not a multiple of 2");
   wbdry = _widx;
-  std::cout << "  received " << wbdry.size()/2 << " 1d wall boundary elements" << std::endl;
+  std::cout << "    received " << wbdry.size()/2 << " 1d wall boundary elements" << std::endl;
 
   assert(_oidx.size() % 2 == 0 && "WARN (Solver::init_d_) input _oidx not a multiple of 2");
   obdry = _oidx;
-  std::cout << "  received " << obdry.size()/2 << " 1d open boundary elements" << std::endl;
+  std::cout << "    received " << obdry.size()/2 << " 1d open boundary elements" << std::endl;
 
   //
   // Use that information to generate *solution* nodes and elements
@@ -97,12 +97,14 @@ Solver::init_d_(std::vector<double> _pts,
   }
   N_snodes = snodes.size()/2;
   N_selements = selems.size();
+  std::cout << "    generated " << N_snodes << " solution nodes" << std::endl;
 
   // identify which of the solution nodes are the ones nearest the open boundary
-  // HACK - just pick some
-  for (size_t i=0; i<N_elements; i+=10) {
-    sopts.push_back((uint32_t)i);
+  // HACK - assume it's the last points that we made (elems are numbered from wall-to-open)
+  for (size_t i=0; i<obdry.size()/2; ++i) {
+    sopts.push_back((uint32_t)(N_snodes-i-1));
   }
+  std::cout << "    of which " << sopts.size() << " are on the open boundary" << std::endl;
 
   return;
 }
@@ -124,7 +126,7 @@ std::vector<double>
 Solver::getopenpts_d_() {
   // must assemble vector of just those nodes
   std::vector<double> opts;
-  for (size_t i=0; i<sopts.size(); i+=10) {
+  for (size_t i=0; i<sopts.size(); ++i) {
     opts.push_back(snodes[2*sopts[i]]);
     opts.push_back(snodes[2*sopts[i]+1]);
   }
