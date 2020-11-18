@@ -33,7 +33,7 @@
 #include "GuiHelper.h"
 
 // header-only png writing
-#include "miniz/FrameBufferToImage.h"
+#include "FrameBufferToImage.h"
 
 //#include <GL/gl3w.h>    // This example is using gl3w to access OpenGL
 // functions (because it is small). You may use glew/glad/glLoadGen/etc.
