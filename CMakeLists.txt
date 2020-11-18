@@ -237,9 +237,8 @@ ADD_DEFINITIONS (${CPREPROCDEFS})
 
 INCLUDE_DIRECTORIES( "lib/cppcodec" )
 INCLUDE_DIRECTORIES( "lib/glad" )
-FILE(GLOB IMGUISOURCES "src/imgui/*.cpp" )
 INCLUDE_DIRECTORIES( "lib/json" )
-INCLUDE_DIRECTORIES( "src/tinyxml2" )
+INCLUDE_DIRECTORIES( "lib/tinyxml2" )
 INCLUDE_DIRECTORIES( "src/tinyexpr" )
 INCLUDE_DIRECTORIES( "lib/miniz" )
 INCLUDE_DIRECTORIES( "src" )
@@ -248,6 +247,7 @@ IF (CMAKE_COMPILER_IS_GNUCXX)
   SET_SOURCE_FILES_PROPERTIES("src/imgui/imgui_draw.cpp" PROPERTIES COMPILE_FLAGS -Wno-maybe-uninitialized)
 ENDIF()
 
+FILE(GLOB IMGUISOURCES "src/imgui/*.cpp" )
 SET(SOURCES "src/Simulation.cpp"
             "src/FlowFeature.cpp"
             "src/CollectionHelper.cpp"
@@ -257,7 +257,7 @@ SET(SOURCES "src/Simulation.cpp"
             "src/RenderParams.cpp"
             "src/JsonHelper.cpp"
             "src/StatusFile.cpp"
-            "src/tinyxml2/tinyxml2.cpp"
+            "src/tinyxml2.cpp"
             "src/tinyexpr/tinyexpr.c" )
 SET(GUI_SOURCES "src/glad.c"
                 "src/ShaderHelper.cpp"
