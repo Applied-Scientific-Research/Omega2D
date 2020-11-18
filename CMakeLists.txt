@@ -238,9 +238,9 @@ ADD_DEFINITIONS (${CPREPROCDEFS})
 INCLUDE_DIRECTORIES( "lib/cppcodec" )
 INCLUDE_DIRECTORIES( "lib/glad" )
 INCLUDE_DIRECTORIES( "lib/json" )
-INCLUDE_DIRECTORIES( "lib/tinyxml2" )
-INCLUDE_DIRECTORIES( "src/tinyexpr" )
 INCLUDE_DIRECTORIES( "lib/miniz" )
+INCLUDE_DIRECTORIES( "lib/tinyexpr" )
+INCLUDE_DIRECTORIES( "lib/tinyxml2" )
 INCLUDE_DIRECTORIES( "src" )
 
 IF (CMAKE_COMPILER_IS_GNUCXX)
@@ -258,7 +258,7 @@ SET(SOURCES "src/Simulation.cpp"
             "src/JsonHelper.cpp"
             "src/StatusFile.cpp"
             "src/tinyxml2.cpp"
-            "src/tinyexpr/tinyexpr.c" )
+            "src/tinyexpr.c" )
 SET(GUI_SOURCES "src/glad.c"
                 "src/ShaderHelper.cpp"
                 "src/FeatureDraw.cpp"
