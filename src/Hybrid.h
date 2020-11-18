@@ -120,12 +120,12 @@ void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
 
     // call the external solver with the current geometry
     // this will calculate the Jacobian and other cell-specific properties
-    //(void) solver.init_d_(coll.get_pos(), coll.get_idx(),
-    //                        coll.get_wall_idx(), coll.get_open_idx());
+    (void) solver.init_d_(coll.get_node_pos(), coll.get_elem_idx(),
+                          coll.get_wall_idx(), coll.get_open_idx());
 
     // and ask it for the open BC solution nodes, and the full internal solution nodes
-    //coll.set_open_pts(solver.getopenpts_d_());
-    //coll.set_soln_pts(solver.getsolnpts_d_());
+    coll.set_soln_pts(solver.getsolnpts_d_());
+    coll.set_open_pts(solver.getopenpts_d_());
   }
 
   initialized = true;
