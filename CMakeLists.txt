@@ -236,7 +236,7 @@ SET( EXTERNAL_LIBS ${FASTSUM_LIBS} )
 ADD_DEFINITIONS (${CPREPROCDEFS})
 
 INCLUDE_DIRECTORIES( "lib/cppcodec" )
-INCLUDE_DIRECTORIES( "src/glad" )
+INCLUDE_DIRECTORIES( "lib/glad" )
 FILE(GLOB IMGUISOURCES "src/imgui/*.cpp" )
 INCLUDE_DIRECTORIES( "lib/json" )
 INCLUDE_DIRECTORIES( "src/tinyxml2" )
@@ -259,7 +259,7 @@ SET(SOURCES "src/Simulation.cpp"
             "src/StatusFile.cpp"
             "src/tinyxml2/tinyxml2.cpp"
             "src/tinyexpr/tinyexpr.c" )
-SET(GUI_SOURCES "src/glad/glad.c"
+SET(GUI_SOURCES "src/glad.c"
                 "src/ShaderHelper.cpp"
                 "src/FeatureDraw.cpp"
                 "src/miniz.c"
