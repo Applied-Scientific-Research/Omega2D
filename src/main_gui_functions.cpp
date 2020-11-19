@@ -11,7 +11,7 @@
 
 #ifdef USE_IMGUI
 #include <GLFW/glfw3.h>
-#include <imgui/imgui.h>
+#include "imgui/imgui.h"
 
 static void error_callback(int error, const char* description) {
   fprintf(stderr, "Error %d: %s\n", error, description);
