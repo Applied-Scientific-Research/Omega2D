@@ -9,7 +9,7 @@
 
 #include "Core.h"
 #include "VectorHelper.h"
-#include "nanoflann.hpp"
+#include "nanoflann/nanoflann.hpp"
 #include <json/json.hpp>
 
 #include <Eigen/Dense>

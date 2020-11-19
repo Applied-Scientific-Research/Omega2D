@@ -9,11 +9,11 @@
 
 #include "Core.h"
 #include "VectorHelper.h"
-#include "nanoflann.hpp"
+#include "nanoflann/nanoflann.hpp"
 #ifdef PLUGIN_SIMPLEX
 #include "simplex.h"
 #endif
-#include "nnls.h"
+#include "eigen-nnls/nnls.h"
 
 #include <Eigen/Dense>
 
