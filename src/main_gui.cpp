@@ -15,7 +15,7 @@
 #include "Body.h"
 #include "RenderParams.h"
 #include "FeatureDraw.h"
-#include <json.hpp>
+#include <json/json.hpp>
 #include "main_gui_functions.cpp"
 #include <imgui/imgui_internal.h>
 
@@ -33,7 +33,7 @@
 #include "GuiHelper.h"
 
 // header-only png writing
-#include <FrameBufferToImage.h>
+#include <miniz/FrameBufferToImage.h>
 
 //#include <GL/gl3w.h>    // This example is using gl3w to access OpenGL
 // functions (because it is small). You may use glew/glad/glLoadGen/etc.

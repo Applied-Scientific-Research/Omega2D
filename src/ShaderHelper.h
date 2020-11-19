@@ -20,7 +20,7 @@
   #define GL_APIENTRY_DEFINED
 #endif // APIENTRY
 
-#include "glad.h"
+#include <glad/glad.h>
 
 #include <string>
 

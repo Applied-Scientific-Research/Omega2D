@@ -16,7 +16,7 @@
 #include "RenderParams.h"
 #include "OglHelper.h"
 #include "ShaderHelper.h"
-#include "glad.h"
+#include <glad/glad.h>
 #endif
 
 #include <iostream>

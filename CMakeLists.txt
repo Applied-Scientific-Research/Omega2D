@@ -236,12 +236,8 @@ SET( EXTERNAL_LIBS ${FASTSUM_LIBS} )
 ADD_DEFINITIONS (${CPREPROCDEFS})
 
 INCLUDE_DIRECTORIES( "lib" )
-INCLUDE_DIRECTORIES( "lib/cppcodec" )
+# For some of the libraries who need glad
 INCLUDE_DIRECTORIES( "lib/glad" )
-INCLUDE_DIRECTORIES( "lib/json" )
-INCLUDE_DIRECTORIES( "lib/miniz" )
-INCLUDE_DIRECTORIES( "lib/tinyexpr" )
-INCLUDE_DIRECTORIES( "lib/tinyxml2" )
 INCLUDE_DIRECTORIES( "src" )
 
 IF (CMAKE_COMPILER_IS_GNUCXX)
@@ -258,13 +254,13 @@ SET(SOURCES "src/Simulation.cpp"
             "src/RenderParams.cpp"
             "src/JsonHelper.cpp"
             "src/StatusFile.cpp"
-            "src/tinyxml2.cpp"
-            "src/tinyexpr.c" )
-SET(GUI_SOURCES "src/glad.c"
+            "lib/tinyxml2/tinyxml2.cpp"
+            "lib/tinyexpr/tinyexpr.c" )
+SET(GUI_SOURCES "lib/glad/glad.c"
                 "src/ShaderHelper.cpp"
                 "src/FeatureDraw.cpp"
-                "src/miniz.c"
-                "src/FrameBufferToImage.cpp" )
+                "lib/miniz/miniz.c"
+                "lib/miniz/FrameBufferToImage.cpp" )
 
 # create a binary for the GUI version
 IF( BUILD_GUI )
