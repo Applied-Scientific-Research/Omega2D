@@ -256,10 +256,7 @@ void Hybrid<S,A,I>::draw_advanced() {
   ImGui::Text("Hybrid/Grid settings");
 
   ImGui::Checkbox("Enabled", &active);
-  if (ImGui::InputInt("Element Order", &elementOrder)) {
-    if (elementOrder < 1) { elementOrder = 1; }
-    else if (elementOrder > 5) { elementOrder = 5; }
-  }
+  ImGui::SliderInt("Element Order", &elementOrder, 1, 5);
 
   const int numTimeOrders = 3;
   static int timeI = 0;
@@ -286,6 +283,6 @@ void Hybrid<S,A,I>::draw_advanced() {
   static int solverI = 0;
   const char* solvers[] = {"fgmres"};
   ImGui::Combo("Select Solver", &solverI, solvers, numSolvers);
-solverType = solvers[solverI];
+  solverType = solvers[solverI];
 }
 #endif
