@@ -21,25 +21,25 @@ namespace DummySolver {
 //
 void
 Solver::set_re_d_(const double _re) {
-  std::cout << "DummySolver set re= " << _re << std::endl;
+  std::cout << "  DummySolver set re= " << _re << std::endl;
   reynolds = _re;
 }
 
 void
 Solver::set_elemorder_d_(const uint8_t _eo) {
-  std::cout << "DummySolver set element order= " << _eo << std::endl;
+  std::cout << "  DummySolver set element order= " << _eo << std::endl;
   elem_order = _eo;
 }
 
 void
 Solver::set_timeorder_d_(const uint8_t _to) {
-  std::cout << "DummySolver set time integration order= " << _to << std::endl;
+  std::cout << "  DummySolver set time integration order= " << _to << std::endl;
   time_order = _to;
 }
 
 void
 Solver::set_numsteps_d_(const uint32_t _ns) {
-  std::cout << "DummySolver set num substeps= " << _ns << std::endl;
+  std::cout << "  DummySolver set num substeps= " << _ns << std::endl;
   num_substeps = _ns;
 }
 
@@ -53,7 +53,59 @@ Solver::init_d_(std::vector<double> _pts,
                 std::vector<uint32_t> _widx,
                 std::vector<uint32_t> _oidx) {
 
-  std::cout << "DummySolver initializing with " << _pts.size()/2 << " nodes" << std::endl;
+  std::cout << "  DummySolver initializing" << std::endl;
+
+  //
+  // the solver receives geometry nodes and elements and boundaries - save them
+  //
+
+  // first the node locations - used for all elements
+  assert(_pts.size() % 2 == 0 && "WARN (Solver::init_d_) input _pts is not even");
+  nodes = _pts;
+  N_nodes = nodes.size()/2;
+  std::cout << "    received " << N_nodes << " nodes" << std::endl;
+
+  // 2d volume elements, assume 4 nodes per element
+  //const size_t nper = _cidx.size() / 4;
+  assert(_cidx.size() % 4 == 0 && "WARN (Solver::init_d_) input _cidx not a multiple of 4");
+  elems = _cidx;
+  N_elements = elems.size()/4;
+  std::cout << "    received " << N_elements << " 2d elements" << std::endl;
+
+  // the boundaries
+  assert(_widx.size() % 2 == 0 && "WARN (Solver::init_d_) input _widx not a multiple of 2");
+  wbdry = _widx;
+  std::cout << "    received " << wbdry.size()/2 << " 1d wall boundary elements" << std::endl;
+
+  assert(_oidx.size() % 2 == 0 && "WARN (Solver::init_d_) input _oidx not a multiple of 2");
+  obdry = _oidx;
+  std::cout << "    received " << obdry.size()/2 << " 1d open boundary elements" << std::endl;
+
+  //
+  // Use that information to generate *solution* nodes and elements
+  // for this dummy case, assume all are 0th order elements: one node at the center
+  //
+
+  // first the 2d volume elements
+  // take each element and make a single solution node from it
+  for (size_t i=0; i<N_elements; ++i) {
+    snodes.push_back(0.25*(nodes[2*elems[4*i]]+nodes[2*elems[4*i+1]]+
+                           nodes[2*elems[4*i+2]]+nodes[2*elems[4*i+3]]));
+    snodes.push_back(0.25*(nodes[2*elems[4*i]+1]+nodes[2*elems[4*i+1]+1]+
+                           nodes[2*elems[4*i+2]+1]+nodes[2*elems[4*i+3]+1]));
+    selems.push_back((uint32_t)i);
+  }
+  N_snodes = snodes.size()/2;
+  N_selements = selems.size();
+  std::cout << "    generated " << N_snodes << " solution nodes" << std::endl;
+
+  // identify which of the solution nodes are the ones nearest the open boundary
+  // HACK - assume it's the last points that we made (elems are numbered from wall-to-open)
+  for (size_t i=0; i<obdry.size()/2; ++i) {
+    sopts.push_back((uint32_t)(N_snodes-i-1));
+  }
+  std::cout << "    of which " << sopts.size() << " are on the open boundary" << std::endl;
+
   return;
 }
 
@@ -63,7 +115,7 @@ Solver::init_d_(std::vector<double> _pts,
 //
 std::vector<double>
 Solver::getsolnpts_d_() {
-  return std::vector<double>();
+  return snodes;
 }
 
 
@@ -72,7 +124,13 @@ Solver::getsolnpts_d_() {
 //
 std::vector<double>
 Solver::getopenpts_d_() {
-  return std::vector<double>();
+  // must assemble vector of just those nodes
+  std::vector<double> opts;
+  for (size_t i=0; i<sopts.size(); ++i) {
+    opts.push_back(snodes[2*sopts[i]]);
+    opts.push_back(snodes[2*sopts[i]+1]);
+  }
+  return opts;
 }
 
 
@@ -81,6 +139,19 @@ Solver::getopenpts_d_() {
 //
 void
 Solver::setopenvels_d_(std::vector<double> _vels) {
+  std::cout << "  DummySolver set velocities at open soln nodes: " << _vels.size()/2 << std::endl;
+  assert(_vels.size() == sopts.size()*2 && "ERROR (Solver::setopenvels_d_) bad incoming velocity vector length");
+  return;
+}
+
+
+//
+// set initial vorticity at all solution nodes
+//
+void
+Solver::setsolnvort_d_(std::vector<double> _vort) {
+  std::cout << "  DummySolver set vorticity at all soln nodes: " << _vort.size() << std::endl;
+  assert(_vort.size() == N_snodes && "ERROR (Solver::setsolnvort_d_) bad incoming vorticity vector length");
   return;
 }
 

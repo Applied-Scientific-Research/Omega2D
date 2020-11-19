@@ -48,6 +48,65 @@ public:
   const Points<S>& get_vol_nodes(const S _time) const { return soln_p; }
   Points<S>&       get_vol_nodes(const S _time)       { return soln_p; }
 
+  // return a new vector of the node locations in the geometry
+  std::vector<double> get_node_pos() {
+    // from array of vectors
+    std::array<Vector<S>,Dimensions>& nodegeom = this->get_pos();
+    // to single vector
+    std::vector<double> allpos(Dimensions*nodegeom[0].size());
+    for (size_t d=0; d<Dimensions; ++d) {
+      for (size_t i=0; i<nodegeom[d].size(); ++i) {
+        allpos[Dimensions*i+d] = nodegeom[d][i];
+      }
+    }
+    return allpos;
+  }
+
+  // return a new vector of the indices of the geometry
+  std::vector<uint32_t> get_elem_idx() {
+    const std::vector<Int>& elemgeom = this->get_idx();
+    std::vector<uint32_t> elemidx(elemgeom.begin(), elemgeom.end());
+    return elemidx;
+  }
+  std::vector<uint32_t> get_wall_idx() {
+    const std::vector<Int>& wallgeom = wall_s.get_idx();
+    std::vector<uint32_t> wallidx(wallgeom.begin(), wallgeom.end());
+    return wallidx;
+  }
+  std::vector<uint32_t> get_open_idx() {
+    const std::vector<Int>& opengeom = open_s.get_idx();
+    std::vector<uint32_t> openidx(opengeom.begin(), opengeom.end());
+    return openidx;
+  }
+
+  // retrieve solution points from solver, set them here
+  void set_soln_pts(std::vector<double> _in) {
+    assert(_in.size() > 0 && "ERROR (set_soln_pts): received zero solution points from solver");
+
+    // convert input vector to local coords
+    std::vector<S> x(_in.begin(), _in.end());
+
+    // and dummy val array with zeros
+    std::vector<S> val(x.size()/2);
+
+    // ready to pass a packet to the ctor
+    soln_p.add_new(ElementPacket<S>(x, std::vector<Int>(), val, x.size()/2, 0), 0.0);
+  }
+
+  // retrieve solution points on open boundary from solver, set them here
+  void set_open_pts(std::vector<double> _in) {
+    assert(_in.size() > 0 && "ERROR (set_open_pts): received zero open bc points from solver");
+
+    // convert input vector to local coords
+    std::vector<S> x(_in.begin(), _in.end());
+
+    // and dummy val array with zeros
+    std::vector<S> val(x.size()/2);
+
+    // ready to pass a packet to the ctor
+    open_p.add_new(ElementPacket<S>(x, std::vector<Int>(), val, x.size()/2, 0), 0.0);
+  }
+
   // append a Surfaces to the object for the wall-boundary geometry
   void add_wall(const ElementPacket<float>& _in) {
 
