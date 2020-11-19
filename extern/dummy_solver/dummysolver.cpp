@@ -139,6 +139,19 @@ Solver::getopenpts_d_() {
 //
 void
 Solver::setopenvels_d_(std::vector<double> _vels) {
+  std::cout << "  DummySolver set velocities at open soln nodes: " << _vels.size()/2 << std::endl;
+  assert(_vels.size() == sopts.size()*2 && "ERROR (Solver::setopenvels_d_) bad incoming velocity vector length");
+  return;
+}
+
+
+//
+// set initial vorticity at all solution nodes
+//
+void
+Solver::setsolnvort_d_(std::vector<double> _vort) {
+  std::cout << "  DummySolver set vorticity at all soln nodes: " << _vort.size() << std::endl;
+  assert(_vort.size() == N_snodes && "ERROR (Solver::setsolnvort_d_) bad incoming vorticity vector length");
   return;
 }
 

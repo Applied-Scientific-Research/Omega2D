@@ -36,6 +36,7 @@ public:
   std::vector<double> getsolnpts_d_();
   std::vector<double> getopenpts_d_();
   void setopenvels_d_(std::vector<double>);
+  void setsolnvort_d_(std::vector<double>);
   void solveto_d_(const double);
   std::vector<double> getallvorts_d_();
 
