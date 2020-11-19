@@ -158,6 +158,10 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
 
   std::cout << "Inside Hybrid::first_step at t=" << _time << std::endl;
 
+  //
+  // solve for velocity at each open-boundary solution node
+  //
+
   // make a list of euler boundary regions
   std::vector<Collection> euler_bdrys;
   for (auto &coll : _euler) {
@@ -169,17 +173,28 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
   }
 
   // get vels and vorts on each euler region - and force it
-  _conv.find_vels(_fs, _vort, _bdry, euler_bdrys, velandvort, true);
+  _conv.find_vels(_fs, _vort, _bdry, euler_bdrys, velonly, true);
 
   for (auto &coll : euler_bdrys) {
     // convert to transferable packet
     std::array<Vector<S>,Dimensions> openvels = std::visit([=](auto& elem) { return elem.get_vel(); }, coll);
 
     // convert to a std::vector<double>
+    std::vector<double> packedvels(Dimensions*openvels[0].size());
+    for (size_t d=0; d<Dimensions; ++d) {
+      for (size_t i=0; i<openvels[d].size(); ++i) {
+        packedvels[Dimensions*i+d] = openvels[d][i];
+      }
+    }
 
     // transfer BC packet to solver
-    //(void) solver.setopenvels_d_(openvels);
+    (void) solver.setopenvels_d_(packedvels);
   }
+
+  //
+  // now do the same for the vorticity at each solution node
+  //
+  //_conv.find_vels(_fs, _vort, _bdry, euler_rgns, velandvort, true);
 }
 
 //
