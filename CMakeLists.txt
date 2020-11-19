@@ -251,21 +251,17 @@ SET( EXTERNAL_LIBS ${EXTERNAL_LIBS} dummy_solver-static )
 
 ADD_DEFINITIONS (${CPREPROCDEFS})
 
-INCLUDE_DIRECTORIES( "src/glad" )
-FILE(GLOB IMGUISOURCES "src/imgui/*.cpp" )
-INCLUDE_DIRECTORIES( "src/tinyxml2" )
-INCLUDE_DIRECTORIES( "src/tinyexpr" )
-INCLUDE_DIRECTORIES( "src/cppcodec" )
-INCLUDE_DIRECTORIES( "src/miniz" )
+INCLUDE_DIRECTORIES( "lib" )
+# For some of the libraries who need glad
+INCLUDE_DIRECTORIES( "lib/glad" )
 INCLUDE_DIRECTORIES( "src" )
 
 IF (CMAKE_COMPILER_IS_GNUCXX)
-  SET_SOURCE_FILES_PROPERTIES("src/imgui/imgui_draw.cpp" PROPERTIES COMPILE_FLAGS -Wno-maybe-uninitialized)
+  SET_SOURCE_FILES_PROPERTIES("lib/imgui/imgui_draw.cpp" PROPERTIES COMPILE_FLAGS -Wno-maybe-uninitialized)
 ENDIF()
 
-FILE(GLOB HEADERS "src/*.h" )
-SET(SOURCES ${HEADERS}
-            "src/Simulation.cpp"
+FILE(GLOB IMGUISOURCES "lib/imgui/*.cpp" )
+SET(SOURCES "src/Simulation.cpp"
             "src/FlowFeature.cpp"
             "src/CollectionHelper.cpp"
             "src/BoundaryFeature.cpp"
@@ -274,13 +270,13 @@ SET(SOURCES ${HEADERS}
             "src/RenderParams.cpp"
             "src/JsonHelper.cpp"
             "src/StatusFile.cpp"
-            "src/tinyxml2/tinyxml2.cpp"
-            "src/tinyexpr/tinyexpr.c" )
-SET(GUI_SOURCES "src/glad/glad.c"
+            "lib/tinyxml2/tinyxml2.cpp"
+            "lib/tinyexpr/tinyexpr.c" )
+SET(GUI_SOURCES "lib/glad/glad.c"
                 "src/ShaderHelper.cpp"
                 "src/FeatureDraw.cpp"
-                "src/miniz/miniz.c"
-                "src/miniz/FrameBufferToImage.cpp" )
+                "lib/miniz/miniz.c"
+                "lib/miniz/FrameBufferToImage.cpp" )
 
 # create a binary for the GUI version
 IF( BUILD_GUI )

@@ -10,8 +10,8 @@
 #include "Omega2D.h"
 
 #define TE_NAT_LOG
-#include "tinyexpr.h"
-#include "json/json.hpp"
+#include <tinyexpr/tinyexpr.h>
+#include <json/json.hpp>
 
 #include <string>
 #include <memory>

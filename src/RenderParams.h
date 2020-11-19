@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "json/json.hpp"
+#include <json/json.hpp>
 
 //
 // Class-like struct for all Imgui and OpenGL render parameters
