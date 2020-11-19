@@ -2,7 +2,7 @@
  * VRM.h - the Vorticity Redistribution Method for 2D vortex particles
  *
  * (c)2017-20 Applied Scientific Research, Inc.
- *            Written by Mark J Stock <markjstock@gmail.com>
+ *            Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -96,14 +96,17 @@ private:
   std::array<ST,num_sites> xsite,ysite;
   void initialize_sites();
 
-  // for adaptive particle size VRM
-  bool adapt_radii = false;
+  // for standard VRM
 
   // do not perform VRM if source particle strength is less than
   //   this fraction of max particle strength
   ST ignore_thresh = 1.e-5;
   // are thresholds absolute or relative to strongest particle?
   bool thresholds_are_relative = true;
+
+  // for any adaptive particle size VRM
+  bool adapt_radii = false;
+  // would have more here
 
   // use nanoflann for nearest-neighbor searching? false uses direct search
   const bool use_tree = true;
@@ -666,7 +669,7 @@ bool VRM<ST,CT,MAXMOM>::attempt_solution(const int32_t idiff,
 // read/write parameters to json
 //
 
-// create and write a json object for all diffusion parameters
+// read a json object and retrieve all diffusion parameters
 template <class ST, class CT, uint8_t MAXMOM>
 void VRM<ST,CT,MAXMOM>::from_json(const nlohmann::json simj) {
 
