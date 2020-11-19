@@ -400,6 +400,7 @@ void panels_affect_points (const Surfaces<S>& src, Points<S>& targ, const Result
       AccumVec resultu(0.0);
       AccumVec resultv(0.0);
 
+      if (restype.compute_vel()) {
       if (have_source_strengths) {
         for (size_t j=0; j<vsvs.vectorsCount(); ++j) {
           // note that this is the same kernel as panels_affect_points!
@@ -428,6 +429,7 @@ void panels_affect_points (const Surfaces<S>& src, Points<S>& targ, const Result
           accumv += resultv;
         }
       }
+      }
 
       // use this as normal
       tu[0][i] += accumu.sum();
@@ -446,6 +448,7 @@ void panels_affect_points (const Surfaces<S>& src, Points<S>& targ, const Result
       A resultu = 0.0;
       A resultv = 0.0;
 
+      if (restype.compute_vel()) {
       if (have_source_strengths) {
         // source and vortex strengths
         for (size_t j=0; j<src.get_npanels(); ++j) {
@@ -482,6 +485,7 @@ void panels_affect_points (const Surfaces<S>& src, Points<S>& targ, const Result
           accumu += resultu;
           accumv += resultv;
         }
+      }
       }
 
       // use this as normal
@@ -579,6 +583,7 @@ void points_affect_panels (const Points<S>& src, Surfaces<S>& targ, const Result
       AccumVec resultu(0.0);
       AccumVec resultv(0.0);
 
+      if (restype.compute_vel()) {
       for (size_t j=0; j<vsv.vectorsCount(); ++j) {
         // note that this is the same kernel as panels_affect_points!
         if (restype.compute_vel()) {
@@ -590,6 +595,7 @@ void points_affect_panels (const Points<S>& src, Surfaces<S>& targ, const Result
         }
         accumu += resultu;
         accumv += resultv;
+      }
       }
 
       //std::cout << "  panel " << i << " at " << tx[0][ip0] << " " << tx[1][ip0] << std::endl;
@@ -621,6 +627,7 @@ void points_affect_panels (const Points<S>& src, Surfaces<S>& targ, const Result
       A resultu = 0.0;
       A resultv = 0.0;
 
+      if (restype.compute_vel()) {
       for (size_t j=0; j<src.get_n(); ++j) {
         // note that this is the same kernel as panels_affect_points!
         if (restype.compute_vel()) {
@@ -634,6 +641,7 @@ void points_affect_panels (const Points<S>& src, Surfaces<S>& targ, const Result
         //std::cout << " adds vel " << (-plen*resultu) << " " << (-plen*resultv);// << std::endl;
         accumu += resultu;
         accumv += resultv;
+      }
       }
 
       //std::cout << "  panel " << i << " at " << tx[0][ip0] << " " << tx[1][ip0] << " has plen " << plen << std::endl;
@@ -719,7 +727,7 @@ void points_affect_bricks (const Points<S>& src, Volumes<S>& targ, const Results
   if (restype.compute_vort()) {
     Vector<S>& fromvort = volsaspts.get_vort();
     Vector<S>& tovort   = targ.get_vort();
-    std::copy(fromvort.begin(), fromvort.end(), tovort.begin());
+    std::transform(tovort.begin( ), tovort.end( ), fromvort.begin( ), tovort.begin( ), std::plus<S>( ));
   }
 
   // and the vel grads - if need be
