@@ -51,6 +51,7 @@ public:
   bool emits() const { return m_emits; }
   float jitter(const float, const float) const;
   bool get_is_lagrangian() { return m_is_lagrangian; }
+  static void parse_json(std::vector<std::unique_ptr<MeasureFeature>> &, nlohmann::json);
 
 #ifdef USE_IMGUI
   static bool draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float, const float &);

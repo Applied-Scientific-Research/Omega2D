@@ -49,6 +49,7 @@ public:
   virtual bool draw_info_gui(const std::string) = 0;
 #endif
 
+  static void parse_json(std::vector<std::unique_ptr<BoundaryFeature>> &, std::shared_ptr<Body>, const nlohmann::json);
 #ifdef USE_IMGUI
   static int obj_movement_gui(int &, char* , char* , char* );
   static bool draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeature>> &, Simulation&);

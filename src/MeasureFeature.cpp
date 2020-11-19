@@ -27,8 +27,8 @@ std::ostream& operator<<(std::ostream& os, MeasureFeature const& ff) {
 //
 // parse the json and dispatch the constructors
 //
-void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
-                        const nlohmann::json _jin) {
+void MeasureFeature::parse_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
+                                const nlohmann::json _jin) {
 
   // must have one and only one type
   if (_jin.count("type") != 1) return;

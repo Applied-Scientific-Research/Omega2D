@@ -42,6 +42,8 @@ public:
 #ifdef USE_IMGUI
   virtual bool draw_info_gui(const std::string, const float) = 0;
 #endif 
+
+  static void parse_json(std::vector<std::unique_ptr<FlowFeature>> &, nlohmann::json);
   
 #ifdef USE_IMGUI
   static bool draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &, const float);

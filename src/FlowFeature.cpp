@@ -28,8 +28,8 @@ std::ostream& operator<<(std::ostream& os, FlowFeature const& ff) {
 //
 // parse the json and dispatch the constructors
 //
-void parse_flow_json(std::vector<std::unique_ptr<FlowFeature>>& _flist,
-                     const nlohmann::json _jin) {
+void FlowFeature::parse_json(std::vector<std::unique_ptr<FlowFeature>>& _flist,
+                             const nlohmann::json _jin) {
 
   // must have one and only one type
   if (_jin.count("type") != 1) return;

@@ -111,7 +111,7 @@ void parse_json(Simulation& sim,
     // iterate through vector of flow features
     for (auto const& ff : ff_json) {
       // pass ff into a function in FlowFeature to generate the object
-      parse_flow_json(ffeatures, ff);
+      FlowFeature::parse_json(ffeatures, ff);
     }
   }
 
@@ -178,7 +178,7 @@ void parse_json(Simulation& sim,
         // iterate through vector of meshes, all on this body
         for (auto const& bf : bf_json) {
           // pass bf into a function in BoundaryFeature to generate the object
-          parse_boundary_json(bfeatures, bp, bf);
+          BoundaryFeature::parse_json(bfeatures, bp, bf);
 
           // this turns off augmentation!
           //parse_boundary_json(bfeatures, nullptr, bf);
@@ -198,7 +198,7 @@ void parse_json(Simulation& sim,
     // iterate through vector of measurement features
     for (auto const& mf : mf_json) {
       // pass mf into a function in MeasureFeature to generate the object
-      parse_measure_json(mfeatures, mf);
+      MeasureFeature::parse_json(mfeatures, mf);
     }
   }
 

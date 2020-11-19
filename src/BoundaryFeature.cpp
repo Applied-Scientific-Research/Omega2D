@@ -29,9 +29,9 @@ std::ostream& operator<<(std::ostream& os, BoundaryFeature const& ff) {
 //
 // parse the json and dispatch the constructors
 //
-void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
-                         std::shared_ptr<Body> _bp,
-                         const nlohmann::json _jin) {
+void BoundaryFeature::parse_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
+                                 std::shared_ptr<Body> _bp,
+                                 const nlohmann::json _jin) {
 
   // must have one and only one type
   if (_jin.count("geometry") != 1) return;
