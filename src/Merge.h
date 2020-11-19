@@ -9,7 +9,7 @@
 
 #include "Omega2D.h"
 #include "VectorHelper.h"
-#include "nanoflann.hpp"
+#include "nanoflann/nanoflann.hpp"
 
 #include <Eigen/Dense>
 

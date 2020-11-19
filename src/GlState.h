@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "glad.h"
+#include <glad/glad.h>
 
 #include <iostream>
 #include <vector>
