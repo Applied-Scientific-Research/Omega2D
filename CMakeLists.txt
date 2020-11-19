@@ -244,7 +244,7 @@ IF (CMAKE_COMPILER_IS_GNUCXX)
   SET_SOURCE_FILES_PROPERTIES("lib/imgui/imgui_draw.cpp" PROPERTIES COMPILE_FLAGS -Wno-maybe-uninitialized)
 ENDIF()
 
-FILE(GLOB IMGUISOURCES "lib/imgui/imgui*.cpp" )
+FILE(GLOB IMGUISOURCES "lib/imgui/*.cpp" )
 SET(SOURCES "src/Simulation.cpp"
             "src/FlowFeature.cpp"
             "src/CollectionHelper.cpp"
