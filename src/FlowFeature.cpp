@@ -11,12 +11,12 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
+#include "Random.cpp"
 
 #include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <sstream>
-#include <random>
 
 // write out any object of parent type FlowFeature by dispatching to appropriate "debug" method
 std::ostream& operator<<(std::ostream& os, FlowFeature const& ff) {
@@ -723,21 +723,22 @@ ElementPacket<float>
 BlockOfRandom::init_elements(float _ips) const {
   std::cout << "Creating random block with " << m_num << " particles" << std::endl;
 
-  // set up the random number generator
-  static std::random_device rd;  //Will be used to obtain a seed for the random number engine
-  static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
-  static std::uniform_real_distribution<> loc_dist(-1.0, 1.0);
-  static std::uniform_real_distribution<> str_dist(0.0, 1.0);
-
   std::vector<float> x(2*m_num);
   std::vector<Int> idx;
   std::vector<float> vals(m_num);
+
   // initialize the particles' locations and strengths, leave radius zero for now
+  RandomGenerator genX(0, m_xsize);
+  RandomGenerator genY(0, m_ysize);
+  RandomGenerator genStr(m_minstr, m_maxstr);
   for (size_t i=0; i<(size_t)m_num; ++i) {
     size_t idx = 2*i;
-    x[idx] = m_x + m_xsize*loc_dist(gen);
-    x[idx+1] = m_y + m_ysize*loc_dist(gen);
-    vals[i] = m_minstr + (m_maxstr-m_minstr)*str_dist(gen);
+    x[idx] = m_x + genX();
+    //x[idx] = m_x + m_xsize*loc_dist(gen);
+    x[idx+1] = m_y + genY();
+    //x[idx+1] = m_y + m_ysize*loc_dist(gen);
+    //vals[i] = m_minstr + (m_maxstr-m_minstr)*str_dist(gen);
+    vals[i] = genStr();
   }
   
   ElementPacket<float> packet({x, idx, vals, (size_t)m_num, 0});
@@ -793,24 +794,6 @@ BlockOfRandom::to_json() const {
   j["enabled"] = m_enabled;
   return j;
 }
-
-struct RandomGenerator {
-  static int instances;
-  //static std::random_device m_rd; //Will be used to obtain a seed for the random number engine
-  std::mt19937 m_gen; //Standard mersenne_twister_engine seeded with rd()
-  std::uniform_real_distribution<float> m_dist;
-  float m_lb;
-  float m_ub;
-  RandomGenerator(float _lb, float _ub) : m_lb(_lb), m_ub(_ub) {
-    instances++;
-    m_gen = std::mt19937(instances);
-    m_dist = std::uniform_real_distribution<float>(0.0, 1.0);
-  }
-
-  float operator()() { return m_lb + (m_ub-m_lb)*m_dist(m_gen); }
-};
-
-int RandomGenerator::instances = 0;
 
 void BlockOfRandom::generate_draw_geom() {
   SolidRect tmp = SolidRect(nullptr, true, m_x, m_y, m_xsize*2, m_ysize*2);

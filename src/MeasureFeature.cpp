@@ -9,12 +9,12 @@
 #include "BoundaryFeature.h"
 #include "MeasureFeature.h"
 #include "imgui/imgui.h"
+#include "Random.cpp"
 
 #include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <sstream>
-#include <random>
 #include <string>
 
 // write out any object of parent type MeasureFeature by dispatching to appropriate "debug" method
@@ -143,15 +143,6 @@ void MeasureFeature::draw_feature_list(std::vector<std::unique_ptr<MeasureFeatur
 }
 #endif
 
-float MeasureFeature::jitter(const float _z, const float _ips) const {
-  // set up the random number generator
-  static std::random_device rd;  //Will be used to obtain a seed for the random number engine
-  static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
-  static std::uniform_real_distribution<float> dist(-0.5, 0.5);
-  // emits one per step, jittered slightly
-  return _z+_ips*dist(gen);
-}
-
 //
 // Create a single measurement point
 //
@@ -173,7 +164,9 @@ SinglePoint::init_elements(float _ips) const {
 ElementPacket<float>
 SinglePoint::step_elements(float _ips) const {
   if ((m_enabled) && (m_emits)) {
-    std::vector<float> x = {jitter(m_x, _ips), jitter(m_y, _ips)};
+    RandomGenerator genX(0.0, _ips); 
+    RandomGenerator genY(0.0, _ips); 
+    std::vector<float> x = {m_x+genX(), m_y+genY()};
     std::vector<Int> idx;
     std::vector<float> vals;
     ElementPacket<float> packet({x, idx, vals, (size_t)1, (uint8_t)0});
@@ -263,11 +256,6 @@ bool SinglePoint::draw_info_gui(const std::string action, const float &tracerSca
 ElementPacket<float>
 MeasurementBlob::init_elements(float _ips) const {
 
-  // set up the random number generator
-  static std::random_device rd;  //Will be used to obtain a seed for the random number engine
-  static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
-  static std::uniform_real_distribution<float> zmean_dist(-0.5, 0.5);
-
   // create a new vector to pass on
   std::vector<float> x;
   std::vector<Int> idx;
@@ -287,8 +275,9 @@ MeasurementBlob::init_elements(float _ips) const {
     float dr = sqrt((float)(i*i+j*j)) * _ips;
     if (dr < m_rad) {
       // create a particle here
-      x.emplace_back(m_x + _ips*((float)i+zmean_dist(gen)));
-      x.emplace_back(m_y + _ips*((float)j+zmean_dist(gen)));
+      RandomGenerator gen(0.0, 1.0);
+      x.emplace_back(m_x + _ips*((float)i+gen()));
+      x.emplace_back(m_y + _ips*((float)j+gen()));
     }
   }
   }
@@ -305,8 +294,9 @@ ElementPacket<float>
 MeasurementBlob::step_elements(float _ips) const {
   if ((m_enabled) && (m_emits)) {
     ElementPacket<float> packet = init_elements(_ips);
+    RandomGenerator gen(0.0, _ips);
     for (size_t i=0; i<packet.x.size(); i++) {
-      packet.x[i] = jitter(packet.x[i], _ips);
+      packet.x[i] = packet.x[i] + gen();
     }
     if (packet.verify(packet.x.size(), Dimensions)) {
       return packet;
@@ -430,8 +420,9 @@ ElementPacket<float>
 MeasurementLine::step_elements(float _ips) const {
   if ((m_enabled) && (m_emits)) {
     ElementPacket<float> packet = init_elements(_ips);
+    RandomGenerator gen(0.0, _ips);
     for (size_t i=0; i<packet.x.size(); i++) {
-      packet.x[i] = jitter(packet.x[i], _ips);
+      packet.x[i] = packet.x[i] + gen();
     }
     if (packet.verify(packet.x.size(), Dimensions)) {
       return packet;
