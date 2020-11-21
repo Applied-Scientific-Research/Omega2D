@@ -648,8 +648,7 @@ int main(int argc, char const *argv[]) {
       // button and modal window for adding new boundary objects
       if (ImGui::Button("Add boundary")) ImGui::OpenPopup("New boundary structure");
       ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
-      if (ImGui::BeginPopupModal("New boundary structure"))
-      {
+      if (ImGui::BeginPopupModal("New boundary structure")) {
         if (BoundaryFeature::draw_creation_gui(bfeatures, sim)) {
           bdraw.add_elements( bfeatures.back()->get_draw_packet(), bfeatures.back()->is_enabled() );
         }

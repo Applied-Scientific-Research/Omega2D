@@ -3,6 +3,7 @@
  *
  * (c)2019-20 Applied Scientific Research, Inc.
  *            Mark J Stock <markjstock@gmail.com>
+ *            Blake B Hillier <blakehillier@mac.com>
  */
 
 #pragma once
