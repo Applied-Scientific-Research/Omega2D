@@ -27,13 +27,13 @@ Solver::set_re_d_(const double _re) {
 
 void
 Solver::set_elemorder_d_(const uint8_t _eo) {
-  std::cout << "  DummySolver set element order= " << _eo << std::endl;
+  std::cout << "  DummySolver set element order= " << (int)_eo << std::endl;
   elem_order = _eo;
 }
 
 void
 Solver::set_timeorder_d_(const uint8_t _to) {
-  std::cout << "  DummySolver set time integration order= " << _to << std::endl;
+  std::cout << "  DummySolver set time integration order= " << (int)_to << std::endl;
   time_order = _to;
 }
 
