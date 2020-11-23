@@ -1387,7 +1387,7 @@ FromMsh::init_elements(const float _ips) const {
 
   // find out how large each array will be
   const size_t np = wall.N_edges;
-  std::cout << "wall has " << np << " edges" << std::endl;
+  std::cout << "  wall has " << np << " edges" << std::endl;
   for (uint32_t thisedge : wall.edges) {
     //std::cout << "  edge " << thisedge << " has " << edges[thisedge].N_nodes << " nodes" << std::endl;
     // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
