@@ -100,10 +100,13 @@ Solver::init_d_(std::vector<double> _pts,
   std::cout << "    generated " << N_snodes << " solution nodes" << std::endl;
 
   // identify which of the solution nodes are the ones nearest the open boundary
-  // HACK - assume it's the last points that we made (elems are numbered from wall-to-open)
-  for (size_t i=0; i<obdry.size()/2; ++i) {
-    sopts.push_back((uint32_t)(N_snodes-i-1));
+  // HACK - assume it's the nodes with rad > 0.95
+  for (size_t i=0; i<selems.size(); ++i) {
+    const double xp = snodes[2*selems[i]];
+    const double yp = snodes[2*selems[i]+1];
+    if (xp*xp+yp*yp > 0.9) sopts.push_back((uint32_t)i);
   }
+  assert(obdry.size()/2 == sopts.size() && "ERROR (Solver::init_d_) hack does not appear to be working");
   std::cout << "    of which " << sopts.size() << " are on the open boundary" << std::endl;
 
   return;
@@ -141,6 +144,14 @@ void
 Solver::setopenvels_d_(std::vector<double> _vels) {
   std::cout << "  DummySolver set velocities at open soln nodes: " << _vels.size()/2 << std::endl;
   assert(_vels.size() == sopts.size()*2 && "ERROR (Solver::setopenvels_d_) bad incoming velocity vector length");
+
+  if (false) {
+    std::cout << "    x  y  ux  uy" << std::endl;
+    for (size_t i=0; i<_vels.size()/2; ++i) {
+      std::cout << "    " << snodes[2*sopts[i]] << " " << snodes[2*sopts[i]+1] << "  " << _vels[2*i] << " " << _vels[2*i+1] << std::endl;
+    }
+  }
+
   return;
 }
 
