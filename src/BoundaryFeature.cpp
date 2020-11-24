@@ -1630,7 +1630,7 @@ bool FromMsh::draw_info_gui(const std::string action) {
   bool add = false;
   bool try_it = false;
   static bool finish = false;
-  static bool selectFile = false;
+  //static bool selectFile = false;
   static std::string infile = "input.msh";
   const std::string buttonText = action+" object";
   const float fontSize = 20;
