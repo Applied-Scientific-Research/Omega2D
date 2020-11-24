@@ -194,9 +194,37 @@ public:
   }
 
   //
-  // return a particle version of the elements (useful during Diffusion)
-  // offset is in world units - NOT scaled
+  // return a particle version of the elements
   //
+  ElementPacket<S> get_equivalent_particles(const Vector<S>& _circ) {
+
+    assert(_circ.size() == this->nb && "HOVolumes::get_equivalent_particles input vector size mismatch");
+
+    // prepare the data arrays for the element packet
+    std::vector<float> x;
+    std::vector<Int> idx;
+    std::vector<float> val;
+    size_t thisn = 0;
+
+    // what kinds of elements do we have?
+    const size_t nper = this->idx.size() / this->nb;
+
+    const std::array<Vector<S>,Dimensions>& ptx = soln_p.get_pos();
+
+    // loop over volume elements which have appreciable strength change
+    for (size_t i=0; i<this->nb; ++i) if (std::fabs(_circ[i]) > 1.e-6) {
+
+      // convert input _circ and underlying geometry into particles
+      // just one per element for starters
+      x.push_back(ptx[0][i]);
+      x.push_back(ptx[1][i]);
+      val.push_back(_circ[i]);
+
+      // use size of element and particle radius to ensure overlap
+    }
+
+    return ElementPacket<S>(x, idx, val, thisn, (uint8_t)0);
+  }
 /*
   std::vector<S> represent_elems_as_particles(const S _offset, const S _vdelta) {
 

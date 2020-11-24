@@ -373,6 +373,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
       // generate particles to fill the deficit
       //   note that cells may be a lot larger than particles!
+      ElementPacket<S> newparts = coll.get_equivalent_particles(circ);
 
       // merge here? seems smart
 
