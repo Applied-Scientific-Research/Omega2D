@@ -641,7 +641,6 @@ public:
   // always recalculate everything!
   void compute_areas(const Int nnew) {
 
-
     area.resize(nnew);
 
     // we'll reuse these vectors
