@@ -316,9 +316,11 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
     // find the Lagrangian-computed vorticity on all solution nodes (make a vector of one collection)
     std::vector<Collection> euler_vols;
-    euler_vols.emplace_back(solnpts);
+    euler_vols.emplace_back(solnpts);	// this is a COPY
     _conv.find_vels(_fs, _vort, _bdry, euler_vols, velandvort, true);
-    Vector<S>& lagvort = solnpts.get_vort();
+    //Vector<S>& lagvort = solnpts.get_vort();	// can't do this, that object doesn't have the results!
+    Points<float>& solvedpts = std::get<Points<S>>(euler_vols[0]);
+    Vector<S>& lagvort = solvedpts.get_vort();
     assert(lagvort.size() == thisn && "ERROR (Hybrid::step) vorticity from particle sim is not the right size");
 
     // generate a mask for the solution nodes to indicate which we will consider,
@@ -343,7 +345,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
     assert(area.size() == thisn && "ERROR (Hybrid::step) volume area vector is not the right size");
     // multiply by mask
 
-    for (size_t i=0; i<thisn; ++i) {
+    for (size_t i=0; i<std::min(thisn,(size_t)60); ++i) {
       std::cout << "    " << i << "  " << eulvort[i] << " - " << lagvort[i] << " = " << circ[i] << " or " << (circ[i]*area[i]) << std::endl;
     }
 
