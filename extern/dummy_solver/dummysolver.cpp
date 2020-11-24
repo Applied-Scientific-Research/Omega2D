@@ -163,6 +163,14 @@ void
 Solver::setsolnvort_d_(std::vector<double> _vort) {
   std::cout << "  DummySolver set vorticity at all soln nodes: " << _vort.size() << std::endl;
   assert(_vort.size() == N_snodes && "ERROR (Solver::setsolnvort_d_) bad incoming vorticity vector length");
+
+  if (false) {
+    std::cout << "    x  y  vort" << std::endl;
+    for (size_t i=0; i<_vort.size(); ++i) {
+      std::cout << "    " << snodes[2*i] << " " << snodes[2*i+1] << "  " << _vort[i] << std::endl;
+    }
+  }
+
   return;
 }
 

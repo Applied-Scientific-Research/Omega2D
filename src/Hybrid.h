@@ -123,8 +123,8 @@ void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
                           coll.get_wall_idx(), coll.get_open_idx());
 
     // and ask it for the open BC solution nodes, and the full internal solution nodes
-    coll.set_soln_pts(solver.getsolnpts_d_());
     coll.set_open_pts(solver.getopenpts_d_());
+    coll.set_soln_pts(solver.getsolnpts_d_());
   }
 
   initialized = true;
@@ -193,7 +193,30 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
   //
   // now do the same for the vorticity at each solution node
   //
-  //_conv.find_vels(_fs, _vort, _bdry, euler_rgns, velandvort, true);
+
+  // make a list of euler volume regions
+  std::vector<Collection> euler_vols;
+  for (auto &coll : _euler) {
+    // transform to current position
+    coll.move(_time, 0.0);
+
+    // isolate open/outer boundaries
+    euler_vols.emplace_back(coll.get_vol_nodes(_time));
+  }
+
+  // get vels and vorts on each euler region - and force it
+  _conv.find_vels(_fs, _vort, _bdry, euler_vols, velandvort, true);
+
+  for (auto &coll : euler_vols) {
+    // convert to transferable packet
+    Vector<S> volvort = std::visit([=](auto& elem) { return elem.get_vort(); }, coll);
+
+    // convert to a std::vector<double>
+    std::vector<double> vorts(volvort.begin(), volvort.end());
+
+    // transfer BC packet to solver
+    (void) solver.setsolnvort_d_(vorts);
+  }
 }
 
 //
