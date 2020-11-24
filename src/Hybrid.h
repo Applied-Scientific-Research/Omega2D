@@ -15,6 +15,7 @@
 
 #include <iostream>
 #include <vector>
+//#include <numeric>	// for transform_reduce (C++17)
 
 /*
 // these could be in headers exposed by the external solver
@@ -282,13 +283,13 @@ void Hybrid<S,A,I>::step(const double                         _time,
   (void) solver.solveto_d_(_time);
 
   // pull results from external solver (assume just one for now)
-  for (auto &coll : _euler) {
-    std::vector<double> allvorts = solver.getallvorts_d_();
-    assert(allvorts.size() == coll.get_vol_nodes(_time).get_n() && "ERROR (Hybrid::step) vorticity from solver is not the right size");
+  //for (auto &coll : _euler) {
+  //  std::vector<double> allvorts = solver.getallvorts_d_();
+  //  assert(allvorts.size() == coll.get_vol_nodes(_time).get_n() && "ERROR (Hybrid::step) vorticity from solver is not the right size");
 
     // assign to the HOVolume
-    coll.set_soln_vort(allvorts);
-  }
+  //  coll.set_soln_vort(allvorts);
+  //}
 
   // convert vorticity results to drawable and writable Volume elements (OpenGL stuff) - later
 
@@ -297,24 +298,92 @@ void Hybrid<S,A,I>::step(const double                         _time,
   // part C - update particle strengths accordionly
   //
 
-  // "update" strengths on vortex particles within the boundary
+  std::cout << "Inside Hybrid::step updating particle strengths" << std::endl;
 
   // here's one way to do it:
   // identify all free vortex particles inside of euler regions and remove them
-  //   (add up how much circulation we remove) - or not?
+  //   (add up how much circulation we remove)
+  //   then we'd need to re-run BEM
 
-  // re-run BEM and compute vorticity on all HO volume nodes - bem already run
   for (auto &coll : _euler) {
-    Points<S> euler_vol = coll.get_vol_nodes(_time);
-    //_conv.find_vels(_fs, _vort, _bdry, euler_vol, velandvort);
+
+    Points<S>& solnpts = coll.get_vol_nodes(_time);
+    const size_t thisn = solnpts.get_n();
+
+    // pull results from external solver (assume just one for now)
+    std::vector<double> eulvort = solver.getallvorts_d_();
+    assert(eulvort.size() == thisn && "ERROR (Hybrid::step) vorticity from solver is not the right size");
+
+    // find the Lagrangian-computed vorticity on all solution nodes (make a vector of one collection)
+    std::vector<Collection> euler_vols;
+    euler_vols.emplace_back(solnpts);
+    _conv.find_vels(_fs, _vort, _bdry, euler_vols, velandvort, true);
+    Vector<S>& lagvort = solnpts.get_vort();
+    assert(lagvort.size() == thisn && "ERROR (Hybrid::step) vorticity from particle sim is not the right size");
+
+    // generate a mask for the solution nodes to indicate which we will consider,
+    // and which are too close to the wall (and thus too thin) to require correction
+    Vector<S> mask;
+    mask.resize(thisn);
+    std::fill(mask.begin(), mask.end(), 1.0);
+
+    // find the initial vorticity error/deficit
+    // subtract the Lagrangian-computed vort from the actual Eulerian vort on those nodes
+    // now we have the amount of vorticity we need to re-add to the Lagrangian side
+    Vector<S> circ;
+    circ.resize(thisn);
+    // computes eulvort - lagvort = circ
+    std::transform(eulvort.begin(), eulvort.end(),
+                   lagvort.begin(),
+                   circ.begin(),
+                   std::minus<S>());
+
+    // scale by cell area
+    const Vector<S>& area = coll.get_area();
+    assert(area.size() == thisn && "ERROR (Hybrid::step) volume area vector is not the right size");
+    // multiply by mask
+
+    for (size_t i=0; i<thisn; ++i) {
+      std::cout << "    " << i << "  " << eulvort[i] << " - " << lagvort[i] << " = " << circ[i] << " or " << (circ[i]*area[i]) << std::endl;
+    }
+
+    // measure this error
+    double maxerror = 0.1;
+    double thiserror = 0.0;
+    // trying to get fancy - failed!
+    //double thiserror = std::accumulate(circ.begin(), circ.end(), 0.0);
+    //double thiserror = std::transform_reduce(circ.begin(), circ.end(), 0.0, std::plus<>{}, //std::fabs);
+    //                                         static_cast<double (*)(double)>(std::fabs));
+    for (size_t i=0; i<thisn; ++i) { thiserror += std::fabs(circ[i]); }
+    std::cout << "  initial error " << thiserror << std::endl;
+
+    // iterate toward a solution
+    for (int iter=0; iter<10; ++iter) {
+
+      // resolve it via VRM
+      //   for each sub-node of each HO quad, run a VRM onto the existing set of Lagrangian
+      //   particles adding where necessary to satisfy at least 0th and 1st moments, if not 2nd
+      // resolve it simply
+      //   just create a new particle at the centroid of each element, let merge deal
+
+      // generate particles to fill the deficit
+      //   note that cells may be a lot larger than particles!
+
+      // merge here? seems smart
+
+      // find the new Lagrangian vorticity on the solution nodes
+      // and the new vorticity error/deficit
+
+      // measure this error
+      thiserror = 0.0;
+      std::cout << "  iter " << (iter+1) << " has error " << thiserror << std::endl;
+
+      // test for convergence
+      if (thiserror < maxerror) iter += 10;
+    }
   }
 
-  // subtract the Lagrangian-computed vort from the actual Eulerian vort on those nodes
-  // now we have the amount of vorticity we need to re-add to the Lagrangian side
-  // for each sub-node of each HO quad, run a VRM onto the existing set of Lagrangian
-  //   particles adding where necessary to satisfy at least 0th and 1st moments, if not 2nd
-
-  // simple way: just create a new particle at the centroid of each element, let merge deal
+  // then merge all particles that we created
 
 }
 
