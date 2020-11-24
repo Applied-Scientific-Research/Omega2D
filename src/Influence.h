@@ -251,7 +251,7 @@ void points_affect_points (const Points<S>& src, Points<S>& targ, const ResultsT
           tu[0][i] += accumu.sum();
           tu[1][i] += accumv.sum();
           tw[i] += accumw.sum();
-          //std::cout << "part " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
+          //std::cout << "part " << i << " has new vort " << tw[i] << std::endl;
         }
         flops *= 2.0 + (float)flopsu_0v_0b<S,A>() * (float)src.get_n();
       }
@@ -681,7 +681,7 @@ void panels_affect_panels (const Surfaces<S>& src, Surfaces<S>& targ, const Resu
   panels_affect_points<S,A>(src, temppts, restype, env);
 
   // and add the velocities to the real target
-  std::array<Vector<S>,Dimensions>& fromvel = temppts.get_vel();
+  const std::array<Vector<S>,Dimensions>& fromvel = temppts.get_vel();
   std::array<Vector<S>,Dimensions>& tovel   = targ.get_vel();
   for (size_t i=0; i<Dimensions; ++i) {
     std::transform(tovel[i].begin( ), tovel[i].end( ), fromvel[i].begin( ), tovel[i].begin( ), std::plus<S>( ));
@@ -717,7 +717,7 @@ void points_affect_bricks (const Points<S>& src, Volumes<S>& targ, const Results
   points_affect_points<S,A>(src, volsaspts, restype, env);
 
   // and add the velocities to the real target
-  std::array<Vector<S>,Dimensions>& fromvel = volsaspts.get_vel();
+  const std::array<Vector<S>,Dimensions>& fromvel = volsaspts.get_vel();
   std::array<Vector<S>,Dimensions>& tovel   = targ.get_vel();
   for (size_t i=0; i<Dimensions; ++i) {
     std::transform(tovel[i].begin( ), tovel[i].end( ), fromvel[i].begin( ), tovel[i].begin( ), std::plus<S>( ));
@@ -725,8 +725,8 @@ void points_affect_bricks (const Points<S>& src, Volumes<S>& targ, const Results
 
   // and the vorticity also
   if (restype.compute_vort()) {
-    Vector<S>& fromvort = volsaspts.get_vort();
-    Vector<S>& tovort   = targ.get_vort();
+    const Vector<S>& fromvort = volsaspts.get_vort();
+    Vector<S>& tovort         = targ.get_vort();
     std::transform(tovort.begin( ), tovort.end( ), fromvort.begin( ), tovort.begin( ), std::plus<S>( ));
   }
 
@@ -748,7 +748,7 @@ void panels_affect_bricks (const Surfaces<S>& src, Volumes<S>& targ, const Resul
   panels_affect_points<S,A>(src, volsaspts, soln, env);
 
   // and add the velocities to the real target
-  std::array<Vector<S>,Dimensions>& fromvel = volsaspts.get_vel();
+  const std::array<Vector<S>,Dimensions>& fromvel = volsaspts.get_vel();
   std::array<Vector<S>,Dimensions>& tovel   = targ.get_vel();
   for (size_t i=0; i<Dimensions; ++i) {
     std::transform(tovel[i].begin( ), tovel[i].end( ), fromvel[i].begin( ), tovel[i].begin( ), std::plus<S>( ));
