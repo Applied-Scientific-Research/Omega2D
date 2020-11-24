@@ -323,11 +323,6 @@ void Hybrid<S,A,I>::step(const double                         _time,
     Vector<S>& lagvort = solvedpts.get_vort();
     assert(lagvort.size() == thisn && "ERROR (Hybrid::step) vorticity from particle sim is not the right size");
 
-    // generate a mask for the solution nodes to indicate which we will consider,
-    // and which are too close to the wall (and thus too thin) to require correction
-    Vector<S> mask;
-    mask.resize(thisn);
-    std::fill(mask.begin(), mask.end(), 1.0);
 
     // find the initial vorticity error/deficit
     // subtract the Lagrangian-computed vort from the actual Eulerian vort on those nodes
@@ -340,13 +335,19 @@ void Hybrid<S,A,I>::step(const double                         _time,
                    circ.begin(),
                    std::minus<S>());
 
-    // scale by cell area
-    const Vector<S>& area = coll.get_area();
+    // scale by masked cell area
+    // uses a mask for the solution nodes (elements here!) to indicate which we will consider,
+    // and which are too close to the wall (and thus too thin) to require correction
+    // HACK - when solution points are no longer 1:1 with volume elements, this will need work
+    const Vector<S>& area = coll.get_maskarea();
     assert(area.size() == thisn && "ERROR (Hybrid::step) volume area vector is not the right size");
-    // multiply by mask
+    std::transform(circ.begin(), circ.end(),
+                   area.begin(),
+                   circ.begin(),
+                   std::multiplies<S>());
 
     for (size_t i=0; i<std::min(thisn,(size_t)60); ++i) {
-      std::cout << "    " << i << "  " << eulvort[i] << " - " << lagvort[i] << " = " << circ[i] << " or " << (circ[i]*area[i]) << std::endl;
+      std::cout << "    " << i << "  " << area[i] << " * ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
     }
 
     // measure this error
@@ -360,12 +361,14 @@ void Hybrid<S,A,I>::step(const double                         _time,
     std::cout << "  initial error " << thiserror << std::endl;
 
     // iterate toward a solution
-    for (int iter=0; iter<10; ++iter) {
+    int iter = 0;
+    int maxiter = 10;
+    while (thiserror>maxerror and iter<maxiter) {
 
       // resolve it via VRM
       //   for each sub-node of each HO quad, run a VRM onto the existing set of Lagrangian
       //   particles adding where necessary to satisfy at least 0th and 1st moments, if not 2nd
-      // resolve it simply
+      // resolve it via naive insertion
       //   just create a new particle at the centroid of each element, let merge deal
 
       // generate particles to fill the deficit
@@ -380,8 +383,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
       thiserror = 0.0;
       std::cout << "  iter " << (iter+1) << " has error " << thiserror << std::endl;
 
-      // test for convergence
-      if (thiserror < maxerror) iter += 10;
+      iter++;
     }
   }
 

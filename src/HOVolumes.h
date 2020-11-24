@@ -38,7 +38,13 @@ public:
       open_s(Surfaces<S>(_oelems, _e, _m, _bp)),
       open_p(Points<S>(ElementPacket<S>((uint8_t)0), _e, _m, _bp, 0.0)),
       soln_p(Points<S>(ElementPacket<S>((uint8_t)0), _e, _m, _bp, 0.0))
-  { }
+  {
+    // parent ctor calculates element areas, here we zero some of them
+    (void) set_mask_area(0.05);
+  }
+
+  // useful getter for the areas of participating elements
+  const Vector<S>&              get_maskarea() const { return maskarea; }
 
   // return a Collection of the nodes on the open boundary
   const Points<S>& get_bc_nodes(const S _time) const { return open_p; }
@@ -150,6 +156,43 @@ public:
     soln_p.set_vort(vort);
   }
 
+  // zero out some cell/element areas because we don't want to generate particles there
+  //   input is a threshold distance under which to ignore cells
+  void set_mask_area(const S _thresh) {
+
+    // first, go through list of nodes and flag any which are within thresh of the body
+    std::vector<bool> tooclose(this->n);
+    for (size_t i=0; i<this->n; ++i) {
+      // HACK - assumes a unit-radius circle at the origin
+      const S dist = std::sqrt(std::pow(this->x[0][i],2)+std::pow(this->x[1][i],2)) - 0.5;
+      // smarter is to use a point-to-surface algorithm - LATER
+      tooclose[i] = (dist < _thresh);
+    }
+
+    // copy from area
+    maskarea = this->area;
+
+    // what kinds of elements do we have?
+    const size_t nper = this->idx.size() / this->nb;
+
+    // keep a running count of the number of masked cells
+    int num_masked = 0;
+
+    // now, any cells which touch one of these "tooclose" nodes gets a maskarea of zero
+    for (size_t i=0; i<this->nb; ++i) {
+      bool farenough = true;
+      for (size_t j=0; j<nper; ++j) {
+        if (tooclose[this->idx[nper*i+j]]) farenough = false;
+      }
+      if (not farenough) {
+        maskarea[i] = 0.0;
+        num_masked++;
+      }
+    }
+
+    std::cout << "  set_mask_area masked out " << num_masked << " of " << this->nb << " elems with thresh " << _thresh << std::endl;
+  }
+
   //
   // return a particle version of the elements (useful during Diffusion)
   // offset is in world units - NOT scaled
@@ -198,6 +241,7 @@ public:
 protected:
   // ElementBase.h has x, s, u, ux on the *nodes*
   // Volumes.h has nb, idx, area
+  Vector<S>             maskarea;   // like area, but some cells zeroed out
 
   // boundary elements (only used when this is an euler/hybrid Collection)
   Surfaces<S>             wall_s;   // wall boundary surface (from msh file)
