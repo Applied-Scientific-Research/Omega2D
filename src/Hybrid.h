@@ -237,44 +237,65 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
   std::cout << "Inside Hybrid::step at t=" << _time << " and dt=" << _dt << std::endl;
 
+  //
   // part A - prepare BCs for Euler solver
-
-  // transform all elements to their appropriate locations (do we need to do this?)
-  //for (auto &coll : _vort) {
-  //}
+  //
 
   // update the BEM solution
   solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
-  // get vels on each euler region
+
+  // make a list of euler boundary regions
+  std::vector<Collection> euler_bdrys;
   for (auto &coll : _euler) {
     // transform to current position
-    coll.move(_time, _dt);
+    coll.move(_time, 0.0);
 
     // isolate open/outer boundaries
-    Points<S> euler_bdry = coll.get_bc_nodes(_time);
-
-    // find vels there
-    //Convection<S,A,I>::find_vels(_fs, _vort, _bdry, euler_bdry);
-
-    // convert to transferable packet
-    //std::array<Vector<S>,Dimensions> openvels = euler_bdry.get_vel();
-
-    // transfer BC packet to solver
-    //(void) solver.setopenvels_d_(coll.get_n(), openvels[0], openvels[1]);
+    euler_bdrys.emplace_back(coll.get_bc_nodes(_time));
   }
 
-  // part B - call Euler solver
+  // get vels and vorts on each euler region - and force it
+  _conv.find_vels(_fs, _vort, _bdry, euler_bdrys, velonly, true);
 
-  // call solver
+  for (auto &coll : euler_bdrys) {
+    // convert to transferable packet
+    std::array<Vector<S>,Dimensions> openvels = std::visit([=](auto& elem) { return elem.get_vel(); }, coll);
+
+    // convert to a std::vector<double>
+    std::vector<double> packedvels(Dimensions*openvels[0].size());
+    for (size_t d=0; d<Dimensions; ++d) {
+      for (size_t i=0; i<openvels[d].size(); ++i) {
+        packedvels[Dimensions*i+d] = openvels[d][i];
+      }
+    }
+
+    // transfer BC packet to solver
+    (void) solver.setopenvels_d_(packedvels);
+  }
+
+
+  //
+  // part B - call Euler solver
+  //
+
+  // call solver - solves all Euler volumes at once?
   (void) solver.solveto_d_(_time);
 
-  // pull results from external solver
-  //std::vector<A> allvorts;
-  //(void) solver.getallvorts_d_(np, allvorts);
+  // pull results from external solver (assume just one for now)
+  for (auto &coll : _euler) {
+    std::vector<double> allvorts = solver.getallvorts_d_();
+    assert(allvorts.size() == coll.get_vol_nodes(_time).get_n() && "ERROR (Hybrid::step) vorticity from solver is not the right size");
 
-  // convert vorticity results to drawable and writable Volume elements
+    // assign to the HOVolume
+    coll.set_soln_vort(allvorts);
+  }
 
+  // convert vorticity results to drawable and writable Volume elements ?
+
+
+  //
   // part C - update particle strengths accordionly
+  //
 
   // "update" strengths on vortex particles within the boundary
 

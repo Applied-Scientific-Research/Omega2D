@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
+#include <cmath>
 
 namespace DummySolver {
 
@@ -109,6 +110,8 @@ Solver::init_d_(std::vector<double> _pts,
   assert(obdry.size()/2 == sopts.size() && "ERROR (Solver::init_d_) hack does not appear to be working");
   std::cout << "    of which " << sopts.size() << " are on the open boundary" << std::endl;
 
+  curr_time = 0.0;
+
   return;
 }
 
@@ -181,6 +184,14 @@ Solver::setsolnvort_d_(std::vector<double> _vort) {
 void
 Solver::solveto_d_(const double _endtime) {
   std::cout << "DummySolver solving to t= " << _endtime << " with " << num_substeps << " substeps" << std::endl;
+
+  double this_dt = (_endtime - curr_time) / (double)num_substeps;
+  for (size_t step=0; step<num_substeps; ++step) {
+    std::cout << "  substep " << step << " at t= " << curr_time << std::endl;
+    curr_time += this_dt;
+  }
+  std::cout << "  solver time is now " << curr_time << std::endl;
+
   return;
 }
 
@@ -190,7 +201,23 @@ Solver::solveto_d_(const double _endtime) {
 //
 std::vector<double>
 Solver::getallvorts_d_() {
-  return std::vector<double>();
+  std::cout << "  DummySolver returning vorticity at all soln nodes" << std::endl;
+
+  // HACK - return a diffuse-like vorticity
+  std::vector<double> vort;
+  vort.resize(N_snodes);
+
+  for (size_t i=0; i<vort.size(); ++i) {
+    const double xp = snodes[2*i];
+    const double yp = snodes[2*i+1];
+    const double r = std::sqrt(xp*xp + yp*yp);
+    // this is a model of an exponential-like bump from r=0.5 to ~0.75
+    const double factor = 5.0 * ((r<0.74 && r>0.501) ? 0.5 - 0.5*std::cos(10.0*std::pow(r-0.5,0.333333)) : 0.0);
+    // and this makes it negative vort on top and positive beneath
+    vort[i] = factor * (-yp) / r;
+  }
+
+  return vort;
 }
 
 

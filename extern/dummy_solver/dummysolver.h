@@ -61,6 +61,7 @@ private:
   uint32_t num_substeps;// number of internel substeps per external time step
   uint8_t elem_order;	// internal element order
   uint8_t time_order;	// internal time integration order
+  double curr_time;	// current simulation time (as far as we know it)
 
 }; // end class Solver
 

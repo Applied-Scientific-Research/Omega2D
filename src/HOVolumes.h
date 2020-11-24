@@ -139,6 +139,16 @@ public:
     //else assert(_in.val.size() == _in.nelem && "Input ElementPacket with Volumes has bad val array size");
   }
 
+  // set vorticity at solution points, to use for reprojecting to particles
+  void set_soln_vort(std::vector<double> _in) {
+    assert(_in.size() > 0 && "ERROR (set_soln_vort): received zero solution points from solver");
+
+    // convert input vector to local type
+    Vector<S> x(_in.begin(), _in.end());
+
+    // ready to pass a packet to the ctor
+    //soln_p.add_new(ElementPacket<S>(x, std::vector<Int>(), val, x.size()/2, 0), 0.0);
+  }
 
   //
   // return a particle version of the elements (useful during Diffusion)
