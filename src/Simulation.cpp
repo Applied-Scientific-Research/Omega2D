@@ -198,9 +198,10 @@ Simulation::from_json(const nlohmann::json j) {
     use_end_time = false;
   }
 
-  // set diffusion-specific parameters
   // Diffusion will find and set "viscous", "VRM" and "AMR" parameters
   diff.from_json(j);
+
+  // set hybrid Eulerian-Lagrangian solution parameters
   hybr.from_json(j);
 }
 
@@ -216,6 +217,8 @@ Simulation::to_json() const {
 
   // Diffusion will write "viscous", "VRM" and "AMR" parameters
   diff.add_to_json(j);
+
+  // Hybrid will create a "hybrid" section
   hybr.add_to_json(j);
 
   return j;
