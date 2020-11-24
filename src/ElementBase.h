@@ -66,6 +66,19 @@ public:
     }
     return *w;
   }
+  void set_vort(Vector<S> _in) {
+    assert(_in.size() == n && "ERROR (ElementBase::set_vort) input vector length mismatch");
+    if (w) {
+      if (w->size() != _in.size()) w->resize(n);
+    } else {
+      // allocate and move
+      Vector<S> new_vort;
+      new_vort.resize(n);
+      w = std::move(new_vort);
+    }
+    *w = _in;
+    //std::cout << "Received vorticity on " << n << " nodes, starting with " << (*w)[0] << std::endl;
+  }
 
   void set_str(const size_t ioffset, const size_t icnt, Vector<S> _in) {
     assert(s && "Strength array does not exist");

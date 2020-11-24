@@ -290,7 +290,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
     coll.set_soln_vort(allvorts);
   }
 
-  // convert vorticity results to drawable and writable Volume elements ?
+  // convert vorticity results to drawable and writable Volume elements (OpenGL stuff) - later
 
 
   //

@@ -144,10 +144,10 @@ public:
     assert(_in.size() > 0 && "ERROR (set_soln_vort): received zero solution points from solver");
 
     // convert input vector to local type
-    Vector<S> x(_in.begin(), _in.end());
+    Vector<S> vort(_in.begin(), _in.end());
 
-    // ready to pass a packet to the ctor
-    //soln_p.add_new(ElementPacket<S>(x, std::vector<Int>(), val, x.size()/2, 0), 0.0);
+    // pass it to the Collection of Points for use later
+    soln_p.set_vort(vort);
   }
 
   //
