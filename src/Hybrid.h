@@ -355,6 +355,11 @@ void Hybrid<S,A,I>::step(const double                         _time,
       std::cout << "    " << i << "  " << area[i] << " * ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
     }
 
+    // find a scaling factor for the error
+    double totalcircmag = 0.0;
+    for (size_t i=0; i<thisn; ++i) { totalcircmag += std::fabs(eulvort[i]*area[i]); }
+    // if totalcircmag is too small, this may never converge...
+
     // measure this error
     double maxerror = 0.01;
     double thiserror = 0.0;
@@ -363,11 +368,12 @@ void Hybrid<S,A,I>::step(const double                         _time,
     //double thiserror = std::transform_reduce(circ.begin(), circ.end(), 0.0, std::plus<>{}, //std::fabs);
     //                                         static_cast<double (*)(double)>(std::fabs));
     for (size_t i=0; i<thisn; ++i) { thiserror += std::fabs(circ[i]); }
+    thiserror /= totalcircmag;
     std::cout << "  initial error " << thiserror << std::endl;
 
     // iterate toward a solution
     int iter = 0;
-    int maxiter = 10;
+    int maxiter = 20;
     while (thiserror>maxerror and iter<maxiter) {
 
       // resolve it via VRM
@@ -411,6 +417,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
       // measure this error
       thiserror = 0.0;
       for (size_t i=0; i<thisn; ++i) { thiserror += std::fabs(circ[i]); }
+      thiserror /= totalcircmag;
       std::cout << "  iter " << (iter+1) << " has error " << thiserror << std::endl;
 
       iter++;
