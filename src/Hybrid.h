@@ -356,7 +356,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
     }
 
     // measure this error
-    double maxerror = 0.1;
+    double maxerror = 0.01;
     double thiserror = 0.0;
     // trying to get fancy - failed!
     //double thiserror = std::accumulate(circ.begin(), circ.end(), 0.0);
@@ -391,9 +391,26 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
       // find the new Lagrangian vorticity on the solution nodes
       // and the new vorticity error/deficit
+      _conv.find_vels(_fs, _vort, _bdry, euler_vols, velandvort, true);
+
+      // convert the new vort to a new circ
+      std::transform(eulvort.begin(), eulvort.end(),
+                     lagvort.begin(),
+                     circ.begin(),
+                     std::minus<S>());
+
+      std::transform(circ.begin(), circ.end(),
+                     area.begin(),
+                     circ.begin(),
+                     std::multiplies<S>());
+
+      for (size_t i=0; i<std::min(thisn,(size_t)60); ++i) {
+        std::cout << "    " << i << "  " << area[i] << " * ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
+      }
 
       // measure this error
       thiserror = 0.0;
+      for (size_t i=0; i<thisn; ++i) { thiserror += std::fabs(circ[i]); }
       std::cout << "  iter " << (iter+1) << " has error " << thiserror << std::endl;
 
       iter++;
