@@ -38,10 +38,7 @@ public:
       open_s(Surfaces<S>(_oelems, _e, _m, _bp)),
       open_p(Points<S>(ElementPacket<S>((uint8_t)0), _e, _m, _bp, 0.0)),
       soln_p(Points<S>(ElementPacket<S>((uint8_t)0), _e, _m, _bp, 0.0))
-  {
-    // parent ctor calculates element areas, here we zero some of them
-    (void) set_mask_area(0.05);
-  }
+  { }
 
   // useful getter for the areas of participating elements
   const Vector<S>&              get_maskarea() const { return maskarea; }
@@ -160,6 +157,12 @@ public:
   //   input is a threshold distance under which to ignore cells
   void set_mask_area(const S _thresh) {
 
+    // this is the threshold that we used making the maskarea array
+    static S using_thresh = 0.0;
+
+    // don't remake the values if nothing changed
+    if (maskarea.size() == this->nb and using_thresh == _thresh) return;
+
     // first, go through list of nodes and flag any which are within thresh of the body
     std::vector<bool> tooclose(this->n);
     for (size_t i=0; i<this->n; ++i) {
@@ -190,13 +193,16 @@ public:
       }
     }
 
+    // set the local static var value so we don't re-calculate these again
+    using_thresh = _thresh;
+
     std::cout << "  set_mask_area masked out " << num_masked << " of " << this->nb << " elems with thresh " << _thresh << std::endl;
   }
 
   //
   // return a particle version of the elements
   //
-  ElementPacket<S> get_equivalent_particles(const Vector<S>& _circ) {
+  ElementPacket<S> get_equivalent_particles(const Vector<S>& _circ, const S _vd) {
 
     assert(_circ.size() == this->nb && "HOVolumes::get_equivalent_particles input vector size mismatch");
 
@@ -209,6 +215,7 @@ public:
     // what kinds of elements do we have?
     const size_t nper = this->idx.size() / this->nb;
 
+    // get this array so we can reference it more easily
     const std::array<Vector<S>,Dimensions>& ptx = soln_p.get_pos();
 
     // loop over volume elements which have appreciable strength change
@@ -219,6 +226,7 @@ public:
       x.push_back(ptx[0][i]);
       x.push_back(ptx[1][i]);
       val.push_back(_circ[i]);
+      thisn++;
 
       // use size of element and particle radius to ensure overlap
     }

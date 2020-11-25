@@ -11,6 +11,7 @@
 #include "Collection.h"
 #include "Convection.h"
 #include "BEM.h"
+#include "Merge.h"
 #include "dummysolver.h"
 
 #include <iostream>
@@ -68,7 +69,8 @@ public:
              std::vector<Collection>&,
              BEM<S,I>&,
              Convection<S,A,I>&,
-             std::vector<HOVolumes<S>>&);
+             std::vector<HOVolumes<S>>&,
+             const float);
 
   // read/write parameters
   void from_json(const nlohmann::json);
@@ -231,7 +233,8 @@ void Hybrid<S,A,I>::step(const double                         _time,
                          std::vector<Collection>&             _bdry,
                          BEM<S,I>&                            _bem,
                          Convection<S,A,I>&                   _conv,
-                         std::vector<HOVolumes<S>>&           _euler) {
+                         std::vector<HOVolumes<S>>&           _euler,
+                         const float                          _vd) {
 
   if (not active) return;
   if (not initialized) init(_euler);
@@ -338,6 +341,8 @@ void Hybrid<S,A,I>::step(const double                         _time,
     // scale by masked cell area
     // uses a mask for the solution nodes (elements here!) to indicate which we will consider,
     // and which are too close to the wall (and thus too thin) to require correction
+    // use one full vdelta for this (input _vd)
+    (void) coll.set_mask_area((S)_vd);
     // HACK - when solution points are no longer 1:1 with volume elements, this will need work
     const Vector<S>& area = coll.get_maskarea();
     assert(area.size() == thisn && "ERROR (Hybrid::step) volume area vector is not the right size");
@@ -373,9 +378,16 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
       // generate particles to fill the deficit
       //   note that cells may be a lot larger than particles!
-      ElementPacket<S> newparts = coll.get_equivalent_particles(circ);
+      ElementPacket<S> newparts = coll.get_equivalent_particles(circ, (S)_vd);
 
-      // merge here? seems smart
+      // make them a new collection in _vort (so that we can delete them later?)
+      // or add them to the first collection?
+      Points<float>& thevorts = std::get<Points<S>>(_vort[0]);
+      thevorts.add_new(newparts, _vd);
+
+      // merge here
+      // HACK - hard-coding overlap and merge thresh!
+      merge_operation<S>(_vort, 1.5, 0.2, false);
 
       // find the new Lagrangian vorticity on the solution nodes
       // and the new vorticity error/deficit
