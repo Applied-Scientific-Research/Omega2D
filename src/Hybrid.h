@@ -20,10 +20,10 @@
 
 /*
 // these could be in headers exposed by the external solver
-extern "C" float external_euler_init_f_(int*, const float*, const float*, const float*, const float*,
-                                        int*, const float*, const float*, float*, float*);
-extern "C" float external_euler_init_d_(int*, const double*, const double*, const double*, const double*,
-                                        int*, const double*, const double*, double*, double*);
+extern "C" float external_euler_init_f(int*, const float*, const float*, const float*, const float*,
+                                       int*, const float*, const float*, float*, float*);
+extern "C" float external_euler_init_d(int*, const double*, const double*, const double*, const double*,
+                                       int*, const double*, const double*, double*, double*);
 */
 
 
@@ -64,6 +64,7 @@ public:
              std::vector<HOVolumes<S>>&);
   void step( const double,
              const double,
+             const float,
              const std::array<double,Dimensions>&,
              std::vector<Collection>&,
              std::vector<Collection>&,
@@ -111,10 +112,7 @@ template <class S, class A, class I>
 void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
   std::cout << "Inside Hybrid::init with " << _euler.size() << " volumes" << std::endl;
 
-  solver.set_re_d_(100.0);
-  solver.set_elemorder_d_((uint8_t)elementOrder);
-  solver.set_timeorder_d_((uint8_t)timeOrder);
-  solver.set_numsteps_d_((uint32_t)numSubsteps);
+  solver.set_elemorder_d((int32_t)elementOrder);
 
   for (auto &coll : _euler) {
     // transform to current position
@@ -122,12 +120,12 @@ void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
 
     // call the external solver with the current geometry
     // this will calculate the Jacobian and other cell-specific properties
-    (void) solver.init_d_(coll.get_node_pos(), coll.get_elem_idx(),
-                          coll.get_wall_idx(), coll.get_open_idx());
+    (void) solver.init_d(coll.get_node_pos(), coll.get_elem_idx(),
+                         coll.get_wall_idx(), coll.get_open_idx());
 
     // and ask it for the open BC solution nodes, and the full internal solution nodes
-    coll.set_open_pts(solver.getopenpts_d_());
-    coll.set_soln_pts(solver.getsolnpts_d_());
+    coll.set_open_pts(solver.getopenpts_d());
+    coll.set_soln_pts(solver.getsolnpts_d());
   }
 
   initialized = true;
@@ -190,7 +188,7 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
     }
 
     // transfer BC packet to solver
-    (void) solver.setopenvels_d_(packedvels);
+    (void) solver.setopenvels_d(packedvels);
   }
 
   //
@@ -218,7 +216,7 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
     std::vector<double> vorts(volvort.begin(), volvort.end());
 
     // transfer BC packet to solver
-    (void) solver.setsolnvort_d_(vorts);
+    (void) solver.setsolnvort_d(vorts);
   }
 }
 
@@ -228,6 +226,7 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
 template <class S, class A, class I>
 void Hybrid<S,A,I>::step(const double                         _time,
                          const double                         _dt,
+                         const float                          _re,
                          const std::array<double,Dimensions>& _fs,
                          std::vector<Collection>&             _vort,
                          std::vector<Collection>&             _bdry,
@@ -274,7 +273,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
     }
 
     // transfer BC packet to solver
-    (void) solver.setopenvels_d_(packedvels);
+    (void) solver.setopenvels_d(packedvels);
   }
 
 
@@ -283,11 +282,11 @@ void Hybrid<S,A,I>::step(const double                         _time,
   //
 
   // call solver - solves all Euler volumes at once?
-  (void) solver.solveto_d_(_time);
+  (void) solver.solveto_d((double)_time, (int32_t)numSubsteps, (int32_t)timeOrder, (double)_re);
 
   // pull results from external solver (assume just one for now)
   //for (auto &coll : _euler) {
-  //  std::vector<double> allvorts = solver.getallvorts_d_();
+  //  std::vector<double> allvorts = solver.getallvorts_d();
   //  assert(allvorts.size() == coll.get_vol_nodes(_time).get_n() && "ERROR (Hybrid::step) vorticity from solver is not the right size");
 
     // assign to the HOVolume
@@ -314,7 +313,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
     const size_t thisn = solnpts.get_n();
 
     // pull results from external solver (assume just one for now)
-    std::vector<double> eulvort = solver.getallvorts_d_();
+    std::vector<double> eulvort = solver.getallvorts_d();
     assert(eulvort.size() == thisn && "ERROR (Hybrid::step) vorticity from solver is not the right size");
 
     // find the Lagrangian-computed vorticity on all solution nodes (make a vector of one collection)

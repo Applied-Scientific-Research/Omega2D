@@ -21,25 +21,25 @@ namespace DummySolver {
 // setters for HO solver runtime parameters
 //
 void
-Solver::set_re_d_(const double _re) {
+Solver::set_re_d(const double _re) {
   std::cout << "  DummySolver set re= " << _re << std::endl;
   reynolds = _re;
 }
 
 void
-Solver::set_elemorder_d_(const uint8_t _eo) {
+Solver::set_elemorder_d(const int32_t _eo) {
   std::cout << "  DummySolver set element order= " << (int)_eo << std::endl;
   elem_order = _eo;
 }
 
 void
-Solver::set_timeorder_d_(const uint8_t _to) {
+Solver::set_timeorder_d(const int32_t _to) {
   std::cout << "  DummySolver set time integration order= " << (int)_to << std::endl;
   time_order = _to;
 }
 
 void
-Solver::set_numsteps_d_(const uint32_t _ns) {
+Solver::set_numsteps_d(const int32_t _ns) {
   std::cout << "  DummySolver set num substeps= " << _ns << std::endl;
   num_substeps = _ns;
 }
@@ -49,10 +49,10 @@ Solver::set_numsteps_d_(const uint32_t _ns) {
 // receive node locations and element indices for internal cells, walls, and open boundaries
 //
 void
-Solver::init_d_(std::vector<double> _pts,
-                std::vector<uint32_t> _cidx,
-                std::vector<uint32_t> _widx,
-                std::vector<uint32_t> _oidx) {
+Solver::init_d(std::vector<double> _pts,
+               std::vector<uint32_t> _cidx,
+               std::vector<uint32_t> _widx,
+               std::vector<uint32_t> _oidx) {
 
   std::cout << "  DummySolver initializing" << std::endl;
 
@@ -120,7 +120,7 @@ Solver::init_d_(std::vector<double> _pts,
 // return all solution nodes
 //
 std::vector<double>
-Solver::getsolnpts_d_() {
+Solver::getsolnpts_d() {
   return snodes;
 }
 
@@ -129,7 +129,7 @@ Solver::getsolnpts_d_() {
 // return solution nodes closest to open boundaries
 //
 std::vector<double>
-Solver::getopenpts_d_() {
+Solver::getopenpts_d() {
   // must assemble vector of just those nodes
   std::vector<double> opts;
   for (size_t i=0; i<sopts.size(); ++i) {
@@ -144,7 +144,7 @@ Solver::getopenpts_d_() {
 // set velocity BCs at open boundaries
 //
 void
-Solver::setopenvels_d_(std::vector<double> _vels) {
+Solver::setopenvels_d(std::vector<double> _vels) {
   std::cout << "  DummySolver set velocities at open soln nodes: " << _vels.size()/2 << std::endl;
   assert(_vels.size() == sopts.size()*2 && "ERROR (Solver::setopenvels_d_) bad incoming velocity vector length");
 
@@ -163,7 +163,7 @@ Solver::setopenvels_d_(std::vector<double> _vels) {
 // set initial vorticity at all solution nodes
 //
 void
-Solver::setsolnvort_d_(std::vector<double> _vort) {
+Solver::setsolnvort_d(std::vector<double> _vort) {
   std::cout << "  DummySolver set vorticity at all soln nodes: " << _vort.size() << std::endl;
   assert(_vort.size() == N_snodes && "ERROR (Solver::setsolnvort_d_) bad incoming vorticity vector length");
 
@@ -182,11 +182,14 @@ Solver::setsolnvort_d_(std::vector<double> _vort) {
 // solve system to the given time
 //
 void
-Solver::solveto_d_(const double _endtime) {
-  std::cout << "DummySolver solving to t= " << _endtime << " with " << num_substeps << " substeps" << std::endl;
+Solver::solveto_d(const double _endtime, const int32_t _numss, const int32_t _torder, const double _re) {
+  std::cout << "DummySolver solving to t= " << _endtime << " with " << _numss << " substeps" << std::endl;
+  num_substeps = _numss;
+  time_order = _torder;
+  reynolds = _re;
 
   double this_dt = (_endtime - curr_time) / (double)num_substeps;
-  for (size_t step=0; step<num_substeps; ++step) {
+  for (int32_t step=0; step<num_substeps; ++step) {
     std::cout << "  substep " << step << " at t= " << curr_time << std::endl;
     curr_time += this_dt;
   }
@@ -200,7 +203,7 @@ Solver::solveto_d_(const double _endtime) {
 // return scalar vorticity at all solution nodes
 //
 std::vector<double>
-Solver::getallvorts_d_() {
+Solver::getallvorts_d() {
   std::cout << "  DummySolver returning vorticity at all soln nodes" << std::endl;
 
   // HACK - return a diffuse-like vorticity

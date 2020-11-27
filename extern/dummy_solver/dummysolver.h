@@ -28,17 +28,17 @@ public:
   const std::vector<uint32_t>& get_elems() { return elems; }
 
   // functions that an external driver program should call
-  void set_re_d_(const double);
-  void set_elemorder_d_(const uint8_t);
-  void set_timeorder_d_(const uint8_t);
-  void set_numsteps_d_(const uint32_t);
-  void init_d_(std::vector<double>, std::vector<uint32_t>, std::vector<uint32_t>, std::vector<uint32_t>);
-  std::vector<double> getsolnpts_d_();
-  std::vector<double> getopenpts_d_();
-  void setopenvels_d_(std::vector<double>);
-  void setsolnvort_d_(std::vector<double>);
-  void solveto_d_(const double);
-  std::vector<double> getallvorts_d_();
+  void set_re_d(const double);
+  void set_elemorder_d(const uint8_t);
+  void set_timeorder_d(const uint8_t);
+  void set_numsteps_d(const uint32_t);
+  void init_d(std::vector<double>, std::vector<uint32_t>, std::vector<uint32_t>, std::vector<uint32_t>);
+  std::vector<double> getsolnpts_d();
+  std::vector<double> getopenpts_d();
+  void setopenvels_d(std::vector<double>);
+  void setsolnvort_d(std::vector<double>);
+  void solveto_d(const double, const int32_t, const int32_t, const double);
+  std::vector<double> getallvorts_d();
 
 private:
 
@@ -57,11 +57,12 @@ private:
   std::vector<uint32_t> selems;  // pointers to nodes for all solution elements
   std::vector<uint32_t> sopts;  // pointers to nodes for all solution elements on open boundaries
 
-  double reynolds;	// reynolds number
-  uint32_t num_substeps;// number of internel substeps per external time step
-  uint8_t elem_order;	// internal element order
-  uint8_t time_order;	// internal time integration order
+  int32_t num_substeps;	// number of internel substeps per external time step
+  int32_t elem_order;	// internal element order
+  int32_t time_order;	// internal time integration order
   double curr_time;	// current simulation time (as far as we know it)
+
+  double reynolds;	// reynolds number
 
 }; // end class Solver
 
