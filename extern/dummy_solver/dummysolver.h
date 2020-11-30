@@ -29,9 +29,9 @@ public:
 
   // functions that an external driver program should call
   void set_re_d(const double);
-  void set_elemorder_d(const uint8_t);
-  void set_timeorder_d(const uint8_t);
-  void set_numsteps_d(const uint32_t);
+  void set_elemorder_d(const int32_t);
+  void set_timeorder_d(const int32_t);
+  void set_numsteps_d(const int32_t);
   void init_d(std::vector<double>, std::vector<uint32_t>, std::vector<uint32_t>, std::vector<uint32_t>);
   std::vector<double> getsolnpts_d();
   std::vector<double> getopenpts_d();
