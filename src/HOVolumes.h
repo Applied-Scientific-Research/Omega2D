@@ -213,7 +213,7 @@ public:
     size_t thisn = 0;
 
     // what kinds of elements do we have?
-    const size_t nper = this->idx.size() / this->nb;
+    //const size_t nper = this->idx.size() / this->nb;
 
     // get this array so we can reference it more easily
     const std::array<Vector<S>,Dimensions>& ptx = soln_p.get_pos();
