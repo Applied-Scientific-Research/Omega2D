@@ -12,19 +12,17 @@
 #include "Convection.h"
 #include "BEM.h"
 #include "Merge.h"
+
+// versions of the HO solver
+#ifdef HOFORTRAN
+#include "hofortran_interface.h"
+#else
 #include "dummysolver.h"
+#endif
 
 #include <iostream>
 #include <vector>
 //#include <numeric>	// for transform_reduce (C++17)
-
-/*
-// these could be in headers exposed by the external solver
-extern "C" float external_euler_init_f(int*, const float*, const float*, const float*, const float*,
-                                       int*, const float*, const float*, float*, float*);
-extern "C" float external_euler_init_d(int*, const double*, const double*, const double*, const double*,
-                                       int*, const double*, const double*, double*, double*);
-*/
 
 
 //
@@ -42,8 +40,10 @@ public:
       timeOrder(1),
       numSubsteps(100),
       preconditioner("none"),
-      solverType("fgmres"),
-      solver()
+      solverType("fgmres")
+#ifndef HOFORTRAN
+      ,solver()
+#endif
       //vrm(),
       //h_nu(0.1)
     {}
@@ -92,7 +92,9 @@ private:
   std::string solverType;
 
   // the HO Solver
+#ifndef HOFORTRAN
   DummySolver::Solver solver;
+#endif
 
   // local copies of particle data
   //Particles<S> temp;
@@ -111,21 +113,77 @@ private:
 template <class S, class A, class I>
 void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
   std::cout << "Inside Hybrid::init with " << _euler.size() << " volumes" << std::endl;
+  assert(_euler.size() == 1 && "ERROR Hybrid::init does not support more than 1 hybrid volume");
 
+#ifdef HOFORTRAN
+  // set in the Fortran solver
+  (void) set_defaults();
+  (void) set_elemorder((int32_t)elementOrder);
+#else
+  // set in the dummy C++ solver
   solver.set_elemorder_d((int32_t)elementOrder);
+#endif
 
   for (auto &coll : _euler) {
     // transform to current position
     coll.move(0.0, 0.0);
 
+#ifdef HOFORTRAN
+    // and, set the mesh in the Fortran solver
+    {
+    // make temporary vectors to convert data types
+    std::vector<double> nodes_as_dble = coll.get_node_pos();
+
+    std::vector<uint32_t> elemidxu = coll.get_elem_idx();
+    std::vector<int32_t> elemidx(elemidxu.begin(), elemidxu.end());
+
+    std::vector<uint32_t> wallidxu = coll.get_wall_idx();
+    std::vector<int32_t> wallidx(wallidxu.begin(), wallidxu.end());
+
+    std::vector<uint32_t> openidxu = coll.get_open_idx();
+    std::vector<int32_t> openidx(openidxu.begin(), openidxu.end());
+
+    // now we can call this - HACK - need to find order of geom mesh
+    (void) load_mesh_arrays_d((int32_t)1,
+                        (int32_t)nodes_as_dble.size(), nodes_as_dble.data(),
+                        (int32_t)elemidx.size(), elemidx.data(),
+                        (int32_t)wallidx.size(), wallidx.data(),
+                        (int32_t)openidx.size(), openidx.data());
+    }
+#else
     // call the external solver with the current geometry
     // this will calculate the Jacobian and other cell-specific properties
     (void) solver.init_d(coll.get_node_pos(), coll.get_elem_idx(),
                          coll.get_wall_idx(), coll.get_open_idx());
+#endif
 
-    // and ask it for the open BC solution nodes, and the full internal solution nodes
+#ifdef HOFORTRAN
+    // ask fort solver for the open BC solution nodes, and the full internal solution nodes
+    {
+      // again, since fortran is dumb, we need extra steps
+      int32_t solnptlen = getsolnptlen();
+      std::cout << "There are " << (solnptlen/2) << " solution nodes" << std::endl;
+      std::vector<double> solnpts(solnptlen);
+      (void) getsolnpts_d(solnptlen, solnpts.data());
+      std::cout << "  First soln point is at " << solnpts[0] << " " << solnpts[1] << std::endl;
+      std::cout << "  Secnd soln point is at " << solnpts[2] << " " << solnpts[3] << std::endl;
+      coll.set_soln_pts(solnpts);
+
+      // repeat for open boundary nodes
+      solnptlen = getopenptlen();
+      std::cout << "There are " << (solnptlen/2) << " open boundary solution nodes" << std::endl;
+      solnpts.resize(solnptlen);
+      (void) getopenpts_d(solnptlen, solnpts.data());
+      std::cout << "  First open point is at " << solnpts[0] << " " << solnpts[1] << std::endl;
+      std::cout << "  Secnd open point is at " << solnpts[2] << " " << solnpts[3] << std::endl;
+      coll.set_open_pts(solnpts);
+    }
+#else
+    // and the dummy for the open BC solution nodes, and the full internal solution nodes
     coll.set_open_pts(solver.getopenpts_d());
     coll.set_soln_pts(solver.getsolnpts_d());
+#endif
+
   }
 
   initialized = true;
@@ -188,7 +246,10 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
     }
 
     // transfer BC packet to solver
+#ifdef HOFORTRAN
+#else
     (void) solver.setopenvels_d(packedvels);
+#endif
   }
 
   //
@@ -216,7 +277,10 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
     std::vector<double> vorts(volvort.begin(), volvort.end());
 
     // transfer BC packet to solver
+#ifdef HOFORTRAN
+#else
     (void) solver.setsolnvort_d(vorts);
+#endif
   }
 }
 
@@ -273,7 +337,10 @@ void Hybrid<S,A,I>::step(const double                         _time,
     }
 
     // transfer BC packet to solver
+#ifdef HOFORTRAN
+#else
     (void) solver.setopenvels_d(packedvels);
+#endif
   }
 
 
@@ -282,7 +349,10 @@ void Hybrid<S,A,I>::step(const double                         _time,
   //
 
   // call solver - solves all Euler volumes at once?
+#ifdef HOFORTRAN
+#else
   (void) solver.solveto_d((double)_time, (int32_t)numSubsteps, (int32_t)timeOrder, (double)_re);
+#endif
 
   // pull results from external solver (assume just one for now)
   //for (auto &coll : _euler) {
@@ -313,7 +383,11 @@ void Hybrid<S,A,I>::step(const double                         _time,
     const size_t thisn = solnpts.get_n();
 
     // pull results from external solver (assume just one for now)
+#ifdef HOFORTRAN
+    std::vector<double> eulvort;
+#else
     std::vector<double> eulvort = solver.getallvorts_d();
+#endif
     assert(eulvort.size() == thisn && "ERROR (Hybrid::step) vorticity from solver is not the right size");
 
     // find the Lagrangian-computed vorticity on all solution nodes (make a vector of one collection)

@@ -19,6 +19,7 @@ SET (USE_VC FALSE CACHE BOOL "Use Vc for vector arithmetic")
 SET (USE_PLUGIN_AVRM FALSE CACHE BOOL "Enable adaptive VRM plugin")
 SET (USE_PLUGIN_SIMPLEX FALSE CACHE BOOL "Enable simplex solver plugin")
 SET (USE_EXTERNAL_SUM FALSE CACHE BOOL "Enable external velocity solver")
+SET (USE_HO_FORTRAN FALSE CACHE BOOL "Enable HO-Fortran external hybrid solver")
 SET (CMAKE_VERBOSE_MAKEFILE on)
 SET (CMAKE_EXPORT_COMPILE_COMMANDS on)
 
@@ -243,9 +244,17 @@ ADD_SUBDIRECTORY( extern/gmsh-reader )
 INCLUDE_DIRECTORIES( "extern/gmsh-reader/src" )
 SET( EXTERNAL_LIBS ${EXTERNAL_LIBS} gmsh-reader-static )
 
-ADD_SUBDIRECTORY( extern/dummy_solver )
-INCLUDE_DIRECTORIES( "extern/dummy_solver" )
-SET( EXTERNAL_LIBS ${EXTERNAL_LIBS} dummy_solver-static )
+IF( USE_HO_FORTRAN )
+  ADD_SUBDIRECTORY( extern/HO-Fortran )
+  INCLUDE_DIRECTORIES( "extern/HO-Fortran/src" )
+  #SET( EXTERNAL_LIBS ${EXTERNAL_LIBS} 2DVortTrans aplles_mp lapack gfortran )
+  SET( EXTERNAL_LIBS ${EXTERNAL_LIBS} 2DVortTrans ${APLLES_LIBS} ${XML_LIBS} ${LAPACK_LIBS} gfortran )
+  SET (CPREPROCDEFS ${CPREPROCDEFS} -DHOFORTRAN)
+ELSE()
+  ADD_SUBDIRECTORY( extern/dummy_solver )
+  INCLUDE_DIRECTORIES( "extern/dummy_solver" )
+  SET( EXTERNAL_LIBS ${EXTERNAL_LIBS} dummy_solver-static )
+ENDIF()
 
 # Define files and targets
 
