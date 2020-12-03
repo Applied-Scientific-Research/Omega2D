@@ -381,6 +381,10 @@ void Hybrid<S,A,I>::step(const double                         _time,
   //   (add up how much circulation we remove)
   //   then we'd need to re-run BEM
 
+  // another way:
+  // don't remove any existing particles, just add new ones over the old ones
+  //   and let merge take care of the extra density - this is what we do here:
+
   for (auto &coll : _euler) {
 
     Points<S>& solnpts = coll.get_vol_nodes(_time);
@@ -428,8 +432,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
     // uses a mask for the solution nodes (elements here!) to indicate which we will consider,
     // and which are too close to the wall (and thus too thin) to require correction
     // use one full vdelta for this (input _vd)
-    (void) coll.set_mask_area((S)_vd);
-    // HACK - when solution points are no longer 1:1 with volume elements, this will need work
+    (void) coll.set_mask_area_ho(2.0*(S)_vd);
     const Vector<S>& area = coll.get_maskarea();
     assert(area.size() == thisn && "ERROR (Hybrid::step) volume area vector is not the right size");
     std::transform(circ.begin(), circ.end(),
@@ -437,8 +440,12 @@ void Hybrid<S,A,I>::step(const double                         _time,
                    circ.begin(),
                    std::multiplies<S>());
 
-    for (size_t i=0; i<std::min(thisn,(size_t)60); ++i) {
-      std::cout << "    " << i << "  " << area[i] << " * ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
+    size_t num_printed = 0;
+    for (size_t i=0; i<thisn and num_printed<10; ++i) {
+      if (area[i] > 1.e-6) {
+        std::cout << "    " << i << "  " << area[i] << " * ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
+        num_printed++;
+      }
     }
 
     // find a scaling factor for the error
@@ -450,17 +457,13 @@ void Hybrid<S,A,I>::step(const double                         _time,
     // measure this error
     double maxerror = 0.01;
     double thiserror = 0.0;
-    // trying to get fancy - failed!
-    //double thiserror = std::accumulate(circ.begin(), circ.end(), 0.0);
-    //double thiserror = std::transform_reduce(circ.begin(), circ.end(), 0.0, std::plus<>{}, //std::fabs);
-    //                                         static_cast<double (*)(double)>(std::fabs));
     for (size_t i=0; i<thisn; ++i) { thiserror += std::fabs(circ[i]); }
     thiserror /= totalcircmag;
     std::cout << "  initial error " << thiserror << std::endl;
 
     // iterate toward a solution
     int iter = 0;
-    int maxiter = 20;
+    int maxiter = 10;
     while (thiserror>maxerror and iter<maxiter) {
 
       // resolve it via VRM
@@ -480,7 +483,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
       // merge here
       // HACK - hard-coding overlap and merge thresh!
-      merge_operation<S>(_vort, 1.5, 0.2, false);
+      merge_operation<S>(_vort, 1.5, 1.0, false);
 
       // find the new Lagrangian vorticity on the solution nodes
       // and the new vorticity error/deficit
@@ -497,8 +500,12 @@ void Hybrid<S,A,I>::step(const double                         _time,
                      circ.begin(),
                      std::multiplies<S>());
 
-      for (size_t i=0; i<std::min(thisn,(size_t)20); ++i) {
-        std::cout << "    " << i << "  " << area[i] << " * ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
+      num_printed = 0;
+      for (size_t i=0; i<thisn and num_printed<10; ++i) {
+        if (area[i] > 1.e-6) {
+          std::cout << "    " << i << "  " << area[i] << " * ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
+          num_printed++;
+        }
       }
 
       // measure this error

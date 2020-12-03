@@ -13,6 +13,13 @@
 #include "Surfaces.h"
 #include "Points.h"
 
+// versions of the HO solver
+#ifdef HOFORTRAN
+#include "hofortran_interface.h"
+#else
+#include "dummysolver.h"
+#endif
+
 #include <iostream>
 #include <vector>
 #include <array>
@@ -215,12 +222,65 @@ public:
     std::cout << "  set_mask_area masked out " << num_masked << " of " << this->nb << " elems with thresh " << _thresh << std::endl;
   }
 
+  // generate and save a measure of the area of each *solution* node, but where
+  //   nodes that are too close to a body surface report as 0.0
+  //   this needs to account for multiple solution nodes per geometric element
+  //   input is a threshold distance under which to ignore cells
+  void set_mask_area_ho(const S _thresh) {
+
+    // return if we do not need to recalculate these (vdelta changes)
+
+    // how many solution nodes per geometric element?
+    const size_t nper = soln_p.get_n() / this->nb;
+    assert(nper*this->nb == soln_p.get_n() && "ERROR (set_mask_area_ho) element - solution node mismatch");
+
+    std::cout << "In set_mask_area_ho with weight mask size " << nper << std::endl;
+
+    // get an array of weights from the HO solver for a HO element
+    std::vector<double> wgt(nper);
+#ifdef HOFORTRAN
+    // get_hoquad_weights_d()
+    std::fill(wgt.begin(), wgt.end(), 1.0/(double)nper);
+#else
+    std::fill(wgt.begin(), wgt.end(), 1.0/(double)nper);
+#endif
+    std::cout << "  first row of weight mask is ";
+    for (size_t j=0; j<std::sqrt(nper); ++j) std::cout << " " << wgt[j];
+    std::cout << std::endl;
+
+    // fill the new array with geom element area times the weights
+    maskarea.resize(soln_p.get_n());
+    for (size_t i=0; i<this->nb; ++i) {
+      for (size_t j=0; j<nper; ++j) {
+        // get quad areas from the parent class
+        maskarea[nper*i+j] = (S)(this->area[i] * wgt[j]);
+      }
+    }
+
+    // get this array so we can reference it more easily
+    const std::array<Vector<S>,Dimensions>& ptx = soln_p.get_pos();
+
+    // keep a running count of the number of masked cells
+    int num_masked = 0;
+
+    // now, based on the location of the solution nodes, zero out any
+    //   that are too close to the body - HACK - assume D=1 cylinder
+    for (size_t i=0; i<soln_p.get_n(); ++i) {
+      if (std::sqrt(std::pow(ptx[0][i],2)+std::pow(ptx[1][i],2)) < 0.5+_thresh) {
+        maskarea[i] = 0.0;
+        num_masked++;
+      }
+    }
+
+    std::cout << "  set_mask_area masked out " << num_masked << " of " << maskarea.size() << " pts with thresh " << _thresh << std::endl;
+  }
+
   //
-  // return a particle version of the elements
+  // return a particle version of the elements - one particle per *solution* node
   //
   ElementPacket<S> get_equivalent_particles(const Vector<S>& _circ, const S _vd) {
 
-    assert(_circ.size() == this->nb && "HOVolumes::get_equivalent_particles input vector size mismatch");
+    assert(_circ.size() == soln_p.get_n() && "HOVolumes::get_equivalent_particles input vector size mismatch");
 
     // prepare the data arrays for the element packet
     std::vector<float> x;
@@ -228,14 +288,11 @@ public:
     std::vector<float> val;
     size_t thisn = 0;
 
-    // what kinds of elements do we have?
-    //const size_t nper = this->idx.size() / this->nb;
-
     // get this array so we can reference it more easily
     const std::array<Vector<S>,Dimensions>& ptx = soln_p.get_pos();
 
     // loop over volume elements which have appreciable strength change
-    for (size_t i=0; i<this->nb; ++i) if (std::fabs(_circ[i]) > 1.e-6) {
+    for (size_t i=0; i<soln_p.get_n(); ++i) if (std::fabs(_circ[i]) > 1.e-6) {
 
       // convert input _circ and underlying geometry into particles
       // just one per element for starters
