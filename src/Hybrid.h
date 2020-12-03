@@ -341,6 +341,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
     // transfer BC packet to solver
 #ifdef HOFORTRAN
+    (void) setopenvels_d((int32_t)packedvels.size(), packedvels.data());
 #else
     (void) solver.setopenvels_d(packedvels);
 #endif
@@ -386,10 +387,19 @@ void Hybrid<S,A,I>::step(const double                         _time,
     const size_t thisn = solnpts.get_n();
 
     // pull results from external solver (assume just one for now)
-#ifdef HOFORTRAN
     std::vector<double> eulvort;
+#ifdef HOFORTRAN
+    {
+      // again, since fortran is dumb, we need extra steps
+      int32_t solnptlen = getsolnptlen() / 2;
+      std::cout << "There are " << solnptlen << " solution nodes" << std::endl;
+      eulvort.resize(solnptlen);
+      (void) getallvorts_d(solnptlen, eulvort.data());
+      std::cout << "  vorts from solver " << eulvort[0] << " " << eulvort[1] << " " << eulvort[2] << std::endl;
+      std::cout << "               more " << eulvort[3] << " " << eulvort[4] << " " << eulvort[5] << std::endl;
+    }
 #else
-    std::vector<double> eulvort = solver.getallvorts_d();
+    eulvort = solver.getallvorts_d();
 #endif
     assert(eulvort.size() == thisn && "ERROR (Hybrid::step) vorticity from solver is not the right size");
 
@@ -435,6 +445,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
     double totalcircmag = 0.0;
     for (size_t i=0; i<thisn; ++i) { totalcircmag += std::fabs(eulvort[i]*area[i]); }
     // if totalcircmag is too small, this may never converge...
+    if (totalcircmag < 1.e-6) totalcircmag = 1.0;
 
     // measure this error
     double maxerror = 0.01;
@@ -486,7 +497,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
                      circ.begin(),
                      std::multiplies<S>());
 
-      for (size_t i=0; i<std::min(thisn,(size_t)60); ++i) {
+      for (size_t i=0; i<std::min(thisn,(size_t)20); ++i) {
         std::cout << "    " << i << "  " << area[i] << " * ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
       }
 
