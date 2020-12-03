@@ -159,7 +159,7 @@ void BEM<S,I>::solve() {
   // ensure that the solution vector is the right size
   strengths.resizeLike(b);
 
-  if (VERBOSE) {
+  if (VERBOSE and false) {
     std::cout << "A is " << A.size() << std::endl;
     std::cout << "b is " << b.size() << std::endl;
     std::cout << "x is " << strengths.size() << std::endl;
@@ -191,7 +191,7 @@ void BEM<S,I>::solve() {
   std::chrono::duration<double> elapsed_seconds = end-start;
   printf("    solver.solve:\t[%.6f] cpu seconds\n", (float)elapsed_seconds.count());
 
-  if (VERBOSE) {
+  if (VERBOSE and false) {
     const size_t nr = 20;
     //const size_t nr = b.size();
     std::cout << "Matrix equation is" << std::endl;
