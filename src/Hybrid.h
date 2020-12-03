@@ -118,6 +118,7 @@ void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
 #ifdef HOFORTRAN
   // set in the Fortran solver
   (void) set_defaults();
+  (void) enable_hybrid();
   (void) set_elemorder((int32_t)elementOrder);
 #else
   // set in the dummy C++ solver
@@ -247,6 +248,7 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
 
     // transfer BC packet to solver
 #ifdef HOFORTRAN
+    (void) setopenvels_d((int32_t)packedvels.size(), packedvels.data());
 #else
     (void) solver.setopenvels_d(packedvels);
 #endif
