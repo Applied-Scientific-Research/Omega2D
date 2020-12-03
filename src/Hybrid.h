@@ -280,6 +280,7 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
 
     // transfer BC packet to solver
 #ifdef HOFORTRAN
+    (void) setsolnvort_d((int32_t)vorts.size(), vorts.data());
 #else
     (void) solver.setsolnvort_d(vorts);
 #endif
