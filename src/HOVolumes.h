@@ -51,6 +51,22 @@ public:
   const Points<S>& get_vol_nodes(const S _time) const { return soln_p; }
   Points<S>&       get_vol_nodes(const S _time)       { return soln_p; }
 
+  // if anyone needs to know the order of the geometric elements
+  const int32_t get_geom_elem_order() const {
+    // what kinds of elements do we have?
+    const size_t nper = this->idx.size() / this->nb;
+    // return order, where Lnod = order+1
+    if (nper == 4) return 1;
+    else if (nper == 9) return 2;
+    else if (nper == 16) return 3;
+    else if (nper == 25) return 4;
+    else if (nper == 36) return 5;
+    else {
+      assert(false and "ERROR (get_geom_elem_order): Should not get here");
+      return -1;
+    }
+  }
+
   // return a new vector of the node locations in the geometry
   std::vector<double> get_node_pos() {
     // from array of vectors

@@ -144,7 +144,7 @@ void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
     std::vector<int32_t> openidx(openidxu.begin(), openidxu.end());
 
     // now we can call this - HACK - need to find order of geom mesh
-    (void) load_mesh_arrays_d((int32_t)1,
+    (void) load_mesh_arrays_d((int32_t)coll.get_geom_elem_order(),
                         (int32_t)nodes_as_dble.size(), nodes_as_dble.data(),
                         (int32_t)elemidx.size(), elemidx.data(),
                         (int32_t)wallidx.size(), wallidx.data(),
