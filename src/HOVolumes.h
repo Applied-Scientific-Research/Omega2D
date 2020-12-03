@@ -239,8 +239,8 @@ public:
     // get an array of weights from the HO solver for a HO element
     std::vector<double> wgt(nper);
 #ifdef HOFORTRAN
-    // get_hoquad_weights_d()
-    std::fill(wgt.begin(), wgt.end(), 1.0/(double)nper);
+    get_hoquad_weights_d((int32_t)nper, wgt.data());
+    //std::fill(wgt.begin(), wgt.end(), 1.0/(double)nper);
 #else
     std::fill(wgt.begin(), wgt.end(), 1.0/(double)nper);
 #endif
