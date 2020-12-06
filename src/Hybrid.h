@@ -325,7 +325,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
   }
 
   // get vels and vorts on each euler region - and force it
-  _conv.find_vels(_fs, _vort, _bdry, euler_bdrys, velonly, true);
+  _conv.find_vels(_fs, _vort, _bdry, euler_bdrys, velandvort, true);
 
   for (auto &coll : euler_bdrys) {
     // convert to transferable packet
@@ -335,6 +335,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
     std::vector<double> packedvels(Dimensions*openvels[0].size());
     for (size_t d=0; d<Dimensions; ++d) {
       for (size_t i=0; i<openvels[d].size(); ++i) {
+        // NEED TO CONVERT THESE TO NORMAL AND TANGENTIAL!!!
         packedvels[Dimensions*i+d] = openvels[d][i];
       }
     }
@@ -345,6 +346,18 @@ void Hybrid<S,A,I>::step(const double                         _time,
 #else
     (void) solver.setopenvels_d(packedvels);
 #endif
+
+    // now prepare the open boundary vorticity values
+    Vector<S> volvort = std::visit([=](auto& elem) { return elem.get_vort(); }, coll);
+    std::vector<double> vorts(volvort.begin(), volvort.end());
+
+    // transfer BC packet to solver
+#ifdef HOFORTRAN
+    (void) setopenvort_d((int32_t)vorts.size(), vorts.data());
+#else
+    // nothing here
+#endif
+
   }
 
 
