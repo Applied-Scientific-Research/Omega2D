@@ -263,6 +263,10 @@ ADD_DEFINITIONS (${CPREPROCDEFS})
 INCLUDE_DIRECTORIES( "lib" )
 # For some of the libraries who need glad
 INCLUDE_DIRECTORIES( "lib/glad" )
+# For some of the internal libraries who need nanoflann
+INCLUDE_DIRECTORIES( "lib/nanoflann" )
+# For some of the internal libraries who need nnls 
+INCLUDE_DIRECTORIES( "lib/eigen-nnls" )
 INCLUDE_DIRECTORIES( "src" )
 
 IF (CMAKE_COMPILER_IS_GNUCXX)
