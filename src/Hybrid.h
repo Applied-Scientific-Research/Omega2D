@@ -376,6 +376,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
   // call solver - solves all Euler volumes at once?
 #ifdef HOFORTRAN
+  (void) solveto_d((double)_time, (int32_t)numSubsteps, (int32_t)timeOrder, (double)_re);
 #else
   (void) solver.solveto_d((double)_time, (int32_t)numSubsteps, (int32_t)timeOrder, (double)_re);
 #endif
