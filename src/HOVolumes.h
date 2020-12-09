@@ -266,10 +266,15 @@ public:
     // now, based on the location of the solution nodes, zero out any
     //   that are too close to the body - HACK - assume D=1 cylinder
     for (size_t i=0; i<soln_p.get_n(); ++i) {
-      if (std::sqrt(std::pow(ptx[0][i],2)+std::pow(ptx[1][i],2)) < 0.5+_thresh) {
-        maskarea[i] = 0.0;
-        num_masked++;
-      }
+      // HACK - assume geometry is annular from 0.5 to 1.0
+      const S thisrad = std::sqrt(std::pow(ptx[0][i],2)+std::pow(ptx[1][i],2));
+      //maskarea[i] *= 0.5 - 0.5*std::cos(4.0*M_PI*thisrad);
+      if (std::abs(thisrad-0.75) < 0.2) maskarea[i] *= 0.5 + 0.5*std::cos(5.0*M_PI*(thisrad-0.75));
+      else maskarea[i] = 0.0;
+      //if (std::sqrt(std::pow(ptx[0][i],2)+std::pow(ptx[1][i],2)) < 0.5+_thresh) {
+      //  maskarea[i] = 0.0;
+      //  num_masked++;
+      //}
     }
 
     std::cout << "  set_mask_area masked out " << num_masked << " of " << maskarea.size() << " pts with thresh " << _thresh << std::endl;
