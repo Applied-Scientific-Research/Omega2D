@@ -232,7 +232,7 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
   }
 
   // get vels and vorts on each euler region - and force it
-  _conv.find_vels(_fs, _vort, _bdry, euler_bdrys, velandvort, true);
+  _conv.find_vels(_fs, _vort, _bdry, euler_bdrys, velonly, true);
 
   for (auto &coll : euler_bdrys) {
     // convert to transferable packet
@@ -252,7 +252,12 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
 #else
     (void) solver.setopenvels_d(packedvels);
 #endif
+  }
 
+  // get vels and vorts on each euler region - and force it
+  _conv.find_vort(_vort, _bdry, euler_bdrys);
+
+  for (auto &coll : euler_bdrys) {
     // now prepare the open boundary vorticity values
     Vector<S> volvort = std::visit([=](auto& elem) { return elem.get_vort(); }, coll);
     std::vector<double> vorts(volvort.begin(), volvort.end());
@@ -279,8 +284,8 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
     euler_vols.emplace_back(coll.get_vol_nodes(_time));
   }
 
-  // get vels and vorts on each euler region - and force it
-  _conv.find_vels(_fs, _vort, _bdry, euler_vols, velandvort, true);
+  // get vorts on each euler region - and force it
+  _conv.find_vort(_vort, _bdry, euler_vols);
 
   for (auto &coll : euler_vols) {
     // convert to transferable packet
@@ -335,8 +340,8 @@ void Hybrid<S,A,I>::step(const double                         _time,
     euler_bdrys.emplace_back(coll.get_bc_nodes(_time));
   }
 
-  // get vels and vorts on each euler region - and force it
-  _conv.find_vels(_fs, _vort, _bdry, euler_bdrys, velandvort, true);
+  // get vels on each euler region - and force it
+  _conv.find_vels(_fs, _vort, _bdry, euler_bdrys, velonly, true);
 
   for (auto &coll : euler_bdrys) {
     // convert to transferable packet
@@ -356,7 +361,12 @@ void Hybrid<S,A,I>::step(const double                         _time,
 #else
     (void) solver.setopenvels_d(packedvels);
 #endif
+  }
 
+  // get vorts on each euler region
+  _conv.find_vort(_vort, _bdry, euler_bdrys);
+
+  for (auto &coll : euler_bdrys) {
     // now prepare the open boundary vorticity values
     Vector<S> volvort = std::visit([=](auto& elem) { return elem.get_vort(); }, coll);
     std::vector<double> vorts(volvort.begin(), volvort.end());
@@ -422,22 +432,45 @@ void Hybrid<S,A,I>::step(const double                         _time,
       std::cout << "There are " << solnptlen << " solution nodes" << std::endl;
       eulvort.resize(solnptlen);
       (void) getallvorts_d(solnptlen, eulvort.data());
-      std::cout << "  vorts from solver " << eulvort[0] << " " << eulvort[1] << " " << eulvort[2] << std::endl;
-      std::cout << "               more " << eulvort[3] << " " << eulvort[4] << " " << eulvort[5] << std::endl;
+      //std::cout << "  vort 2014 from solver " << eulvort[2013] << std::endl;
+      //std::cout << "  vorts from solver " << eulvort[0] << " " << eulvort[1] << " " << eulvort[2] << std::endl;
+      //std::cout << "               more " << eulvort[3] << " " << eulvort[4] << " " << eulvort[5] << std::endl;
     }
 #else
     eulvort = solver.getallvorts_d();
 #endif
     assert(eulvort.size() == thisn && "ERROR (Hybrid::step) vorticity from solver is not the right size");
 
+    if (true) {
+      std::cout << "  vorticity from eulerian " << std::endl;
+      const auto& locs = solnpts.get_pos();
+      for (size_t i=0; i<thisn; ++i) {
+        if (std::abs(locs[1][i]/locs[0][i]-0.4868) < 0.01 && locs[0][i] > 0.0) {
+          const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
+          std::cout << "  " << i << " " << dist << " " << eulvort[i] << std::endl;
+        }
+      }
+    }
+
     // find the Lagrangian-computed vorticity on all solution nodes (make a vector of one collection)
     std::vector<Collection> euler_vols;
     euler_vols.emplace_back(solnpts);	// this is a COPY
-    _conv.find_vels(_fs, _vort, _bdry, euler_vols, velandvort, true);
-    //Vector<S>& lagvort = solnpts.get_vort();	// can't do this, that object doesn't have the results!
+    //_conv.find_vels(_fs, _vort, _bdry, euler_vols, velandvort, true);
+    _conv.find_vort(_vort, _bdry, euler_vols);
     Points<float>& solvedpts = std::get<Points<S>>(euler_vols[0]);
     Vector<S>& lagvort = solvedpts.get_vort();
     assert(lagvort.size() == thisn && "ERROR (Hybrid::step) vorticity from particle sim is not the right size");
+
+    if (true) {
+      std::cout << "  vorticity from lagrangian " << std::endl;
+      const auto& locs = solvedpts.get_pos();
+      for (size_t i=0; i<thisn; ++i) {
+        if (std::abs(locs[1][i]/locs[0][i]-0.4868) < 0.01 && locs[0][i] > 0.0) {
+          const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
+          std::cout << "  " << i << " " << dist << " " << lagvort[i] << std::endl;
+        }
+      }
+    }
 
 
     // find the initial vorticity error/deficit
@@ -464,21 +497,25 @@ void Hybrid<S,A,I>::step(const double                         _time,
                    std::multiplies<S>());
 
     size_t num_printed = 0;
-    for (size_t i=0; i<thisn and num_printed<10; ++i) {
+    std::cout << "    indx  area * ( eulvort - lagvort ) = circ" << std::endl;
+    for (size_t i=0; i<thisn and num_printed<5; ++i) {
       if (area[i] > 1.e-6) {
         std::cout << "    " << i << "  " << area[i] << " * ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
         num_printed++;
       }
     }
+    //std::cout << "    " << 2013 << "  " << area[2013] << " * ( " << eulvort[2013] << " - " << lagvort[2013] << " ) = " << circ[2013] << std::endl;
+    //std::cout << "    " << 1975 << "  " << area[1975] << " * ( " << eulvort[1975] << " - " << lagvort[1975] << " ) = " << circ[1975] << std::endl;
+    //std::cout << "    " << 1937 << "  " << area[1937] << " * ( " << eulvort[1937] << " - " << lagvort[1937] << " ) = " << circ[1937] << std::endl;
 
     // find a scaling factor for the error
     double totalcircmag = 0.0;
     for (size_t i=0; i<thisn; ++i) { totalcircmag += std::fabs(eulvort[i]*area[i]); }
     // if totalcircmag is too small, this may never converge...
-    if (totalcircmag < 1.e-6) totalcircmag = 1.0;
+    if (totalcircmag < 1.e-8) totalcircmag = 1.0;
 
     // measure this error
-    double maxerror = 0.01;
+    double maxerror = 0.001;
     double thiserror = 0.0;
     for (size_t i=0; i<thisn; ++i) { thiserror += std::fabs(circ[i]); }
     thiserror /= totalcircmag;
@@ -486,7 +523,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
     // iterate toward a solution
     int iter = 0;
-    int maxiter = 10;
+    int maxiter = 1;
     while (thiserror>maxerror and iter<maxiter) {
 
       // resolve it via VRM
@@ -510,7 +547,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
       // find the new Lagrangian vorticity on the solution nodes
       // and the new vorticity error/deficit
-      _conv.find_vels(_fs, _vort, _bdry, euler_vols, velandvort, true);
+      _conv.find_vort(_vort, _bdry, euler_vols);
 
       // convert the new vort to a new circ
       std::transform(eulvort.begin(), eulvort.end(),
@@ -524,12 +561,16 @@ void Hybrid<S,A,I>::step(const double                         _time,
                      std::multiplies<S>());
 
       num_printed = 0;
-      for (size_t i=0; i<thisn and num_printed<10; ++i) {
+      std::cout << "    indx  area * ( eulvort - lagvort ) = circ" << std::endl;
+      for (size_t i=0; i<thisn and num_printed<5; ++i) {
         if (area[i] > 1.e-6) {
           std::cout << "    " << i << "  " << area[i] << " * ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
           num_printed++;
         }
       }
+      //std::cout << "    " << 2013 << "  " << area[2013] << " * ( " << eulvort[2013] << " - " << lagvort[2013] << " ) = " << circ[2013] << std::endl;
+      //std::cout << "    " << 1975 << "  " << area[1975] << " * ( " << eulvort[1975] << " - " << lagvort[1975] << " ) = " << circ[1975] << std::endl;
+      //std::cout << "    " << 1937 << "  " << area[1937] << " * ( " << eulvort[1937] << " - " << lagvort[1937] << " ) = " << circ[1937] << std::endl;
 
       // measure this error
       thiserror = 0.0;
@@ -590,8 +631,13 @@ void Hybrid<S,A,I>::draw_advanced() {
   ImGui::Text("Hybrid/Grid settings");
 
   ImGui::Checkbox("Enabled", &active);
-  ImGui::SliderInt("Element Order", &elementOrder, 1, 5);
 
+  if (active) {
+
+  ImGui::SliderInt("Element Order", &elementOrder, 1, 5);
+  ImGui::SliderInt("Time Order", &timeOrder, 1, 4);
+
+  /*
   const int numTimeOrders = 3;
   static int timeI = 0;
   const char* timeOrders[] = {"1", "2", "4"};
@@ -601,6 +647,7 @@ void Hybrid<S,A,I>::draw_advanced() {
     case 1: timeOrder = 2; break;
     case 2: timeOrder = 4; break;
   }
+  */
 
   if (ImGui::InputInt("Number of Substeps", &numSubsteps)) {
     if (numSubsteps < 1) { numSubsteps = 1; }
@@ -618,5 +665,6 @@ void Hybrid<S,A,I>::draw_advanced() {
   const char* solvers[] = {"fgmres"};
   ImGui::Combo("Select Solver", &solverI, solvers, numSolvers);
   solverType = solvers[solverI];
+  }
 }
 #endif
