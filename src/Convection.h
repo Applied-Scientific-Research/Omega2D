@@ -13,6 +13,7 @@
 #include "Influence.h"
 #include "BEM.h"
 #include "BEMHelper.h"
+#include "InfluenceVort.h"
 #include "Reflect.h"
 #include "GuiHelper.h"
 
@@ -31,6 +32,9 @@ template <class S, class A, class I>
 class Convection {
 public:
   Convection() {}
+  void find_vort( std::vector<Collection>&,
+                  std::vector<Collection>&,
+                  std::vector<Collection>&);
   void find_vels( const std::array<double,Dimensions>&,
                   std::vector<Collection>&,
                   std::vector<Collection>&,
@@ -65,6 +69,44 @@ private:
   // execution environment for velocity summations (not BEM)
   ExecEnv conv_env;
 };
+
+
+//
+// helper function to find vorticity at a given state
+//
+template <class S, class A, class I>
+void Convection<S,A,I>::find_vort(std::vector<Collection>&             _vort,
+                                  std::vector<Collection>&             _bdry,
+                                  std::vector<Collection>&             _targets) {
+
+  //if (_targets.size() > 0) std::cout << std::endl << "Solving for velocities" << std::endl;
+  //if (_targets.size() > 0) std::cout << std::endl;
+
+  // find the influence on every target collection that is Points
+  for (auto &targ : _targets) if (std::holds_alternative<Points<S>>(targ)) {
+    Points<S>& ptarg = std::get<Points<S>>(targ);
+
+    std::cout << "  Solving vorticity on" << to_string(targ) << std::endl;
+
+    // zero vels and vorticity
+    ptarg.zero_vels();
+
+    // accumulate from vorticity, but only from Points
+    for (auto &src : _vort) if (std::holds_alternative<Points<S>>(src)) {
+      Points<S>& psrc = std::get<Points<S>>(src);
+      points_affect_points_vorticity<float,A>(psrc, ptarg, conv_env);
+    }
+
+    // accumulate from reactive, but only from Points
+    for (auto &src : _bdry) if (std::holds_alternative<Points<S>>(src)) {
+      Points<S>& psrc = std::get<Points<S>>(src);
+      points_affect_points_vorticity<float,A>(psrc, ptarg, conv_env);
+    }
+
+    // finalize vels and vorticity by dividing by constant
+    ptarg.finalize_vels(std::array<double,Dimensions>({0.0,0.0}));
+  }
+}
 
 
 //

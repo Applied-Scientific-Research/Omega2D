@@ -359,6 +359,15 @@ std::vector<std::string> Simulation::write_vtk(const int _index,
     }
   }
 
+  if (false) {
+    // use the hack-y way to find vorticity and write it
+    conv.find_vort(vort, bdry, fldpt);
+    size_t idx = 0;
+    for (auto &coll : fldpt) {
+      std::visit([&](auto &&elem) { files.emplace_back(elem.write_vtk(idx++, stepnum+10, time)); }, coll);
+    }
+  }
+
   return files;
 }
 
