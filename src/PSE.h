@@ -435,6 +435,7 @@ void PSE<ST,CT>::diffuse_all(std::array<Vector<ST>,2>& pos,
           // all distances are unnormalized
           const CT dx = x[i] - x[jdx];
           const CT dy = y[i] - y[jdx];
+          // WHOAH!!! shouldn't we use radius j ? or a combo of i and j?
           const CT distsq = (dx*dx + dy*dy) / std::pow(r[i], 2);
           const CT dist = std::sqrt(distsq);
           const CT distcub = distsq * dist;
