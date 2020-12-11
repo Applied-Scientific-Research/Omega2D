@@ -116,3 +116,51 @@ void points_affect_points_vorticity (const Points<S>& src, Points<S>& targ, cons
   printf("    points_affect_points_vorticity: [%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);
 }
 
+
+//
+// Do the same calculation but save the matrix - use this to solve the equation
+//
+template <class S>
+Vector<S> points_on_points_vort_coeff (Points<S> const& src, Points<S>& targ, const ExecEnv& env) {
+
+  std::cout << "    in ptptvortcoeff with" << env.to_string() << std::endl;
+
+  auto start = std::chrono::system_clock::now();
+  float flops = (float)targ.get_n();
+
+  // get references to use locally
+  const std::array<Vector<S>,Dimensions>& sx = src.get_pos();
+  const Vector<S>&                        sr = src.get_rad();
+  const Vector<S>&                       wgt = src.get_str();
+
+  const std::array<Vector<S>,Dimensions>& tx = targ.get_pos();
+
+  Vector<S> coeff(targ.get_n()*src.get_n());
+
+  //
+  // targets are field points, with no core radius ===============================================
+  //
+    std::cout << "    0v_0p compute coeffs of" << src.to_string() << " on" << targ.to_string() << std::endl;
+    // targets are field points
+
+    {
+        #pragma omp parallel for
+        for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+          size_t idx = i*src.get_n();
+          for (size_t j=0; j<src.get_n(); ++j) {
+            const S dx = tx[0][i] - sx[0][j];
+            const S dy = tx[1][i] - sx[1][j];
+            const S distsq = (dx*dx + dy*dy) / std::pow(sr[j], 2);
+            // use the Gaussian function
+            coeff[idx+j] = 2.0 * wgt[j] * std::exp(-distsq) / std::pow(sr[j], 2);
+          }
+          //std::cout << "pt " << i << " at " << tx[0][i] << " " << tx[1][i] << " has vort " << tw[i] << std::endl;
+        }
+        flops *= 12.0 * (float)src.get_n();
+    }
+
+  auto end = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end-start;
+  const float gflops = 1.e-9 * flops / (float)elapsed_seconds.count();
+  printf("    points_on_points_vort_coeff: [%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);
+}
