@@ -269,7 +269,12 @@ public:
       // HACK - assume geometry is annular from 0.5 to 1.0
       const S thisrad = std::sqrt(std::pow(ptx[0][i],2)+std::pow(ptx[1][i],2));
       //maskarea[i] *= 0.5 - 0.5*std::cos(4.0*M_PI*thisrad);
-      if (std::abs(thisrad-0.75) < 0.2) maskarea[i] *= 0.5 + 0.5*std::cos(5.0*M_PI*(thisrad-0.75));
+      //if (std::abs(thisrad-0.75) < 0.15) maskarea[i] *= 0.5 + 0.5*std::cos((1./0.15)*M_PI*(thisrad-0.75));
+      //if (std::abs(thisrad-0.9) < 0.2) maskarea[i] *= 0.5 + 0.5*std::cos((1./0.2)*M_PI*(thisrad-0.9));
+      //if (std::abs(thisrad-0.8) < 0.2) maskarea[i] *= 0.5 + 0.5*std::cos((1./0.2)*M_PI*(thisrad-0.8));
+      if (std::abs(thisrad-0.75) < 0.24) maskarea[i] *= 0.5 + 0.5*std::cos((1./0.24)*M_PI*(thisrad-0.75));
+      //if (std::abs(thisrad-0.8) < 0.25) maskarea[i] *= 0.5 + 0.5*std::cos((1./0.25)*M_PI*(thisrad-0.8));
+      if (std::abs(thisrad-0.7) < 0.2) maskarea[i] *= 0.5 + 0.5*std::cos((1./0.2)*M_PI*(thisrad-0.7));
       else maskarea[i] = 0.0;
       //if (std::sqrt(std::pow(ptx[0][i],2)+std::pow(ptx[1][i],2)) < 0.5+_thresh) {
       //  maskarea[i] = 0.0;
@@ -297,7 +302,7 @@ public:
     const std::array<Vector<S>,Dimensions>& ptx = soln_p.get_pos();
 
     // loop over volume elements which have appreciable strength change
-    for (size_t i=0; i<soln_p.get_n(); ++i) if (std::fabs(_circ[i]) > 1.e-6) {
+    for (size_t i=0; i<soln_p.get_n(); ++i) if (std::fabs(_circ[i]) > 1.e-7) {
 
       // convert input _circ and underlying geometry into particles
       // just one per element for starters
