@@ -48,7 +48,9 @@ public:
   { }
 
   // useful getter for the areas of participating elements
-  const Vector<S>&              get_maskarea() const { return maskarea; }
+  const Vector<S>&             get_soln_area() const { return solnarea; }
+  const Vector<S>&              get_gtop_wgt() const { return gtop_wgt; }
+  const Vector<S>&              get_ptog_wgt() const { return ptog_wgt; }
 
   // return a Collection of the nodes on the open boundary
   const Points<S>& get_bc_nodes(const S _time) const { return open_p; }
@@ -176,57 +178,10 @@ public:
     soln_p.set_vort(vort);
   }
 
-  // zero out some cell/element areas because we don't want to generate particles there
-  //   input is a threshold distance under which to ignore cells
-  void set_mask_area(const S _thresh) {
-
-    // this is the threshold that we used making the maskarea array
-    static S using_thresh = 0.0;
-
-    // don't remake the values if nothing changed
-    if (maskarea.size() == this->nb and using_thresh == _thresh) return;
-
-    // first, go through list of nodes and flag any which are within thresh of the body
-    std::vector<bool> tooclose(this->n);
-    for (size_t i=0; i<this->n; ++i) {
-      // HACK - assumes a unit-radius circle at the origin
-      const S dist = std::sqrt(std::pow(this->x[0][i],2)+std::pow(this->x[1][i],2)) - 0.5;
-      // smarter is to use a point-to-surface algorithm - LATER
-      tooclose[i] = (dist < _thresh);
-    }
-
-    // copy from area
-    maskarea = this->area;
-
-    // what kinds of elements do we have?
-    const size_t nper = this->idx.size() / this->nb;
-
-    // keep a running count of the number of masked cells
-    int num_masked = 0;
-
-    // now, any cells which touch one of these "tooclose" nodes gets a maskarea of zero
-    for (size_t i=0; i<this->nb; ++i) {
-      bool farenough = true;
-      for (size_t j=0; j<nper; ++j) {
-        if (tooclose[this->idx[nper*i+j]]) farenough = false;
-      }
-      if (not farenough) {
-        maskarea[i] = 0.0;
-        num_masked++;
-      }
-    }
-
-    // set the local static var value so we don't re-calculate these again
-    using_thresh = _thresh;
-
-    std::cout << "  set_mask_area masked out " << num_masked << " of " << this->nb << " elems with thresh " << _thresh << std::endl;
-  }
-
-  // generate and save a measure of the area of each *solution* node, but where
-  //   nodes that are too close to a body surface report as 0.0
-  //   this needs to account for multiple solution nodes per geometric element
-  //   input is a threshold distance under which to ignore cells
-  void set_mask_area_ho(const S _thresh) {
+  //
+  // generate and save a measure of the area of each *solution* node
+  //
+  void set_soln_areas() {
 
     // return if we do not need to recalculate these (vdelta changes)
 
@@ -234,13 +189,12 @@ public:
     const size_t nper = soln_p.get_n() / this->nb;
     assert(nper*this->nb == soln_p.get_n() && "ERROR (set_mask_area_ho) element - solution node mismatch");
 
-    std::cout << "In set_mask_area_ho with weight mask size " << nper << std::endl;
+    std::cout << "In set_soln_areas with weight mask size " << nper << std::endl;
 
     // get an array of weights from the HO solver for a HO element
     std::vector<double> wgt(nper);
 #ifdef HOFORTRAN
     get_hoquad_weights_d((int32_t)nper, wgt.data());
-    //std::fill(wgt.begin(), wgt.end(), 1.0/(double)nper);
 #else
     std::fill(wgt.begin(), wgt.end(), 1.0/(double)nper);
 #endif
@@ -248,41 +202,61 @@ public:
     for (size_t j=0; j<std::sqrt(nper); ++j) std::cout << " " << wgt[j];
     std::cout << std::endl;
 
+    // HACK using area here - we need to use Jacobian from the HO solver!
+
     // fill the new array with geom element area times the weights
-    maskarea.resize(soln_p.get_n());
+    solnarea.resize(soln_p.get_n());
     for (size_t i=0; i<this->nb; ++i) {
       for (size_t j=0; j<nper; ++j) {
         // get quad areas from the parent class
-        maskarea[nper*i+j] = (S)(this->area[i] * wgt[j]);
+        solnarea[nper*i+j] = (S)(this->area[i] * wgt[j]);
       }
     }
+  }
+
+  //
+  // generate and save a scalar on each *solution* node corresponding to
+  //   weights for grid-to-particle operation and particle-to-grid op
+  //
+  void set_overlap_weights(const S gtop_center, const S gtop_width,
+                           const S ptog_center, const S ptog_width) {
 
     // get this array so we can reference it more easily
     const std::array<Vector<S>,Dimensions>& ptx = soln_p.get_pos();
 
-    // keep a running count of the number of masked cells
-    int num_masked = 0;
+    // size the arrays properly
+    gtop_wgt.resize(soln_p.get_n());
+    ptog_wgt.resize(soln_p.get_n());
 
     // now, based on the location of the solution nodes, zero out any
     //   that are too close to the body - HACK - assume D=1 cylinder
     for (size_t i=0; i<soln_p.get_n(); ++i) {
+
       // HACK - assume geometry is annular from 0.5 to 1.0
       const S thisrad = std::sqrt(std::pow(ptx[0][i],2)+std::pow(ptx[1][i],2));
-      //maskarea[i] *= 0.5 - 0.5*std::cos(4.0*M_PI*thisrad);
-      //if (std::abs(thisrad-0.75) < 0.15) maskarea[i] *= 0.5 + 0.5*std::cos((1./0.15)*M_PI*(thisrad-0.75));
-      //if (std::abs(thisrad-0.9) < 0.2) maskarea[i] *= 0.5 + 0.5*std::cos((1./0.2)*M_PI*(thisrad-0.9));
-      //if (std::abs(thisrad-0.8) < 0.2) maskarea[i] *= 0.5 + 0.5*std::cos((1./0.2)*M_PI*(thisrad-0.8));
-      if (std::abs(thisrad-0.75) < 0.24) maskarea[i] *= 0.5 + 0.5*std::cos((1./0.24)*M_PI*(thisrad-0.75));
-      //if (std::abs(thisrad-0.8) < 0.25) maskarea[i] *= 0.5 + 0.5*std::cos((1./0.25)*M_PI*(thisrad-0.8));
-      if (std::abs(thisrad-0.7) < 0.2) maskarea[i] *= 0.5 + 0.5*std::cos((1./0.2)*M_PI*(thisrad-0.7));
-      else maskarea[i] = 0.0;
+
+      // grid-to-particle weight - typically peak in the middle and fall off near boundaries
+
+      //gtop_wgt[i] *= 0.5 - 0.5*std::cos(4.0*M_PI*thisrad);
+      //if (std::abs(thisrad-0.75) < 0.15) gtop_wgt[i] *= 0.5 + 0.5*std::cos((1./0.15)*M_PI*(thisrad-0.75));
+      //if (std::abs(thisrad-0.9) < 0.2) gtop_wgt[i] *= 0.5 + 0.5*std::cos((1./0.2)*M_PI*(thisrad-0.9));
+      //if (std::abs(thisrad-0.8) < 0.2) gtop_wgt[i] *= 0.5 + 0.5*std::cos((1./0.2)*M_PI*(thisrad-0.8));
+      //if (std::abs(thisrad-0.75) < 0.24) gtop_wgt[i] *= 0.5 + 0.5*std::cos((1./0.24)*M_PI*(thisrad-0.75));
+      //if (std::abs(thisrad-0.8) < 0.25) gtop_wgt[i] *= 0.5 + 0.5*std::cos((1./0.25)*M_PI*(thisrad-0.8));
+      if (std::abs(thisrad-0.7) < 0.2) gtop_wgt[i] = 0.5 + 0.5*std::cos((1./0.2)*M_PI*(thisrad-0.7));
+      else gtop_wgt[i] = 0.0;
       //if (std::sqrt(std::pow(ptx[0][i],2)+std::pow(ptx[1][i],2)) < 0.5+_thresh) {
-      //  maskarea[i] = 0.0;
+      //  gtop_wgt[i] = 0.0;
       //  num_masked++;
       //}
+
+      // particle-to-grid weight - typically peak at the open BC
+      if (std::abs(thisrad-1.0) < 0.2) ptog_wgt[i] = 0.5 + 0.5*std::cos((1./0.2)*M_PI*(thisrad-1.0));
+      else ptog_wgt[i] = 0.0;
     }
 
-    std::cout << "  set_mask_area masked out " << num_masked << " of " << maskarea.size() << " pts with thresh " << _thresh << std::endl;
+    std::cout << "  set_overlap_weights on " << soln_p.get_n() << " solution nodes" << std::endl;
+    //std::cout << "  set_overlap_weights " << num_masked << " of " << gtop_wgt.size() << " pts with thresh " << _thresh << std::endl;
   }
 
   //
@@ -360,7 +334,9 @@ public:
 protected:
   // ElementBase.h has x, s, u, ux on the *nodes*
   // Volumes.h has nb, idx, area
-  Vector<S>             maskarea;   // like area, but some cells zeroed out
+  Vector<S>             solnarea;   // area of each solution node
+  Vector<S>             gtop_wgt;   // grid-to-particle weight (per solution node)
+  Vector<S>             ptog_wgt;   // particle-to-grid weight (per solution node)
 
   // boundary elements (only used when this is an euler/hybrid Collection)
   Surfaces<S>             wall_s;   // wall boundary surface (from msh file)

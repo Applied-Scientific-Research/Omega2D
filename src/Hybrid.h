@@ -386,7 +386,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
   // call solver - solves all Euler volumes at once?
 #ifdef HOFORTRAN
-  (void) solveto_d((double)_time, (int32_t)numSubsteps, (int32_t)timeOrder, (double)_re);
+  (void) solveto_d((double)_dt, (int32_t)numSubsteps, (int32_t)timeOrder, (double)_re);
 #else
   (void) solver.solveto_d((double)_time, (int32_t)numSubsteps, (int32_t)timeOrder, (double)_re);
 #endif
@@ -488,29 +488,51 @@ void Hybrid<S,A,I>::step(const double                         _time,
     // uses a mask for the solution nodes (elements here!) to indicate which we will consider,
     // and which are too close to the wall (and thus too thin) to require correction
     // use one full vdelta for this (input _vd)
-    (void) coll.set_mask_area_ho(2.0*(S)_vd);
-    const Vector<S>& area = coll.get_maskarea();
+    (void) coll.set_soln_areas();
+    const Vector<S>& area = coll.get_soln_area();
     assert(area.size() == thisn && "ERROR (Hybrid::step) volume area vector is not the right size");
+
     std::transform(circ.begin(), circ.end(),
                    area.begin(),
                    circ.begin(),
                    std::multiplies<S>());
 
-    size_t num_printed = 0;
-    std::cout << "    indx  area * ( eulvort - lagvort ) = circ" << std::endl;
-    for (size_t i=0; i<thisn and num_printed<5; ++i) {
-      if (area[i] > 1.e-6) {
-        std::cout << "    " << i << "  " << area[i] << " * ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
-        num_printed++;
-      }
-    }
+    // and multiply again by the weight assigned to the grid-to-particle operation
+    (void) coll.set_overlap_weights(0.7, 0.2, 1.0, 0.2);
+    const Vector<S>& gtop = coll.get_gtop_wgt();
+
+    std::transform(circ.begin(), circ.end(),
+                   gtop.begin(),
+                   circ.begin(),
+                   std::multiplies<S>());
+
+    //size_t num_printed = 0;
+    //std::cout << "    indx  area * ( eulvort - lagvort ) = circ" << std::endl;
+    //for (size_t i=0; i<thisn and num_printed<5; ++i) {
+    //  if (area[i] > 1.e-6) {
+    //    std::cout << "    " << i << "  " << area[i] << " * ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
+    //    num_printed++;
+    //  }
+    //}
     //std::cout << "    " << 2013 << "  " << area[2013] << " * ( " << eulvort[2013] << " - " << lagvort[2013] << " ) = " << circ[2013] << std::endl;
     //std::cout << "    " << 1975 << "  " << area[1975] << " * ( " << eulvort[1975] << " - " << lagvort[1975] << " ) = " << circ[1975] << std::endl;
     //std::cout << "    " << 1937 << "  " << area[1937] << " * ( " << eulvort[1937] << " - " << lagvort[1937] << " ) = " << circ[1937] << std::endl;
+    if (false) {
+      std::cout << "  feedback calculation " << std::endl;
+      std::cout << "    indx  rad   area * gtop * ( eulvort - lagvort ) = circ" << std::endl;
+      const auto& locs = solvedpts.get_pos();
+      for (size_t i=0; i<thisn; ++i) {
+        if (std::abs(locs[1][i]/locs[0][i]-0.4868) < 0.01 && locs[0][i] > 0.0) {
+          const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
+          std::cout << "    " << i << "  " << dist << " " << area[i] << " * " << gtop[i] << " ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
+        }
+      }
+    }
+
 
     // find a scaling factor for the error
     double totalcircmag = 0.0;
-    for (size_t i=0; i<thisn; ++i) { totalcircmag += std::fabs(eulvort[i]*area[i]); }
+    for (size_t i=0; i<thisn; ++i) { totalcircmag += std::fabs(eulvort[i]*area[i]*gtop[i]); }
     // if totalcircmag is too small, this may never converge...
     if (totalcircmag < 1.e-8) totalcircmag = 1.0;
 
@@ -523,7 +545,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
     // iterate toward a solution
     int iter = 0;
-    int maxiter = 1;
+    int maxiter = 20;
     while (thiserror>maxerror and iter<maxiter) {
 
       // resolve it via VRM
@@ -543,7 +565,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
       // merge here
       // HACK - hard-coding overlap and merge thresh!
-      merge_operation<S>(_vort, 1.5, 1.0, false);
+      merge_operation<S>(_vort, 1.5, 0.5, false);
 
       // find the new Lagrangian vorticity on the solution nodes
       // and the new vorticity error/deficit
@@ -560,17 +582,33 @@ void Hybrid<S,A,I>::step(const double                         _time,
                      circ.begin(),
                      std::multiplies<S>());
 
-      num_printed = 0;
-      std::cout << "    indx  area * ( eulvort - lagvort ) = circ" << std::endl;
-      for (size_t i=0; i<thisn and num_printed<5; ++i) {
-        if (area[i] > 1.e-6) {
-          std::cout << "    " << i << "  " << area[i] << " * ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
-          num_printed++;
-        }
-      }
+      std::transform(circ.begin(), circ.end(),
+                     gtop.begin(),
+                     circ.begin(),
+                     std::multiplies<S>());
+
+      //num_printed = 0;
+      //std::cout << "    indx  area * ( eulvort - lagvort ) = circ" << std::endl;
+      //for (size_t i=0; i<thisn and num_printed<5; ++i) {
+      //  if (area[i] > 1.e-6) {
+      //    std::cout << "    " << i << "  " << area[i] << " * ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
+      //    num_printed++;
+      //  }
+      //}
       //std::cout << "    " << 2013 << "  " << area[2013] << " * ( " << eulvort[2013] << " - " << lagvort[2013] << " ) = " << circ[2013] << std::endl;
       //std::cout << "    " << 1975 << "  " << area[1975] << " * ( " << eulvort[1975] << " - " << lagvort[1975] << " ) = " << circ[1975] << std::endl;
       //std::cout << "    " << 1937 << "  " << area[1937] << " * ( " << eulvort[1937] << " - " << lagvort[1937] << " ) = " << circ[1937] << std::endl;
+    if (true) {
+      std::cout << "  feedback calculation " << std::endl;
+      std::cout << "    indx  rad   area * gtop * ( eulvort - lagvort ) = circ" << std::endl;
+      const auto& locs = solvedpts.get_pos();
+      for (size_t i=0; i<thisn; ++i) {
+        if (std::abs(locs[1][i]/locs[0][i]-0.4868) < 0.01 && locs[0][i] > 0.0) {
+          const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
+          std::cout << "    " << i << "  " << dist << " " << area[i] << " * " << gtop[i] << " * ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
+        }
+      }
+    }
 
       // measure this error
       thiserror = 0.0;
