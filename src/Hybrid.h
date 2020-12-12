@@ -618,10 +618,59 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
       iter++;
     }
+
+    //
+    // part D - update HO vorticity from particle solution
+    //
+    // Daeninck calls this "Euler adjustment region"
+    // we use a set of weights to adjust the difference
+
+    std::cout << "Inside Hybrid::step updating particle strengths" << std::endl;
+
+    // convert the new vort to a new circ
+    std::transform(eulvort.begin(), eulvort.end(),
+                   lagvort.begin(),
+                   circ.begin(),
+                   std::minus<S>());
+
+    // now circulation contains the vorticity difference between the euler and lagrangian solutions
+
+    // scale it by the particle-to-grid weights
+    const Vector<S>& ptog = coll.get_ptog_wgt();
+    std::transform(circ.begin(), circ.end(),
+                   ptog.begin(),
+                   circ.begin(),
+                   std::multiplies<S>());
+
+    // and add it to the HO vorticities
+    std::transform(eulvort.begin(), eulvort.end(),
+                   circ.begin(),
+                   eulvort.begin(),
+                   std::minus<S>());
+
+    if (true) {
+      std::cout << "  feedback calculation " << std::endl;
+      std::cout << "    indx  rad   ptog   neweulvort   lagvort" << std::endl;
+      const auto& locs = solvedpts.get_pos();
+      for (size_t i=0; i<thisn; ++i) {
+        if (std::abs(locs[1][i]/locs[0][i]-0.4868) < 0.01 && locs[0][i] > 0.0) {
+          const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
+          std::cout << "    " << i << "  " << dist << "  " << ptog[i] << "  " << eulvort[i] << "  " << lagvort[i] << std::endl;
+        }
+      }
+    }
+
+
+    // finally, replace the vorticity in the HO solver with these new values
+#ifdef HOFORTRAN
+    (void) setsolnvort_d((int32_t)eulvort.size(), eulvort.data());
+#else
+    (void) solver.setsolnvort_d(eulvort);
+#endif
+
   }
 
-  // then merge all particles that we created
-
+  // done!!!
 }
 
 //
