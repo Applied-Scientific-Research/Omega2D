@@ -236,27 +236,21 @@ public:
       const S thisrad = std::sqrt(std::pow(ptx[0][i],2)+std::pow(ptx[1][i],2));
 
       // grid-to-particle weight - typically peak in the middle and fall off near boundaries
-
-      //gtop_wgt[i] *= 0.5 - 0.5*std::cos(4.0*M_PI*thisrad);
-      //if (std::abs(thisrad-0.75) < 0.15) gtop_wgt[i] *= 0.5 + 0.5*std::cos((1./0.15)*M_PI*(thisrad-0.75));
-      //if (std::abs(thisrad-0.9) < 0.2) gtop_wgt[i] *= 0.5 + 0.5*std::cos((1./0.2)*M_PI*(thisrad-0.9));
-      //if (std::abs(thisrad-0.8) < 0.2) gtop_wgt[i] *= 0.5 + 0.5*std::cos((1./0.2)*M_PI*(thisrad-0.8));
-      //if (std::abs(thisrad-0.75) < 0.24) gtop_wgt[i] *= 0.5 + 0.5*std::cos((1./0.24)*M_PI*(thisrad-0.75));
-      //if (std::abs(thisrad-0.8) < 0.25) gtop_wgt[i] *= 0.5 + 0.5*std::cos((1./0.25)*M_PI*(thisrad-0.8));
-      if (std::abs(thisrad-0.7) < 0.2) gtop_wgt[i] = 0.5 + 0.5*std::cos((1./0.2)*M_PI*(thisrad-0.7));
-      else gtop_wgt[i] = 0.0;
-      //if (std::sqrt(std::pow(ptx[0][i],2)+std::pow(ptx[1][i],2)) < 0.5+_thresh) {
-      //  gtop_wgt[i] = 0.0;
-      //  num_masked++;
-      //}
+      if (std::abs(thisrad-gtop_center) < gtop_width) {
+        gtop_wgt[i] = 0.5 + 0.5*std::cos((1./gtop_width)*M_PI*(thisrad-gtop_center));
+      } else {
+        gtop_wgt[i] = 0.0;
+      }
 
       // particle-to-grid weight - typically peak at the open BC
-      if (std::abs(thisrad-1.0) < 0.2) ptog_wgt[i] = 0.5 + 0.5*std::cos((1./0.2)*M_PI*(thisrad-1.0));
-      else ptog_wgt[i] = 0.0;
+      if (std::abs(thisrad-ptog_center) < ptog_width) {
+        ptog_wgt[i] = 0.5 + 0.5*std::cos((1./ptog_width)*M_PI*(thisrad-ptog_center));
+      } else {
+        ptog_wgt[i] = 0.0;
+      }
     }
 
     std::cout << "  set_overlap_weights on " << soln_p.get_n() << " solution nodes" << std::endl;
-    //std::cout << "  set_overlap_weights " << num_masked << " of " << gtop_wgt.size() << " pts with thresh " << _thresh << std::endl;
   }
 
   //
