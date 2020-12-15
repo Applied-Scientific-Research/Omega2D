@@ -1351,8 +1351,8 @@ FromMsh::init_elements(const float _ips) const {
 
   // read gmsh file
   ReadMsh::Mesh mesh;
+  std::cout << "Reading gmsh mesh file (" << m_infile << ")";
   int32_t retval = mesh.read_msh_file(m_infile.c_str());
-  std::cout << "MSH file (" << m_infile << ")";
   if (retval == 1) {
     std::cout << " contains " << mesh.get_nnodes() << " nodes";
     std::cout << " and " << mesh.get_nelems() << " elems" << std::endl;
@@ -1451,8 +1451,8 @@ FromMsh::init_hybrid(const float _ips) const {
 
   // read gmsh file
   ReadMsh::Mesh mesh;
+  std::cout << "Reading gmsh mesh file (" << m_infile << ")";
   int32_t retval = mesh.read_msh_file(m_infile.c_str());
-  std::cout << "MSH file (" << m_infile << ")";
   if (retval == 1) {
     std::cout << " contains " << mesh.get_nnodes() << " nodes";
     std::cout << " and " << mesh.get_nelems() << " elems" << std::endl;
@@ -1531,12 +1531,19 @@ FromMsh::init_hybrid(const float _ips) const {
     std::cout << "  wall has " << np << " edges" << std::endl;
     idx.clear();
     for (uint32_t thisedge : wall.edges) {
-      //std::cout << "  edge " << thisedge << " has " << edges[thisedge].N_nodes << " nodes" << std::endl;
+      const size_t nn = edges[thisedge].N_nodes;
+      //std::cout << "  edge " << thisedge << " has " << nn << " nodes" << std::endl;
       // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
-      assert(edges[thisedge].N_nodes > 1 && "Edge does not have enough nodes!");
-      // HACK - annular gmsh meshes have wall defined CCW (right wall is to fluid), not CW (left wall is)
+      assert(nn > 1 && "Edge does not have enough nodes!");
+      // reversing the orientation of the wall elements
       idx.push_back(edges[thisedge].nodes[1]);
       idx.push_back(edges[thisedge].nodes[0]);
+      for (size_t i=1; i<nn-1; ++i) idx.push_back(edges[thisedge].nodes[nn-i]);
+      //std::cout << "    ";
+      //for (size_t i=0; i<edges[thisedge].N_nodes; ++i) {
+      //  std::cout << " " << edges[thisedge].nodes[i];
+      //}
+      //std::cout << std::endl;
     }
 
     // set boundary condition value to 0.0 (velocity BC)
@@ -1563,15 +1570,17 @@ FromMsh::init_hybrid(const float _ips) const {
 
     // set the idx pointers to the new surface elements
     const size_t np = open.N_edges;
-    std::cout << "  open has " << np << " edges" << std::endl;
+    //std::cout << "  open has " << np << " edges" << std::endl;
     idx.clear();
     for (uint32_t thisedge : open.edges) {
-      //std::cout << "  edge " << thisedge << " has " << edges[thisedge].N_nodes << " nodes" << std::endl;
+      const size_t nn = edges[thisedge].N_nodes;
+      //std::cout << "  edge " << thisedge << " has " << nn << " nodes" << std::endl;
       // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
-      assert(edges[thisedge].N_nodes > 1 && "Edge does not have enough nodes!");
+      assert(nn > 1 && "Edge does not have enough nodes!");
       // note - annular gmsh meshes have open defined CCW, which is correct here
-      idx.push_back(edges[thisedge].nodes[0]);
-      idx.push_back(edges[thisedge].nodes[1]);
+      //idx.push_back(edges[thisedge].nodes[0]);
+      //idx.push_back(edges[thisedge].nodes[1]);
+      for (size_t i=0; i<nn; ++i) idx.push_back(edges[thisedge].nodes[i]);
     }
 
     // set boundary condition value to 0.0 (velocity BC)
