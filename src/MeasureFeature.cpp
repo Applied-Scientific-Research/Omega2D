@@ -283,7 +283,7 @@ MeasurementBlob::init_elements(float _ips) const {
   for (int j=-irad; j<=irad; ++j) {
 
     // how far from the center are we?
-    float dr = sqrt((float)(i*i+j*j)) * _ips;
+    float dr = std::sqrt((float)(i*i+j*j)) * _ips;
     if (dr < m_rad) {
       // create a particle here
       x.emplace_back(m_x + _ips*((float)i+zmean_dist(gen)));
@@ -765,7 +765,7 @@ void GridField::generate_draw_geom() {
 bool GridField::draw_info_gui(const std::string action, const float &tracer_scale, const float ips) {
   float xc[2] = {m_x, m_y};
   float xf[2] = {m_xf, m_yf};
-  int nx[2] = {m_nx, m_ny};
+  int nx[2] = {(int)m_nx, (int)m_ny};
   int order = m_order;
   bool add = false;
   const std::string buttonText = action+" grid of quad elements";
@@ -935,7 +935,7 @@ void AnnularField::generate_draw_geom() {
 bool AnnularField::draw_info_gui(const std::string action, const float &tracer_scale, const float ips) {
   float xc[2] = {m_x, m_y};
   float rr[2] = {m_ri, m_ro};
-  int nx[2] = {m_nt, m_nr};
+  int nx[2] = {(int)m_nt, (int)m_nr};
   int order = m_order;
   bool add = false;
   const std::string buttonText = action+" grid of quad elements";

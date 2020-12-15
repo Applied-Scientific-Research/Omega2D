@@ -97,8 +97,8 @@ void compute_ortho_proj_mat(GLFWwindow*         _thiswin,
   if (last_h != -1) {
     if (last_h != display_h or last_w != display_w) {
       // window aspect ratio changed, adjust _size
-      (*_size) *= sqrt(  ((float)last_h   /(float)last_w   )
-                       / ((float)display_h/(float)display_w));
+      (*_size) *= std::sqrt(  ((float)last_h   /(float)last_w   )
+                            / ((float)display_h/(float)display_w));
     }
   }
 
