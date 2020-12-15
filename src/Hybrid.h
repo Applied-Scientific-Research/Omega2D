@@ -197,6 +197,11 @@ void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
 template <class S, class A, class I>
 void Hybrid<S,A,I>::reset() {
   initialized = false;
+
+#ifdef HOFORTRAN
+  // clear out memory of the grid
+  (void) clean_up();
+#endif
 }
 
 

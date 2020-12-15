@@ -298,6 +298,7 @@ void Simulation::reset() {
   fldpt.clear();
   euler.clear();
   bem.reset();
+  hybr.reset();
   sf.reset_sim();
   sim_is_initialized = false;
   step_has_started = false;
