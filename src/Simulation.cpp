@@ -737,13 +737,13 @@ void Simulation::file_elements(std::vector<Collection>& _collvec,
 void Simulation::add_hybrid(const std::vector<ElementPacket<float>>  _elems,
                             std::shared_ptr<Body> _bptr) {
 
-  std::cout << "In Simulation::add_hybrid" << std::endl;
-  //std::cout << "  incoming vector has " << _elems.size() << " ElementPackets" << std::endl;
-
   // skip out early if nothing's here
   if (_elems.size() == 0) return;
   // or if hybrid isn't turned on
   if (not hybr.is_active()) return;
+
+  std::cout << "In Simulation::add_hybrid" << std::endl;
+  //std::cout << "  incoming vector has " << _elems.size() << " ElementPackets" << std::endl;
 
   // make sure we've got the right data
   assert(_elems.size() == 3 && "Improper number of ElementPackets in add_hybrid");
