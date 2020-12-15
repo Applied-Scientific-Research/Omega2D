@@ -294,27 +294,8 @@ public:
     // must explicitly call the method in the base class
     ElementBase<S>::move(_time, _dt);
 
-    // no specialization needed
-    if (this->M == lagrangian and this->E != inert) {
-      //std::cout << "  Stretching" << to_string() << " using 1st order" << std::endl;
-      S thismax = 0.0;
-
-      for (size_t i=0; i<this->n; ++i) {
-        // check for max strength
-        S thisstr = std::abs((*this->s)[i]);
-        if (thisstr > thismax) thismax = thisstr;
-      }
-
-      if (max_strength < 0.0) {
-        max_strength = thismax;
-      } else {
-        max_strength = 0.05*thismax + 0.95*max_strength;
-      }
-      //std::cout << "  New max_strength is " << max_strength << std::endl;
-    } else {
-      //std::cout << "  Not stretching" << to_string() << std::endl;
-      max_strength = 1.0;
-    }
+    // and update the max strength measure
+    (void) update_max_str();
   }
 
   //
@@ -326,29 +307,10 @@ public:
     // must explicitly call the method in the base class
     ElementBase<S>::move(_time, _dt, _wt1, _u1, _wt2, _u2);
 
-    // must confirm that incoming time derivates include velocity
+    // must confirm that incoming time derivates include velocity (?)
 
-    // and specialize
-    if (this->M == lagrangian and this->E != inert) {
-      //std::cout << "  Stretching" << to_string() << " using 2nd order" << std::endl;
-      S thismax = 0.0;
-
-      for (size_t i=0; i<this->n; ++i) {
-        // check for max strength
-        S thisstr = std::abs((*this->s)[i]);
-        if (thisstr > thismax) thismax = thisstr;
-      }
-
-      if (max_strength < 0.0) {
-        max_strength = thismax;
-      } else {
-        max_strength = 0.05*thismax + 0.95*max_strength;
-      }
-
-    } else {
-      //std::cout << "  Not stretching" << to_string() << std::endl;
-      max_strength = 1.0;
-    }
+    // and update the max strength measure
+    (void) update_max_str();
   }
 
   // find the new peak strength magnitude
@@ -359,7 +321,7 @@ public:
     if (max_strength < 0.0) {
       max_strength = thismax;
     } else {
-      max_strength = 0.1*thismax + 0.9*max_strength;
+      max_strength = 0.05*thismax + 0.95*max_strength;
     }
   }
 
