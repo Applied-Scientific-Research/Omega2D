@@ -1490,8 +1490,9 @@ FromMsh::init_hybrid(const float _ips) const {
   std::cout << "  volume has " << ne << " elems" << std::endl;
   // number of nodes per element - must be constant!
   size_t nnpe = 0;
+  size_t ec = 0;
   for (auto& thiselem : elems) {
-    //std::cout << "  elem with " << thiselem.N_nodes << " nodes: ";
+    //std::cout << "  elem " << ec << " with " << thiselem.N_nodes << " nodes: ";
     if (nnpe == 0) nnpe = thiselem.N_nodes;
     assert(nnpe == thiselem.N_nodes && "ReadMsh does not support different element types!");
 
@@ -1503,6 +1504,7 @@ FromMsh::init_hybrid(const float _ips) const {
       idx.push_back(thiselem.nodes[i]);
     }
     //std::cout << " " << std::endl;
+    ++ec;
   }
   // if that was successful, then nnpe is the correct number of nodes per element
 
