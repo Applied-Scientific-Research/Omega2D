@@ -548,17 +548,14 @@ void Simulation::step() {
   // operator splitting requires another half-step diffuse (must compute new coefficients)
   //diff.step(time+dt, 0.5*dt, re, get_vdelta(), thisfs, vort, bdry, bem);
 
-  // update time
-  time += (double)dt;
-
   // call HO grid solver to recalculate vorticity at the end of this time step
   hybr.step(time, dt, re, thisfs, vort, bdry, bem, conv, euler, get_vdelta());
 
+  // update time
+  time += (double)dt;
+
   // push field points out of objects every few steps
   if (nstep%5 == 0) clear_inner_layer<STORE>(1, bdry, fldpt, (STORE)0.0, (STORE)(0.5*get_ips()));
-
-  // update strengths for coloring purposes (eventually should be taken care of automatically)
-  //vort.update_max_str();
 
   // only increment step here!
   nstep++;
