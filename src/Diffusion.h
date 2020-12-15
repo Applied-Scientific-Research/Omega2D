@@ -204,19 +204,19 @@ void Diffusion<S,A,I>::step(const double                _time,
         Surfaces<S>& surf = std::get<Surfaces<S>>(coll);
 
         // generate particles just above the surface
-        std::vector<S> new_pts = surf.represent_as_particles(0.01*(S)h_nu, _vdelta);
+        ElementPacket<S> new_pts = surf.represent_as_particles(0.01*(S)h_nu);
 
         // add those particles to the main particle list
         if (_vort.size() == 0) {
           // no collections yet? make a new collection
-          _vort.push_back(Points<S>(new_pts, active, lagrangian, nullptr));      // vortons
+          _vort.push_back(Points<S>(new_pts, active, lagrangian, nullptr, _vdelta));
         } else {
           // HACK - add all particles to first collection
           auto& coll = _vort.back();
           // only proceed if the last collection is Points
           if (std::holds_alternative<Points<S>>(coll)) {
             Points<S>& pts = std::get<Points<S>>(coll);
-            pts.add_new(new_pts);
+            pts.add_new(new_pts, _vdelta);
           }
         }
       }
@@ -322,19 +322,19 @@ void Diffusion<S,A,I>::step(const double                _time,
 
         // generate particles above the surface at the centroid of one step of
         //   diffusion from a flat plate
-        std::vector<S> new_pts = surf.represent_as_particles(h_nu*std::sqrt(4.0/M_PI), _vdelta);
+        ElementPacket<S> new_pts = surf.represent_as_particles(h_nu*std::sqrt(4.0/M_PI));
 
         // add those particles to the main particle list
         if (_vort.size() == 0) {
           // no collections yet? make a new collection
-          _vort.push_back(Points<S>(new_pts, active, lagrangian, nullptr));      // vortons
+          _vort.push_back(Points<S>(new_pts, active, lagrangian, nullptr, _vdelta));      // vortons
         } else {
           // HACK - add all particles to first collection
           auto& coll = _vort.back();
           // only proceed if the last collection is Points
           if (std::holds_alternative<Points<S>>(coll)) {
             Points<S>& pts = std::get<Points<S>>(coll);
-            pts.add_new(new_pts);
+            pts.add_new(new_pts, _vdelta);
           }
         }
       }

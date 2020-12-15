@@ -49,9 +49,7 @@ public:
   //               each inner vector must have even number of floats
   //               last parameter (_val) is either fixed strength or boundary
   //               condition for each panel
-  Surfaces(const std::vector<S>&   _x,
-           const std::vector<Int>& _idx,
-           const std::vector<S>&   _val,
+  Surfaces(const ElementPacket<S>& _elems,
            const elem_t _e,
            const move_t _m,
            std::shared_ptr<Body> _bp)
@@ -65,9 +63,14 @@ public:
       reabsorbed_gamma(0.0),
       max_strength(-1.0) {
 
+    // pull out the vectors
+    const std::vector<S>&   _x   = _elems.x;
+    const std::vector<Int>& _idx = _elems.idx;
+    const std::vector<S>&   _val = _elems.val;
+
     // make sure input arrays are correctly-sized
-    assert(_idx.size() % Dimensions == 0 && "Index array is not an even multiple of dimensions");
-    const size_t nsurfs = _idx.size() / Dimensions;
+    assert(_elems.ndim == 1 && "Input elements are not (1D) surfaces");
+    const size_t nsurfs = _elems.nelem;
 
     // always initialize the ps panel strength optionals
     if (this->E != inert) {
@@ -84,6 +87,7 @@ public:
       return;
     }
 
+    std::cout << "Surfaces sizes: _x=" << _x.size() << " _idx=" << _idx.size() << " _val=" << _val.size() << std::endl;
     assert(_val.size() % nsurfs == 0 && "Value array is not an even multiple of panel count");
     assert(_x.size() % Dimensions == 0 && "Position array is not an even multiple of dimensions");
     const size_t nnodes = _x.size() / Dimensions;
@@ -182,14 +186,6 @@ public:
       set_geom_center();
     }
   }
-
-  // delegating constructor
-  Surfaces(const ElementPacket<S>& _elems,
-           const elem_t _e,
-           const move_t _m,
-           std::shared_ptr<Body> _bp)
-    : Surfaces(_elems.x, _elems.idx, _elems.val, _e, _m, _bp)
-  { }
 
   size_t                            get_npanels()     const { return np; }
   const S                           get_vol()         const { return vol; }
@@ -616,7 +612,8 @@ public:
   // always recalculate everything!
   void compute_bases(const Int nnew) {
 
-    assert(2*nnew == idx.size() && "Array size mismatch");
+    // since we may be saving higher-order elements, this is no longer valid
+    //assert(2*nnew == idx.size() && "Array size mismatch");
 
     // resize any vectors
     for (size_t i=0; i<Dimensions; ++i) {
@@ -808,6 +805,44 @@ public:
     }
 
     return px;
+  }
+
+  // alternative function
+  ElementPacket<S> represent_as_particles(const S _offset) {
+
+    // how many panels?
+    const size_t num_pts = get_npanels();
+
+    std::vector<float> _x(Dimensions*num_pts);
+    std::vector<Int> _idx;
+    std::vector<float> _vals(num_pts);
+
+    // get basis vectors
+    std::array<Vector<S>,2>& norm = b[1];
+
+    // the fluid is to the left walking from one point to the next
+    // so go CW around an external boundary starting at theta=0 (+x axis)
+
+    for (size_t i=0; i<num_pts; ++i) {
+      Int id0 = idx[2*i];
+      Int id1 = idx[2*i+1];
+      // start at center of panel
+      _x[2*i+0] = 0.5 * (this->x[0][id1] + this->x[0][id0]);
+      _x[2*i+1] = 0.5 * (this->x[1][id1] + this->x[1][id0]);
+      //std::cout << "  panel center is " << px[4*i+0] << " " << px[4*i+1];
+      // push out a fixed distance
+      // this assumes properly resolved, vdelta and dt
+      _x[2*i+0] += _offset * norm[0][i];
+      _x[2*i+1] += _offset * norm[1][i];
+      // the panel strength is the solved strength plus the boundary condition
+      float this_str = (*ps[0])[i];
+      // add on the (vortex) bc value here
+      if (this->E == reactive) this_str += (*bc[0])[i];
+      // complete the element with a strength
+      _vals[i] = this_str * area[i];
+    }
+
+    return ElementPacket<float>({_x, _idx, _vals, (size_t)num_pts, 0});
   }
 
   // find the new peak vortex strength magnitude

@@ -35,65 +35,7 @@
 template <class S>
 class Points: public ElementBase<S> {
 public:
-  // flexible constructor - use input 4*n vector (x, y, s, r)
-  //                         or input 2*n vector (x, y)
-  Points(const std::vector<S>& _in,
-         const elem_t _e,
-         const move_t _m,
-         std::shared_ptr<Body> _bp)
-    : ElementBase<S>(0, _e, _m, _bp),
-      max_strength(-1.0) {
-
-    const size_t nper = (_e == inert) ? 2 : 4;
-    std::cout << "  new collection with " << (_in.size()/nper);
-    std::cout << ((_e == inert) ? " tracers" : " vortons") << std::endl;
-
-    // need to reset the base class n
-    this->n = _in.size()/nper;
-
-    // make sure we have a complete input vector
-    assert(_in.size() % nper == 0 && "Input array size is not a multiple of 2 or 4");
-
-    // this initialization specific to Points
-    for (size_t d=0; d<Dimensions; ++d) {
-      this->x[d].resize(this->n);
-      for (size_t i=0; i<this->n; ++i) {
-        this->x[d][i] = _in[nper*i+d];
-      }
-    }
-
-    // save untransformed positions if we are given a Body pointer
-    if (_bp) {
-      this->ux = this->x;
-    }
-
-    if (_e == inert) {
-      // field points need neither radius nor strength
-
-    } else {
-      // active vortons need a radius
-      r.resize(this->n);
-      for (size_t i=0; i<this->n; ++i) {
-        r[i] = _in[4*i+3];
-      }
-
-      // optional strength in base class
-      // need to assign it a vector first!
-      Vector<S> new_s;
-      new_s.resize(this->n);
-      for (size_t i=0; i<this->n; ++i) {
-        new_s[i] = _in[4*i+2];
-      }
-      this->s = std::move(new_s);
-    }
-
-    // velocity in base class
-    for (size_t d=0; d<Dimensions; ++d) {
-      this->u[d].resize(this->n);
-    }
-  }
-
-  // alternate constructor - accepting ElementPacket
+  // only constructor now - using ElementPacket
   Points(const ElementPacket<S>& _in,
          const elem_t _e,
          const move_t _m,
@@ -172,43 +114,6 @@ public:
   const Int get_next_row()  const { return 0; }
 
   const float get_max_bc_value() const { return 0.0; }
-
-  // append more elements this collection
-  void add_new(const std::vector<S>& _in) {
-    // remember old size and incoming size
-    const size_t nold = this->n;
-
-    const size_t nper = (this->E == inert) ? 2 : 4;
-    assert(_in.size() % nper == 0 && "Input array size is not a multiple of 2 or 4");
-
-    const size_t nnew = _in.size()/nper;
-    std::cout << "  adding " << nnew << " particles to collection..." << std::endl;
-
-    // must explicitly call the method in the base class first
-    ElementBase<S>::add_new(_in);
-
-    // then do local stuff
-    if (this->E == inert) {
-      // no radius needed
-
-    } else {
-      // active points need radius
-      r.resize(nold+nnew);
-      for (size_t i=0; i<nnew; ++i) {
-        r[nold+i] = _in[4*i+3];
-      }
-    }
-
-    // save the new untransformed positions if we have a Body pointer
-    if (this->B) {
-      for (size_t d=0; d<Dimensions; ++d) {
-        (*this->ux)[d].resize(nold+nnew);
-        for (size_t i=nold; i<nold+nnew; ++i) {
-          (*this->ux)[d][i] = this->x[d][i];
-        }
-      }
-    }
-  }
 
   // append more elements this collection
   void add_new(const ElementPacket<S>& _in, const float _vd) {

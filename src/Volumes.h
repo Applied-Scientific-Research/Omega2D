@@ -906,6 +906,24 @@ public:
     return px;
   }
 
+  // alternate form
+  ElementPacket<S> represent_nodes_as_particles() {
+
+    // how many nodes?
+    const size_t num_pts = this->get_n();
+
+    std::vector<float> _x(Dimensions*num_pts);
+    std::vector<Int> _idx;
+    std::vector<float> _vals;
+
+    for (size_t i=0; i<num_pts; ++i) {
+      _x[2*i+0] = this->x[0][i];
+      _x[2*i+1] = this->x[1][i];
+    }
+
+    return ElementPacket<float>({_x, _idx, _vals, (size_t)num_pts, 0});
+  }
+
 /*
   // find the new peak vortex strength magnitude
   S get_max_str() {

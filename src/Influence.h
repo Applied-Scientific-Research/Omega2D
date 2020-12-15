@@ -674,8 +674,8 @@ void panels_affect_panels (const Surfaces<S>& src, Surfaces<S>& targ, const Resu
   // run panels_affect_points instead
 
   // generate temporary colocation points as Points - is this inefficient?
-  std::vector<S> xysr = targ.represent_as_particles(0.0001, 0.0001);
-  Points<float> temppts(xysr, active, lagrangian, nullptr);
+  ElementPacket<S> surfaspts = targ.represent_as_particles(0.0001);
+  Points<float> temppts(surfaspts, active, lagrangian, nullptr, 0.0001);
 
   // run the calculation
   panels_affect_points<S,A>(src, temppts, restype, env);
@@ -710,8 +710,8 @@ void points_affect_bricks (const Points<S>& src, Volumes<S>& targ, const Results
   assert (!restype.compute_grad() && "Point elements cannot compute velocity gradients yet.");
 
   // generate temporary collocation points as Points
-  std::vector<S> xysr = targ.represent_nodes_as_particles(0.0f);
-  Points<S> volsaspts(xysr, inert, fixed, nullptr);
+  ElementPacket<S> nodesaspts = targ.represent_nodes_as_particles();
+  Points<S> volsaspts(nodesaspts, inert, fixed, nullptr, 0.0f);
 
   // run the calculation
   points_affect_points<S,A>(src, volsaspts, restype, env);
@@ -741,8 +741,8 @@ void panels_affect_bricks (const Surfaces<S>& src, Volumes<S>& targ, const Resul
   assert (!soln.compute_grad() && "Surface elements cannot compute velocity gradients yet.");
 
   // generate temporary collocation points as Points
-  std::vector<S> xysr = targ.represent_nodes_as_particles(0.0f);
-  Points<S> volsaspts(xysr, inert, fixed, nullptr);
+  ElementPacket<S> nodesaspts = targ.represent_nodes_as_particles();
+  Points<S> volsaspts(nodesaspts, inert, fixed, nullptr, 0.0f);
 
   // run the calculation
   panels_affect_points<S,A>(src, volsaspts, soln, env);
