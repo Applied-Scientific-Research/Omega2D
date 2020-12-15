@@ -600,20 +600,17 @@ void Hybrid<S,A,I>::step(const double                         _time,
       //    num_printed++;
       //  }
       //}
-      //std::cout << "    " << 2013 << "  " << area[2013] << " * ( " << eulvort[2013] << " - " << lagvort[2013] << " ) = " << circ[2013] << std::endl;
-      //std::cout << "    " << 1975 << "  " << area[1975] << " * ( " << eulvort[1975] << " - " << lagvort[1975] << " ) = " << circ[1975] << std::endl;
-      //std::cout << "    " << 1937 << "  " << area[1937] << " * ( " << eulvort[1937] << " - " << lagvort[1937] << " ) = " << circ[1937] << std::endl;
-    if (true) {
-      std::cout << "  feedback calculation " << std::endl;
-      std::cout << "    indx  rad   area * gtop * ( eulvort - lagvort ) = circ" << std::endl;
-      const auto& locs = solvedpts.get_pos();
-      for (size_t i=0; i<thisn; ++i) {
-        if (std::abs(locs[1][i]/locs[0][i]-0.4868) < 0.01 && locs[0][i] > 0.0) {
-          const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
-          std::cout << "    " << i << "  " << dist << " " << area[i] << " * " << gtop[i] << " * ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
+      if (true) {
+        std::cout << "  feedback calculation " << std::endl;
+        std::cout << "    indx  rad   area * gtop * ( eulvort - lagvort ) = circ" << std::endl;
+        const auto& locs = solvedpts.get_pos();
+        for (size_t i=0; i<thisn; ++i) {
+          if (std::abs(locs[1][i]/locs[0][i]-0.4868) < 0.01 && locs[0][i] > 0.0) {
+            const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
+            std::cout << "    " << i << "  " << dist << " " << area[i] << " * " << gtop[i] << " * ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
+          }
         }
       }
-    }
 
       // measure this error
       thiserror = 0.0;
