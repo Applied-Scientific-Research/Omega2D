@@ -110,7 +110,8 @@ public:
     // copy over the node indices (with a possible type change)
     bool idx_are_all_good = true;
     idx.resize(_idx.size());
-    for (size_t i=0; i<2*nsurfs; ++i) {
+    const size_t nper = _idx.size() / nsurfs;	// we can have >2 nodes per elem now
+    for (size_t i=0; i<nper*nsurfs; ++i) {
       // make sure it exists in the nodes array
       if (_idx[i] >= nnodes) idx_are_all_good = false;
       idx[i] = _idx[i];
