@@ -186,32 +186,40 @@ public:
     // return if we do not need to recalculate these (vdelta changes)
 
     // how many solution nodes per geometric element?
-    const size_t nper = soln_p.get_n() / this->nb;
-    assert(nper*this->nb == soln_p.get_n() && "ERROR (set_mask_area_ho) element - solution node mismatch");
+    //const size_t nper = soln_p.get_n() / this->nb;
+    //assert(nper*this->nb == soln_p.get_n() && "ERROR (set_mask_area_ho) element - solution node mismatch");
 
-    std::cout << "In set_soln_areas with weight mask size " << nper << std::endl;
+    //std::cout << "In set_soln_areas with weight mask size " << nper << std::endl;
+    std::cout << "In set_soln_areas with " << soln_p.get_n() << " solution nodes" << std::endl;
+
+    // the temporary array of doubles
+    std::vector<double> hoarea(soln_p.get_n());
 
     // get an array of weights from the HO solver for a HO element
-    std::vector<double> wgt(nper);
+    //std::vector<double> wgt(nper);
 #ifdef HOFORTRAN
-    get_hoquad_weights_d((int32_t)nper, wgt.data());
+    getsolnareas_d((int32_t)hoarea.size(), hoarea.data());
+    //get_hoquad_weights_d((int32_t)nper, wgt.data());
 #else
-    std::fill(wgt.begin(), wgt.end(), 1.0/(double)nper);
+    //std::fill(wgt.begin(), wgt.end(), 1.0/(double)nper);
 #endif
-    std::cout << "  first row of weight mask is ";
-    for (size_t j=0; j<std::sqrt(nper); ++j) std::cout << " " << wgt[j];
-    std::cout << std::endl;
+    //std::cout << "  first row of weight mask is ";
+    //for (size_t j=0; j<std::sqrt(nper); ++j) std::cout << " " << wgt[j];
+    //std::cout << std::endl;
 
-    // HACK using area here - we need to use Jacobian from the HO solver!
-
-    // fill the new array with geom element area times the weights
+    // copying Jacobian from the HO solver
     solnarea.resize(soln_p.get_n());
-    for (size_t i=0; i<this->nb; ++i) {
-      for (size_t j=0; j<nper; ++j) {
+    std::copy(hoarea.begin(), hoarea.end(), solnarea.begin());
+
+    // HACK using area here
+    //solnarea.resize(soln_p.get_n());
+    //for (size_t i=0; i<this->nb; ++i) {
+    //  for (size_t j=0; j<nper; ++j) {
         // get quad areas from the parent class
-        solnarea[nper*i+j] = (S)(this->area[i] * wgt[j]);
-      }
-    }
+    //    solnarea[nper*i+j] = (S)(this->area[i] * wgt[j]);
+        //std::cout << "  " << i << " " << j << "  " << hoarea[nper*i+j] << " " << solnarea[nper*i+j] << std::endl;
+    //  }
+    //}
   }
 
   //
