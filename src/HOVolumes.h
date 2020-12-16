@@ -236,23 +236,39 @@ public:
     gtop_wgt.resize(soln_p.get_n());
     ptog_wgt.resize(soln_p.get_n());
 
+    // HACK - assumes Eulerian grid is an annulus
+    // find nearest and farthest solution nodes
+    S rnear = 9.9e+9;
+    S rfar = 0.0;
+    for (size_t i=0; i<soln_p.get_n(); ++i) {
+      const S thisrad = std::sqrt(std::pow(ptx[0][i],2)+std::pow(ptx[1][i],2));
+      if (thisrad > rfar) rfar = thisrad;
+      if (thisrad < rnear) rnear = thisrad;
+    }
+    std::cout << "  in set_overlap_weights with band from " << rnear << " to" << rfar << std::endl;
+    // one over the band width
+    //const S oobw = 1.0 / (rfar - rnear);
+
     // now, based on the location of the solution nodes, zero out any
-    //   that are too close to the body - HACK - assume D=1 cylinder
+    //   that are too close to the body - HACK - assumes annular region
+    // ultimately we will need to search for nearest points on open and wall boundaries
     for (size_t i=0; i<soln_p.get_n(); ++i) {
 
       // HACK - assume geometry is annular from 0.5 to 1.0
       const S thisrad = std::sqrt(std::pow(ptx[0][i],2)+std::pow(ptx[1][i],2));
+      // radial location normalized by range, now values are always [0..1]
+      const S normrad = (thisrad-rnear) / (rfar - rnear);
 
       // grid-to-particle weight - typically peak in the middle and fall off near boundaries
-      if (std::abs(thisrad-gtop_center) < gtop_width) {
-        gtop_wgt[i] = 0.5 + 0.5*std::cos((1./gtop_width)*M_PI*(thisrad-gtop_center));
+      if (std::abs(normrad-gtop_center) < gtop_width) {
+        gtop_wgt[i] = 0.5 + 0.5*std::cos((1.0/gtop_width)*M_PI*(normrad-gtop_center));
       } else {
         gtop_wgt[i] = 0.0;
       }
 
       // particle-to-grid weight - typically peak at the open BC
-      if (std::abs(thisrad-ptog_center) < ptog_width) {
-        ptog_wgt[i] = 0.5 + 0.5*std::cos((1./ptog_width)*M_PI*(thisrad-ptog_center));
+      if (std::abs(normrad-ptog_center) < ptog_width) {
+        ptog_wgt[i] = 0.5 + 0.5*std::cos((1.0/ptog_width)*M_PI*(normrad-ptog_center));
       } else {
         ptog_wgt[i] = 0.0;
       }

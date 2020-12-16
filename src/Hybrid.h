@@ -503,7 +503,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
                    std::multiplies<S>());
 
     // and multiply again by the weight assigned to the grid-to-particle operation
-    (void) coll.set_overlap_weights(0.7, 0.2, 1.0, 0.2);
+    (void) coll.set_overlap_weights(0.4, 0.4, 1.0, 0.4);
     const Vector<S>& gtop = coll.get_gtop_wgt();
 
     std::transform(circ.begin(), circ.end(),
