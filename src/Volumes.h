@@ -47,26 +47,26 @@ const std::string frag_shader_source =
 template <class S>
 class Volumes: public ElementBase<S> {
 public:
-  // constructor - accepts vector of vectors of (x,y,s) pairs
-  //               makes one boundary for each outer vector
-  //               each inner vector must have even number of floats
-  //               last parameter (_val) is either fixed strength or boundary
+  // constructor - accepts only ElementPacket
+  //               last vector (_val) is either fixed strength or boundary
   //               condition for each element
-  Volumes(const std::vector<S>&   _x,
-          const std::vector<Int>& _idx,
-          const std::vector<S>&   _val,
-          const size_t _nelems,
+  Volumes(const ElementPacket<S>& _elems,
           const elem_t _e,
           const move_t _m,
           std::shared_ptr<Body> _bp)
     : ElementBase<S>(0, _e, _m, _bp),
-      nb(_nelems),
+      nb(_elems.nelem),
       max_strength(-1.0) {
+
+    const std::vector<S>&     _x = _elems.x;
+    const std::vector<Int>& _idx = _elems.idx;
+    const std::vector<S>&   _val = _elems.val;
 
     // assume all elements are 1st order quads (4 corner indices)
     const size_t nper = _idx.size() / nb;
     assert(_idx.size() == nb*nper && "Index array is not an even size");
-    assert((nper == 4 or nper == 9) && "Index array is not multiple of 4 or 9");
+    assert(_elems.ndim == 2 && "Incoming ElementPacket is not 2D");
+    assert((nper==4 or nper==9 or nper==16) && "Index array is not multiple of 4 or 9");
 
     // always initialize the ps element strength optionals
 /*
@@ -201,13 +201,6 @@ public:
 */
   }
 
-  // delegating constructor
-  Volumes(const ElementPacket<S>& _elems,
-          const elem_t _e,
-          const move_t _m,
-          std::shared_ptr<Body> _bp)
-    : Volumes(_elems.x, _elems.idx, _elems.val, _elems.nelem, _e, _m, _bp)
-  { }
 
   size_t                            get_nelems()     const { return nb; }
   //const S                           get_vol()         const { return vol; }
@@ -319,6 +312,10 @@ public:
   void add_new(const std::vector<S>&   _x,
                const std::vector<Int>& _idx,
                const std::vector<S>&   _val) {
+
+    //const std::vector<S>&     _x = _elems.x;
+    //const std::vector<Int>& _idx = _elems.idx;
+    //const std::vector<S>&   _val = _elems.val;
 
     // remember old sizes of nodes and element arrays
     const size_t nnold = this->n;
