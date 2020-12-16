@@ -9,6 +9,9 @@
 #include "Reflect.h"
 #include "BEMHelper.h"
 #include "GuiHelper.h"
+#ifdef HOFORTRAN
+#include "hofortran_interface.h"
+#endif
 
 #include <cassert>
 #include <cmath>
@@ -367,6 +370,14 @@ std::vector<std::string> Simulation::write_vtk(const int _index,
     for (auto &coll : fldpt) {
       std::visit([&](auto &&elem) { files.emplace_back(elem.write_vtk(idx++, stepnum+10, time)); }, coll);
     }
+  }
+
+  if (true) {
+    // there is only one hybrid volume allowed now, so no counting needed
+#ifdef HOFORTRAN
+    (void) trigger_write((int32_t)stepnum);
+#endif
+    files.emplace_back("and a HO grid file");
   }
 
   return files;
