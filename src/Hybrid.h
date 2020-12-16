@@ -548,6 +548,13 @@ void Hybrid<S,A,I>::step(const double                         _time,
     thiserror /= totalcircmag;
     std::cout << "  initial error " << thiserror << std::endl;
 
+    // there must be an original set of vortex particles
+    assert(std::holds_alternative<Points<float>>(_vort[0]) && "ERROR: _vort[0] is not Points");
+    Points<float>& lag_vorts = std::get<Points<S>>(_vort[0]);
+
+    // during iterations, only generate particles with sufficient strength
+    const S circ_thresh = 1.e-4 * lag_vorts.get_averaged_max_str();
+
     // iterate toward a solution
     int iter = 0;
     int maxiter = 20;
@@ -561,12 +568,11 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
       // generate particles to fill the deficit
       //   note that cells may be a lot larger than particles!
-      ElementPacket<S> newparts = coll.get_equivalent_particles(circ, (S)_vd);
+      ElementPacket<S> newparts = coll.get_equivalent_particles(circ, (S)_vd, circ_thresh);
 
       // make them a new collection in _vort (so that we can delete them later?)
       // or add them to the first collection?
-      Points<float>& thevorts = std::get<Points<S>>(_vort[0]);
-      thevorts.add_new(newparts, _vd);
+      lag_vorts.add_new(newparts, _vd);
 
       // merge here
       // HACK - hard-coding overlap and merge thresh!

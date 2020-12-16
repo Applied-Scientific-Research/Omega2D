@@ -263,34 +263,36 @@ public:
 
   //
   // return a particle version of the elements - one particle per *solution* node
+  // new particles have given vdelta core size
+  // only generate new particles with strength greater than a threshold
   //
-  ElementPacket<S> get_equivalent_particles(const Vector<S>& _circ, const S _vd) {
+  ElementPacket<S> get_equivalent_particles(const Vector<S>& _circ, const S _vd, const S _thresh) {
 
     assert(_circ.size() == soln_p.get_n() && "HOVolumes::get_equivalent_particles input vector size mismatch");
 
-    // prepare the data arrays for the element packet
-    std::vector<float> x;
-    std::vector<Int> idx;
-    std::vector<float> val;
+    // prepare the data arrays for the element packet (there's an "idx" in Volumes)
+    std::vector<float> _x;
+    std::vector<Int> _idx;
+    std::vector<float> _val;
     size_t thisn = 0;
 
     // get this array so we can reference it more easily
     const std::array<Vector<S>,Dimensions>& ptx = soln_p.get_pos();
 
     // loop over volume elements which have appreciable strength change
-    for (size_t i=0; i<soln_p.get_n(); ++i) if (std::fabs(_circ[i]) > 1.e-7) {
+    for (size_t i=0; i<soln_p.get_n(); ++i) if (std::fabs(_circ[i]) > _thresh) {
 
       // convert input _circ and underlying geometry into particles
       // just one per element for starters
-      x.push_back(ptx[0][i]);
-      x.push_back(ptx[1][i]);
-      val.push_back(_circ[i]);
+      _x.push_back(ptx[0][i]);
+      _x.push_back(ptx[1][i]);
+      _val.push_back(_circ[i]);
       thisn++;
 
       // use size of element and particle radius to ensure overlap
     }
 
-    return ElementPacket<S>(x, idx, val, thisn, (uint8_t)0);
+    return ElementPacket<S>(_x, _idx, _val, thisn, (uint8_t)0);
   }
 /*
   std::vector<S> represent_elems_as_particles(const S _offset, const S _vdelta) {

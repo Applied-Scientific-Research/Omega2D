@@ -103,6 +103,8 @@ public:
   const Vector<S>& get_rad() const { return r; }
   Vector<S>&       get_rad()       { return r; }
 
+  const S get_averaged_max_str() const { return max_strength; }
+
   // a little logic to see if we should augment the BEM equations for this object (see Surfaces.h)
   const bool is_augmented() const { return false; }
 
