@@ -710,8 +710,10 @@ void points_affect_bricks (const Points<S>& src, Volumes<S>& targ, const Results
   assert (!restype.compute_grad() && "Point elements cannot compute velocity gradients yet.");
 
   // generate temporary collocation points as Points
-  ElementPacket<S> nodesaspts = targ.represent_nodes_as_particles();
+  ElementPacket<S> nodesaspts = targ.represent_nodes_as_particles(true);
   Points<S> volsaspts(nodesaspts, inert, fixed, nullptr, 0.0f);
+  //ElementPacket<S> nodesaspts = targ.represent_nodes_as_particles(false);
+  //Points<S> volsaspts(nodesaspts, active, fixed, nullptr, 0.018f);
 
   // run the calculation
   points_affect_points<S,A>(src, volsaspts, restype, env);
@@ -741,7 +743,7 @@ void panels_affect_bricks (const Surfaces<S>& src, Volumes<S>& targ, const Resul
   assert (!soln.compute_grad() && "Surface elements cannot compute velocity gradients yet.");
 
   // generate temporary collocation points as Points
-  ElementPacket<S> nodesaspts = targ.represent_nodes_as_particles();
+  ElementPacket<S> nodesaspts = targ.represent_nodes_as_particles(true);
   Points<S> volsaspts(nodesaspts, inert, fixed, nullptr, 0.0f);
 
   // run the calculation

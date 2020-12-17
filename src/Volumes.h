@@ -857,41 +857,8 @@ public:
 */
 
 
-  //
-  // return a particle version of the nodes (useful during velocity evaluation)
-  // offset is in world units - NOT scaled
-  //
-  std::vector<S> represent_nodes_as_particles(const S _vdelta) {
-
-    // how many nodes?
-    const size_t num_pts = this->get_n();
-
-    // note that since this is being passed in Influence as inert, use 2 values per point
-
-    // init the output vector (x, y)
-    std::vector<S> px(num_pts*2);
-
-    for (size_t i=0; i<num_pts; i++) {
-      px[2*i+0] = this->x[0][i];
-      px[2*i+1] = this->x[1][i];
-      //std::cout << "  element center is " << px[4*i+0] << " " << px[4*i+1];
-      // the element strength is the solved strength plus the boundary condition
-      //float this_str = (*ps[0])[i];
-      // add on the (vortex) bc value here
-      //if (this->E == reactive) this_str += (*bc[0])[i];
-      // complete the element with a strength
-      //px[4*i+2] = this_str * area[i];
-      //px[4*i+2] = 0.0;
-      // and the core size (effectively field points)
-      //px[4*i+3] = 0.0;
-      //std::cout << "  new part is " << px[4*i+0] << " " << px[4*i+1] << " " << px[4*i+2] << " " << px[4*i+3] << std::endl;
-    }
-
-    return px;
-  }
-
-  // alternate form
-  ElementPacket<S> represent_nodes_as_particles() {
+  // export all nodes as either singular (_inert) or thick particles
+  ElementPacket<S> represent_nodes_as_particles(bool _inert) {
 
     // how many nodes?
     const size_t num_pts = this->get_n();
@@ -899,6 +866,15 @@ public:
     std::vector<float> _x(Dimensions*num_pts);
     std::vector<Int> _idx;
     std::vector<float> _vals;
+
+    if (not _inert) {
+      // vals are strength or radius?
+      _vals.resize(num_pts);
+      std::fill(_vals.begin(), _vals.end(), 0.0);
+      //for (size_t i=0; i<num_pts; ++i) {
+      //  _vals[i] = 0.0;
+      //}
+    }
 
     for (size_t i=0; i<num_pts; ++i) {
       _x[2*i+0] = this->x[0][i];
