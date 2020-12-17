@@ -372,7 +372,7 @@ std::vector<std::string> Simulation::write_vtk(const int _index,
     }
   }
 
-  if (true) {
+  if (hybr.is_active()) {
     // there is only one hybrid volume allowed now, so no counting needed
 #ifdef HOFORTRAN
     (void) trigger_write((int32_t)stepnum);
