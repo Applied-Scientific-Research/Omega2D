@@ -47,10 +47,8 @@ void points_affect_points_vorticity (const Points<S>& src, Points<S>& targ, cons
   const std::array<Vector<S>,Dimensions>& tx = targ.get_pos();
   Vector<S>&                              tw = targ.get_vort();
 
-
   // We need 2 different loops here, for the options:
   //   Vc or no Vc
-
 
   //
   // targets are field points, with no core radius ===============================================
@@ -58,8 +56,7 @@ void points_affect_points_vorticity (const Points<S>& src, Points<S>& targ, cons
     std::cout << "    0v_0p compute influence of" << src.to_string() << " on" << targ.to_string() << std::endl;
     // targets are field points
 
-//#ifdef USE_VC
-#ifdef NEVERGOHERE
+#ifdef USE_VC
     if (env.get_instrs() == cpu_vc) {
 
       // define vector types for Vc
@@ -76,21 +73,20 @@ void points_affect_points_vorticity (const Points<S>& src, Points<S>& targ, cons
         for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
           const StoreVec txv = tx[0][i];
           const StoreVec tyv = tx[1][i];
-          AccumVec accumu = 0.0;
-          AccumVec accumv = 0.0;
           AccumVec accumw = 0.0;
           for (size_t j=0; j<sxv.vectorsCount(); ++j) {
-            kerneluw_0v_0p<StoreVec,AccumVec>(
-                              sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
-                              txv, tyv,
-                              &accumu, &accumv, &accumw);
+            const AccumVec dx = txv - sxv.vector(j);
+            const AccumVec dy = tyv - syv.vector(j);
+            const AccumVec oor2 = my_recip(srv.vector(j)*srv.vector(j));
+            const AccumVec distsq = (dx*dx + dy*dy) * oor2;
+            AccumVec toadd = StoreVec(0.0);
+            toadd(distsq < StoreVec(16.0)) = StoreVec(2.0) * ssv.vector(j) * my_exp(-distsq) * oor2;
+            accumw += toadd;
           }
-          tu[0][i] += accumu.sum();
-          tu[1][i] += accumv.sum();
           tw[i] += accumw.sum();
         }
         //std::cout << "pt " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
-        flops *= 2.0 + (float)flopsuw_0v_0p<S,A>() * (float)src.get_n();
+        flops *= 1.0 + 13.0 * (float)src.get_n();
     } else
 #endif  // no Vc
     {
@@ -102,7 +98,7 @@ void points_affect_points_vorticity (const Points<S>& src, Points<S>& targ, cons
             const A dy = tx[1][i] - sx[1][j];
             const A distsq = (dx*dx + dy*dy) / std::pow(sr[j], 2);
             // use the Gaussian function
-            accumw += 2.0 * ss[j] * std::exp(-distsq) / std::pow(sr[j], 2);
+            accumw += S(2.0) * ss[j] * std::exp(-distsq) / std::pow(sr[j], 2);
           }
           tw[i] += accumw;
           //std::cout << "pt " << i << " at " << tx[0][i] << " " << tx[1][i] << " has vort " << tw[i] << std::endl;
