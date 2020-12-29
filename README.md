@@ -21,6 +21,10 @@ Users will also need CMake, Eigen (version 3.3 or newer), and GLFW version 3 on 
 
     sudo dnf install cmake glfw3-devel eigen3-devel
 
+The hybrid version also requires the following packages.
+
+    sudo dnf install libxml2-devel lapack-devel
+
 or on Ubuntu with
 
     sudo apt-get install cmake glfw3-dev libeigen3-dev
@@ -48,6 +52,7 @@ Upon installation of the prerequisites, the following commands should build Omeg
 
     git clone git@github.com:Applied-Scientific-Research/Omega2D.git
     cd Omega2D
+    git submodule update --init --recursive
     mkdir build
     cd build
     cmake -DCMAKE_BUILD_TYPE=Release -DUSE_OMP=ON -DUSE_VC=OFF ..
