@@ -62,7 +62,8 @@ public:
       nom_sep_scaled(std::sqrt(8.0)),
       particle_overlap(1.5),
       merge_thresh(0.4),
-      shed_before_diffuse(true)
+      shed_before_diffuse(true),
+      clear_thick(0.5/std::sqrt(2.0*M_PI))
     {}
 
   void set_diffuse(const bool _do_diffuse) { is_inviscid = not _do_diffuse; }
@@ -130,6 +131,9 @@ private:
   // method 1 (true) is to shed *at* the boundary, VRM those particles, then push out
   // method 2 (false) is to VRM, push out, *then* generate new particles at the correct distance
   bool shed_before_diffuse;
+
+  // layer below which to clear vorticity
+  S clear_thick;
 };
 
 //
@@ -178,7 +182,7 @@ void Diffusion<S,A,I>::step(const double                _time,
   //
   // first push away particles inside or too close to the body
   assert(M_PI != 0); // Can't divide by 0
-  clear_inner_layer<S>(1, _bdry, _vort, 0.5/std::sqrt(2.0*M_PI), get_nom_sep(h_nu));
+  clear_inner_layer<S>(1, _bdry, _vort, clear_thick, get_nom_sep(h_nu));
   solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
 
   //
@@ -302,11 +306,11 @@ void Diffusion<S,A,I>::step(const double                _time,
   if (shed_before_diffuse) {
     // use method which trims circulations under the threshold
     //(void) clear_inner_layer<S>(0, _bdry, _vort, 0.0, _vdelta/particle_overlap); // THIS IS BAD
-    (void) clear_inner_layer<S>(1, _bdry, _vort, 0.5/std::sqrt(2.0*M_PI), _vdelta/particle_overlap);
+    (void) clear_inner_layer<S>(1, _bdry, _vort, clear_thick, _vdelta/particle_overlap);
   } else {
     // use method which simply pushes all still-active particles to be at or above a threshold distance
     // cutoff is a multiple of ips (these are the last two arguments)
-    (void) clear_inner_layer<S>(1, _bdry, _vort, 0.5/std::sqrt(2.0*M_PI), _vdelta/particle_overlap);
+    (void) clear_inner_layer<S>(1, _bdry, _vort, clear_thick, _vdelta/particle_overlap);
   }
 
 
