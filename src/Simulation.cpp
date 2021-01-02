@@ -543,21 +543,32 @@ void Simulation::step() {
 
   std::cout << std::endl << "Taking step " << nstep << " at t=" << time << " with n=" << get_nparts() << std::endl;
 
+  const bool use_2nd_order_operator_splitting = false;
+  const int32_t convection_order = 2;
+  assert(convection_order > 0 and convection_order < 3 and "Convection order not [1..2]");
+
   // we wind up using this a lot
   std::array<double,2> thisfs = {fs[0], fs[1]};
 
-  // for simplicity's sake, just run one full diffusion step here
-  diff.step(time, dt, re, get_vdelta(), thisfs, vort, bdry, bem);
-
-  // operator splitting requires one half-step diffuse (use coefficients from previous step, if available)
-  //diff.step(time, 0.5*dt, re, get_vdelta(), thisfs, vort, bdry, bem);
+  if (use_2nd_order_operator_splitting) {
+    // operator splitting requires one half-step diffuse (use coefficients from previous step, if available)
+    diff.step(time, 0.5*dt, re, get_vdelta(), thisfs, vort, bdry, bem);
+  } else {
+    // for simplicity's sake, just run one full diffusion step here
+    diff.step(time, dt, re, get_vdelta(), thisfs, vort, bdry, bem);
+  }
 
   // advect with no diffusion (must update BEM strengths)
-  //conv.advect_1st(time, dt, thisfs, get_ips(), vort, bdry, fldpt, bem);
-  conv.advect_2nd(time, dt, thisfs, get_ips(), vort, bdry, fldpt, bem);
+  if (convection_order == 1) {
+    conv.advect_1st(time, dt, thisfs, get_ips(), vort, bdry, fldpt, bem);
+  } else if (convection_order == 2) {
+    conv.advect_2nd(time, dt, thisfs, get_ips(), vort, bdry, fldpt, bem);
+  }
 
-  // operator splitting requires another half-step diffuse (must compute new coefficients)
-  //diff.step(time+dt, 0.5*dt, re, get_vdelta(), thisfs, vort, bdry, bem);
+  if (use_2nd_order_operator_splitting) {
+    // operator splitting requires another half-step diffuse (must compute new coefficients)
+    diff.step(time+dt, 0.5*dt, re, get_vdelta(), thisfs, vort, bdry, bem);
+  }
 
   // call HO grid solver to recalculate vorticity at the end of this time step
   hybr.step(time, dt, re, thisfs, vort, bdry, bem, conv, euler, get_vdelta());
