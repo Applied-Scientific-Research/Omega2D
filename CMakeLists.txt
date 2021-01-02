@@ -236,7 +236,9 @@ IF( USE_EXTERNAL_SUM )
 ELSE()
   SET (FASTSUM_LIBS "")
 ENDIF()
+# fmm2d needs this
 #SET( EXTERNAL_LIBS ${FASTSUM_LIBS} gfortran )
+# but onbody needs this
 SET( EXTERNAL_LIBS ${FASTSUM_LIBS} )
 
 # Enable submodules
