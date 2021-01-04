@@ -669,26 +669,47 @@ GridField::init_elements(float _ips) const {
 
   // now generate quad elements
   cnt = 0;
+  assert(m_order < 3 && "Quad elements with order>2 are unsupported");
   for (size_t j=0; j<(size_t)m_ny; ++j) {
     size_t bl = j*m_order*nnx;
     size_t tl = (j+1)*m_order*nnx;
     for (size_t i=0; i<(size_t)m_nx; ++i) {
       size_t col = m_order*i;
-      idx[cnt++] = bl + col;
-      idx[cnt++] = bl + col + m_order;
-      idx[cnt++] = tl + col + m_order;
-      idx[cnt++] = tl + col;
-      if (m_order > 1) {
+      if (m_order == 1) {
+        // four corners first
+        idx[cnt++] = bl + col;
+        idx[cnt++] = bl + col + m_order;
+        idx[cnt++] = tl + col + m_order;
+        idx[cnt++] = tl + col;
+      } else if (m_order == 2) {
         // standard vtk bicubic quad
+        // four corners first
+        idx[cnt++] = bl + col;
+        idx[cnt++] = bl + col + m_order;
+        idx[cnt++] = tl + col + m_order;
+        idx[cnt++] = tl + col;
+        // then four sides
         idx[cnt++] = bl + col + 1;
         idx[cnt++] = bl + nnx + col + m_order;
         idx[cnt++] = tl + col + 1;
         idx[cnt++] = bl + nnx + col;
+        // finally the middle
         idx[cnt++] = bl + nnx + col + 1;
-      }
-      if (m_order > 2) {
+      } else if (m_order == 3) {
         // arbitrary order Lagrange elements not yet programmed
         // see https://blog.kitware.com/modeling-arbitrary-order-lagrange-finite-elements-in-the-visualization-toolkit/
+        // four corners first
+        idx[cnt++] = bl + col;
+        idx[cnt++] = bl + col + m_order;
+        idx[cnt++] = tl + col + m_order;
+        idx[cnt++] = tl + col;
+        // then four sides
+        idx[cnt++] = bl + col + 1;
+        idx[cnt++] = bl + nnx + col + m_order;
+        idx[cnt++] = tl + col + 1;
+        idx[cnt++] = bl + nnx + col;
+        // finally the middle
+        idx[cnt++] = bl + nnx + col + 1;
       }
     }
   }
