@@ -543,7 +543,7 @@ void Simulation::step() {
 
   std::cout << std::endl << "Taking step " << nstep << " at t=" << time << " with n=" << get_nparts() << std::endl;
 
-  const bool use_2nd_order_operator_splitting = false;
+  const bool use_2nd_order_operator_splitting = true;
   const int32_t convection_order = 2;
   assert(convection_order > 0 and convection_order < 3 and "Convection order not [1..2]");
 
