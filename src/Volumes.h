@@ -19,6 +19,7 @@
 #endif
 
 #include <iostream>
+#include <iomanip> // for setfill and setw
 #include <vector>
 #include <array>
 #include <algorithm> // for max_element
@@ -882,6 +883,17 @@ public:
     }
 
     return ElementPacket<float>({_x, _idx, _vals, (size_t)num_pts, 0});
+  }
+
+  // return a scalar value representative of the core size of the nodes
+  S get_representative_size(const S _mult) {
+    // find average area per element first
+    S avglen = std::sqrt(std::accumulate(area.begin(), area.end(), 0.0) / (S)nb);
+    // and use order to scale it
+    avglen /= std::sqrt((S)idx.size() / (S)nb) - 1.0;
+    //std::cout << "    using avg element side length of " << avglen << std::endl;
+    // finally scale by the input multiplier
+    return _mult * avglen;
   }
 
 /*
