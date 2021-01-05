@@ -21,6 +21,7 @@
 #endif
 
 #include <iostream>
+#include <iomanip> // for setfill and setw
 #include <vector>
 #include <array>
 #include <memory>
