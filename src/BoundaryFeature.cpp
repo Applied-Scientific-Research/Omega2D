@@ -1389,7 +1389,7 @@ FromMsh::init_elements(const float _ips) const {
   const size_t np = wall.N_edges;
   std::cout << "  wall has " << np << " edges" << std::endl;
   for (uint32_t thisedge : wall.edges) {
-    std::cout << "  edge " << thisedge << " has " << edges[thisedge].N_nodes << " nodes" << std::endl;
+    //std::cout << "  edge " << thisedge << " has " << edges[thisedge].N_nodes << " nodes" << std::endl;
     // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
     assert(edges[thisedge].N_nodes > 1 && "Edge does not have enough nodes!");
     // HACK - annular gmsh meshes have wall defined CCW (right wall is to fluid), not CW (left wall is)
