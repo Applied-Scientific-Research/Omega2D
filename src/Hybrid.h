@@ -71,6 +71,7 @@ public:
              BEM<S,I>&,
              Convection<S,A,I>&,
              std::vector<HOVolumes<S>>&,
+             const float,
              const float);
 
   // read/write parameters
@@ -321,6 +322,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
                          BEM<S,I>&                            _bem,
                          Convection<S,A,I>&                   _conv,
                          std::vector<HOVolumes<S>>&           _euler,
+                         const float                          _overlap,
                          const float                          _vd) {
 
   if (not active) return;
@@ -594,7 +596,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
       // merge here
       // HACK - hard-coding overlap and merge thresh!
-      merge_operation<S>(_vort, 1.5, 0.5, false);
+      merge_operation<S>(_vort, _overlap, 0.5, false);
 
       // find the new Lagrangian vorticity on the solution nodes
       // and the new vorticity error/deficit

@@ -43,6 +43,8 @@ Simulation::Simulation()
     output_dt(0.0),
     end_time(100.0),
     use_end_time(false),
+    overlap_ratio(2.0),
+    core_size_ratio(std::sqrt(6)),
     nstep(0),
     use_max_steps(false),
     max_steps(100),
@@ -62,8 +64,8 @@ float* Simulation::addr_fs() { return fs; }
 float Simulation::get_re() const { return re; }
 float Simulation::get_dt() const { return dt; }
 float Simulation::get_hnu() const { return std::sqrt(dt/re); }
-float Simulation::get_ips() const { return diff.get_nom_sep_scaled() * get_hnu(); }
-float Simulation::get_vdelta() const { return diff.get_particle_overlap() * get_ips(); }
+float Simulation::get_ips() const { return core_size_ratio * get_hnu(); }
+float Simulation::get_vdelta() const { return overlap_ratio * get_ips(); }
 float Simulation::get_time() const { return (float)time; }
 float Simulation::get_end_time() const { return (float)end_time; }
 bool Simulation::using_end_time() const { return use_end_time; }
@@ -121,7 +123,7 @@ size_t Simulation::get_nfldpts() {
 
 // like a setter
 void Simulation::set_re_for_ips(const float _ips) {
-  re = std::pow(diff.get_nom_sep_scaled(), 2) * dt / pow(_ips, 2);
+  re = std::pow(core_size_ratio, 2) * dt / pow(_ips, 2);
   diff.set_diffuse(false);
 }
 
@@ -185,6 +187,11 @@ Simulation::from_json(const nlohmann::json j) {
     std::cout << "  setting output dt= " << output_dt << std::endl;
   }
 
+  //if (j.find("nominalDx") != j.end()) {
+  //  dx = j["nominalDx"];
+  //  std::cout << "  setting dx= " << dx << std::endl;
+  //}
+
   if (j.find("maxSteps") != j.end()) {
     use_max_steps = true;
     max_steps = j["maxSteps"];
@@ -200,6 +207,19 @@ Simulation::from_json(const nlohmann::json j) {
   } else {
     use_end_time = false;
   }
+
+  if (j.find("overlapRatio") != j.end()) {
+    overlap_ratio = j["overlapRatio"];
+    std::cout << "  setting overlap ratio= " << overlap_ratio << std::endl;
+  }
+
+  if (j.find("coreSizeRatioSqrd") != j.end()) {
+    core_size_ratio = std::sqrt((float)j["coreSizeRatioSqrd"]);
+    std::cout << "  setting core size ratio (nominal separation over h_nu) = " << core_size_ratio << std::endl;
+  }
+
+  // Convection will find and set "timeOrder"
+  conv.from_json(j);
 
   // Diffusion will find and set "viscous", "VRM" and "AMR" parameters
   diff.from_json(j);
@@ -217,6 +237,11 @@ Simulation::to_json() const {
   j["outputDt"] = output_dt;
   if (using_max_steps()) j["maxSteps"] = get_max_steps();
   if (using_end_time()) j["endTime"] = get_end_time();
+  j["overlapRatio"] = overlap_ratio;
+  j["coreSizeRatioSqrd"] = std::pow(core_size_ratio,2);
+
+  // Convection will write "timeOrder"
+  conv.add_to_json(j);
 
   // Diffusion will write "viscous", "VRM" and "AMR" parameters
   diff.add_to_json(j);
@@ -544,34 +569,28 @@ void Simulation::step() {
   std::cout << std::endl << "Taking step " << nstep << " at t=" << time << " with n=" << get_nparts() << std::endl;
 
   const bool use_2nd_order_operator_splitting = true;
-  const int32_t convection_order = 2;
-  assert(convection_order > 0 and convection_order < 3 and "Convection order not [1..2]");
 
   // we wind up using this a lot
   std::array<double,2> thisfs = {fs[0], fs[1]};
 
   if (use_2nd_order_operator_splitting) {
     // operator splitting requires one half-step diffuse (use coefficients from previous step, if available)
-    diff.step(time, 0.5*dt, re, get_vdelta(), thisfs, vort, bdry, bem);
+    diff.step(time, 0.5*dt, re, overlap_ratio, get_vdelta(), thisfs, vort, bdry, bem);
   } else {
     // for simplicity's sake, just run one full diffusion step here
-    diff.step(time, dt, re, get_vdelta(), thisfs, vort, bdry, bem);
+    diff.step(time, dt, re, overlap_ratio, get_vdelta(), thisfs, vort, bdry, bem);
   }
 
   // advect with no diffusion (must update BEM strengths)
-  if (convection_order == 1) {
-    conv.advect_1st(time, dt, thisfs, get_ips(), vort, bdry, fldpt, bem);
-  } else if (convection_order == 2) {
-    conv.advect_2nd(time, dt, thisfs, get_ips(), vort, bdry, fldpt, bem);
-  }
+  conv.advect(time, dt, thisfs, get_ips(), vort, bdry, fldpt, bem);
 
   if (use_2nd_order_operator_splitting) {
     // operator splitting requires another half-step diffuse (must compute new coefficients)
-    diff.step(time+dt, 0.5*dt, re, get_vdelta(), thisfs, vort, bdry, bem);
+    diff.step(time+dt, 0.5*dt, re, overlap_ratio, get_vdelta(), thisfs, vort, bdry, bem);
   }
 
   // call HO grid solver to recalculate vorticity at the end of this time step
-  hybr.step(time, dt, re, thisfs, vort, bdry, bem, conv, euler, get_vdelta());
+  hybr.step(time, dt, re, thisfs, vort, bdry, bem, conv, euler, overlap_ratio, get_vdelta());
 
   // update time
   time += (double)dt;

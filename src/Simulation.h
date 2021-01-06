@@ -202,6 +202,8 @@ private:
   double output_dt;
   double end_time;
   bool use_end_time;
+  float overlap_ratio;
+  float core_size_ratio;
   size_t nstep;
   bool use_max_steps;
   size_t max_steps;
