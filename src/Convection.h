@@ -202,8 +202,15 @@ void Convection<S,A,I>::advect(const double                         _time,
 
   assert(convection_order > 0 and convection_order < 3 && "Convection integrator orders over 2 unsupported");
 
+  // call the individual methods
   if (convection_order == 1) advect_1st(_time, _dt, _fs, _ips, _vort, _bdry, _fldpt, _bem);
   else advect_2nd(_time, _dt, _fs, _ips, _vort, _bdry, _fldpt, _bem);
+
+  // do the smarter, general way
+  // require temporary storage for multistep methods
+  //typedef typename std::pair<double,std::vector<Collection>> SubStep;
+  //std::vector<SubStep> ss(convection_order-1);
+
 }
 
 
@@ -225,7 +232,6 @@ void Convection<S,A,I>::advect_1st(const double                         _time,
   // part A - unknowns
 
   // push away particles inside or too close to the body
-  assert(M_PI != 0); // Can't divide by 0
   clear_inner_layer<S>(1, _bdry, _vort, 0.5/std::sqrt(2.0*M_PI), _ips);
   // and solve the bem
   solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
@@ -241,13 +247,13 @@ void Convection<S,A,I>::advect_1st(const double                         _time,
 
   // move every movable element
   for (auto &coll : _vort) {
-    std::visit([=](auto& elem) { elem.move(_time, _dt); }, coll);
+    std::visit([=](auto& elem) { elem.move(_time, _dt, 1.0, elem); }, coll);
   }
   for (auto &coll : _bdry) {
-    std::visit([=](auto& elem) { elem.move(_time, _dt); }, coll);
+    std::visit([=](auto& elem) { elem.move(_time, _dt, 1.0, elem); }, coll);
   }
   for (auto &coll : _fldpt) {
-    std::visit([=](auto& elem) { elem.move(_time, _dt); }, coll);
+    std::visit([=](auto& elem) { elem.move(_time, _dt, 1.0, elem); }, coll);
   }
 }
 
@@ -270,7 +276,6 @@ void Convection<S,A,I>::advect_2nd(const double                         _time,
   // take the first Euler step ---------
 
   // push away particles inside or too close to the body
-  assert(M_PI != 0); // Can't divide by 0
   clear_inner_layer<S>(1, _bdry, _vort, 0.5/std::sqrt(2.0*M_PI), _ips);
   // perform the first BEM
   solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
@@ -282,7 +287,7 @@ void Convection<S,A,I>::advect_2nd(const double                         _time,
   // advect into an intermediate system
   std::vector<Collection> interim_vort = _vort;
   for (auto &coll : interim_vort) {
-    std::visit([=](auto& elem) { elem.move(_time, _dt); }, coll);
+    std::visit([=](auto& elem) { elem.move(_time, _dt, 1.0, elem); }, coll);
   }
   // now _vort has its original positions and the velocities evaluated there
   // and interm_vort has the positions at t+dt
@@ -290,7 +295,7 @@ void Convection<S,A,I>::advect_2nd(const double                         _time,
   // do the same for fldpt
   std::vector<Collection> interim_fldpt = _fldpt;
   for (auto &coll : interim_fldpt) {
-    std::visit([=](auto& elem) { elem.move(_time, _dt); }, coll);
+    std::visit([=](auto& elem) { elem.move(_time, _dt, 1.0, elem); }, coll);
   }
 
   // begin the 2nd step ---------
