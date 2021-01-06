@@ -712,10 +712,11 @@ void points_affect_bricks (const Points<S>& src, Volumes<S>& targ, const Results
   // generate temporary collocation points as Points
   ElementPacket<S> nodesaspts = targ.represent_nodes_as_particles(true);
   Points<S> volsaspts(nodesaspts, inert, fixed, nullptr, 0.0f);
+  // don't use this for hybrid
   //ElementPacket<S> nodesaspts = targ.represent_nodes_as_particles(false);
   //Points<S> volsaspts(nodesaspts, active, fixed, nullptr, 0.018f);
   //ElementPacket<S> nodesaspts = targ.represent_nodes_as_particles(false);
-  //Points<S> volsaspts(nodesaspts, active, fixed, nullptr, targ.get_representative_size(2.0));
+  //Points<S> volsaspts(nodesaspts, active, fixed, nullptr, targ.get_representative_size(1.0));
 
   // run the calculation
   points_affect_points<S,A>(src, volsaspts, restype, env);
