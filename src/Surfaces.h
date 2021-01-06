@@ -718,14 +718,18 @@ public:
       r[i] = 1.0;
     }
   }
+*/
 
   //
   // 1st order Euler advection and stretch
   //
-  void move(const double _time, const double _dt) {
-    // must explicitly call the method in the base class
-    ElementBase<S>::move(_time, _dt);
+  void move(const double _time, const double _dt,
+            const double _wt1, Surfaces<S> const & _u1) {
 
+    // must explicitly call the method in the base class
+    ElementBase<S>::move(_time, _dt, _wt1, _u1);
+
+/*
     // no specialization needed
     if (this->M == lagrangian and this->E != inert) {
       //std::cout << "  Stretching" << to_string() << " using 1st order" << std::endl;
@@ -757,8 +761,11 @@ public:
       //std::cout << "  Not stretching" << to_string() << std::endl;
       max_strength = 1.0;
     }
-  }
 */
+
+    // and update the max strength measure
+    (void) update_max_str();
+  }
 
   //
   // return a particle version of the panels (useful during Diffusion)

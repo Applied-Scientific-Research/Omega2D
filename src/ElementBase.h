@@ -271,14 +271,16 @@ public:
   }
 
   // time is the starting time, time+dt is the ending time
-  void move(const double _time, const double _dt) {
+  void move(const double _time, const double _dt,
+            const double _wt1, ElementBase<S> const & _u1) {
+
     if (M == lagrangian) {
       std::cout << "  Moving" << to_string() << std::endl;
 
       // update positions
       for (size_t d=0; d<Dimensions; ++d) {
         for (size_t i=0; i<n; ++i) {
-          x[d][i] += (S)_dt * u[d][i];
+          x[d][i] += (S)_dt * _wt1*_u1.u[d][i];
         }
       }
 

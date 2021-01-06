@@ -128,7 +128,7 @@ void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
 
   for (auto &coll : _euler) {
     // transform to current position
-    coll.move(0.0, 0.0);
+    coll.move(0.0, 0.0, 1.0, coll);
 
 #ifdef HOFORTRAN
     // and, set the mesh in the Fortran solver
@@ -231,7 +231,7 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
   std::vector<Collection> euler_bdrys;
   for (auto &coll : _euler) {
     // transform to current position
-    coll.move(_time, 0.0);
+    coll.move(_time, 0.0, 1.0, coll);
 
     // isolate open/outer boundaries
     euler_bdrys.emplace_back(coll.get_bc_nodes(_time));
@@ -284,7 +284,7 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
   std::vector<Collection> euler_vols;
   for (auto &coll : _euler) {
     // transform to current position
-    coll.move(_time, 0.0);
+    coll.move(_time, 0.0, 1.0, coll);
 
     // isolate open/outer boundaries
     euler_vols.emplace_back(coll.get_vol_nodes(_time));
@@ -345,7 +345,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
   std::vector<Collection> euler_bdrys;
   for (auto &coll : _euler) {
     // transform to current position
-    coll.move(_time, 0.0);
+    coll.move(_time, 0.0, 1.0, coll);
 
     // isolate open/outer boundaries
     euler_bdrys.emplace_back(coll.get_bc_nodes(_time));

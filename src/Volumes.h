@@ -775,9 +775,11 @@ public:
   //
   // 1st order Euler advection and stretch
   //
-  void move(const double _time, const double _dt) {
+  void move(const double _time, const double _dt,
+            const double _wt1, Volumes<S> const & _u1) {
+
     // must explicitly call the method in the base class
-    ElementBase<S>::move(_time, _dt);
+    ElementBase<S>::move(_time, _dt, _wt1, _u1);
 
     // no specialization needed
     if (this->M == lagrangian and this->E != inert) {
