@@ -1257,7 +1257,7 @@ public:
 
     // useful: what kinds of elements are these?
     const int32_t nper = (int32_t)(idx.size() / nb);
-    assert((nper==4 or nper==9) && "Volumes vtu writer only supports vtk elem types 9 and 28");
+    assert((nper==4 or nper==9 or nper==16) && "Volumes vtu writer only supports vtk elem types 9, 28, 70");
   
     // again, all connectivities and offsets must be Int32!
     {
@@ -1292,7 +1292,9 @@ public:
       gridWriter.addElement("DataArray", attribs);
       Vector<uint8_t> v(this->nb);
       // switch on vtk element type
-      const uint8_t etype = (nper==4 ? 9 : 28);
+      uint8_t etype = 9;
+      if (nper==9) etype = 28;
+      if (nper==16) etype = 70;
       std::fill(v.begin(), v.end(), etype);
       gridWriter.writeDataArray(v);
       // DataArray

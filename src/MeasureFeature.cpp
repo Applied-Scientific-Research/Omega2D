@@ -669,7 +669,7 @@ GridField::init_elements(float _ips) const {
 
   // now generate quad elements
   cnt = 0;
-  assert(m_order < 3 && "Quad elements with order>2 are unsupported");
+  assert(m_order < 4 && "Quad elements with order>3 are unsupported");
   for (size_t j=0; j<(size_t)m_ny; ++j) {
     size_t bl = j*m_order*nnx;
     size_t tl = (j+1)*m_order*nnx;
@@ -704,12 +704,16 @@ GridField::init_elements(float _ips) const {
         idx[cnt++] = tl + col + m_order;
         idx[cnt++] = tl + col;
         // then four sides
-        idx[cnt++] = bl + col + 1;
-        idx[cnt++] = bl + nnx + col + m_order;
-        idx[cnt++] = tl + col + 1;
-        idx[cnt++] = bl + nnx + col;
+        for (size_t k=1; k<m_order; ++k) idx[cnt++] = bl + col + k;
+        for (size_t k=1; k<m_order; ++k) idx[cnt++] = bl + k*nnx + col + m_order;
+        for (size_t k=1; k<m_order; ++k) idx[cnt++] = tl + col + k;
+        for (size_t k=1; k<m_order; ++k) idx[cnt++] = bl + k*nnx + col;
         // finally the middle
-        idx[cnt++] = bl + nnx + col + 1;
+        for (size_t k=1; k<m_order; ++k) {
+          for (size_t l=1; l<m_order; ++l) {
+            idx[cnt++] = bl + k*nnx + col + l;
+          }
+        }
       }
     }
   }
@@ -738,8 +742,10 @@ std::string
 GridField::to_string() const {
   std::stringstream ss;
   ss << "measurement field from " << m_x << " " << m_y << " to " << m_xf << " " << m_yf << " with " << m_nx*m_ny;
-  if (m_order == 2) ss << " 2nd order";
-  ss << " elems";
+  if (m_order == 1) ss << " 1st";
+  else if (m_order == 2) ss << " 2nd";
+  else if (m_order == 3) ss << " 3rd";
+  ss << " order elems";
   return ss.str();
 }
 
@@ -794,7 +800,7 @@ bool GridField::draw_info_gui(const std::string action, const float &tracer_scal
   ImGui::InputFloat2("lower left", xc);
   ImGui::InputFloat2("upper right", xf);
   ImGui::InputInt2("element count", nx);
-  ImGui::SliderInt("element order", &order, 1, 2);
+  ImGui::SliderInt("element order", &order, 1, 3);
   ImGui::TextWrapped("This feature will add %d quad elements", (int)(m_nx*m_ny));
   if (ImGui::Button(buttonText.c_str())) { add = true; }
   m_x = xc[0];
@@ -855,6 +861,8 @@ AnnularField::init_elements(float _ips) const {
     size_t tl = (j+1)*m_order*nnt;
     for (size_t i=0; i<(size_t)m_nt; ++i) {
       size_t col = m_order*i;
+
+      // do the four corners first
       idx[cnt++] = bl + col;
       // last elem must wrap (nodes 1 and 2)
       if (i == (size_t)m_nt - 1) {
@@ -865,9 +873,9 @@ AnnularField::init_elements(float _ips) const {
         idx[cnt++] = tl + col + m_order;
       }
       idx[cnt++] = tl + col;
-      // now for higher-order elems
-      if (m_order > 1) {
-        // standard vtk bicubic quad
+
+      // now 2nd order biquadratic quads
+      if (m_order == 2) {
         idx[cnt++] = bl + col + 1;
         if (i == (size_t)m_nt - 1) {
           idx[cnt++] = bl + nnt;
@@ -876,11 +884,28 @@ AnnularField::init_elements(float _ips) const {
         }
         idx[cnt++] = tl + col + 1;
         idx[cnt++] = bl + nnt + col;
+        // finally the middle
         idx[cnt++] = bl + nnt + col + 1;
       }
-      if (m_order > 2) {
-        // arbitrary order Lagrange elements not yet programmed
+
+      if (m_order == 3) {
+        // arbitrary order Lagrange elements not yet programmed, but let's try 3rd
         // see https://blog.kitware.com/modeling-arbitrary-order-lagrange-finite-elements-in-the-visualization-toolkit/
+        // four sides first
+        for (size_t k=1; k<m_order; ++k) idx[cnt++] = bl + col + k;
+        if (i == (size_t)m_nt - 1) {
+          for (size_t l=1; l<m_order; ++l) idx[cnt++] = bl + l*nnt;
+        } else {
+          for (size_t l=1; l<m_order; ++l) idx[cnt++] = bl + l*nnt + col + m_order;
+        }
+        for (size_t k=1; k<m_order; ++k) idx[cnt++] = tl + col + k;
+        for (size_t l=1; l<m_order; ++l) idx[cnt++] = bl + l*nnt + col;
+        // then the middle
+        for (size_t l=1; l<m_order; ++l) {
+          for (size_t k=1; k<m_order; ++k) {
+            idx[cnt++] = bl + l*nnt + col + k;
+          }
+        }
       }
     }
   }
@@ -909,8 +934,10 @@ std::string
 AnnularField::to_string() const {
   std::stringstream ss;
   ss << "annular field at " << m_x << " " << m_y << " with radii " << m_ri << " " << m_ro << " with " << m_nt*m_nr;
-  if (m_order == 2) ss << " 2nd order";
-  ss << " elems";
+  if (m_order == 1) ss << " 1st";
+  else if (m_order == 2) ss << " 2nd";
+  else if (m_order == 3) ss << " 3rd";
+  ss << " order elems";
   return ss.str();
 }
 
@@ -964,7 +991,7 @@ bool AnnularField::draw_info_gui(const std::string action, const float &tracer_s
   ImGui::InputFloat2("center", xc);
   ImGui::InputFloat2("inner and outer radius", rr);
   ImGui::InputInt2("elements in theta, radial", nx);
-  ImGui::SliderInt("element order", &order, 1, 2);
+  ImGui::SliderInt("element order", &order, 1, 3);
   ImGui::TextWrapped("This feature will add %d quad elements", (int)(m_nt*m_nr));
   if (ImGui::Button(buttonText.c_str())) { add = true; }
   m_x = xc[0];
