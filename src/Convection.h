@@ -231,8 +231,6 @@ void Convection<S,A,I>::advect_1st(const double                         _time,
 
   // part A - unknowns
 
-  // push away particles inside or too close to the body
-  clear_inner_layer<S>(1, _bdry, _vort, 0.5/std::sqrt(2.0*M_PI), _ips);
   // and solve the bem
   solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
 
@@ -255,6 +253,9 @@ void Convection<S,A,I>::advect_1st(const double                         _time,
   for (auto &coll : _fldpt) {
     std::visit([=](auto& elem) { elem.move(_time, _dt, 1.0, elem); }, coll);
   }
+
+  // wrap up movement by pushing away particles inside or too close to the body
+  clear_inner_layer<S>(1, _bdry, _vort, 0.5/std::sqrt(2.0*M_PI), _ips);
 }
 
 
@@ -275,8 +276,6 @@ void Convection<S,A,I>::advect_2nd(const double                         _time,
 
   // take the first Euler step ---------
 
-  // push away particles inside or too close to the body
-  clear_inner_layer<S>(1, _bdry, _vort, 0.5/std::sqrt(2.0*M_PI), _ips);
   // perform the first BEM
   solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
 
@@ -297,11 +296,10 @@ void Convection<S,A,I>::advect_2nd(const double                         _time,
   for (auto &coll : interim_fldpt) {
     std::visit([=](auto& elem) { elem.move(_time, _dt, 1.0, elem); }, coll);
   }
+  clear_inner_layer<S>(1, _bdry, interim_vort, 0.5/std::sqrt(2.0*M_PI), _ips);
 
   // begin the 2nd step ---------
 
-  // push away particles inside or too close to the body
-  clear_inner_layer<S>(1, _bdry, interim_vort, 0.5/std::sqrt(2.0*M_PI), _ips);
   // perform the second BEM
   solve_bem<S,A,I>(_time + _dt, _fs, interim_vort, _bdry, _bem);
 
@@ -343,6 +341,9 @@ void Convection<S,A,I>::advect_2nd(const double                         _time,
     ++v1p;
     ++v2p;
   }
+
+  // wrap up movement by pushing away *active* particles inside or too close to the body
+  clear_inner_layer<S>(1, _bdry, _vort, 0.5/std::sqrt(2.0*M_PI), _ips);
 }
 
 

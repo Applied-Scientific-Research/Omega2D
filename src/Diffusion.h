@@ -170,9 +170,6 @@ void Diffusion<S,A,I>::step(const double                _time,
   //
   // always re-run the BEM calculation before shedding
   //
-  // first push away particles inside or too close to the body
-  assert(M_PI != 0); // Can't divide by 0
-  clear_inner_layer<S>(1, _bdry, _vort, clear_thick, _vdelta/_overlap);
   solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
 
   //
@@ -293,15 +290,9 @@ void Diffusion<S,A,I>::step(const double                _time,
   //
   // clean up by removing the innermost layer - the one that will be represented by boundary strengths
   //
-  if (shed_before_diffuse) {
-    // use method which trims circulations under the threshold
-    //(void) clear_inner_layer<S>(0, _bdry, _vort, 0.0, _vdelta/_overlap); // THIS IS BAD
-    (void) clear_inner_layer<S>(1, _bdry, _vort, clear_thick, _vdelta/_overlap);
-  } else {
-    // use method which simply pushes all still-active particles to be at or above a threshold distance
-    // cutoff is a multiple of ips (these are the last two arguments)
-    (void) clear_inner_layer<S>(1, _bdry, _vort, clear_thick, _vdelta/_overlap);
-  }
+  // use method which simply pushes all still-active particles to be at or above a threshold distance
+  // cutoff is a multiple of ips (these are the last two arguments)
+  (void) clear_inner_layer<S>(1, _bdry, _vort, clear_thick, _vdelta/_overlap);
 
 
   //
