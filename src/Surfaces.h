@@ -720,6 +720,7 @@ public:
   }
 */
 
+
   //
   // 1st order Euler advection and stretch
   //
@@ -766,6 +767,40 @@ public:
     // and update the max strength measure
     (void) update_max_str();
   }
+
+
+  //
+  // 2nd order RK advection and stretch
+  //
+  void move(const double _time, const double _dt,
+            const double _wt1, Surfaces<S> const & _u1,
+            const double _wt2, Surfaces<S> const & _u2) {
+    // must explicitly call the method in the base class
+    ElementBase<S>::move(_time, _dt, _wt1, _u1, _wt2, _u2);
+
+    // must confirm that incoming time derivates include velocity (?)
+
+    // and update the max strength measure
+    (void) update_max_str();
+  }
+
+
+  //
+  // 3rd order RK advection and stretch
+  //
+  void move(const double _time, const double _dt,
+            const double _wt0, Surfaces<S> const & _u0,
+            const double _wt1, Surfaces<S> const & _u1,
+            const double _wt2, Surfaces<S> const & _u2) {
+    // must explicitly call the method in the base class
+    ElementBase<S>::move(_time, _dt, _wt0, _u0, _wt1, _u1, _wt2, _u2);
+
+    // must confirm that incoming time derivates include velocity (?)
+
+    // and update the max strength measure
+    (void) update_max_str();
+  }
+
 
   //
   // return a particle version of the panels (useful during Diffusion)

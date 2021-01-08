@@ -784,7 +784,6 @@ public:
     // no specialization needed
     if (this->M == lagrangian and this->E != inert) {
       //std::cout << "  Stretching" << to_string() << " using 1st order" << std::endl;
-      S thismax = 0.0;
 
       for (size_t i=0; i<this->n; ++i) {
         S this_s = (*this->s)[i];
@@ -796,23 +795,47 @@ public:
 
         // update strengths
         (*this->s)[i] = this_s + _dt * wdu[0];
-
-        // check for max strength
-        S thisstr = std::abs((*this->s)[i]);
-        if (thisstr > thismax) thismax = thisstr;
-
       }
-      if (max_strength < 0.0) {
-        max_strength = thismax;
-      } else {
-        max_strength = 0.1*thismax + 0.9*max_strength;
-      }
-      //std::cout << "  New max_strength is " << max_strength << std::endl;
     } else {
       //std::cout << "  Not stretching" << to_string() << std::endl;
-      max_strength = 1.0;
     }
+
+    // and update the max strength measure
+    (void) update_max_str();
   }
+
+  //
+  // 2nd order RK advection and stretch
+  //
+  void move(const double _time, const double _dt,
+            const double _wt1, Volumes<S> const & _u1,
+            const double _wt2, Volumes<S> const & _u2) {
+    // must explicitly call the method in the base class
+    ElementBase<S>::move(_time, _dt, _wt1, _u1, _wt2, _u2);
+
+    // must confirm that incoming time derivates include velocity (?)
+
+    // and update the max strength measure
+    (void) update_max_str();
+  }
+
+
+  //
+  // 3rd order RK advection and stretch
+  //
+  void move(const double _time, const double _dt,
+            const double _wt0, Volumes<S> const & _u0,
+            const double _wt1, Volumes<S> const & _u1,
+            const double _wt2, Volumes<S> const & _u2) {
+    // must explicitly call the method in the base class
+    ElementBase<S>::move(_time, _dt, _wt0, _u0, _wt1, _u1, _wt2, _u2);
+
+    // must confirm that incoming time derivates include velocity (?)
+
+    // and update the max strength measure
+    (void) update_max_str();
+  }
+
 
   //
   // return a particle version of the elements (useful during Diffusion)
