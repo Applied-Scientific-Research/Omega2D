@@ -44,7 +44,8 @@ public:
       wall_s(Surfaces<S>(_welems, _e, _m, _bp)),
       open_s(Surfaces<S>(_oelems, _e, _m, _bp)),
       open_p(Points<S>(ElementPacket<S>((uint8_t)0), _e, _m, _bp, 0.0)),
-      soln_p(Points<S>(ElementPacket<S>((uint8_t)0), _e, _m, _bp, 0.0))
+      soln_p(Points<S>(ElementPacket<S>((uint8_t)0), _e, _m, _bp, 0.0))//,
+      //reduced_p(Points<S>(ElementPacket<S>((uint8_t)0), _e, _m, _bp, 0.0))
   { }
 
   // useful getter for the areas of participating elements
@@ -245,7 +246,7 @@ public:
       if (thisrad > rfar) rfar = thisrad;
       if (thisrad < rnear) rnear = thisrad;
     }
-    std::cout << "  in set_overlap_weights with band from " << rnear << " to" << rfar << std::endl;
+    std::cout << "  In set_overlap_weights with band from " << rnear << " to " << rfar << std::endl;
     // one over the band width
     //const S oobw = 1.0 / (rfar - rnear);
 
@@ -274,7 +275,7 @@ public:
       }
     }
 
-    std::cout << "  set_overlap_weights on " << soln_p.get_n() << " solution nodes" << std::endl;
+    std::cout << "    set_overlap_weights on " << soln_p.get_n() << " solution nodes" << std::endl;
   }
 
   //
@@ -363,6 +364,7 @@ protected:
   Surfaces<S>             open_s;   // open boundary surface (from msh file)
   Points<S>               open_p;   // solution nodes at open boundary (from HO Solver)
   Points<S>               soln_p;   // solution nodes (from HO Solver)
+  //Points<S>            reduced_p;   // reduced set of solution nodes
 
 private:
 
