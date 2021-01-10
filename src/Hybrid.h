@@ -286,7 +286,7 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
     // transform to current position
     coll.move(_time, 0.0, 1.0, coll);
 
-    // isolate open/outer boundaries
+    // grab all of the solution nodes
     euler_vols.emplace_back(coll.get_vol_nodes(_time));
   }
 
@@ -306,6 +306,30 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
 #else
     (void) solver.setsolnvort_d(vorts);
 #endif
+  }
+
+  //
+  // finally, send the grid-to-particle weights to the solver
+  //
+  if (true) {
+  for (auto &coll : _euler) {
+
+    // first, we need to do this
+    (void) coll.set_overlap_weights(0.5, 0.25, 1.0, 0.25);
+
+    //const Vector<S>& ptog = std::visit([=](auto& elem) { return elem.get_ptog_wgt(); }, coll);
+    const Vector<S>& ptog = coll.get_ptog_wgt();
+
+    // copy to a std::vector<double>
+    std::vector<double> ptog_d(ptog.begin(), ptog.end());
+
+    // transfer BC packet to solver
+#ifdef HOFORTRAN
+    (void) setptogweights_d((int32_t)ptog_d.size(), ptog_d.data());
+#else
+    (void) solver.setsolnvort_d(ptog_d);
+#endif
+  }
   }
 }
 
@@ -390,6 +414,35 @@ void Hybrid<S,A,I>::step(const double                         _time,
 #endif
   }
 
+  // and get vorts on the solution nodes of each euler region
+
+  // make a list of euler volume regions
+  std::vector<Collection> euler_vols;
+  for (auto &coll : _euler) {
+    // transform to current position
+    coll.move(_time, 0.0, 1.0, coll);
+
+    // grab all of the solution nodes
+    euler_vols.emplace_back(coll.get_vol_nodes(_time));
+  }
+
+  // get vorts on each euler region - and force it
+  _conv.find_vort(_vort, _bdry, euler_vols);
+
+  for (auto &coll : euler_vols) {
+    // convert to transferable packet
+    Vector<S> volvort = std::visit([=](auto& elem) { return elem.get_vort(); }, coll);
+
+    // convert to a std::vector<double>
+    std::vector<double> vorts(volvort.begin(), volvort.end());
+
+    // transfer BC packet to solver
+#ifdef HOFORTRAN
+    (void) setsolnvort_d((int32_t)vorts.size(), vorts.data());
+#else
+    (void) solver.setsolnvort_d(vorts);
+#endif
+  }
 
   //
   // part B - call Euler solver
@@ -523,7 +576,6 @@ void Hybrid<S,A,I>::step(const double                         _time,
                    std::multiplies<S>());
 
     // and multiply again by the weight assigned to the grid-to-particle operation
-    (void) coll.set_overlap_weights(0.5, 0.25, 1.0, 0.25);
     const Vector<S>& gtop = coll.get_gtop_wgt();
 
     std::transform(circ.begin(), circ.end(),
@@ -652,6 +704,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
     //
     // Daeninck calls this "Euler adjustment region"
     // we use a set of weights to adjust the difference
+    if (false) {
 
     std::cout << "Inside Hybrid::step updating particle strengths" << std::endl;
 
@@ -686,7 +739,8 @@ void Hybrid<S,A,I>::step(const double                         _time,
           std::cout << "    " << i << "  " << dist << "  " << ptog[i] << "  " << eulvort[i] << "  " << lagvort[i] << std::endl;
         }
       }
-    }
+    } // end if dumpray
+    } // end if true
 
 
     // finally, replace the vorticity in the HO solver with these new values
