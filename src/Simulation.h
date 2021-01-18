@@ -10,9 +10,11 @@
 #include "Omega2D.h"
 #include "Body.h"
 #include "Collection.h"
+#include "HOVolumes.h"
 #include "BEM.h"
 #include "Convection.h"
 #include "Diffusion.h"
+#include "Hybrid.h"
 #include "ElementPacket.h"
 #include "StatusFile.h"
 
@@ -93,6 +95,7 @@ public:
   // receive and add a set of elements
   void add_elements(const ElementPacket<float>, const elem_t, const move_t, std::shared_ptr<Body>);
   void file_elements(std::vector<Collection>&, const ElementPacket<float>, const elem_t, const move_t, std::shared_ptr<Body>);
+  void add_hybrid(const std::vector<ElementPacket<float>>, std::shared_ptr<Body>);
 
   // access body list
   void add_body(std::shared_ptr<Body>);
@@ -166,6 +169,9 @@ private:
   // Object with all of the non-reactive, non-active (inert) points
   std::vector<Collection> fldpt;	// tracers and field points
 
+  // Object with all of the near-body, Eulerian solution regions
+  std::vector<HOVolumes<STORE>> euler;	// hybrid/euler regions
+
   // The need to solve for the unknown strengths of reactive elements inside both the
   //   diffusion and convection steps necessitates a BEM object here
   BEM<STORE,Int> bem;
@@ -182,6 +188,11 @@ private:
   // Note that with Vc, the storage and accumulator classes have to be the same
   Convection<STORE,ACCUM,Int> conv;
 
+  // Hybrid class controls data exchange to and from an external Euler solver
+  //   to be used for near-body regions, and routines to affect existing vortex
+  //   particles from grid-based vorticity
+  Hybrid<STORE,ACCUM,Int> hybr;
+
   // status file
   StatusFile sf;
 
@@ -191,6 +202,8 @@ private:
   double output_dt;
   double end_time;
   bool use_end_time;
+  float overlap_ratio;
+  float core_size_ratio;
   size_t nstep;
   bool use_max_steps;
   size_t max_steps;

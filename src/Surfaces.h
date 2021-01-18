@@ -20,6 +20,7 @@
 #endif
 
 #include <iostream>
+#include <iomanip> // for setfill and setw
 #include <vector>
 #include <array>
 #include <algorithm> // for max_element
@@ -49,9 +50,7 @@ public:
   //               each inner vector must have even number of floats
   //               last parameter (_val) is either fixed strength or boundary
   //               condition for each panel
-  Surfaces(const std::vector<S>&   _x,
-           const std::vector<Int>& _idx,
-           const std::vector<S>&   _val,
+  Surfaces(const ElementPacket<S>& _elems,
            const elem_t _e,
            const move_t _m,
            std::shared_ptr<Body> _bp)
@@ -65,9 +64,14 @@ public:
       reabsorbed_gamma(0.0),
       max_strength(-1.0) {
 
+    // pull out the vectors
+    const std::vector<S>&   _x   = _elems.x;
+    const std::vector<Int>& _idx = _elems.idx;
+    const std::vector<S>&   _val = _elems.val;
+
     // make sure input arrays are correctly-sized
-    assert(_idx.size() % Dimensions == 0 && "Index array is not an even multiple of dimensions");
-    const size_t nsurfs = _idx.size() / Dimensions;
+    assert(_elems.ndim == 1 && "Input elements are not (1D) surfaces");
+    const size_t nsurfs = _elems.nelem;
 
     // always initialize the ps panel strength optionals
     if (this->E != inert) {
@@ -84,6 +88,7 @@ public:
       return;
     }
 
+    std::cout << "Surfaces sizes: _x=" << _x.size() << " _idx=" << _idx.size() << " _val=" << _val.size() << std::endl;
     assert(_val.size() % nsurfs == 0 && "Value array is not an even multiple of panel count");
     assert(_x.size() % Dimensions == 0 && "Position array is not an even multiple of dimensions");
     const size_t nnodes = _x.size() / Dimensions;
@@ -106,7 +111,8 @@ public:
     // copy over the node indices (with a possible type change)
     bool idx_are_all_good = true;
     idx.resize(_idx.size());
-    for (size_t i=0; i<2*nsurfs; ++i) {
+    const size_t nper = _idx.size() / nsurfs;	// we can have >2 nodes per elem now
+    for (size_t i=0; i<nper*nsurfs; ++i) {
       // make sure it exists in the nodes array
       if (_idx[i] >= nnodes) idx_are_all_good = false;
       idx[i] = _idx[i];
@@ -182,14 +188,6 @@ public:
       set_geom_center();
     }
   }
-
-  // delegating constructor
-  Surfaces(const ElementPacket<S>& _elems,
-           const elem_t _e,
-           const move_t _m,
-           std::shared_ptr<Body> _bp)
-    : Surfaces(_elems.x, _elems.idx, _elems.val, _e, _m, _bp)
-  { }
 
   size_t                            get_npanels()     const { return np; }
   const S                           get_vol()         const { return vol; }
@@ -302,25 +300,35 @@ public:
   }
 
   // append nodes and panels to this collection
-  void add_new(const std::vector<S>&   _x,
-               const std::vector<Int>& _idx,
-               const std::vector<S>&   _val) {
+  void add_new(const ElementPacket<float>& _in) {
+
+    // ensure that this packet really is Surfaces
+    assert(_in.idx.size() != 0 && "Input ElementPacket is not Surfaces");
+    assert(_in.ndim == 1 && "Input ElementPacket is not Surfaces");
+
+    // if no surfs, quit out now
+    const size_t nsurfs = _in.nelem;
+    if (nsurfs == 0) return;
+
+    // and that it has the right number of values per elem
+    if (this->E == inert) assert(_in.val.size() == 0 && "Input ElementPacket with inert Surfaces has nonzero val array");
+    else assert(_in.val.size() == nsurfs && "Input ElementPacket with Surfaces has bad val array size");
+
+    // make sure input arrays are correctly-sized
+    assert(_in.x.size() % Dimensions == 0 && "Position array is not an even multiple of dimensions");
+    const size_t nnodes = _in.x.size() / Dimensions;
+    assert(_in.idx.size() % nsurfs == 0 && "Index array is not an even multiple of panel count");
+    const size_t nper = _in.idx.size() / nsurfs;	// we can have >2 nodes per elem now
+    assert(_in.idx.size() % nper == 0 && "Index array is not an even multiple of nper");
+    assert(_in.val.size() % nsurfs == 0 && "Value array is not an even multiple of panel count");
+
+    std::cout << "  adding " << nsurfs << " new surface panels and " << nnodes << " new points to collection..." << std::endl;
 
     // remember old sizes of nodes and element arrays
     const size_t nnold = this->n;
     const size_t neold = get_npanels();
-
-    // make sure input arrays are correctly-sized
-    assert(_idx.size() % Dimensions == 0 && "Index array is not an even multiple of dimensions");
-    const size_t nsurfs = _idx.size() / Dimensions;
-    // if no surfs, quit out now
-    if (nsurfs == 0) return;
-
-    assert(_val.size() % nsurfs == 0 && "Value array is not an even multiple of panel count");
-    assert(_x.size() % Dimensions == 0 && "Position array is not an even multiple of dimensions");
-    const size_t nnodes = _x.size() / Dimensions;
-
-    std::cout << "  adding " << nsurfs << " new surface panels and " << nnodes << " new points to collection..." << std::endl;
+    const size_t nperold = idx.size() / neold;
+    assert(nper == nperold && "Cannot change element order in a single Collection");
 
     // DON'T call the method in the base class, because we do things differently here
     //ElementBase<S>::add_new(_in);
@@ -329,7 +337,7 @@ public:
     for (size_t d=0; d<Dimensions; ++d) {
       this->x[d].resize(nnold+nnodes);
       for (size_t i=0; i<nnodes; ++i) {
-        this->x[d][nnold+i] = _x[Dimensions*i+d];
+        this->x[d][nnold+i] = _in.x[Dimensions*i+d];
       }
     }
 
@@ -345,11 +353,11 @@ public:
 
     // copy over the node indices, taking care to offset into the new array
     bool idx_are_all_good = true;
-    idx.resize(2*neold + _idx.size());
-    for (size_t i=0; i<2*nsurfs; ++i) {
+    idx.resize(nper*neold + _in.idx.size());
+    for (size_t i=0; i<nper*nsurfs; ++i) {
       // make sure it exists in the nodes array
-      if (_idx[i] >= nnold+nnodes) idx_are_all_good = false;
-      idx[2*neold+i] = nnold + _idx[i];
+      if (_in.idx[i] >= nnold+nnodes) idx_are_all_good = false;
+      idx[nper*neold+i] = nnold + _in.idx[i];
     }
     assert(idx_are_all_good && "Some indicies are bad");
 
@@ -360,18 +368,18 @@ public:
     if (this->E == active) {
       // value is a fixed strength for the element
       ps[0]->reserve(neold+nsurfs); 
-      ps[0]->insert(ps[0]->end(), _val.begin(), _val.end());
+      ps[0]->insert(ps[0]->end(), _in.val.begin(), _in.val.end());
       // HACK - should use the size of _val to determine whether we have data here
       ps[1]->reserve(neold+nsurfs); 
-      ps[1]->insert(ps[1]->end(), _val.begin(), _val.end());
+      ps[1]->insert(ps[1]->end(), _in.val.begin(), _in.val.end());
 
     } else if (this->E == reactive) {
       // value is a boundary condition
       bc[0]->reserve(neold+nsurfs); 
-      bc[0]->insert(bc[0]->end(), _val.begin(), _val.end());
+      bc[0]->insert(bc[0]->end(), _in.val.begin(), _in.val.end());
       // HACK - should use the size of _val to determine whether we have data here
       bc[1]->reserve(neold+nsurfs); 
-      bc[1]->insert(bc[1]->end(), _val.begin(), _val.end());
+      bc[1]->insert(bc[1]->end(), _in.val.begin(), _in.val.end());
 
       // upsize vortex sheet and raw strength arrays, too
       for (size_t d=0; d<2; ++d) {
@@ -415,22 +423,6 @@ public:
     if (this->M == bodybound) {
       set_geom_center();
     }
-  }
-
-  // append nodes and panels to this collection
-  void add_new(const ElementPacket<float>& _in) {
-
-    // ensure that this packet really is Surfaces
-    assert(_in.idx.size() != 0 && "Input ElementPacket is not Surfaces");
-    assert(_in.ndim == 1 && "Input ElementPacket is not Surfaces");
-
-    // and that it has the right number of values per particle
-    if (this->E == inert) assert(_in.val.size() == 0 && "Input ElementPacket with inert Surfaces has nonzero val array");
-    else assert(_in.val.size() == _in.nelem && "Input ElementPacket with Surfaces has bad val array size");
-
-    // must explicitly call the method in the base class first - this pulls out positions and strengths
-    //ElementBase<S>::add_new(_in);
-    (void) add_new(_in.x, _in.idx, _in.val);
   }
 
 
@@ -616,7 +608,8 @@ public:
   // always recalculate everything!
   void compute_bases(const Int nnew) {
 
-    assert(2*nnew == idx.size() && "Array size mismatch");
+    // since we may be saving higher-order elements, this is no longer valid
+    //assert(2*nnew == idx.size() && "Array size mismatch");
 
     // resize any vectors
     for (size_t i=0; i<Dimensions; ++i) {
@@ -725,14 +718,19 @@ public:
       r[i] = 1.0;
     }
   }
+*/
+
 
   //
   // 1st order Euler advection and stretch
   //
-  void move(const double _time, const double _dt) {
-    // must explicitly call the method in the base class
-    ElementBase<S>::move(_time, _dt);
+  void move(const double _time, const double _dt,
+            const double _wt1, Surfaces<S> const & _u1) {
 
+    // must explicitly call the method in the base class
+    ElementBase<S>::move(_time, _dt, _wt1, _u1);
+
+/*
     // no specialization needed
     if (this->M == lagrangian and this->E != inert) {
       //std::cout << "  Stretching" << to_string() << " using 1st order" << std::endl;
@@ -764,8 +762,45 @@ public:
       //std::cout << "  Not stretching" << to_string() << std::endl;
       max_strength = 1.0;
     }
-  }
 */
+
+    // and update the max strength measure
+    (void) update_max_str();
+  }
+
+
+  //
+  // 2nd order RK advection and stretch
+  //
+  void move(const double _time, const double _dt,
+            const double _wt1, Surfaces<S> const & _u1,
+            const double _wt2, Surfaces<S> const & _u2) {
+    // must explicitly call the method in the base class
+    ElementBase<S>::move(_time, _dt, _wt1, _u1, _wt2, _u2);
+
+    // must confirm that incoming time derivates include velocity (?)
+
+    // and update the max strength measure
+    (void) update_max_str();
+  }
+
+
+  //
+  // 3rd order RK advection and stretch
+  //
+  void move(const double _time, const double _dt,
+            const double _wt0, Surfaces<S> const & _u0,
+            const double _wt1, Surfaces<S> const & _u1,
+            const double _wt2, Surfaces<S> const & _u2) {
+    // must explicitly call the method in the base class
+    ElementBase<S>::move(_time, _dt, _wt0, _u0, _wt1, _u1, _wt2, _u2);
+
+    // must confirm that incoming time derivates include velocity (?)
+
+    // and update the max strength measure
+    (void) update_max_str();
+  }
+
 
   //
   // return a particle version of the panels (useful during Diffusion)
@@ -808,6 +843,44 @@ public:
     }
 
     return px;
+  }
+
+  // alternative function
+  ElementPacket<S> represent_as_particles(const S _offset) {
+
+    // how many panels?
+    const size_t num_pts = get_npanels();
+
+    std::vector<float> _x(Dimensions*num_pts);
+    std::vector<Int> _idx;
+    std::vector<float> _vals(num_pts);
+
+    // get basis vectors
+    std::array<Vector<S>,2>& norm = b[1];
+
+    // the fluid is to the left walking from one point to the next
+    // so go CW around an external boundary starting at theta=0 (+x axis)
+
+    for (size_t i=0; i<num_pts; ++i) {
+      Int id0 = idx[2*i];
+      Int id1 = idx[2*i+1];
+      // start at center of panel
+      _x[2*i+0] = 0.5 * (this->x[0][id1] + this->x[0][id0]);
+      _x[2*i+1] = 0.5 * (this->x[1][id1] + this->x[1][id0]);
+      //std::cout << "  panel center is " << px[4*i+0] << " " << px[4*i+1];
+      // push out a fixed distance
+      // this assumes properly resolved, vdelta and dt
+      _x[2*i+0] += _offset * norm[0][i];
+      _x[2*i+1] += _offset * norm[1][i];
+      // the panel strength is the solved strength plus the boundary condition
+      float this_str = (*ps[0])[i];
+      // add on the (vortex) bc value here
+      if (this->E == reactive) this_str += (*bc[0])[i];
+      // complete the element with a strength
+      _vals[i] = this_str * area[i];
+    }
+
+    return ElementPacket<float>({_x, _idx, _vals, (size_t)num_pts, 0});
   }
 
   // find the new peak vortex strength magnitude

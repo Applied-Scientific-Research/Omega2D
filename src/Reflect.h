@@ -671,6 +671,8 @@ void clear_inner_layer(const int                _method,
         }
       }
     }
+
+    // if lagrangian Surfaces (to be supported someday), we also need to push the nodes out
   }
 }
 

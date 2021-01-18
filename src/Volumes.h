@@ -9,7 +9,6 @@
 
 #include "Omega2D.h"
 #include "VectorHelper.h"
-#include "ElementBase.h"
 
 #ifdef USE_GL
 #include "GlState.h"
@@ -20,6 +19,7 @@
 #endif
 
 #include <iostream>
+#include <iomanip> // for setfill and setw
 #include <vector>
 #include <array>
 #include <algorithm> // for max_element
@@ -48,26 +48,26 @@ const std::string frag_shader_source =
 template <class S>
 class Volumes: public ElementBase<S> {
 public:
-  // constructor - accepts vector of vectors of (x,y,s) pairs
-  //               makes one boundary for each outer vector
-  //               each inner vector must have even number of floats
-  //               last parameter (_val) is either fixed strength or boundary
+  // constructor - accepts only ElementPacket
+  //               last vector (_val) is either fixed strength or boundary
   //               condition for each element
-  Volumes(const std::vector<S>&   _x,
-          const std::vector<Int>& _idx,
-          const std::vector<S>&   _val,
-          const size_t _nelems,
+  Volumes(const ElementPacket<S>& _elems,
           const elem_t _e,
           const move_t _m,
           std::shared_ptr<Body> _bp)
     : ElementBase<S>(0, _e, _m, _bp),
-      nb(_nelems),
+      nb(_elems.nelem),
       max_strength(-1.0) {
+
+    const std::vector<S>&     _x = _elems.x;
+    const std::vector<Int>& _idx = _elems.idx;
+    const std::vector<S>&   _val = _elems.val;
 
     // assume all elements are 1st order quads (4 corner indices)
     const size_t nper = _idx.size() / nb;
     assert(_idx.size() == nb*nper && "Index array is not an even size");
-    assert((nper == 4 or nper == 9) && "Index array is not multiple of 4 or 9");
+    assert(_elems.ndim == 2 && "Incoming ElementPacket is not 2D");
+    assert((nper==4 or nper==9 or nper==16) && "Index array is not multiple of 4 or 9");
 
     // always initialize the ps element strength optionals
 /*
@@ -118,7 +118,7 @@ public:
     assert(idx_are_all_good && "Some indicies are bad");
 
     // compute all basis vectors and element areas
-    //compute_bases(nb);
+    compute_bases(nb);
 
     // are strengths/values on a per-node or per-element basis? - per element now
 
@@ -202,13 +202,6 @@ public:
 */
   }
 
-  // delegating constructor
-  Volumes(const ElementPacket<S>& _elems,
-          const elem_t _e,
-          const move_t _m,
-          std::shared_ptr<Body> _bp)
-    : Volumes(_elems.x, _elems.idx, _elems.val, _elems.nelem, _e, _m, _bp)
-  { }
 
   size_t                            get_nelems()     const { return nb; }
   //const S                           get_vol()         const { return vol; }
@@ -216,7 +209,7 @@ public:
 
   // element geometry
   const std::vector<Int>&                  get_idx()  const { return idx; }
-  //const Vector<S>&                         get_area() const { return area; }
+  const Vector<S>&                         get_area() const { return area; }
 /*
   const std::array<Vector<S>,Dimensions>&  get_tang() const { return b[0]; }
   const std::array<Vector<S>,Dimensions>&  get_norm() const { return b[1]; }
@@ -316,30 +309,39 @@ public:
   const float get_max_bc_value() const { return 0.0; }
 
 
-  // add more nodes and elements to this collection
-  void add_new(const std::vector<S>&   _x,
-               const std::vector<Int>& _idx,
-               const std::vector<S>&   _val) {
+  // append nodes and bricks to this collection
+  void add_new(const ElementPacket<float>& _in) {
+
+    // ensure that this packet really is Volumes
+    assert(_in.idx.size() != 0 && "Input ElementPacket is not Volumes");
+    assert(_in.ndim == 2 && "Input ElementPacket is not Volumes");
+
+    // if no surfs, quit out now
+    const size_t nelems = _in.nelem;
+    if (nelems == 0) return;
+
+    // and that it has the right number of values per elem (this is from Surfaces - do we need it?
+    //if (this->E == inert) assert(_in.val.size() == 0 && "Input ElementPacket with inert Volumes has nonzero val array");
+    //else assert(_in.val.size() == nelems && "Input ElementPacket with Volumes has bad val array size");
+
+    // make sure input arrays are correctly-sized
+    assert(_in.x.size() % Dimensions == 0 && "Position array is not an even multiple of dimensions");
+    const size_t nnodes = _in.x.size() / Dimensions;
+    assert(_in.idx.size() % nelems == 0 && "Index array is not an even multiple of elem count");
+    const size_t nper = _in.idx.size() / nelems;        // we can have many nodes per elem
+    assert(_in.idx.size() % nper == 0 && "Index array is not an even multiple of nper");
+
+    // val looks to be ignored
+    //assert(_in.val.size() % nelems == 0 && "Value array is not an even multiple of elem count");
+    //assert(_in.val.size() % nnodes == 0 && "Value array is not an even multiple of node count");
+
+    std::cout << "  adding " << nelems << " new elements and " << nnodes << " new points to collection..." << std::endl;
 
     // remember old sizes of nodes and element arrays
     const size_t nnold = this->n;
     const size_t neold = get_nelems();
-
-    // make sure input arrays are correctly-sized
-
-    // assume all elements are 1st order quads (4 corner indices)
-    const size_t nper = 4;
-    assert(_idx.size() % nper == 0 && "Index array is not an even multiple of 4");
-    const size_t nelems = _idx.size() / nper;
-    // if no surfs, quit out now
-    if (nelems == 0) return;
-
-    assert(_x.size() % Dimensions == 0 && "Position array is not an even multiple of dimensions");
-    const size_t nnodes = _x.size() / Dimensions;
-
-    assert(_val.size() % nnodes == 0 && "Value array is not an even multiple of node count");
-
-    std::cout << "  adding " << nelems << " new elements and " << nnodes << " new points to collection..." << std::endl;
+    const size_t nperold = idx.size() / neold;
+    assert(nper == nperold && "Cannot change element order in a single Collection");
 
     // DON'T call the method in the base class, because we do things differently here
     //ElementBase<S>::add_new(_in);
@@ -348,7 +350,7 @@ public:
     for (size_t d=0; d<Dimensions; ++d) {
       this->x[d].resize(nnold+nnodes);
       for (size_t i=0; i<nnodes; ++i) {
-        this->x[d][nnold+i] = _x[Dimensions*i+d];
+        this->x[d][nnold+i] = _in.x[Dimensions*i+d];
       }
     }
 
@@ -364,36 +366,36 @@ public:
 
     // copy over the node indices, taking care to offset into the new array
     bool idx_are_all_good = true;
-    idx.resize(4*neold + _idx.size());
+    idx.resize(nper*neold + _in.idx.size());
     for (size_t i=0; i<nper*nelems; ++i) {
       // make sure it exists in the nodes array
-      if (_idx[i] >= nnold+nnodes) idx_are_all_good = false;
-      idx[nper*neold+i] = nnold + _idx[i];
+      if (_in.idx[i] >= nnold+nnodes) idx_are_all_good = false;
+      idx[nper*neold+i] = nnold + _in.idx[i];
     }
     assert(idx_are_all_good && "Some indicies are bad");
 
     // compute all basis vectors and element areas
-    //compute_bases(neold+nelems);
+    compute_bases(neold+nelems);
 
     // now, depending on the element type, put the value somewhere - but element-wise, so here
     if (this->E == active) {
 /*
       // value is a fixed strength for the element
       ps[0]->reserve(neold+nelems); 
-      ps[0]->insert(ps[0]->end(), _val.begin(), _val.end());
+      ps[0]->insert(ps[0]->end(), _in.val.begin(), _in.val.end());
       // HACK - should use the size of _val to determine whether we have data here
       ps[1]->reserve(neold+nelems); 
-      ps[1]->insert(ps[1]->end(), _val.begin(), _val.end());
+      ps[1]->insert(ps[1]->end(), _in.val.begin(), _in.val.end());
 */
 
     } else if (this->E == reactive) {
 /*
       // value is a boundary condition
       bc[0]->reserve(neold+nelems); 
-      bc[0]->insert(bc[0]->end(), _val.begin(), _val.end());
+      bc[0]->insert(bc[0]->end(), _in.val.begin(), _in.val.end());
       // HACK - should use the size of _val to determine whether we have data here
       bc[1]->reserve(neold+nelems); 
-      bc[1]->insert(bc[1]->end(), _val.begin(), _val.end());
+      bc[1]->insert(bc[1]->end(), _in.val.begin(), _in.val.end());
 
       // upsize vortex sheet and raw strength arrays, too
       for (size_t d=0; d<2; ++d) {
@@ -443,24 +445,6 @@ public:
     }
 */
   }
-
-  // append nodes and bricks to this collection
-  void add_new(const ElementPacket<float>& _in) {
-
-    // ensure that this packet really is Surfaces
-    assert(_in.idx.size() != 0 && "Input ElementPacket is not Volumes");
-    assert(_in.ndim == 2 && "Input ElementPacket is not Volumes");
-
-    assert("We are not yet checking for matching element orders!");
-
-    // and that it has the right number of values per element/node
-    //if (this->E == inert) assert(_in.val.size() == 0 && "Input ElementPacket with inert Volumes has nonzero val array");
-    //else assert(_in.val.size() == _in.nelem && "Input ElementPacket with Volumes has bad val array size");
-
-    // forward to the proper function
-    (void) add_new(_in.x, _in.idx, _in.val);
-  }
-
 
 /*
   void add_body_motion(const S _factor, const double _time) {
@@ -636,54 +620,85 @@ public:
 
     std::cout << "    geom center is " << utc[0] << " " << utc[1] << " and area is " << vol << std::endl;
   }
+*/
 
-  // need to maintain the 2x2 set of basis vectors for each element
-  // this also calculates the triangle areas
+  // calculates the element areas
   // always recalculate everything!
-  void compute_bases(const Int nnew) {
+  void compute_areas(const Int nnew) {
 
-    assert(2*nnew == idx.size() && "Array size mismatch");
-
-    // resize any vectors
-    for (size_t i=0; i<Dimensions; ++i) {
-      for (size_t j=0; j<Dimensions; ++j) {
-        b[i][j].resize(nnew);
-      }
-    }
     area.resize(nnew);
 
     // we'll reuse these vectors
-    std::array<S,Dimensions> x1, norm;
+    //std::array<S,Dimensions> x1, norm;
+    const size_t nper = idx.size() / nnew;
+    assert(nper*nnew == idx.size() && "Array size mismatch");
+
+    // lambdas let you define functions inside of functions
+    // https://stackoverflow.com/questions/4324763/can-we-have-functions-inside-functions-in-c
+    auto get_tri_area = [&] (const Int j0, const Int j1, const Int j2) {
+      // https://demonstrations.wolfram.com/Signed2DTriangleAreaFromTheCrossProductOfEdgeVectors/
+      return 0.5*(-this->x[1][j0]*this->x[0][j1]
+                  +this->x[0][j0]*this->x[1][j1]
+                  +this->x[1][j0]*this->x[0][j2]
+                  -this->x[1][j1]*this->x[0][j2]
+                  -this->x[0][j0]*this->x[1][j2]
+                  +this->x[0][j1]*this->x[1][j2]);
+    };
 
     // update everything
     for (size_t i=0; i<nnew; ++i) {
-      const size_t id0 = idx[2*i];
-      const size_t id1 = idx[2*i+1];
-      //std::cout << "elem near " << this->x[0][id0] << " " << this->x[1][id0] << std::endl;
 
-      // x1 vector is along direction from node 0 to node 1
-      for (size_t j=0; j<Dimensions; ++j) x1[j] = this->x[j][id1] - this->x[j][id0];
-      const S base = std::sqrt(x1[0]*x1[0] + x1[1]*x1[1]);
-      for (size_t j=0; j<Dimensions; ++j) x1[j] *= (1.0/base);
-      //std::cout << "  has x1 " << x1[0] << " " << x1[1] << std::endl;
+      S thisarea = 0.0;
 
-      // now we have the area
-      area[i] = base;
-      //std::cout << "elem near " << this->x[0][id0] << " " << this->x[1][id0] << " has area " << area[i] << std::endl;
+      // how many nodes we have determines how many triangles we need to compute
+      if (nper == 3) {
+        // just one triangle per element
+        thisarea += get_tri_area(idx[3*i+0], idx[3*i+1], idx[3*i+2]);
+      } else if (nper == 4) {
+        // two triangles per element
+        thisarea += get_tri_area(idx[4*i+0], idx[4*i+1], idx[4*i+2]);
+        thisarea += get_tri_area(idx[4*i+0], idx[4*i+2], idx[4*i+3]);
+      } else if (nper == 9) {
+        // eight triangles per element
+        thisarea += get_tri_area(idx[9*i+0], idx[9*i+4], idx[9*i+8]);
+        thisarea += get_tri_area(idx[9*i+0], idx[9*i+8], idx[9*i+7]);
+        thisarea += get_tri_area(idx[9*i+0], idx[9*i+8], idx[9*i+7]);
+        thisarea += get_tri_area(idx[9*i+0], idx[9*i+8], idx[9*i+7]);
+        thisarea += get_tri_area(idx[9*i+0], idx[9*i+8], idx[9*i+7]);
+        thisarea += get_tri_area(idx[9*i+0], idx[9*i+8], idx[9*i+7]);
+        thisarea += get_tri_area(idx[9*i+0], idx[9*i+8], idx[9*i+7]);
+        thisarea += get_tri_area(idx[9*i+0], idx[9*i+8], idx[9*i+7]);
+      } else {
+        // should not get here
+        assert("Unsupported number of nodes per volume element!");
+      }
 
-      // the normal vector points into the fluid (to the left when walking from nodes 0 to 1)
-      norm[0] = -x1[1];
-      norm[1] =  x1[0];
-      //std::cout << "  norm " << norm[0] << " " << norm[1] << std::endl;
-
-      // and assign
-      for (size_t j=0; j<Dimensions; ++j) b[0][j][i] = x1[j];
-      for (size_t j=0; j<Dimensions; ++j) b[1][j][i] = norm[j];
+      // finally assign
+      area[i] = thisarea;
 
       //std::cout << "elem near " << this->x[0][id0] << " " << this->x[1][id0] << " has norm " << b[1][0][i] << " " << b[1][1][i] << " and tang " << b[0][0][i] << " " << b[0][1][i] << std::endl;
     }
   }
 
+  // maintain the 2x2 set of basis vectors for each element?
+  void compute_bases(const Int nnew) {
+    compute_areas(nnew);
+
+    // resize any vectors
+    //for (size_t i=0; i<Dimensions; ++i) {
+    //  for (size_t j=0; j<Dimensions; ++j) {
+    //    b[i][j].resize(nnew);
+    //  }
+    //}
+
+      // and assign
+      //for (size_t j=0; j<Dimensions; ++j) b[0][j][i] = x1[j];
+      //for (size_t j=0; j<Dimensions; ++j) b[1][j][i] = norm[j];
+
+      //std::cout << "elem near " << this->x[0][id0] << " " << this->x[1][id0] << " has norm " << b[1][0][i] << " " << b[1][1][i] << " and tang " << b[0][0][i] << " " << b[0][1][i] << std::endl;
+  }
+
+/*
   // when transforming a body-bound object to a new time, we must also transform the geometric center
   void transform(const double _time) {
     // must explicitly call the method in the base class
@@ -760,14 +775,15 @@ public:
   //
   // 1st order Euler advection and stretch
   //
-  void move(const double _time, const double _dt) {
+  void move(const double _time, const double _dt,
+            const double _wt1, Volumes<S> const & _u1) {
+
     // must explicitly call the method in the base class
-    ElementBase<S>::move(_time, _dt);
+    ElementBase<S>::move(_time, _dt, _wt1, _u1);
 
     // no specialization needed
     if (this->M == lagrangian and this->E != inert) {
       //std::cout << "  Stretching" << to_string() << " using 1st order" << std::endl;
-      S thismax = 0.0;
 
       for (size_t i=0; i<this->n; ++i) {
         S this_s = (*this->s)[i];
@@ -779,23 +795,47 @@ public:
 
         // update strengths
         (*this->s)[i] = this_s + _dt * wdu[0];
-
-        // check for max strength
-        S thisstr = std::abs((*this->s)[i]);
-        if (thisstr > thismax) thismax = thisstr;
-
       }
-      if (max_strength < 0.0) {
-        max_strength = thismax;
-      } else {
-        max_strength = 0.1*thismax + 0.9*max_strength;
-      }
-      //std::cout << "  New max_strength is " << max_strength << std::endl;
     } else {
       //std::cout << "  Not stretching" << to_string() << std::endl;
-      max_strength = 1.0;
     }
+
+    // and update the max strength measure
+    (void) update_max_str();
   }
+
+  //
+  // 2nd order RK advection and stretch
+  //
+  void move(const double _time, const double _dt,
+            const double _wt1, Volumes<S> const & _u1,
+            const double _wt2, Volumes<S> const & _u2) {
+    // must explicitly call the method in the base class
+    ElementBase<S>::move(_time, _dt, _wt1, _u1, _wt2, _u2);
+
+    // must confirm that incoming time derivates include velocity (?)
+
+    // and update the max strength measure
+    (void) update_max_str();
+  }
+
+
+  //
+  // 3rd order RK advection and stretch
+  //
+  void move(const double _time, const double _dt,
+            const double _wt0, Volumes<S> const & _u0,
+            const double _wt1, Volumes<S> const & _u1,
+            const double _wt2, Volumes<S> const & _u2) {
+    // must explicitly call the method in the base class
+    ElementBase<S>::move(_time, _dt, _wt0, _u0, _wt1, _u1, _wt2, _u2);
+
+    // must confirm that incoming time derivates include velocity (?)
+
+    // and update the max strength measure
+    (void) update_max_str();
+  }
+
 
   //
   // return a particle version of the elements (useful during Diffusion)
@@ -843,37 +883,42 @@ public:
 */
 
 
-  //
-  // return a particle version of the nodes (useful during velocity evaluation)
-  // offset is in world units - NOT scaled
-  //
-  std::vector<S> represent_nodes_as_particles(const S _vdelta) {
+  // export all nodes as either singular (_inert) or thick particles
+  ElementPacket<S> represent_nodes_as_particles(bool _inert) {
 
     // how many nodes?
     const size_t num_pts = this->get_n();
 
-    // note that since this is being passed in Influence as inert, use 2 values per point
+    std::vector<float> _x(Dimensions*num_pts);
+    std::vector<Int> _idx;
+    std::vector<float> _vals;
 
-    // init the output vector (x, y)
-    std::vector<S> px(num_pts*2);
-
-    for (size_t i=0; i<num_pts; i++) {
-      px[2*i+0] = this->x[0][i];
-      px[2*i+1] = this->x[1][i];
-      //std::cout << "  element center is " << px[4*i+0] << " " << px[4*i+1];
-      // the element strength is the solved strength plus the boundary condition
-      //float this_str = (*ps[0])[i];
-      // add on the (vortex) bc value here
-      //if (this->E == reactive) this_str += (*bc[0])[i];
-      // complete the element with a strength
-      //px[4*i+2] = this_str * area[i];
-      //px[4*i+2] = 0.0;
-      // and the core size (effectively field points)
-      //px[4*i+3] = 0.0;
-      //std::cout << "  new part is " << px[4*i+0] << " " << px[4*i+1] << " " << px[4*i+2] << " " << px[4*i+3] << std::endl;
+    if (not _inert) {
+      // vals are strength or radius?
+      _vals.resize(num_pts);
+      std::fill(_vals.begin(), _vals.end(), 0.0);
+      //for (size_t i=0; i<num_pts; ++i) {
+      //  _vals[i] = 0.0;
+      //}
     }
 
-    return px;
+    for (size_t i=0; i<num_pts; ++i) {
+      _x[2*i+0] = this->x[0][i];
+      _x[2*i+1] = this->x[1][i];
+    }
+
+    return ElementPacket<float>({_x, _idx, _vals, (size_t)num_pts, 0});
+  }
+
+  // return a scalar value representative of the core size of the nodes
+  S get_representative_size(const S _mult) {
+    // find average area per element first
+    S avglen = std::sqrt(std::accumulate(area.begin(), area.end(), 0.0) / (S)nb);
+    // and use order to scale it
+    avglen /= std::sqrt((S)idx.size() / (S)nb) - 1.0;
+    //std::cout << "    using avg element side length of " << avglen << std::endl;
+    // finally scale by the input multiplier
+    return _mult * avglen;
   }
 
 /*
@@ -1235,7 +1280,7 @@ public:
 
     // useful: what kinds of elements are these?
     const int32_t nper = (int32_t)(idx.size() / nb);
-    assert((nper==4 or nper==9) && "Volumes vtu writer only supports vtk elem types 9 and 28");
+    assert((nper==4 or nper==9 or nper==16) && "Volumes vtu writer only supports vtk elem types 9, 28, 70");
   
     // again, all connectivities and offsets must be Int32!
     {
@@ -1270,7 +1315,9 @@ public:
       gridWriter.addElement("DataArray", attribs);
       Vector<uint8_t> v(this->nb);
       // switch on vtk element type
-      const uint8_t etype = (nper==4 ? 9 : 28);
+      uint8_t etype = 9;
+      if (nper==9) etype = 28;
+      if (nper==16) etype = 70;
       std::fill(v.begin(), v.end(), etype);
       gridWriter.writeDataArray(v);
       // DataArray
@@ -1326,11 +1373,12 @@ public:
 protected:
   // ElementBase.h has x, s, u, ux on the *nodes*
 
-  size_t nb;				// number of bricks
+  size_t nb;                            // number of bricks
 
   // element-wise variables special to quad elements
-  std::vector<Int>                 idx;	// indexes into the x array
+  std::vector<Int>                 idx; // indexes into the x array
   Vector<S>                       area; // brick volumes
+
   //Basis<S>                           b; // transformed basis vecs: tangent is b[0], normal is b[1], x norm is b[1][0]
   //std::array<Vector<S>,Dimensions>  pu; // velocities on element centers - "u" is node vels in ElementBase
 

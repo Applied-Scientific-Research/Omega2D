@@ -9,6 +9,9 @@
 #include "Reflect.h"
 #include "BEMHelper.h"
 #include "GuiHelper.h"
+#ifdef HOFORTRAN
+#include "hofortran_interface.h"
+#endif
 
 #include <cassert>
 #include <cmath>
@@ -29,15 +32,19 @@ Simulation::Simulation()
     vort(),
     bdry(),
     fldpt(),
+    euler(),
     bem(),
     diff(),
     conv(),
+    hybr(),
     sf(),
     description(),
     time(0.0),
     output_dt(0.0),
     end_time(100.0),
     use_end_time(false),
+    overlap_ratio(2.0),
+    core_size_ratio(std::sqrt(6)),
     nstep(0),
     use_max_steps(false),
     max_steps(100),
@@ -57,8 +64,8 @@ float* Simulation::addr_fs() { return fs; }
 float Simulation::get_re() const { return re; }
 float Simulation::get_dt() const { return dt; }
 float Simulation::get_hnu() const { return std::sqrt(dt/re); }
-float Simulation::get_ips() const { return diff.get_nom_sep_scaled() * get_hnu(); }
-float Simulation::get_vdelta() const { return diff.get_particle_overlap() * get_ips(); }
+float Simulation::get_ips() const { return core_size_ratio * get_hnu(); }
+float Simulation::get_vdelta() const { return overlap_ratio * get_ips(); }
 float Simulation::get_time() const { return (float)time; }
 float Simulation::get_end_time() const { return (float)end_time; }
 bool Simulation::using_end_time() const { return use_end_time; }
@@ -116,7 +123,7 @@ size_t Simulation::get_nfldpts() {
 
 // like a setter
 void Simulation::set_re_for_ips(const float _ips) {
-  re = std::pow(diff.get_nom_sep_scaled(), 2) * dt / pow(_ips, 2);
+  re = std::pow(core_size_ratio, 2) * dt / pow(_ips, 2);
   diff.set_diffuse(false);
 }
 
@@ -180,6 +187,11 @@ Simulation::from_json(const nlohmann::json j) {
     std::cout << "  setting output dt= " << output_dt << std::endl;
   }
 
+  //if (j.find("nominalDx") != j.end()) {
+  //  dx = j["nominalDx"];
+  //  std::cout << "  setting dx= " << dx << std::endl;
+  //}
+
   if (j.find("maxSteps") != j.end()) {
     use_max_steps = true;
     max_steps = j["maxSteps"];
@@ -196,9 +208,24 @@ Simulation::from_json(const nlohmann::json j) {
     use_end_time = false;
   }
 
-  // set diffusion-specific parameters
+  if (j.find("overlapRatio") != j.end()) {
+    overlap_ratio = j["overlapRatio"];
+    std::cout << "  setting overlap ratio= " << overlap_ratio << std::endl;
+  }
+
+  if (j.find("coreSizeRatioSqrd") != j.end()) {
+    core_size_ratio = std::sqrt((float)j["coreSizeRatioSqrd"]);
+    std::cout << "  setting core size ratio (nominal separation over h_nu) = " << core_size_ratio << std::endl;
+  }
+
+  // Convection will find and set "timeOrder"
+  conv.from_json(j);
+
   // Diffusion will find and set "viscous", "VRM" and "AMR" parameters
   diff.from_json(j);
+
+  // set hybrid Eulerian-Lagrangian solution parameters
+  hybr.from_json(j);
 }
 
 // create and write a json object for "simparams"
@@ -210,9 +237,17 @@ Simulation::to_json() const {
   j["outputDt"] = output_dt;
   if (using_max_steps()) j["maxSteps"] = get_max_steps();
   if (using_end_time()) j["endTime"] = get_end_time();
+  j["overlapRatio"] = overlap_ratio;
+  j["coreSizeRatioSqrd"] = std::pow(core_size_ratio,2);
+
+  // Convection will write "timeOrder"
+  conv.add_to_json(j);
 
   // Diffusion will write "viscous", "VRM" and "AMR" parameters
   diff.add_to_json(j);
+
+  // Hybrid will create a "hybrid" section
+  hybr.add_to_json(j);
 
   return j;
 }
@@ -229,6 +264,9 @@ void Simulation::draw_advanced() {
 
   // set the diffusion parameters in Diffusion.h
   diff.draw_advanced();
+  
+  // set the hybrid parameters in Hybrid.h
+  hybr.draw_advanced();
 }
 #endif
 
@@ -286,7 +324,9 @@ void Simulation::reset() {
   vort.clear();
   bdry.clear();
   fldpt.clear();
+  euler.clear();
   bem.reset();
+  hybr.reset();
   sf.reset_sim();
   sim_is_initialized = false;
   step_has_started = false;
@@ -346,6 +386,23 @@ std::vector<std::string> Simulation::write_vtk(const int _index,
     for (auto &coll : bdry) {
       std::visit([&](auto &&elem) { files.emplace_back(elem.write_vtk(idx++, stepnum, time)); }, coll);
     }
+  }
+
+  if (false) {
+    // use the hack-y way to find vorticity and write it
+    conv.find_vort(vort, bdry, fldpt);
+    size_t idx = 0;
+    for (auto &coll : fldpt) {
+      std::visit([&](auto &&elem) { files.emplace_back(elem.write_vtk(idx++, stepnum+10, time)); }, coll);
+    }
+  }
+
+  if (hybr.is_active()) {
+    // there is only one hybrid volume allowed now, so no counting needed
+#ifdef HOFORTRAN
+    (void) trigger_write((int32_t)stepnum);
+#endif
+    files.emplace_back("and a HO grid file");
   }
 
   return files;
@@ -486,6 +543,9 @@ void Simulation::first_step() {
   // update BEM and find vels on any particles but DO NOT ADVECT
   conv.advect_1st(time, 0.0, thisfs, get_ips(), vort, bdry, fldpt, bem);
 
+  // call HO grid solver, but only to send first velocity results and initialize vorticity
+  hybr.first_step(time, thisfs, vort, bdry, bem, conv, euler);
+
   // and write status file
   dump_stats_to_status();
 }
@@ -508,30 +568,35 @@ void Simulation::step() {
 
   std::cout << std::endl << "Taking step " << nstep << " at t=" << time << " with n=" << get_nparts() << std::endl;
 
+  const bool use_2nd_order_operator_splitting = true;
+
   // we wind up using this a lot
   std::array<double,2> thisfs = {fs[0], fs[1]};
 
-  // for simplicity's sake, just run one full diffusion step here
-  diff.step(time, dt, re, get_vdelta(), thisfs, vort, bdry, bem);
-
-  // operator splitting requires one half-step diffuse (use coefficients from previous step, if available)
-  //diff.step(time, 0.5*dt, re, get_vdelta(), thisfs, vort, bdry, bem);
+  if (use_2nd_order_operator_splitting) {
+    // operator splitting requires one half-step diffuse (use coefficients from previous step, if available)
+    diff.step(time, 0.5*dt, re, overlap_ratio, get_vdelta(), thisfs, vort, bdry, bem);
+  } else {
+    // for simplicity's sake, just run one full diffusion step here
+    diff.step(time, dt, re, overlap_ratio, get_vdelta(), thisfs, vort, bdry, bem);
+  }
 
   // advect with no diffusion (must update BEM strengths)
-  //conv.advect_1st(time, dt, thisfs, get_ips(), vort, bdry, fldpt, bem);
-  conv.advect_2nd(time, dt, thisfs, get_ips(), vort, bdry, fldpt, bem);
+  conv.advect(time, dt, thisfs, get_ips(), vort, bdry, fldpt, bem);
 
-  // operator splitting requires another half-step diffuse (must compute new coefficients)
-  //diff.step(time, 0.5*dt, re, get_vdelta(), thisfs, vort, bdry, bem);
+  if (use_2nd_order_operator_splitting) {
+    // operator splitting requires another half-step diffuse (must compute new coefficients)
+    diff.step(time+dt, 0.5*dt, re, overlap_ratio, get_vdelta(), thisfs, vort, bdry, bem);
+  }
+
+  // call HO grid solver to recalculate vorticity at the end of this time step
+  hybr.step(time, dt, re, thisfs, vort, bdry, bem, conv, euler, overlap_ratio, get_vdelta());
+
+  // update time
+  time += (double)dt;
 
   // push field points out of objects every few steps
   if (nstep%5 == 0) clear_inner_layer<STORE>(1, bdry, fldpt, (STORE)0.0, (STORE)(0.5*get_ips()));
-
-  // update strengths for coloring purposes (eventually should be taken care of automatically)
-  //vort.update_max_str();
-
-  // update dt and return
-  time += (double)dt;
 
   // only increment step here!
   nstep++;
@@ -707,6 +772,32 @@ void Simulation::file_elements(std::vector<Collection>& _collvec,
       vols.add_new(_elems);
     }
   }
+}
+
+// Add elements - cells for hybrid calculation
+void Simulation::add_hybrid(const std::vector<ElementPacket<float>>  _elems,
+                            std::shared_ptr<Body> _bptr) {
+
+  // skip out early if nothing's here
+  if (_elems.size() == 0) return;
+  // or if hybrid isn't turned on
+  if (not hybr.is_active()) return;
+
+  std::cout << "In Simulation::add_hybrid" << std::endl;
+  //std::cout << "  incoming vector has " << _elems.size() << " ElementPackets" << std::endl;
+
+  // make sure we've got the right data
+  assert(_elems.size() == 3 && "Improper number of ElementPackets in add_hybrid");
+
+  //_elems[0] is the volume elements - always add unique Collection to euler
+  //_elems[1] is the wall boundaries
+  //_elems[2] is the open boundaries
+  euler.emplace_back(HOVolumes<float>(_elems[0], _elems[1], _elems[2], hybrid, fixed, _bptr));
+  std::cout << "  euler now has " << euler.size() << " HOVolumes" << std::endl;
+
+  // alternate way to assign the wall and open bc elements
+  //euler.back().add_wall(_elems[1]);
+  //euler.back().add_open(_elems[2]);
 }
 
 // add a new Body with the given name

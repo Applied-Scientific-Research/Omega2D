@@ -10,7 +10,7 @@
 // Use this for indexes into panels or bodies
 // this means we can have no more than 65536 element segments in the system - seems reasonable for 2D
 #include <cstdint>
-using Int = uint16_t;
+using Int = uint32_t;
 #include <cstdlib>
 
 const size_t Dimensions = 2;
@@ -19,7 +19,8 @@ const size_t Dimensions = 2;
 enum elem_t {
   active   = 1,  // active vorticity
   reactive = 2,  // active once strength is solved
-  inert    = 3   // does not affect flow
+  inert    = 3,  // does not affect flow
+  hybrid   = 4   // does not affect flow
 };
 
 // movement type

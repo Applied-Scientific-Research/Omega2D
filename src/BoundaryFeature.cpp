@@ -11,6 +11,7 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_stdlib.h"
 #include "Simulation.h"
+#include "read_MSH_Mesh.h"
 
 #define __STDCPP_WANT_MATH_SPEC_FUNCS__ 1
 #include <cassert>
@@ -46,8 +47,22 @@ void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
   else if (ftype == "polygon") { _flist.emplace_back(std::make_unique<SolidPolygon>(_bp)); }
   else if (ftype == "airfoil") { _flist.emplace_back(std::make_unique<SolidAirfoil>(_bp)); }
   else {
-    std::cout << "  type " << ftype << " does not name an available boundary feature, ignoring" << std::endl;
-    return;
+    // assume unknown keyword is a file
+
+    // first, shrink to just the file name
+    const size_t lastslash = ftype.find_last_of("/\\");
+    const std::string filename = ftype.substr(lastslash+1);
+    // then, pull out the extension
+    const size_t lastdot = filename.find_last_of(".");
+    const std::string extension = filename.substr(lastdot+1);
+
+    // finally, split on that extension
+    if (extension == "msh") { _flist.emplace_back(std::make_unique<FromMsh>(_bp)); }
+    //else if (ftype == "dat") { airfoil data file }
+    else {
+      std::cout << "  type " << filename << " is not an available boundary feature or file type, ignoring" << std::endl;
+      return;
+    }
   }
 
   // and pass the json object to the specific parser
@@ -90,7 +105,8 @@ int BoundaryFeature::obj_movement_gui(int &mitem, char* strx, char* stry, char* 
   return changed;
 }
 
-bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeature>>& bfs, Simulation& sim) {
+// 0 means keep open, 1 means create, 2 means cancel
+int BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeature>>& _bfs, Simulation& _sim) {
   // define movement first
   static int mitem = 0;
   static char strx[512] = "0.0*t";
@@ -105,11 +121,11 @@ bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeat
     switch(mitem) {
       case 0:
          // this geometry is fixed (attached to inertial)
-         bp = sim.get_pointer_to_body("ground");
+         bp = _sim.get_pointer_to_body("ground");
          break;
       case 1:
          // this geometry is attached to the previous geometry (or ground)
-         bp = sim.get_last_body();
+         bp = _sim.get_last_body();
          break;
       case 2:
          // this geometry is attached to a new moving body
@@ -124,14 +140,13 @@ bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeat
   // define geometry second
   static int item = 0;
   static int oldItem = -1;
-  static int numItems = 7;
-  const char* items[] = { "circle", "square", "oval", "rectangle", "segment", "polygon", "NACA 4-digit" };
+  static int numItems = 8;
+  const char* items[] = { "circle", "square", "oval", "rectangle", "segment", "polygon", "NACA 4-digit", "Msh File" };
 
   ImGui::Combo("geometry type", &item, items, numItems);
   
 
   // show different inputs based on what is selected
-  bool created = false;
   static std::unique_ptr<BoundaryFeature> bf = nullptr;
   if (oldItem != item) {
     switch(item) {
@@ -156,32 +171,36 @@ bool BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeat
       case 6: {
         bf = std::make_unique<SolidAirfoil>();
       } break;
+      case 7: {
+        bf = std::make_unique<FromMsh>();
+      } break;
     } // end switch for geometry
     oldItem = item;
   }
 
+  int created = 0;
   if (bf->draw_info_gui("Add")) {
     if (!bp) { abort(); }
     if (mitem == 2) {
       bp->set_name(bf->to_short_string());
-      sim.add_body(bp);
+      _sim.add_body(bp);
     }
     bf->set_body(bp);
     bf->create();
     bf->generate_draw_geom();
-    bfs.emplace_back(std::move(bf));
+    _bfs.emplace_back(std::move(bf));
     bf = nullptr;
     oldItem = -1;
-    created = true;
+    created = 1;
   }
 
   ImGui::SameLine();
   if (ImGui::Button("Cancel", ImVec2(120,0))) {
-    ImGui::CloseCurrentPopup();
     oldItem = -1;
-    created = false;
+    created = 2;
+    bf = nullptr;
   }
-  
+ 
   return created;
 }
 
@@ -314,6 +333,14 @@ BoundarySegment::init_elements(const float _ips) const {
   }
 }
 
+//
+// Create the volume and boundary grids for this feature
+//
+std::vector<ElementPacket<float>>
+BoundarySegment::init_hybrid(const float _ips) const {
+  return std::vector<ElementPacket<float>>();
+}
+
 void
 BoundarySegment::debug(std::ostream& os) const {
   os << to_string();
@@ -430,6 +457,14 @@ SolidCircle::init_elements(const float _ips) const {
     return ElementPacket<float>();
   }
    
+}
+
+//
+// Create the volume and boundary grids for this feature
+//
+std::vector<ElementPacket<float>>
+SolidCircle::init_hybrid(const float _ips) const {
+  return std::vector<ElementPacket<float>>();
 }
 
 void
@@ -627,6 +662,14 @@ SolidOval::init_elements(const float _ips) const {
   }
 }
 
+//
+// Create the volume and boundary grids for this feature
+//
+std::vector<ElementPacket<float>>
+SolidOval::init_hybrid(const float _ips) const {
+  return std::vector<ElementPacket<float>>();
+}
+
 void
 SolidOval::debug(std::ostream& os) const {
   os << to_string();
@@ -753,6 +796,14 @@ SolidSquare::init_elements(const float _ips) const {
   }
 }
 
+//
+// Create the volume and boundary grids for this feature
+//
+std::vector<ElementPacket<float>>
+SolidSquare::init_hybrid(const float _ips) const {
+  return std::vector<ElementPacket<float>>();
+}
+
 void
 SolidSquare::debug(std::ostream& os) const {
   os << to_string();
@@ -875,6 +926,14 @@ SolidRect::init_elements(const float _ips) const {
     // Has to be a better way
     return ElementPacket<float>();
   }
+}
+
+//
+// Create the volume and boundary grids for this feature
+//
+std::vector<ElementPacket<float>>
+SolidRect::init_hybrid(const float _ips) const {
+  return std::vector<ElementPacket<float>>();
 }
 
 void
@@ -1011,6 +1070,14 @@ SolidPolygon::init_elements(const float _ips) const {
     // Has to be a better way
     return ElementPacket<float>();
   }
+}
+
+//
+// Create the volume and boundary grids for this feature
+//
+std::vector<ElementPacket<float>>
+SolidPolygon::init_hybrid(const float _ips) const {
+  return std::vector<ElementPacket<float>>();
 }
 
 void
@@ -1190,6 +1257,14 @@ SolidAirfoil::init_elements(const float _ips) const {
   }
 }
 
+//
+// Create the volume and boundary grids for this feature
+//
+std::vector<ElementPacket<float>>
+SolidAirfoil::init_hybrid(const float _ips) const {
+  return std::vector<ElementPacket<float>>();
+}
+
 void
 SolidAirfoil::debug(std::ostream& os) const {
   os << to_string();
@@ -1268,4 +1343,338 @@ bool SolidAirfoil::draw_info_gui(const std::string action) {
 
 void SolidAirfoil::generate_draw_geom() {
   m_draw = init_elements(m_chordLength/20.0);
+}
+
+// Initialize elements
+ElementPacket<float>
+FromMsh::init_elements(const float _ips) const {
+
+  // read gmsh file
+  ReadMsh::Mesh mesh;
+  std::cout << "Reading gmsh mesh file (" << m_infile << ")";
+  int32_t retval = mesh.read_msh_file(m_infile.c_str());
+  if (retval == 1) {
+    std::cout << " contains " << mesh.get_nnodes() << " nodes";
+    std::cout << " and " << mesh.get_nelems() << " elems" << std::endl;
+  } else {
+    std::cout << " does not exist or did not read properly (code=";
+    std::cout << retval << "), skipping." << std::endl;
+    return ElementPacket<float>();
+  }
+
+  // prepare the data arrays for the element packet
+  std::vector<float> x;
+  std::vector<Int> idx;
+  std::vector<float> vals;
+
+  // get the boundary corresponding to the wall
+  const ReadMsh::boundary wall = mesh.get_bdry("wall");
+  if (wall.N_edges == 0) {
+    std::cout << "  no boundary called 'wall' in this msh file, skipping." << std::endl;
+    return ElementPacket<float>();
+  }
+
+  // read *all* the nodes in
+  const std::vector<ReadMsh::node>& nodes = mesh.get_nodes();
+  for (auto& thisnode : nodes) {
+    const ReadMsh::Cmpnts2& thispos = thisnode.coor;
+    x.push_back(thispos.x);
+    x.push_back(thispos.y);
+  }
+
+  // get a reference to the complete edge list
+  const std::vector<ReadMsh::edge>& edges = mesh.get_edges();
+
+  // find out how large each array will be
+  const size_t np = wall.N_edges;
+  std::cout << "  wall has " << np << " edges" << std::endl;
+  for (uint32_t thisedge : wall.edges) {
+    //std::cout << "  edge " << thisedge << " has " << edges[thisedge].N_nodes << " nodes" << std::endl;
+    // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
+    assert(edges[thisedge].N_nodes > 1 && "Edge does not have enough nodes!");
+    // HACK - annular gmsh meshes have wall defined CCW (right wall is to fluid), not CW (left wall is)
+    idx.push_back(edges[thisedge].nodes[1]);
+    idx.push_back(edges[thisedge].nodes[0]);
+    // TODO: check edge element length vs. _ips and subsample if necessary
+  }
+
+  // compress the nodes vector to remove unused, adjust idx pointers
+
+  std::vector<int32_t> newidx(nodes.size());
+  // -1 means that this node is not used
+  std::fill(newidx.begin(), newidx.end(), -1);
+  // flag all nodes that are used
+  for (auto& thisidx : idx) newidx[thisidx] = thisidx;
+  // compress the x vector first
+  size_t nnodesused = 0;
+  for (size_t i=0; i<newidx.size(); ++i) {
+    if (newidx[i] == -1) {
+      // this node is not used in the wall boundary
+    } else {
+      // this node *is* used
+      // move it backwards AND translate it
+      x[2*nnodesused]   = x[2*i]   + m_x;
+      x[2*nnodesused+1] = x[2*i+1] + m_y;
+      // and tell the index where it moved to
+      newidx[i] = nnodesused;
+      // increment the counter
+      nnodesused++;
+    }
+  }
+  x.resize(2*nnodesused);
+  // reset indices to indicate their new position in the compressed array
+  for (auto& thisidx : idx) thisidx = newidx[thisidx];
+
+  // set boundary condition value to 0.0 (velocity BC)
+  vals.resize(np);
+  std::fill(vals.begin(), vals.end(), 0.0);
+
+  // return the element packet
+  ElementPacket<float> packet({x, idx, vals, (size_t)(np), (uint8_t)1});
+  if (packet.verify(packet.x.size(), Dimensions)) {
+    return packet;
+  } else {
+    return ElementPacket<float>();
+  }
+}
+
+//
+// Create the volume and boundary grids for this feature
+//
+std::vector<ElementPacket<float>>
+FromMsh::init_hybrid(const float _ips) const {
+
+  // we need to have three ElementPacket objects in this vector:
+  //   first one is the Volumes (2D) elements
+  //   second is the wall Surfaces (1D) elements
+  //   last is the open Surfaces (1D) elements
+  std::vector<ElementPacket<float>> pack;
+
+  // read gmsh file
+  ReadMsh::Mesh mesh;
+  std::cout << "Reading gmsh mesh file (" << m_infile << ")";
+  int32_t retval = mesh.read_msh_file(m_infile.c_str());
+  if (retval == 1) {
+    std::cout << " contains " << mesh.get_nnodes() << " nodes";
+    std::cout << " and " << mesh.get_nelems() << " elems" << std::endl;
+  } else {
+    std::cout << " does not exist or did not read properly (code=";
+    std::cout << retval << "), skipping." << std::endl;
+    return pack;
+  }
+
+  // prepare the data arrays for the element packet
+  std::vector<float> x;
+  std::vector<Int> idx;
+  std::vector<float> vals;
+
+  // read *all* the nodes in
+  const std::vector<ReadMsh::node>& nodes = mesh.get_nodes();
+  for (auto& thisnode : nodes) {
+    const ReadMsh::Cmpnts2& thispos = thisnode.coor;
+    x.push_back(thispos.x);
+    x.push_back(thispos.y);
+  }
+  const Int nn = x.size() / 2;
+  std::cout << "  read in " << nn << " nodes" << std::endl;
+
+  //
+  // first EP is the volume elements
+  //
+  std::cout << "Generate Grid Cells" << std::endl;
+
+  // get a reference to the complete edge list
+  const std::vector<ReadMsh::element2d>& elems = mesh.get_elems();
+
+  // find out how large each array will be
+  const size_t ne = elems.size();
+  std::cout << "  volume has " << ne << " elems" << std::endl;
+  // number of nodes per element - must be constant!
+  size_t nnpe = 0;
+  size_t ec = 0;
+  for (auto& thiselem : elems) {
+    //std::cout << "  elem " << ec << " with " << thiselem.N_nodes << " nodes: ";
+    if (nnpe == 0) nnpe = thiselem.N_nodes;
+    assert(nnpe == thiselem.N_nodes && "ReadMsh does not support different element types!");
+
+    // using VTK/GMSH node ordering! CCW corners, then CCW side nodes, then middle
+    assert(thiselem.N_nodes > 2 && "Elem does not have enough nodes!");
+    // assign indices
+    for (size_t i=0; i<thiselem.N_nodes; ++i) {
+      //std::cout << " " << thiselem.nodes[i];
+      idx.push_back(thiselem.nodes[i]);
+    }
+    //std::cout << " " << std::endl;
+    ++ec;
+  }
+  // if that was successful, then nnpe is the correct number of nodes per element
+
+  // check all nodes for validity? or is that in the ctor?
+  pack.emplace_back(ElementPacket<float>({x, idx, vals, (size_t)(ne), (uint8_t)2}));
+
+  //
+  // second EP is the wall
+  //
+  std::cout << "Generate Wall Boundary" << std::endl;
+  // better way: do it right here with what we already have in memory
+
+  // get a reference to the complete edge list
+  const std::vector<ReadMsh::edge>& edges = mesh.get_edges();
+
+  // get the boundary corresponding to the wall
+  const ReadMsh::boundary wall = mesh.get_bdry("wall");
+  if (wall.N_edges == 0) {
+    std::cout << "  no boundary called 'wall' in this msh file, skipping." << std::endl;
+    pack.emplace_back(ElementPacket<float>());
+
+  } else {
+
+    // set the idx pointers to the new surface elements
+    const size_t np = wall.N_edges;
+    std::cout << "  wall has " << np << " edges" << std::endl;
+    idx.clear();
+    for (uint32_t thisedge : wall.edges) {
+      const size_t nn = edges[thisedge].N_nodes;
+      //std::cout << "  edge " << thisedge << " has " << nn << " nodes" << std::endl;
+      // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
+      assert(nn > 1 && "Edge does not have enough nodes!");
+      // reversing the orientation of the wall elements
+      idx.push_back(edges[thisedge].nodes[1]);
+      idx.push_back(edges[thisedge].nodes[0]);
+      for (size_t i=1; i<nn-1; ++i) idx.push_back(edges[thisedge].nodes[nn-i]);
+      //std::cout << "    ";
+      //for (size_t i=0; i<edges[thisedge].N_nodes; ++i) {
+      //  std::cout << " " << edges[thisedge].nodes[i];
+      //}
+      //std::cout << std::endl;
+    }
+
+    // set boundary condition value to 0.0 (velocity BC)
+    vals.resize(np);
+    std::fill(vals.begin(), vals.end(), 0.0);
+
+    // return the element packet (will have many unused nodes - that's OK)
+    pack.emplace_back(ElementPacket<float>({x, idx, vals, (size_t)(np), (uint8_t)1}));
+  }
+
+  //
+  // third EP is the open boundary
+  //
+  std::cout << "Generate Open Boundary" << std::endl;
+  // better way: do it right here with what we already have in memory
+
+  // get the boundary corresponding to the open side
+  const ReadMsh::boundary open = mesh.get_bdry("open");
+  if (open.N_edges == 0) {
+    std::cout << "  no boundary called 'open' in this msh file, skipping." << std::endl;
+    pack.emplace_back(ElementPacket<float>());
+
+  } else {
+
+    // set the idx pointers to the new surface elements
+    const size_t np = open.N_edges;
+    //std::cout << "  open has " << np << " edges" << std::endl;
+    idx.clear();
+    for (uint32_t thisedge : open.edges) {
+      const size_t nn = edges[thisedge].N_nodes;
+      //std::cout << "  edge " << thisedge << " has " << nn << " nodes" << std::endl;
+      // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
+      assert(nn > 1 && "Edge does not have enough nodes!");
+      // note - annular gmsh meshes have open defined CCW, which is correct here
+      //idx.push_back(edges[thisedge].nodes[0]);
+      //idx.push_back(edges[thisedge].nodes[1]);
+      for (size_t i=0; i<nn; ++i) idx.push_back(edges[thisedge].nodes[i]);
+    }
+
+    // set boundary condition value to 0.0 (velocity BC)
+    vals.resize(np);
+    std::fill(vals.begin(), vals.end(), 0.0);
+
+    // return the element packet (will have many unused nodes - that's OK)
+    pack.emplace_back(ElementPacket<float>({x, idx, vals, (size_t)(np), (uint8_t)1}));
+  }
+
+  return pack;
+}
+
+void
+FromMsh::debug(std::ostream& os) const {
+  os << to_string();
+}
+
+std::string
+FromMsh::to_string() const {
+  std::stringstream ss;
+
+  // shorten the filename
+  const size_t lastchar = m_infile.find_last_of("/\\");
+  ss << m_infile.substr(lastchar+1) << " at " << m_x << " " << m_y;
+
+  return ss.str();
+}
+
+void
+FromMsh::from_json(const nlohmann::json j) {
+  nlohmann::json infile_object = j["geometry"];
+  if (infile_object.is_string()) {
+    m_infile = infile_object.get<std::string>();
+  }
+
+  const std::vector<float> tr = j["translation"];
+  m_x = tr[0];
+  m_y = tr[1];
+
+  m_enabled = j.value("enabled",true);
+}
+
+nlohmann::json
+FromMsh::to_json() const {
+  // make an object for the mesh
+  nlohmann::json mesh = nlohmann::json::object();
+  mesh["geometry"] = m_infile;
+  mesh["translation"] = {m_x, m_y};
+  mesh["enabled"] = m_enabled;
+  return mesh;
+}
+
+#ifdef USE_IMGUI
+bool FromMsh::draw_info_gui(const std::string action) {
+  bool add = false;
+  bool try_it = false;
+  static bool finish = false;
+  //static bool selectFile = false;
+  static std::string infile = "input.msh";
+  const std::string buttonText = action+" object";
+  const float fontSize = 20;
+  std::vector<std::string> tmp;
+
+  float xc[2] = {m_x, m_y};
+  ImGui::InputFloat2("center", xc);
+
+  if (!finish) {
+    const std::string fileIO_text = "Load " + infile;
+    if (fileIOWindow(try_it, infile, tmp,  fileIO_text.c_str(), {"*.msh", "*.*"}, true, ImVec2(200+26*fontSize,300))) {
+      finish = true;
+    }
+  }
+  
+  if (ImGui::Button(buttonText.c_str())) {
+    if (try_it and !infile.empty()) {
+      std::cout << infile << std::endl;
+    } else {
+      std::cout << "ERROR LOADING FILE FROM .msh FILE" << std::endl;
+    }
+    add = true;
+  }
+
+  m_x = xc[0];
+  m_y = xc[1];
+  m_infile = infile;
+
+  return add;
+}
+#endif
+
+void FromMsh::generate_draw_geom() {
+  m_draw = init_elements(1.0);
 }

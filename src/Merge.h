@@ -191,15 +191,49 @@ size_t merge_close_particles(std::array<Vector<S>,2>& pos,
 
 
 //
-// run some number of merge ops on each collection of Point vorts
+// run some number of merge ops on one collection of Point vorts
+//
+template <class S>
+void merge_collection(Points<S>& _pts,
+                      const S    _overlap,
+                      const S    _thresh,
+                      const int  _maxiters,
+                      const bool _isadapt) {
+
+  //std::cout << "    merging among " << _pts.get_n() << " particles" << std::endl;
+
+  size_t npre = _pts.get_n();
+  size_t npost = 0;
+
+  // perform possibly multiple iterations
+  for (size_t iter=0; iter<(size_t)_maxiters and (float)(npre-npost)/(float)(npre) > 0.01; ++iter) {
+
+    //npre = _pts.get_n();
+
+    // last two arguments are: relative distance, allow variable core radii
+    (void) merge_close_particles(_pts.get_pos(),
+                                 _pts.get_str(),
+                                 _pts.get_rad(),
+                                 _overlap,
+                                 _thresh,
+                                 _isadapt);
+
+    npost = _pts.get_rad().size();
+
+    // resize the rest of the arrays
+    _pts.resize(npost);
+  }
+}
+
+
+//
+// run some number of merge ops on a vector of collections of Point vorts
 //
 template <class S>
 void merge_operation(std::vector<Collection>& _vort,
                      const S                  _overlap,
                      const S                  _thresh,
                      const bool               _isadapt) {
-
-  const size_t maxiters = 1;
 
   for (auto &coll : _vort) {
 
@@ -211,22 +245,14 @@ void merge_operation(std::vector<Collection>& _vort,
 
       Points<S>& pts = std::get<Points<S>>(coll);
 
-      //std::cout << "    merging among " << pts.get_n() << " particles" << std::endl;
-
-      // perform possibly multiple iterations
-      for (size_t iter=0; iter<maxiters; ++iter) {
-
-        // last two arguments are: relative distance, allow variable core radii
-        (void) merge_close_particles(pts.get_pos(),
-                                     pts.get_str(),
-                                     pts.get_rad(),
-                                     _overlap,
-                                     _thresh,
-                                     _isadapt);
-
-        // resize the rest of the arrays
-        pts.resize(pts.get_rad().size());
-      }
+      // last two arguments are: relative distance, allow variable core radii
+      (void) merge_collection(pts,
+                              _overlap,
+                              _thresh,
+                              1,
+                              _isadapt);
     }
   }
 }
+
+

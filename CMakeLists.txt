@@ -19,6 +19,7 @@ SET (USE_VC FALSE CACHE BOOL "Use Vc for vector arithmetic")
 SET (USE_PLUGIN_AVRM FALSE CACHE BOOL "Enable adaptive VRM plugin")
 SET (USE_PLUGIN_SIMPLEX FALSE CACHE BOOL "Enable simplex solver plugin")
 SET (USE_EXTERNAL_SUM FALSE CACHE BOOL "Enable external velocity solver")
+SET (USE_HO_FORTRAN FALSE CACHE BOOL "Enable HO-Fortran external hybrid solver")
 SET (CMAKE_VERBOSE_MAKEFILE on)
 SET (CMAKE_EXPORT_COMPILE_COMMANDS on)
 
@@ -40,7 +41,9 @@ ELSE ()
   ADD_DEFINITIONS(-DEXAMPLES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples")
 ENDIF ()
 
-# Split on compiler
+
+# Define compiler-specific options
+
 IF (CMAKE_COMPILER_IS_GNUCXX)
   # support Core2 at a minimum, haswell ideally
   #SET (CMAKE_CXX_FLAGS "-Wall -Wformat -Wno-int-in-bool-context -std=c++17 -march=core2 -mtune=haswell")
@@ -59,7 +62,9 @@ ELSEIF (MSVC)
   SET (CMAKE_CXX_FLAGS_RELEASE "/O2")
 ENDIF ()
 
-# Split on operating system
+
+# Define platform-specific libraries and options
+
 IF( WIN32 )
   # because clang is stupid
   IF (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -150,6 +155,7 @@ ELSEIF( APPLE )
     SET (VC_LIBS "")
   ENDIF()
 
+  SET( CMAKE_MACOSX_RPATH 1 )
   SET( BASE_LIBS ${VC_LIBS} ${CMAKE_THREAD_LIBS_INIT} )
   SET( GUI_LIBS ${FRAMEWORK_LIBS} ${COCOA_LIBRARY} ${IOKIT_LIBRARY} ${COREVIDEO_LIBRARY} ${OpenGL_LIBRARY} )
 
@@ -205,6 +211,7 @@ ELSEIF( UNIX )
   SET( GUI_LIBS ${FRAMEWORK_LIBS} ${GLFW_LIBRARIES} )
 ENDIF()
 
+
 # Enable plugins
 
 # adaptive VRM
@@ -229,9 +236,29 @@ IF( USE_EXTERNAL_SUM )
 ELSE()
   SET (FASTSUM_LIBS "")
 ENDIF()
+# fmm2d needs this
 #SET( EXTERNAL_LIBS ${FASTSUM_LIBS} gfortran )
+# but onbody needs this
 SET( EXTERNAL_LIBS ${FASTSUM_LIBS} )
 
+# Enable submodules
+ADD_SUBDIRECTORY( extern/gmsh-reader )
+INCLUDE_DIRECTORIES( "extern/gmsh-reader/src" )
+SET( EXTERNAL_LIBS ${EXTERNAL_LIBS} gmsh-reader-static )
+
+IF( USE_HO_FORTRAN )
+  ADD_SUBDIRECTORY( extern/HO-Fortran )
+  INCLUDE_DIRECTORIES( "extern/HO-Fortran/src" )
+  #SET( EXTERNAL_LIBS ${EXTERNAL_LIBS} 2DVortTrans aplles_mp lapack gfortran )
+  SET( EXTERNAL_LIBS ${EXTERNAL_LIBS} 2DVortTrans ${APLLES_LIBS} ${XML_LIBS} ${LAPACK_LIBS} gfortran )
+  SET (CPREPROCDEFS ${CPREPROCDEFS} -DHOFORTRAN)
+ELSE()
+  ADD_SUBDIRECTORY( extern/dummy_solver )
+  INCLUDE_DIRECTORIES( "extern/dummy_solver" )
+  SET( EXTERNAL_LIBS ${EXTERNAL_LIBS} dummy_solver-static )
+ENDIF()
+
+# Define files and targets
 
 ADD_DEFINITIONS (${CPREPROCDEFS})
 

@@ -685,6 +685,29 @@ void VRM<ST,CT,MAXMOM>::from_json(const nlohmann::json simj) {
       thresholds_are_relative = j["relativeThresholds"];
       std::cout << "  setting thresholds_are_relative= " << thresholds_are_relative << std::endl;
     }
+
+    if (j.find("solver") != j.end()) {
+      std::string solverstr = j["solver"];
+      if (solverstr == "simplex") {
+        use_solver = simplex;
+      } else {
+        // default is nnls
+        use_solver = nnls;
+      }
+    } else {
+      // default is nnls
+      use_solver = nnls;
+    }
+#ifdef PLUGIN_SIMPLEX
+    std::cout << "  setting VRM solver= " << (use_solver ? "simplex" : "nnls") << std::endl;
+#else
+    if (use_solver == simplex) {
+      std::cout << "  setting VRM solver= nnls because PLUGIN_SIMPLEX is not set" << std::endl;
+      use_solver = nnls;
+    } else {
+      std::cout << "  setting VRM solver= nnls" << std::endl;
+    }
+#endif
   }
 }
 
@@ -696,6 +719,7 @@ void VRM<ST,CT,MAXMOM>::add_to_json(nlohmann::json& simj) const {
   nlohmann::json j;
   j["ignoreBelow"] = ignore_thresh;
   j["relativeThresholds"] = thresholds_are_relative;
+  j["solver"] = use_solver ? "simplex" : "nnls";
   simj["VRM"] = j;
 }
 
