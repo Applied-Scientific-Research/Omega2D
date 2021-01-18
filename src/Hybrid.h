@@ -607,14 +607,14 @@ void Hybrid<S,A,I>::step(const double                         _time,
     }
 
 
-    // find a scaling factor for the error
+    // find a scaling factor for the error (this was eulvort*area*gtop)
     double totalcircmag = 0.0;
-    for (size_t i=0; i<thisn; ++i) { totalcircmag += std::fabs(eulvort[i]*area[i]*gtop[i]); }
+    for (size_t i=0; i<thisn; ++i) { totalcircmag += std::fabs(eulvort[i]*area[i]); }
     // if totalcircmag is too small, this may never converge...
     if (totalcircmag < 1.e-8) totalcircmag = 1.0;
 
     // measure this error
-    double maxerror = 0.001;
+    double maxerror = 1.0e-4;
     double thiserror = 0.0;
     for (size_t i=0; i<thisn; ++i) { thiserror += std::fabs(circ[i]); }
     thiserror /= totalcircmag;
@@ -629,7 +629,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
     // iterate toward a solution
     int iter = 0;
-    int maxiter = 20;
+    int maxiter = 10;
     while (thiserror>maxerror and iter<maxiter) {
 
       // resolve it via VRM
@@ -695,6 +695,9 @@ void Hybrid<S,A,I>::step(const double                         _time,
       for (size_t i=0; i<thisn; ++i) { thiserror += std::fabs(circ[i]); }
       thiserror /= totalcircmag;
       std::cout << "  iter " << (iter+1) << " has error " << thiserror << std::endl;
+
+      // are we adding 0 particles?
+      if (newparts.nelem == 0) iter = maxiter;
 
       iter++;
     }
