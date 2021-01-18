@@ -798,6 +798,10 @@ void Hybrid<S,A,I>::add_to_json(nlohmann::json& simj) const {
 template <class S, class A, class I>
 void Hybrid<S,A,I>::draw_advanced() {
 
+#ifndef USE_HO_FORTRAN
+  return;
+#endif
+
   ImGui::Separator();
   ImGui::Spacing();
   ImGui::Text("Hybrid/Grid settings");
