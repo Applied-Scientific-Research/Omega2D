@@ -16,8 +16,10 @@
 
 #ifdef _WIN32
   // for glad
-  #define APIENTRY __stdcall
-  // for C++11 stuff
+  #ifndef APIENTRY
+    #define APIENTRY __stdcall
+  #endif
+  // for C++11 stuff that Windows can't get right
   #include <ciso646>
 #endif
 
@@ -28,7 +30,9 @@
 // execution starts here
 
 int main(int argc, char const *argv[]) {
+
   std::cout << std::endl << "Omega2D Batch" << std::endl;
+  if (VERBOSE) { std::cout << "  VERBOSE is on" << std::endl; }
 
   // Set up vortex particle simulation
   Simulation sim;
@@ -147,6 +151,8 @@ int main(int argc, char const *argv[]) {
     std::cout << std::endl << "Wrote simulation to " << outfile << std::endl;
   }
 
+  // Cleanup
+  std::cout << "Starting shutdown procedure" << std::endl;
   sim.reset();
   std::cout << "Quitting" << std::endl;
 

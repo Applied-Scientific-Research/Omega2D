@@ -47,6 +47,8 @@
 //#include <fenv.h>
 
 
+// execution starts here
+
 int main(int argc, char const *argv[]) {
 
   std::cout << std::endl << "Omega2D GUI" << std::endl;
