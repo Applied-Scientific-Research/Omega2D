@@ -241,6 +241,12 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
   _conv.find_vels(_fs, _vort, _bdry, euler_bdrys, velonly, true);
 
   for (auto &coll : euler_bdrys) {
+    // debug - print it out
+    {
+    //Points<float>& these = std::get<Points<S>>(coll);
+    //these.write_vtk(0, 90, _time);
+    }
+
     // convert to transferable packet
     std::array<Vector<S>,Dimensions> openvels = std::visit([=](auto& elem) { return elem.get_vel(); }, coll);
 
@@ -355,7 +361,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
   std::cout << "Inside Hybrid::step at t=" << _time << " and dt=" << _dt << std::endl;
 
   const bool dumpray = true;
-  static float dumpslope = 0.4868;
+  static float dumpslope = 0.5;
   static bool setslope = false;
 
   //
@@ -379,6 +385,12 @@ void Hybrid<S,A,I>::step(const double                         _time,
   _conv.find_vels(_fs, _vort, _bdry, euler_bdrys, velonly, true);
 
   for (auto &coll : euler_bdrys) {
+    // debug - print it out
+    {
+    //Points<float>& these = std::get<Points<S>>(coll);
+    //these.write_vtk(0, 91, _time); exit(0);
+    }
+
     // convert to transferable packet
     std::array<Vector<S>,Dimensions> openvels = std::visit([=](auto& elem) { return elem.get_vel(); }, coll);
 
@@ -496,7 +508,11 @@ void Hybrid<S,A,I>::step(const double                         _time,
       std::cout << "There are " << solnptlen << " solution nodes" << std::endl;
       eulvort.resize(solnptlen);
       (void) getallvorts_d(solnptlen, eulvort.data());
-      //std::cout << "  vort 2014 from solver " << eulvort[2013] << std::endl;
+      //std::cout << "  vort 1714 from solver " << eulvort[1714] << std::endl;
+      {
+      //const auto& locs = solnpts.get_pos();
+      //std::cout << "  locs 1714 from solver " << locs[0][1714] << " " << locs[1][1714] << std::endl;
+      }
       //std::cout << "  vorts from solver " << eulvort[0] << " " << eulvort[1] << " " << eulvort[2] << std::endl;
       //std::cout << "               more " << eulvort[3] << " " << eulvort[4] << " " << eulvort[5] << std::endl;
     }
@@ -512,19 +528,19 @@ void Hybrid<S,A,I>::step(const double                         _time,
         float minslopedist = 9.9e+9;
         size_t minslopeidx = 0;
         for (size_t i=0; i<thisn; ++i) {
-          const float thisslopedist = std::abs(locs[1][i]/locs[0][i] - dumpslope);
-          if (thisslopedist < minslopedist && locs[0][i] > 0.0) {
+          const float thisslopedist = std::abs(locs[0][i] - dumpslope);
+          if (thisslopedist < minslopedist && locs[1][i] > 0.5) {
             minslopedist = thisslopedist;
             minslopeidx = i;
           }
         }
-        dumpslope = locs[1][minslopeidx]/locs[0][minslopeidx];
+        dumpslope = locs[0][minslopeidx];
       }
       // now we can dump safely
       std::cout << "  vorticity from eulerian " << std::endl;
       for (size_t i=0; i<thisn; ++i) {
-        if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < 1.e-5 && locs[0][i] > 0.0) {
-          const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
+        if (std::abs(locs[0][i]-dumpslope) < 1.e-5 && locs[1][i] > 0.5) {
+          const S dist = locs[1][i];
           std::cout << "  " << i << " " << dist << " " << eulvort[i] << std::endl;
         }
       }
@@ -536,6 +552,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
     //_conv.find_vels(_fs, _vort, _bdry, euler_vols, velandvort, true);
     _conv.find_vort(_vort, _bdry, euler_vols);
     Points<float>& solvedpts = std::get<Points<S>>(euler_vols[0]);
+    //solvedpts.write_vtk(99, 99, _time); exit(0);
     Vector<S>& lagvort = solvedpts.get_vort();
     assert(lagvort.size() == thisn && "ERROR (Hybrid::step) vorticity from particle sim is not the right size");
 
@@ -543,8 +560,8 @@ void Hybrid<S,A,I>::step(const double                         _time,
       std::cout << "  vorticity from lagrangian " << std::endl;
       const auto& locs = solvedpts.get_pos();
       for (size_t i=0; i<thisn; ++i) {
-        if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < 1.e-5 && locs[0][i] > 0.0) {
-          const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
+        if (std::abs(locs[0][i]-dumpslope) < 1.e-5 && locs[1][i] > 0.5) {
+          const S dist = locs[1][i];
           std::cout << "  " << i << " " << dist << " " << lagvort[i] << std::endl;
         }
       }
@@ -599,8 +616,8 @@ void Hybrid<S,A,I>::step(const double                         _time,
       std::cout << "    indx  rad   area * gtop * ( eulvort - lagvort ) = circ" << std::endl;
       const auto& locs = solvedpts.get_pos();
       for (size_t i=0; i<thisn; ++i) {
-        if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < 1.e-5 && locs[0][i] > 0.0) {
-          const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
+        if (std::abs(locs[0][i]-dumpslope) < 1.e-5 && locs[1][i] > 0.5) {
+          const S dist = locs[1][i];
           std::cout << "    " << i << "  " << dist << " " << area[i] << " * " << gtop[i] << " ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
         }
       }
@@ -683,8 +700,8 @@ void Hybrid<S,A,I>::step(const double                         _time,
         std::cout << "    indx  rad   area * gtop * ( eulvort - lagvort ) = circ" << std::endl;
         const auto& locs = solvedpts.get_pos();
         for (size_t i=0; i<thisn; ++i) {
-          if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < 1.e-5 && locs[0][i] > 0.0) {
-            const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
+          if (std::abs(locs[0][i]-dumpslope) < 1.e-5 && locs[1][i] > 0.5) {
+            const S dist = locs[1][i];
             std::cout << "    " << i << "  " << dist << " " << area[i] << " * " << gtop[i] << " * ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
           }
         }
@@ -737,8 +754,8 @@ void Hybrid<S,A,I>::step(const double                         _time,
       std::cout << "    indx  rad   ptog   neweulvort   lagvort" << std::endl;
       const auto& locs = solvedpts.get_pos();
       for (size_t i=0; i<thisn; ++i) {
-        if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < 1.e-5 && locs[0][i] > 0.0) {
-          const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
+        if (std::abs(locs[0][i]-dumpslope) < 1.e-5 && locs[1][i] > 0.5) {
+          const S dist = locs[1][i];
           std::cout << "    " << i << "  " << dist << "  " << ptog[i] << "  " << eulvort[i] << "  " << lagvort[i] << std::endl;
         }
       }

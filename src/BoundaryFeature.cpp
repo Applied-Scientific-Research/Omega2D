@@ -1393,8 +1393,8 @@ FromMsh::init_elements(const float _ips) const {
     // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
     assert(edges[thisedge].N_nodes > 1 && "Edge does not have enough nodes!");
     // HACK - annular gmsh meshes have wall defined CCW (right wall is to fluid), not CW (left wall is)
-    idx.push_back(edges[thisedge].nodes[1]);
     idx.push_back(edges[thisedge].nodes[0]);
+    idx.push_back(edges[thisedge].nodes[1]);
     // TODO: check edge element length vs. _ips and subsample if necessary
   }
 
@@ -1539,8 +1539,8 @@ FromMsh::init_hybrid(const float _ips) const {
       // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
       assert(nn > 1 && "Edge does not have enough nodes!");
       // reversing the orientation of the wall elements
-      idx.push_back(edges[thisedge].nodes[1]);
       idx.push_back(edges[thisedge].nodes[0]);
+      idx.push_back(edges[thisedge].nodes[1]);
       for (size_t i=1; i<nn-1; ++i) idx.push_back(edges[thisedge].nodes[nn-i]);
       //std::cout << "    ";
       //for (size_t i=0; i<edges[thisedge].N_nodes; ++i) {

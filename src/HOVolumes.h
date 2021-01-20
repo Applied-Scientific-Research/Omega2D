@@ -237,28 +237,23 @@ public:
     gtop_wgt.resize(soln_p.get_n());
     ptog_wgt.resize(soln_p.get_n());
 
-    // HACK - assumes Eulerian grid is an annulus
+    // HACK - assumes Eulerian grid is a cavity
     // find nearest and farthest solution nodes
-    S rnear = 9.9e+9;
-    S rfar = 0.0;
-    for (size_t i=0; i<soln_p.get_n(); ++i) {
-      const S thisrad = std::sqrt(std::pow(ptx[0][i],2)+std::pow(ptx[1][i],2));
-      if (thisrad > rfar) rfar = thisrad;
-      if (thisrad < rnear) rnear = thisrad;
-    }
-    std::cout << "  In set_overlap_weights with band from " << rnear << " to " << rfar << std::endl;
-    // one over the band width
-    //const S oobw = 1.0 / (rfar - rnear);
+    S rfar = 0.1;
+    std::cout << "  In set_overlap_weights with band out to " << rfar << std::endl;
 
     // now, based on the location of the solution nodes, zero out any
     //   that are too close to the body - HACK - assumes annular region
     // ultimately we will need to search for nearest points on open and wall boundaries
     for (size_t i=0; i<soln_p.get_n(); ++i) {
 
-      // HACK - assume geometry is annular from 0.5 to 1.0
-      const S thisrad = std::sqrt(std::pow(ptx[0][i],2)+std::pow(ptx[1][i],2));
+      // HACK - assume geometry is thick band inside of unit square
+      const S thisdistx = (ptx[0][i] > 0.5) ? 1.0-ptx[0][i] : ptx[0][i];
+      const S thisdisty = (ptx[1][i] > 0.5) ? 1.0-ptx[1][i] : ptx[1][i];
+      const S thisdist  = std::min(thisdistx,thisdisty);
       // radial location normalized by range, now values are always [0..1]
-      const S normrad = (thisrad-rnear) / (rfar - rnear);
+      const S normrad = thisdist / rfar;
+      //if (i%71 == 0) std::cout << "  pt at " << ptx[0][i] << " " << ptx[1][i] << " is at " << normrad << std::endl;
 
       // grid-to-particle weight - typically peak in the middle and fall off near boundaries
       if (std::abs(normrad-gtop_center) < gtop_width) {
