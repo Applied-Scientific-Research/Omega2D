@@ -224,8 +224,25 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
       cpy += hits[k].cpy;
     }
 
+    // if by some fluke the sum of the normals is zero (like when we initialize between two walls)
+    //   just yank out one of the points, or choose the last
+    if (normx*normx + normy*normy == 0.0) {
+      const size_t j = hits[0].jidx;
+      if (hits[0].disttype == panel) {
+        // hit a panel, use the norm
+        normx += sn[0][j];
+        normy += sn[1][j];
+      } else {
+        normx += nn[0][j];
+        normy += nn[1][j];
+      }
+      cpx = hits[0].cpx;
+      cpy = hits[0].cpy;
+    }
+    // make sure we fixed it
+    assert(std::sqrt(normx*normx + normy*normy) != 0.0); // Can't divide by 0
+
     // finish computing the mean norm and mean cp
-    assert(std::sqrt(normx* normx + normy * normy) != 0); // Can't divide by 0
     const S normilen = 1.0 / std::sqrt(normx*normx + normy*normy);
     normx *= normilen;
     normy *= normilen;
