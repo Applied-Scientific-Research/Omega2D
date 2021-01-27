@@ -1579,7 +1579,7 @@ FromMsh::init_hybrid(const float _ips) const {
 
     // set the idx pointers to the new surface elements
     const size_t np = open.N_edges;
-    //std::cout << "  open has " << np << " edges" << std::endl;
+    std::cout << "  open has " << np << " edges" << std::endl;
     idx.clear();
     for (uint32_t thisedge : open.edges) {
       const size_t nn = edges[thisedge].N_nodes;
