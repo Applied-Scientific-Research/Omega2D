@@ -388,7 +388,9 @@ public:
   void from_json(const nlohmann::json) override;
   nlohmann::json to_json() const override;
   void create() override { }
+  ElementPacket<float> init_elements_dc(const float) const;
   ElementPacket<float> init_elements(const float) const override;
+  std::vector<ElementPacket<float>> init_hybrid_dc(const float, const float) const;
   std::vector<ElementPacket<float>> init_hybrid(const float) const override;
 #ifdef USE_IMGUI
   bool draw_info_gui(const std::string) override;

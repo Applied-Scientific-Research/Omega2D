@@ -46,6 +46,7 @@ void parse_boundary_json(std::vector<std::unique_ptr<BoundaryFeature>>& _flist,
   else if (ftype == "segment") { _flist.emplace_back(std::make_unique<BoundarySegment>(_bp)); }
   else if (ftype == "polygon") { _flist.emplace_back(std::make_unique<SolidPolygon>(_bp)); }
   else if (ftype == "airfoil") { _flist.emplace_back(std::make_unique<SolidAirfoil>(_bp)); }
+  else if (ftype == "cavity mesh") { _flist.emplace_back(std::make_unique<FromMsh>(_bp)); }
   else {
     // assume unknown keyword is a file
 
@@ -1345,9 +1346,99 @@ void SolidAirfoil::generate_draw_geom() {
   m_draw = init_elements(m_chordLength/20.0);
 }
 
+// Custom elem initter for driven cavity
+ElementPacket<float>
+FromMsh::init_elements_dc(const float _ips) const {
+
+  // prepare the data arrays for the element packet
+  std::vector<float> x;
+  std::vector<Int> idx;
+  std::vector<float> vals;
+
+  // reused often - number of elements per side
+  const size_t nx = std::max(1,(int)(0.5 + 1.0/_ips));
+
+  // generate all nodes, even unused ones, on a regular grid
+  for (size_t j=0; j<nx+1; ++j) {
+    const float yval = (float)j/(float)nx;
+    for (size_t i=0; i<nx+1; ++i) {
+      x.push_back((float)i/(float)nx);
+      x.push_back(yval);
+    }
+  }
+
+  // make the wall boundary
+
+  // find out how large each array will be
+  const size_t np = 4*nx;
+  std::cout << "  wall has " << np << " edges" << std::endl;
+  // march around the square CW, from bottom-left, so left points into fluid (inside)
+  // bottom, left to right
+  for (size_t i=0; i<nx; ++i) {
+    idx.push_back(i);
+    idx.push_back(i+1);
+  }
+  // right, bottom to top
+  for (size_t i=0; i<nx; ++i) {
+    idx.push_back(nx+i*(nx+1));
+    idx.push_back(nx+(i+1)*(nx+1));
+  }
+  // top, right to left
+  for (size_t i=0; i<nx; ++i) {
+    idx.push_back((nx+1)*(nx+1)-1-i);
+    idx.push_back((nx+1)*(nx+1)-2-i);
+  }
+  // left, top to bottom
+  for (size_t i=0; i<nx; ++i) {
+    idx.push_back((nx-i)*(nx+1));
+    idx.push_back((nx-i-1)*(nx+1));
+  }
+
+  // compress the nodes vector to remove unused, adjust idx pointers
+
+  std::vector<int32_t> newidx(x.size()/2);
+  // -1 means that this node is not used
+  std::fill(newidx.begin(), newidx.end(), -1);
+  // flag all nodes that are used
+  for (auto& thisidx : idx) newidx[thisidx] = thisidx;
+  // compress the x vector first
+  size_t nnodesused = 0;
+  for (size_t i=0; i<newidx.size(); ++i) {
+    if (newidx[i] == -1) {
+      // this node is not used in the wall boundary
+    } else {
+      // this node *is* used
+      // move it backwards AND translate it
+      x[2*nnodesused]   = x[2*i]   + m_x;
+      x[2*nnodesused+1] = x[2*i+1] + m_y;
+      // and tell the index where it moved to
+      newidx[i] = nnodesused;
+      // increment the counter
+      nnodesused++;
+    }
+  }
+  x.resize(2*nnodesused);
+  // reset indices to indicate their new position in the compressed array
+  for (auto& thisidx : idx) thisidx = newidx[thisidx];
+
+  // set boundary condition value to 0.0 (velocity BC)
+  vals.resize(np);
+  std::fill(vals.begin(), vals.end(), 0.0);
+
+  // return the element packet
+  ElementPacket<float> packet({x, idx, vals, (size_t)(np), (uint8_t)1});
+  if (packet.verify(packet.x.size(), Dimensions)) {
+    return packet;
+  } else {
+    return ElementPacket<float>();
+  }
+}
+
 // Initialize elements
 ElementPacket<float>
 FromMsh::init_elements(const float _ips) const {
+
+  if (m_infile == "cavity mesh") return init_elements_dc(_ips);
 
   // read gmsh file
   ReadMsh::Mesh mesh;
@@ -1442,11 +1533,158 @@ FromMsh::init_elements(const float _ips) const {
   }
 }
 
+// Custom hybrid initter for driven cavity
+std::vector<ElementPacket<float>>
+FromMsh::init_hybrid_dc(const float _ips, const float _thk) const {
+
+  // we need to have three ElementPacket objects in this vector:
+  //   first one is the Volumes (2D) elements
+  //   second is the wall Surfaces (1D) elements
+  //   last is the open Surfaces (1D) elements
+  std::vector<ElementPacket<float>> pack;
+
+  // prepare the data arrays for the element packet
+  std::vector<float> x;
+  std::vector<Int> idx;
+  std::vector<float> vals;
+
+  // reused often - number of elements per side
+  const size_t nx = std::max(1,(int)(0.5 + 1.0/_ips));
+
+  // limits of interior elems (n start and n finish)
+  const size_t ns = std::max(1,(int)(0.5 + _thk/_ips));
+  const size_t nf = nx-ns;
+  // for unit square, 0.1 cell size, 0.1 thickness, nx=10, ns=1, nf=9
+
+  // generate all nodes, even unused ones, on a regular grid
+  for (size_t j=0; j<nx+1; ++j) {
+    const float yval = (float)j/(float)nx;
+    for (size_t i=0; i<nx+1; ++i) {
+      x.push_back((float)i/(float)nx);
+      x.push_back(yval);
+    }
+  }
+  const Int nn = x.size() / 2;
+  std::cout << "  read in " << nn << " nodes" << std::endl;
+
+  //
+  // first EP is the volume elements
+  //
+  std::cout << "Generate Grid Cells" << std::endl;
+
+  // find out how large each array will be
+  const size_t ne = nx*nx - (nf-ns)*(nf-ns);
+  std::cout << "  volume has " << ne << " elems" << std::endl;
+
+  // using VTK/GMSH node ordering! CCW corners, then CCW side nodes, then middle
+  for (size_t j=0; j<nx; ++j) {
+    for (size_t i=0; i<nx; ++i) {
+      if (j<ns or j>nf-1 or i<ns or i>nf-1) {
+        // find the node IDs in this order: sw, se, ne, nw
+        idx.push_back(j*(nx+1)+i);
+        idx.push_back(j*(nx+1)+i+1);
+        idx.push_back((j+1)*(nx+1)+i+1);
+        idx.push_back((j+1)*(nx+1)+i);
+      }
+    }
+  }
+  // if that was successful, then nnpe is the correct number of nodes per element
+
+  // check all nodes for validity? or is that in the ctor?
+  pack.emplace_back(ElementPacket<float>({x, idx, vals, (size_t)(ne), (uint8_t)2}));
+
+  //
+  // second EP is the wall
+  //
+  std::cout << "Generate Wall Boundary" << std::endl;
+  {
+    // find out how large each array will be
+    const size_t np = 4*nx;
+    std::cout << "  wall has " << np << " edges" << std::endl;
+    // set the idx pointers to the new surface elements
+    idx.clear();
+
+    // march around the square CW, from bottom-left, so left points into fluid (inside)
+    // bottom, left to right
+    for (size_t i=0; i<nx; ++i) {
+      idx.push_back(i);
+      idx.push_back(i+1);
+    }
+    // right, bottom to top
+    for (size_t i=0; i<nx; ++i) {
+      idx.push_back(nx+i*(nx+1));
+      idx.push_back(nx+(i+1)*(nx+1));
+    }
+    // top, right to left
+    for (size_t i=0; i<nx; ++i) {
+      idx.push_back((nx+1)*(nx+1)-1-i);
+      idx.push_back((nx+1)*(nx+1)-2-i);
+    }
+    // left, top to bottom
+    for (size_t i=0; i<nx; ++i) {
+      idx.push_back((nx-i)*(nx+1));
+      idx.push_back((nx-i-1)*(nx+1));
+    }
+
+    // set boundary condition value to 0.0 (velocity BC)
+    vals.resize(np);
+    std::fill(vals.begin(), vals.end(), 0.0);
+
+    // return the element packet (will have many unused nodes - that's OK)
+    pack.emplace_back(ElementPacket<float>({x, idx, vals, (size_t)(np), (uint8_t)1}));
+  }
+
+  //
+  // third EP is the open boundary
+  //
+  std::cout << "Generate Open Boundary" << std::endl;
+  {
+    const size_t np = 4*(nf-ns);
+    std::cout << "  open has " << np << " edges" << std::endl;
+    // set the idx pointers to the new surface elements
+    idx.clear();
+
+    // march around the interior square CCW, from bottom-left, so left points into Euler region
+    // left, bottom to top
+    for (size_t i=ns; i<nf; ++i) {
+      idx.push_back(ns+(i)*(nx+1));
+      idx.push_back(ns+(i+1)*(nx+1));
+    }
+    // top, left to right
+    for (size_t i=ns; i<nf; ++i) {
+      idx.push_back(i+nf*(nx+1));
+      idx.push_back(1+i+nf*(nx+1));
+    }
+    // right, top to bottom
+    for (size_t i=ns; i<nf; ++i) {
+      idx.push_back(nf+(nx-i)*(nx+1));
+      idx.push_back(nf+(nx-i-1)*(nx+1));
+    }
+    // bottom, right to left
+    for (size_t i=ns; i<nf; ++i) {
+      idx.push_back((ns+1)*(nx+1)-i-1);
+      idx.push_back((ns+1)*(nx+1)-i-2);
+    }
+
+    // set boundary condition value to 0.0 (velocity BC)
+    vals.resize(np);
+    std::fill(vals.begin(), vals.end(), 0.0);
+
+    // return the element packet (will have many unused nodes - that's OK)
+    pack.emplace_back(ElementPacket<float>({x, idx, vals, (size_t)(np), (uint8_t)1}));
+  }
+
+  return pack;
+}
+
+
 //
 // Create the volume and boundary grids for this feature
 //
 std::vector<ElementPacket<float>>
 FromMsh::init_hybrid(const float _ips) const {
+
+  if (m_infile == "cavity mesh") return init_hybrid_dc(0.025, 0.1);
 
   // we need to have three ElementPacket objects in this vector:
   //   first one is the Volumes (2D) elements
