@@ -1389,10 +1389,14 @@ FromMsh::init_elements(const float _ips) const {
   const size_t np = wall.N_edges;
   std::cout << "  wall has " << np << " edges" << std::endl;
   for (uint32_t thisedge : wall.edges) {
-    //std::cout << "  edge " << thisedge << " has " << edges[thisedge].N_nodes << " nodes" << std::endl;
+    if (false) {
+      std::cout << "  edge " << thisedge << " has " << edges[thisedge].N_nodes << " nodes:";
+      for (size_t i=0; i<edges[thisedge].N_nodes; ++i) std::cout << " " << edges[thisedge].nodes[i];
+      std::cout << std::endl;
+    }
     // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
     assert(edges[thisedge].N_nodes > 1 && "Edge does not have enough nodes!");
-    // HACK - annular gmsh meshes have wall defined CCW (right wall is to fluid), not CW (left wall is)
+    // with new gmsh-reader, edge elems are now ordered CCW (fluid is to left as 0 -> 1)
     idx.push_back(edges[thisedge].nodes[0]);
     idx.push_back(edges[thisedge].nodes[1]);
     // TODO: check edge element length vs. _ips and subsample if necessary
@@ -1538,10 +1542,12 @@ FromMsh::init_hybrid(const float _ips) const {
       //std::cout << "  edge " << thisedge << " has " << nn << " nodes" << std::endl;
       // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
       assert(nn > 1 && "Edge does not have enough nodes!");
-      // reversing the orientation of the wall elements
-      idx.push_back(edges[thisedge].nodes[0]);
-      idx.push_back(edges[thisedge].nodes[1]);
-      for (size_t i=1; i<nn-1; ++i) idx.push_back(edges[thisedge].nodes[nn-i]);
+      // with new gmsh-reader, edge elems are now ordered CCW (fluid is to left as 0 -> 1)
+      //idx.push_back(edges[thisedge].nodes[0]);
+      //idx.push_back(edges[thisedge].nodes[1]);
+      //for (size_t i=1; i<nn-1; ++i) idx.push_back(edges[thisedge].nodes[nn-i]);
+      // why not just be easy?
+      for (size_t i=0; i<nn; ++i) idx.push_back(edges[thisedge].nodes[i]);
       //std::cout << "    ";
       //for (size_t i=0; i<edges[thisedge].N_nodes; ++i) {
       //  std::cout << " " << edges[thisedge].nodes[i];
@@ -1580,7 +1586,7 @@ FromMsh::init_hybrid(const float _ips) const {
       //std::cout << "  edge " << thisedge << " has " << nn << " nodes" << std::endl;
       // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
       assert(nn > 1 && "Edge does not have enough nodes!");
-      // note - annular gmsh meshes have open defined CCW, which is correct here
+      // with new gmsh-reader, edge elems are now ordered CCW (fluid is to left as 0 -> 1)
       //idx.push_back(edges[thisedge].nodes[0]);
       //idx.push_back(edges[thisedge].nodes[1]);
       for (size_t i=0; i<nn; ++i) idx.push_back(edges[thisedge].nodes[i]);
