@@ -1350,6 +1350,9 @@ void SolidAirfoil::generate_draw_geom() {
 ElementPacket<float>
 FromMsh::init_elements_dc(const float _ips) const {
 
+  // don't actually do anything - user must define boundaries in json as well
+  return ElementPacket<float>();
+
   // prepare the data arrays for the element packet
   std::vector<float> x;
   std::vector<Int> idx;
@@ -1548,7 +1551,7 @@ FromMsh::init_hybrid_dc(const float _ips, const float _thk) const {
   std::vector<Int> idx;
   std::vector<float> vals;
 
-  // mesh order!
+  // mesh geometry order!
   const size_t order = 2;
 
   // reused often - number of elements per side
@@ -1588,7 +1591,7 @@ FromMsh::init_hybrid_dc(const float _ips, const float _thk) const {
   idx.resize(nodesperelem*nx*nx);
 
   // using VTK/GMSH node ordering! CCW corners, then CCW side nodes, then middle
-  assert(order < 3 && "Quad elements with order>2 are unsupported");
+  assert(order < 4 && "Quad elements with order>3 are unsupported");
   cnt = 0;
   for (size_t j=0; j<nx; ++j) {
     size_t bl = j*order*(nnx+1);
@@ -1619,14 +1622,23 @@ FromMsh::init_hybrid_dc(const float _ips, const float _thk) const {
           idx[cnt++] = bl + nnx+1 + col;
           // finally the middle
           idx[cnt++] = bl + nnx+1 + col + 1;
-        } else if (order == 3) {
+        } else if (order == 3) {  // is this broken? how?
           // first the corners
           idx[cnt++] = bl + col;
           idx[cnt++] = bl + col + order;
           idx[cnt++] = tl + col + order;
           idx[cnt++] = tl + col;
-          // then the sides
+          // then four sides (S, E, N, W)
+          for (size_t k=1; k<order; ++k) idx[cnt++] = bl + col + k;
+          for (size_t k=1; k<order; ++k) idx[cnt++] = bl + k*(nnx+1) + col + order;
+          for (size_t k=1; k<order; ++k) idx[cnt++] = tl + col + k;
+          for (size_t k=1; k<order; ++k) idx[cnt++] = bl + k*(nnx+1) + col;
           // finally the middle
+          for (size_t k=1; k<order; ++k) {
+            for (size_t l=1; l<order; ++l) {
+              idx[cnt++] = bl + k*(nnx+1) + col + l;
+            }
+          }
         }
         std::cout << "elem " << (cnt/nodesperelem)-1 << " has corners " << idx[cnt-nodesperelem] << " " << idx[cnt-nodesperelem+1] << " " << idx[cnt-nodesperelem+2] << " " << idx[cnt-nodesperelem+3] << std::endl;
       }
@@ -1648,7 +1660,7 @@ FromMsh::init_hybrid_dc(const float _ips, const float _thk) const {
     // set the idx pointers to the new surface elements
     idx.clear();
 
-    // march around the square CW, from bottom-left, so left points into fluid (inside)
+    // march around the square CW, from bottom-left, but always orient in +x or +y dir!
     // bottom, left to right
     size_t first = 0;
     size_t del = 1;
@@ -1671,20 +1683,9 @@ FromMsh::init_hybrid_dc(const float _ips, const float _thk) const {
       }
       first += del*order;
     }
-    // top, right to left
-    first = (nnx+1)*(nnx+1)-1;
-    del = -1;
-    for (size_t i=0; i<nx; ++i) {
-      idx.push_back(first);
-      idx.push_back(first+del*order);
-      for (size_t j=1; j<order; ++j) {
-        idx.push_back(first+del*j);
-      }
-      first += del*order;
-    }
-    // left, top to bottom
+    // top, left to right
     first = nnx*(nnx+1);
-    del = -(nnx+1);
+    del = 1;
     for (size_t i=0; i<nx; ++i) {
       idx.push_back(first);
       idx.push_back(first+del*order);
@@ -1693,7 +1694,18 @@ FromMsh::init_hybrid_dc(const float _ips, const float _thk) const {
       }
       first += del*order;
     }
-    //for (size_t i=0; i<np; ++i) std::cout << "wall " << i << " has ends " << idx[i*(1+order)] << " " << idx[i*(1+order)+1] << std::endl;
+    // left, bottom to top
+    first = 0;
+    del = nnx+1;
+    for (size_t i=0; i<nx; ++i) {
+      idx.push_back(first);
+      idx.push_back(first+del*order);
+      for (size_t j=1; j<order; ++j) {
+        idx.push_back(first+del*j);
+      }
+      first += del*order;
+    }
+    for (size_t i=0; i<np; ++i) std::cout << "wall " << i << " has ends " << idx[i*(1+order)] << " " << idx[i*(1+order)+1] << std::endl;
 
     // set boundary condition value to 0.0 (velocity BC)
     vals.resize(np);
@@ -1713,7 +1725,7 @@ FromMsh::init_hybrid_dc(const float _ips, const float _thk) const {
     // set the idx pointers to the new surface elements
     idx.clear();
 
-    // march around the interior square CCW, from bottom-left, so left points into Euler region
+    // march around the interior square CCW, from bottom-left, but always orient in +x or +y dir!
     // left, bottom to top
     size_t orig = ns*order;
     size_t del = nnx+1;
@@ -1736,9 +1748,9 @@ FromMsh::init_hybrid_dc(const float _ips, const float _thk) const {
         idx.push_back(first+del*j);
       }
     }
-    // right, top to bottom
-    orig = nnx*(nnx+1) + nf*order;
-    del = -(nnx+1);
+    // right, bottom to top
+    orig = nf*order;
+    del = nnx+1;
     for (size_t i=ns; i<nf; ++i) {
       const size_t first = orig + i*order*del;
       idx.push_back(first);
@@ -1747,9 +1759,9 @@ FromMsh::init_hybrid_dc(const float _ips, const float _thk) const {
         idx.push_back(first+del*j);
       }
     }
-    // bottom, right to left
-    orig = (ns*order+1)*(nnx+1)-1;
-    del = -1;
+    // bottom, left to right
+    orig = ns*order*(nnx+1);
+    del = 1;
     for (size_t i=ns; i<nf; ++i) {
       const size_t first = orig + i*order*del;
       idx.push_back(first);
@@ -1758,7 +1770,7 @@ FromMsh::init_hybrid_dc(const float _ips, const float _thk) const {
         idx.push_back(first+del*j);
       }
     }
-    //for (size_t i=0; i<np; ++i) std::cout << "open " << i << " has ends " << idx[i*(1+order)] << " " << idx[i*(1+order)+1] << std::endl;
+    for (size_t i=0; i<np; ++i) std::cout << "open " << i << " has ends " << idx[i*(1+order)] << " " << idx[i*(1+order)+1] << std::endl;
 
     // set boundary condition value to 0.0 (velocity BC)
     vals.resize(np);
@@ -1778,7 +1790,7 @@ FromMsh::init_hybrid_dc(const float _ips, const float _thk) const {
 std::vector<ElementPacket<float>>
 FromMsh::init_hybrid(const float _ips) const {
 
-  if (m_infile == "cavity mesh") return init_hybrid_dc(0.025, 0.1);
+  if (m_infile == "cavity mesh") return init_hybrid_dc(0.02, 0.1);
 
   // we need to have three ElementPacket objects in this vector:
   //   first one is the Volumes (2D) elements
