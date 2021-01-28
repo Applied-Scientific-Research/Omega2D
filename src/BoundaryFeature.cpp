@@ -1548,20 +1548,28 @@ FromMsh::init_hybrid_dc(const float _ips, const float _thk) const {
   std::vector<Int> idx;
   std::vector<float> vals;
 
+  // mesh order!
+  const size_t order = 2;
+
   // reused often - number of elements per side
   const size_t nx = std::max(1,(int)(0.5 + 1.0/_ips));
+  // number of subelements per side
+  const size_t nnx = nx*order;
 
   // limits of interior elems (n start and n finish)
   const size_t ns = std::max(1,(int)(0.5 + _thk/_ips));
   const size_t nf = nx-ns;
-  // for unit square, 0.1 cell size, 0.1 thickness, nx=10, ns=1, nf=9
+  // for unit square, 1st order, 0.1 cell size, 0.1 thickness, nx=10, ns=1, nf=9
 
   // generate all nodes, even unused ones, on a regular grid
-  for (size_t j=0; j<nx+1; ++j) {
-    const float yval = (float)j/(float)nx;
-    for (size_t i=0; i<nx+1; ++i) {
-      x.push_back((float)i/(float)nx);
-      x.push_back(yval);
+  x.resize(2*(nnx+1)*(nnx+1));
+  size_t cnt = 0;
+  for (size_t j=0; j<nnx+1; ++j) {
+    const float yval = (float)j/(float)nnx;
+    for (size_t i=0; i<nnx+1; ++i) {
+      x[cnt++] = (float)i/(float)nnx;
+      x[cnt++] = yval;
+      //std::cout << "node " << (cnt/2)-1 << " is at " << x[cnt-2] << " " << x[cnt-1] << std::endl;
     }
   }
   const Int nn = x.size() / 2;
@@ -1576,19 +1584,55 @@ FromMsh::init_hybrid_dc(const float _ips, const float _thk) const {
   const size_t ne = nx*nx - (nf-ns)*(nf-ns);
   std::cout << "  volume has " << ne << " elems" << std::endl;
 
+  const size_t nodesperelem = std::pow(order+1, 2);
+  idx.resize(nodesperelem*nx*nx);
+
   // using VTK/GMSH node ordering! CCW corners, then CCW side nodes, then middle
+  assert(order < 3 && "Quad elements with order>2 are unsupported");
+  cnt = 0;
   for (size_t j=0; j<nx; ++j) {
+    size_t bl = j*order*(nnx+1);
+    size_t tl = (j+1)*order*(nnx+1);
     for (size_t i=0; i<nx; ++i) {
       if (j<ns or j>nf-1 or i<ns or i>nf-1) {
-        // find the node IDs in this order: sw, se, ne, nw
-        idx.push_back(j*(nx+1)+i);
-        idx.push_back(j*(nx+1)+i+1);
-        idx.push_back((j+1)*(nx+1)+i+1);
-        idx.push_back((j+1)*(nx+1)+i);
+        size_t col = order*i;
+        if (order == 1) {
+          // find the node IDs in this order: sw, se, ne, nw
+          //idx[cnt++] = j*(nx+1)+i;
+          idx[cnt++] = bl + col;
+          //idx[cnt++] = j*(nx+1)+i+1;
+          idx[cnt++] = bl + col + order;
+          //idx[cnt++] = (j+1)*(nx+1)+i+1;
+          idx[cnt++] = tl + col + order;
+          //idx[cnt++] = (j+1)*(nx+1)+i;
+          idx[cnt++] = tl + col;
+        } else if (order == 2) {
+          // first the corners
+          idx[cnt++] = bl + col;
+          idx[cnt++] = bl + col + order;
+          idx[cnt++] = tl + col + order;
+          idx[cnt++] = tl + col;
+          // then the sides
+          idx[cnt++] = bl + col + 1;
+          idx[cnt++] = bl + nnx+1 + col + order;
+          idx[cnt++] = tl + col + 1;
+          idx[cnt++] = bl + nnx+1 + col;
+          // finally the middle
+          idx[cnt++] = bl + nnx+1 + col + 1;
+        } else if (order == 3) {
+          // first the corners
+          idx[cnt++] = bl + col;
+          idx[cnt++] = bl + col + order;
+          idx[cnt++] = tl + col + order;
+          idx[cnt++] = tl + col;
+          // then the sides
+          // finally the middle
+        }
+        std::cout << "elem " << (cnt/nodesperelem)-1 << " has corners " << idx[cnt-nodesperelem] << " " << idx[cnt-nodesperelem+1] << " " << idx[cnt-nodesperelem+2] << " " << idx[cnt-nodesperelem+3] << std::endl;
       }
     }
   }
-  // if that was successful, then nnpe is the correct number of nodes per element
+  idx.resize(cnt);
 
   // check all nodes for validity? or is that in the ctor?
   pack.emplace_back(ElementPacket<float>({x, idx, vals, (size_t)(ne), (uint8_t)2}));
@@ -1606,25 +1650,50 @@ FromMsh::init_hybrid_dc(const float _ips, const float _thk) const {
 
     // march around the square CW, from bottom-left, so left points into fluid (inside)
     // bottom, left to right
+    size_t first = 0;
+    size_t del = 1;
     for (size_t i=0; i<nx; ++i) {
-      idx.push_back(i);
-      idx.push_back(i+1);
+      idx.push_back(first);
+      idx.push_back(first+del*order);
+      for (size_t j=1; j<order; ++j) {
+        idx.push_back(first+del*j);
+      }
+      first += del*order;
     }
     // right, bottom to top
+    first = nnx;
+    del = nnx+1;
     for (size_t i=0; i<nx; ++i) {
-      idx.push_back(nx+i*(nx+1));
-      idx.push_back(nx+(i+1)*(nx+1));
+      idx.push_back(first);
+      idx.push_back(first+del*order);
+      for (size_t j=1; j<order; ++j) {
+        idx.push_back(first+del*j);
+      }
+      first += del*order;
     }
     // top, right to left
+    first = (nnx+1)*(nnx+1)-1;
+    del = -1;
     for (size_t i=0; i<nx; ++i) {
-      idx.push_back((nx+1)*(nx+1)-1-i);
-      idx.push_back((nx+1)*(nx+1)-2-i);
+      idx.push_back(first);
+      idx.push_back(first+del*order);
+      for (size_t j=1; j<order; ++j) {
+        idx.push_back(first+del*j);
+      }
+      first += del*order;
     }
     // left, top to bottom
+    first = nnx*(nnx+1);
+    del = -(nnx+1);
     for (size_t i=0; i<nx; ++i) {
-      idx.push_back((nx-i)*(nx+1));
-      idx.push_back((nx-i-1)*(nx+1));
+      idx.push_back(first);
+      idx.push_back(first+del*order);
+      for (size_t j=1; j<order; ++j) {
+        idx.push_back(first+del*j);
+      }
+      first += del*order;
     }
+    //for (size_t i=0; i<np; ++i) std::cout << "wall " << i << " has ends " << idx[i*(1+order)] << " " << idx[i*(1+order)+1] << std::endl;
 
     // set boundary condition value to 0.0 (velocity BC)
     vals.resize(np);
@@ -1646,25 +1715,50 @@ FromMsh::init_hybrid_dc(const float _ips, const float _thk) const {
 
     // march around the interior square CCW, from bottom-left, so left points into Euler region
     // left, bottom to top
+    size_t orig = ns*order;
+    size_t del = nnx+1;
     for (size_t i=ns; i<nf; ++i) {
-      idx.push_back(ns+(i)*(nx+1));
-      idx.push_back(ns+(i+1)*(nx+1));
+      const size_t first = orig + i*order*del;
+      idx.push_back(first);
+      idx.push_back(first+del*order);
+      for (size_t j=1; j<order; ++j) {
+        idx.push_back(first+del*j);
+      }
     }
     // top, left to right
+    orig = nf*order*(nnx+1);
+    del = 1;
     for (size_t i=ns; i<nf; ++i) {
-      idx.push_back(i+nf*(nx+1));
-      idx.push_back(1+i+nf*(nx+1));
+      const size_t first = orig + i*order*del;
+      idx.push_back(first);
+      idx.push_back(first+del*order);
+      for (size_t j=1; j<order; ++j) {
+        idx.push_back(first+del*j);
+      }
     }
     // right, top to bottom
+    orig = nnx*(nnx+1) + nf*order;
+    del = -(nnx+1);
     for (size_t i=ns; i<nf; ++i) {
-      idx.push_back(nf+(nx-i)*(nx+1));
-      idx.push_back(nf+(nx-i-1)*(nx+1));
+      const size_t first = orig + i*order*del;
+      idx.push_back(first);
+      idx.push_back(first+del*order);
+      for (size_t j=1; j<order; ++j) {
+        idx.push_back(first+del*j);
+      }
     }
     // bottom, right to left
+    orig = (ns*order+1)*(nnx+1)-1;
+    del = -1;
     for (size_t i=ns; i<nf; ++i) {
-      idx.push_back((ns+1)*(nx+1)-i-1);
-      idx.push_back((ns+1)*(nx+1)-i-2);
+      const size_t first = orig + i*order*del;
+      idx.push_back(first);
+      idx.push_back(first+del*order);
+      for (size_t j=1; j<order; ++j) {
+        idx.push_back(first+del*j);
+      }
     }
+    //for (size_t i=0; i<np; ++i) std::cout << "open " << i << " has ends " << idx[i*(1+order)] << " " << idx[i*(1+order)+1] << std::endl;
 
     // set boundary condition value to 0.0 (velocity BC)
     vals.resize(np);
