@@ -151,6 +151,11 @@ int main(int argc, char const *argv[]) {
     std::cout << std::endl << "Wrote simulation to " << outfile << std::endl;
   }
 
+  // save data at final step
+  if (true) {
+    sim.write_vtk();
+  }
+
   // Cleanup
   std::cout << "Starting shutdown procedure" << std::endl;
   sim.reset();
