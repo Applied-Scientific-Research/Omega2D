@@ -671,6 +671,14 @@ public:
       ptsWriter.closeElement(); // DataArray
     }
 
+    if (this->has_shear()) {
+      std::map<std::string, std::string> attribs = {{"Name", "shearrate"},
+                                                    {"type", "Float32"}};
+      ptsWriter.addElement("DataArray", attribs);
+      ptsWriter.writeDataArray(*(this->e));
+      ptsWriter.closeElement(); // DataArray
+    }
+
     {
       std::map<std::string, std::string> attribs = {{"NumberOfComponents", "3"},
                                                     {"Name",               "velocity"},

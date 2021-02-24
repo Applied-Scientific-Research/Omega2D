@@ -1,7 +1,7 @@
 /*
  * ElementBase.h - abstract class for arrays of any computational elements
  *
- * (c)2018-20 Applied Scientific Research, Inc.
+ * (c)2018-21 Applied Scientific Research, Inc.
  *            Mark J Stock <markjstock@gmail.com>
  */
 
@@ -78,6 +78,26 @@ public:
     }
     *w = _in;
     //std::cout << "Received vorticity on " << n << " nodes, starting with " << (*w)[0] << std::endl;
+  }
+
+  const bool has_shear() const { return (bool)e; }
+  const Vector<S>& get_shear() const {
+    // can't change this object, so return what we have
+    return *e;
+  }
+  Vector<S>& get_shear() {
+    // allowed to change this object, to resize or create the Vector
+    if (e) {
+      // check size before returning
+      if (e->size() != n) e->resize(n);
+    } else {
+      // allocate and zero before returning
+      Vector<S> new_shear;
+      new_shear.resize(n);
+      e = std::move(new_shear);
+      std::fill((*e).begin(), (*e).end(), 0.0);
+    }
+    return *e;
   }
 
   void set_str(const size_t ioffset, const size_t icnt, Vector<S> _in) {
@@ -214,6 +234,10 @@ public:
       if (w->size() != n) w->resize(n);
       std::fill((*w).begin(), (*w).end(), 0.0);
     }
+    if (e) {
+      if (e->size() != n) e->resize(n);
+      std::fill((*e).begin(), (*e).end(), 0.0);
+    }
   }
 
   // should rename these finalize_results
@@ -228,6 +252,13 @@ public:
       assert(w->size() == n && "Vorticity vector not sized properly in finalize_vels");
       for (size_t i=0; i<get_n(); ++i) {
         (*w)[i] *= factor;
+      }
+    }
+    if (e) {
+      assert(e->size() == n && "Shear rate vector not sized properly in finalize_vels");
+      for (size_t i=0; i<get_n(); ++i) {
+        (*e)[i] *= factor;
+        std::cout << "    elem " << i << " has shear rate " << (S)(*e)[i] << std::endl;
       }
     }
   }
@@ -419,6 +450,7 @@ protected:
   // time derivative of state vector
   std::array<Vector<S>,Dimensions> u;                   // velocity at nodes
   std::optional<Vector<S>> w;                           // vorticity at nodes
+  std::optional<Vector<S>> e;                           // shear rate at nodes
   //std::optional<std::array<Vector<S>,Dimensions>> dsdt; // strength change
 
   // for objects moving with a body

@@ -145,7 +145,29 @@ void points_affect_points (const Points<S>& src, Points<S>& targ, const ResultsT
           tw[i] += accumw.sum();
         }
         //std::cout << "pt " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
-        flops *= 2.0 + (float)flopsuw_0v_0p<S,A>() * (float)src.get_n();
+        flops *= 3.0 + (float)flopsuw_0v_0p<S,A>() * (float)src.get_n();
+      }
+      if (restype.get_type() == velandshear) {
+        Vector<S>& te = targ.get_shear();
+        #pragma omp parallel for
+        for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+          const StoreVec txv = tx[0][i];
+          const StoreVec tyv = tx[1][i];
+          AccumVec accumu = 0.0;
+          AccumVec accumv = 0.0;
+          AccumVec accume = 0.0;
+          for (size_t j=0; j<sxv.vectorsCount(); ++j) {
+            kernelue_0v_0p<StoreVec,AccumVec>(
+                              sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
+                              txv, tyv,
+                              &accumu, &accumv, &accume);
+          }
+          tu[0][i] += accumu.sum();
+          tu[1][i] += accumv.sum();
+          te[i] += accume.sum();
+        }
+        //std::cout << "pt " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
+        flops *= 3.0 + (float)flopsue_0v_0p<S,A>() * (float)src.get_n();
       }
     } else
 #endif  // no Vc
@@ -182,7 +204,26 @@ void points_affect_points (const Points<S>& src, Points<S>& targ, const ResultsT
           tw[i] += accumw;
           //std::cout << "pt " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
         }
-        flops *= 2.0 + (float)flopsuw_0v_0p<S,A>() * (float)src.get_n();
+        flops *= 3.0 + (float)flopsuw_0v_0p<S,A>() * (float)src.get_n();
+      }
+      if (restype.get_type() == velandshear) {
+        Vector<S>& te = targ.get_shear();
+        #pragma omp parallel for
+        for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+          A accumu = 0.0;
+          A accumv = 0.0;
+          A accume = 0.0;
+          for (size_t j=0; j<src.get_n(); ++j) {
+            kernelue_0v_0p<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
+                                tx[0][i], tx[1][i],
+                                &accumu, &accumv, &accume);
+          }
+          tu[0][i] += accumu;
+          tu[1][i] += accumv;
+          te[i] += accume;
+          //std::cout << "pt " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
+        }
+        flops *= 3.0 + (float)flopsue_0v_0p<S,A>() * (float)src.get_n();
       }
     }
 
@@ -253,7 +294,30 @@ void points_affect_points (const Points<S>& src, Points<S>& targ, const ResultsT
           tw[i] += accumw.sum();
           //std::cout << "part " << i << " has new vort " << tw[i] << std::endl;
         }
-        flops *= 2.0 + (float)flopsu_0v_0b<S,A>() * (float)src.get_n();
+        flops *= 3.0 + (float)flopsuw_0v_0b<S,A>() * (float)src.get_n();
+      }
+      if (restype.get_type() == velandshear) {
+        Vector<S>& te = targ.get_shear();
+        #pragma omp parallel for
+        for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+          const StoreVec txv = tx[0][i];
+          const StoreVec tyv = tx[1][i];
+          const StoreVec trv = tr[i];
+          AccumVec accumu = 0.0;
+          AccumVec accumv = 0.0;
+          AccumVec accume = 0.0;
+          for (size_t j=0; j<sxv.vectorsCount(); ++j) {
+            kernelue_0v_0b<StoreVec,AccumVec>(
+                              sxv.vector(j), syv.vector(j), srv.vector(j), ssv.vector(j),
+                              txv, tyv, trv,
+                              &accumu, &accumv, &accume);
+          }
+          tu[0][i] += accumu.sum();
+          tu[1][i] += accumv.sum();
+          te[i] += accume.sum();
+          //std::cout << "part " << i << " has new vort " << tw[i] << std::endl;
+        }
+        flops *= 3.0 + (float)flopsue_0v_0b<S,A>() * (float)src.get_n();
       }
     } else
 #endif  // no Vc
@@ -293,7 +357,27 @@ void points_affect_points (const Points<S>& src, Points<S>& targ, const ResultsT
           tu[1][i] += accumv;
           tw[i] += accumw;
         }
-        flops *= 2.0 + (float)flopsuw_0v_0b<S,A>() * (float)src.get_n();
+        flops *= 3.0 + (float)flopsuw_0v_0b<S,A>() * (float)src.get_n();
+      }
+      if (restype.get_type() == velandshear) {
+        Vector<S>& te = targ.get_shear();
+        #pragma omp parallel for
+        for (int32_t i=0; i<(int32_t)targ.get_n(); ++i) {
+          A accumu = 0.0;
+          A accumv = 0.0;
+          A accume = 0.0;
+          if (restype.compute_vel()) {
+            for (size_t j=0; j<src.get_n(); ++j) {
+              kernelue_0v_0b<S,A>(sx[0][j], sx[1][j], sr[j], ss[j], 
+                                  tx[0][i], tx[1][i], tr[i],
+                                  &accumu, &accumv, &accume);
+            }
+          }
+          tu[0][i] += accumu;
+          tu[1][i] += accumv;
+          te[i] += accume;
+        }
+        flops *= 3.0 + (float)flopsue_0v_0b<S,A>() * (float)src.get_n();
       }
       //std::cout << "part " << i << " has new vel " << tu[0][i] << " " << tu[1][i] << std::endl;
     }

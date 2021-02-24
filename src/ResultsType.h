@@ -1,8 +1,8 @@
 /*
  * ResultsType.h - Solution types from influence calculations
  *
- * (c)2020 Applied Scientific Research, Inc.
- *         Mark J Stock <markjstock@gmail.com>
+ * (c)2020-1 Applied Scientific Research, Inc.
+ *           Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -11,10 +11,11 @@
 
 // solver type/order
 enum results_t {
-  velonly    = 1,
-  velandgrad = 2,
-  psionly    = 3,
-  velandvort = 4
+  velonly     = 1,
+  velandgrad  = 2,
+  psionly     = 3,
+  velandvort  = 4,
+  velandshear = 5
 };
 
 //
@@ -55,6 +56,9 @@ public:
   const bool compute_grad() const { return m_rtype == velandgrad; }
   // vorticity (1-component)
   const bool compute_vort() const { return m_rtype == velandvort; }
+  // shear rate (1-component)
+  const bool compute_shear() const { return m_rtype == velandshear; }
+
   const results_t get_type() const { return m_rtype; }
 
   std::string to_string() {
@@ -67,6 +71,7 @@ public:
     else if (_type == velonly) mystr += " for vel";
     else if (_type == velandgrad) mystr += " for vel and grad";
     else if (_type == velandvort) mystr += " for vel and vort";
+    else if (_type == velandshear) mystr += " for vel and shear";
     return mystr;
   }
 
