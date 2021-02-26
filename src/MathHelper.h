@@ -61,6 +61,26 @@ static inline S my_recip(const S _in) {
 
 #ifdef USE_VC
 template <class S>
+static inline S my_sqrt(const S _in) {
+  return Vc::sqrt(_in);
+}
+template <>
+inline float my_sqrt(const float _in) {
+  return std::sqrt(_in);
+}
+template <>
+inline double my_sqrt(const double _in) {
+  return std::sqrt(_in);
+}
+#else
+template <class S>
+static inline S my_sqrt(const S _in) {
+  return std::sqrt(_in);
+}
+#endif
+
+#ifdef USE_VC
+template <class S>
 static inline S my_rsqrt(const S _in) {
   return Vc::rsqrt(_in);
 }

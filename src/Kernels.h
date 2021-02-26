@@ -1,7 +1,7 @@
 /*
  * Kernels.h - Non-class inner kernels for influence calculations
  *
- * (c)2017-20 Applied Scientific Research, Inc.
+ * (c)2017-21 Applied Scientific Research, Inc.
  *            Mark J Stock <markjstock@gmail.com>
  */
 
@@ -169,7 +169,7 @@ static inline void kerneluw_0v_0b (const S sx, const S sy, const S sr, const S s
 // Velocity plus scalar rate of strain kernels
 //
 
-template <class S, class A> size_t flopsue_0v_0p () { return 19 + flops_tp_grads<S>(); }
+template <class S, class A> size_t flopsue_0v_0p () { return 23 + flops_tp_grads<S>(); }
 template <class S, class A>
 static inline void kernelue_0v_0p (const S sx, const S sy, const S sr, const S ss,
                                    const S tx, const S ty,
@@ -185,12 +185,15 @@ static inline void kernelue_0v_0p (const S sx, const S sy, const S sr, const S s
   *tu -= r2 * dy;
   *tv += r2 * dx;
   // and the grads
-  const S dudy = -bbb*dy*dy - r2;
-  const S dvdx =  bbb*dx*dx + r2;
-  *te += dvdx + dudy;
+  const S dudx = -bbb*dx*dy;
+  //const S dudy = -bbb*dy*dy - r2;
+  //const S dvdx =  bbb*dx*dx + r2;
+  //const S asym = dvdx + dudy;
+  const S asym = bbb*(dx*dx - dy*dy);
+  *te += my_sqrt<S>(dudx*dudx + S(0.25)*asym*asym);
 }
 
-template <class S, class A> size_t flopsue_0v_0b () { return 19 + flops_tv_grads<S>(); }
+template <class S, class A> size_t flopsue_0v_0b () { return 23 + flops_tv_grads<S>(); }
 template <class S, class A>
 static inline void kernelue_0v_0b (const S sx, const S sy, const S sr, const S ss,
                                    const S tx, const S ty, const S tr,
@@ -206,9 +209,12 @@ static inline void kernelue_0v_0b (const S sx, const S sy, const S sr, const S s
   *tu -= r2 * dy;
   *tv += r2 * dx;
   // and the grads
-  const S dudy = -bbb*dy*dy - r2;
-  const S dvdx =  bbb*dx*dx + r2;
-  *te += dvdx + dudy;
+  const S dudx = -bbb*dx*dy;
+  //const S dudy = -bbb*dy*dy - r2;
+  //const S dvdx =  bbb*dx*dx + r2;
+  //*te += dvdx + dudy;
+  const S asym = bbb*(dx*dx - dy*dy);
+  *te += my_sqrt<S>(dudx*dudx + S(0.25)*asym*asym);
 }
 
 
