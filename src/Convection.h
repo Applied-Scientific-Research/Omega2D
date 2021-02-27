@@ -306,6 +306,7 @@ void Convection<S,A,I>::advect_1st(const double                         _time,
 
   // wrap up movement by pushing away particles inside or too close to the body
   clear_inner_layer<S>(1, _bdry, _vort, 0.5/std::sqrt(2.0*M_PI), _ips);
+  clear_inner_layer<S>(1, _bdry, _fldpt, 0.5/std::sqrt(2.0*M_PI), _ips);
 }
 
 
