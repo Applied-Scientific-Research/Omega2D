@@ -24,6 +24,7 @@
 #include <array>
 #include <algorithm> // for max_element
 #include <optional>
+#include <iomanip> // for setfill
 #include <cassert>
 
 const std::string vert_shader_source =
