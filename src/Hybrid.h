@@ -533,7 +533,6 @@ void Hybrid<S,A,I>::step(const double                         _time,
     // find the Lagrangian-computed vorticity on all solution nodes (make a vector of one collection)
     std::vector<Collection> euler_vols;
     euler_vols.emplace_back(solnpts);	// this is a COPY
-    //_conv.find_vels(_fs, _vort, _bdry, euler_vols, velandvort, true);
     _conv.find_vort(_vort, _bdry, euler_vols);
     Points<float>& solvedpts = std::get<Points<S>>(euler_vols[0]);
     Vector<S>& lagvort = solvedpts.get_vort();

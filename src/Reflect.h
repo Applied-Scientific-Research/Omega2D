@@ -1,8 +1,8 @@
 /*
  * Reflect.h - Non-class particle-panel reflecting operation
  *
- * (c)2017-9 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
+ * (c)2017-21 Applied Scientific Research, Inc.
+ *            Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -15,6 +15,7 @@
 #include <limits>
 #include <vector>
 #include <cmath>
+#include <chrono>
 
 enum ClosestType { panel, node };
 
@@ -113,6 +114,7 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
   std::array<Vector<S>,Dimensions> const& sx = _src.get_pos();
   std::vector<Int> const&                 si = _src.get_idx();
   std::array<Vector<S>,Dimensions> const& sn = _src.get_norm();
+  const size_t nper = si.size() / _src.get_npanels();   // we can have >2 nodes per elem now
   std::array<Vector<S>,Dimensions>&       tx = _targ.get_pos();
 
   // pre-compute the *node* normals
@@ -123,8 +125,8 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
   }
   for (size_t j=0; j<_src.get_npanels(); ++j) {
     // nodes in this panel
-    const Int ip0 = si[2*j];
-    const Int ip1 = si[2*j+1];
+    const Int ip0 = si[nper*j];
+    const Int ip1 = si[nper*j+1];
     // add the normal to each of the nodes
     nn[0][ip0] += sn[0][j];
     nn[1][ip0] += sn[1][j];
@@ -145,8 +147,8 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
 
     // iterate and search for closest panel
     for (size_t j=0; j<_src.get_npanels(); ++j) {
-      const Int jp0 = si[2*j+0];
-      const Int jp1 = si[2*j+1];
+      const Int jp0 = si[nper*j+0];
+      const Int jp1 = si[nper*j+1];
       ClosestReturn<S> result = panel_point_distance<S>(sx[0][jp0], sx[1][jp0],
                                                         sx[0][jp1], sx[1][jp1],
                                                         tx[0][i],   tx[1][i]);
@@ -156,7 +158,7 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
         // we blew the old one away
         mindist = result.distsq;
         if (result.disttype == node) {
-          result.jidx = si[2*j+result.jidx];
+          result.jidx = si[nper*j+result.jidx];
         } else {
           result.jidx = j;
         }
@@ -168,7 +170,7 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
       } else if (result.distsq < std::nextafter(mindist, std::numeric_limits<S>::max())) {
         // we are effectively the same as the old closest
         if (result.disttype == node) {
-          result.jidx = si[2*j+result.jidx];
+          result.jidx = si[nper*j+result.jidx];
         } else {
           result.jidx = j;
         }
@@ -440,6 +442,7 @@ S clear_inner_panp2 (const int _method,
   std::array<Vector<S>,Dimensions> const& sx = _src.get_pos();
   std::vector<Int> const&                 si = _src.get_idx();
   std::array<Vector<S>,Dimensions> const& sn = _src.get_norm();
+  const size_t nper = si.size() / _src.get_npanels();   // we can have >2 nodes per elem now
 
   std::array<Vector<S>,Dimensions>&       tx = _targ.get_pos();
   Vector<S>&                              ts = _targ.get_str();
@@ -455,8 +458,8 @@ S clear_inner_panp2 (const int _method,
   }
   for (size_t j=0; j<_src.get_npanels(); ++j) {
     // nodes in this panel
-    const Int ip0 = si[2*j];
-    const Int ip1 = si[2*j+1];
+    const Int ip0 = si[nper*j];
+    const Int ip1 = si[nper*j+1];
     // add the normal to each of the nodes
     nn[0][ip0] += sn[0][j];
     nn[1][ip0] += sn[1][j];
@@ -492,16 +495,18 @@ S clear_inner_panp2 (const int _method,
 
         // iterate and search for closest panel/node
         for (size_t j=0; j<_src.get_npanels(); ++j) {
-          ClosestReturn<S> result = panel_point_distance<S>(sx[0][si[2*j]],   sx[1][si[2*j]],
-                                                            sx[0][si[2*j+1]], sx[1][si[2*j+1]],
-                                                            tx[0][i],         tx[1][i]);
+          const Int jp0 = si[nper*j+0];
+          const Int jp1 = si[nper*j+1];
+          ClosestReturn<S> result = panel_point_distance<S>(sx[0][jp0], sx[1][jp0],
+                                                            sx[0][jp1], sx[1][jp1],
+                                                            tx[0][i],   tx[1][i]);
 
           //if (result.distsq < mindist - eps) {
           if (result.distsq < std::nextafter(mindist,0.0)) {
             // we blew the old one away
             mindist = result.distsq;
             if (result.disttype == node) {
-              result.jidx = si[2*j+result.jidx];
+              result.jidx = si[nper*j+result.jidx];
             } else {
               result.jidx = j;
             }
@@ -512,7 +517,7 @@ S clear_inner_panp2 (const int _method,
           } else if (result.distsq < std::nextafter(mindist, std::numeric_limits<S>::max())) {
             // we are effectively the same as the old closest
             if (result.disttype == node) {
-              result.jidx = si[2*j+result.jidx];
+              result.jidx = si[nper*j+result.jidx];
             } else {
               result.jidx = j;
             }
@@ -691,5 +696,63 @@ void clear_inner_layer(const int                _method,
 
     // if lagrangian Surfaces (to be supported someday), we also need to push the nodes out
   }
+}
+
+
+//
+// calculate the distance from every point in Points to the nearest part of Surfaces
+//
+template <class S>
+Vector<S> get_nearest_distances(const Surfaces<S>& _src,
+                                const Points<S>&   _targ) {
+
+  std::cout << "  Finding distances to " << _targ.to_string() << " from " << _src.to_string() << std::endl;
+  auto start = std::chrono::system_clock::now();
+
+  int32_t itest = -1;
+  //int32_t itest = 46035;
+
+  // get handles for the vectors
+  std::array<Vector<S>,Dimensions> const& sx = _src.get_pos();
+  std::vector<Int> const&                 si = _src.get_idx();
+  std::array<Vector<S>,Dimensions> const& tx = _targ.get_pos();
+  const size_t nper = si.size() / _src.get_npanels();   // we can have >2 nodes per elem now
+
+  // prepare the output vector
+  Vector<S> distances;
+  distances.resize(_targ.get_n());
+
+  #pragma omp parallel for
+  for (int32_t i=0; i<(int32_t)_targ.get_n(); ++i) {
+    S mindist = std::numeric_limits<S>::max();
+    if (itest==i) std::cout << "  testing pt " << itest << " at " << tx[0][i] << " " << tx[1][i] << std::endl;
+
+    // iterate and search for closest panel
+    for (size_t j=0; j<_src.get_npanels(); ++j) {
+      const Int jp0 = si[nper*j+0];
+      const Int jp1 = si[nper*j+1];
+      ClosestReturn<S> result = panel_point_distance<S>(sx[0][jp0], sx[1][jp0],
+                                                        sx[0][jp1], sx[1][jp1],
+                                                        tx[0][i],   tx[1][i]);
+      if (itest==i) std::cout << "    dist to panel " << j << " at " << sx[0][jp0] << " " << sx[1][jp0] << " is " << std::sqrt(result.distsq) << std::endl;
+
+      if (result.distsq < std::nextafter(mindist,S(0.0))) {
+        // we blew the old one away
+        mindist = result.distsq;
+        if (itest==i) std::cout << "    new close panel " << j << " at " << std::sqrt(mindist) << " next lower float is " << std::sqrt(std::nextafter(mindist,S(0.0))) << std::endl;
+      }
+    }
+
+    distances[i] = std::sqrt(mindist);
+  }
+
+  const S flops = _targ.get_n() * (1.0 + 27.0*_src.get_npanels());
+
+  auto end = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end-start;
+  const float gflops = 1.e-9 * flops / (float)elapsed_seconds.count();
+  printf("    get_nearest_distances: [%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);
+
+  return distances;
 }
 

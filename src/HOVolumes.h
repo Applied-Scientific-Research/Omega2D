@@ -1,8 +1,8 @@
 /*
  * HOVolumes.h - Specialized class for high-order volumes
  *
- * (c)2020 Applied Scientific Research, Inc.
- *         Mark J Stock <markjstock@gmail.com>
+ * (c)2020-1 Applied Scientific Research, Inc.
+ *           Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -12,6 +12,7 @@
 #include "Volumes.h"
 #include "Surfaces.h"
 #include "Points.h"
+#include "Reflect.h"
 
 // versions of the HO solver
 #ifdef HOFORTRAN
@@ -231,34 +232,21 @@ public:
                            const S ptog_center, const S ptog_width) {
 
     // get this array so we can reference it more easily
-    const std::array<Vector<S>,Dimensions>& ptx = soln_p.get_pos();
+    //const std::array<Vector<S>,Dimensions>& ptx = soln_p.get_pos();
 
     // size the arrays properly
     gtop_wgt.resize(soln_p.get_n());
     ptog_wgt.resize(soln_p.get_n());
 
-    // HACK - assumes Eulerian grid is an annulus
-    // find nearest and farthest solution nodes
-    S rnear = 9.9e+9;
-    S rfar = 0.0;
-    for (size_t i=0; i<soln_p.get_n(); ++i) {
-      const S thisrad = std::sqrt(std::pow(ptx[0][i],2)+std::pow(ptx[1][i],2));
-      if (thisrad > rfar) rfar = thisrad;
-      if (thisrad < rnear) rnear = thisrad;
-    }
-    std::cout << "  In set_overlap_weights with band from " << rnear << " to " << rfar << std::endl;
-    // one over the band width
-    //const S oobw = 1.0 / (rfar - rnear);
+    // get distances from test points to outer boundary
+    Vector<S> dist_to_open = get_nearest_distances(open_s, soln_p);
+    Vector<S> dist_to_wall = get_nearest_distances(wall_s, soln_p);
 
-    // now, based on the location of the solution nodes, zero out any
-    //   that are too close to the body - HACK - assumes annular region
-    // ultimately we will need to search for nearest points on open and wall boundaries
+    // now, based on the location of the solution nodes, set the weights
     for (size_t i=0; i<soln_p.get_n(); ++i) {
 
-      // HACK - assume geometry is annular from 0.5 to 1.0
-      const S thisrad = std::sqrt(std::pow(ptx[0][i],2)+std::pow(ptx[1][i],2));
-      // radial location normalized by range, now values are always [0..1]
-      const S normrad = (thisrad-rnear) / (rfar - rnear);
+      // location normalized by range, values are always [0..1]
+      const S normrad = dist_to_wall[i] / (dist_to_wall[i] + dist_to_open[i]);
 
       // grid-to-particle weight - typically peak in the middle and fall off near boundaries
       if (std::abs(normrad-gtop_center) < gtop_width) {
@@ -273,6 +261,9 @@ public:
       } else {
         ptog_wgt[i] = 0.0;
       }
+
+      //std::cout << "soln pt " << i << " at " << ptx[0][i] << " " << ptx[1][i] << " has wgts " << gtop_wgt[i] << " " << ptog_wgt[i] << std::endl;
+      //std::cout << std::fixed << std::setprecision(3) << "soln pt " << i << " at " << ptx[0][i] << " " << ptx[1][i] << " has dists " << dist_to_open[i] << " " << dist_to_wall[i] << " and wgts " << gtop_wgt[i] << " " << ptog_wgt[i] << std::endl;
     }
 
     std::cout << "    set_overlap_weights on " << soln_p.get_n() << " solution nodes" << std::endl;
