@@ -1,8 +1,8 @@
 /*
  * Surfaces.h - Specialized class for surfaces in 2D
  *
- * (c)2019 Applied Scientific Research, Inc.
- *         Written by Mark J Stock <markjstock@gmail.com>
+ * (c)2019-21 Applied Scientific Research, Inc.
+ *            Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -126,25 +126,52 @@ public:
     // are strengths/values on a per-node or per-panel basis? - per panel now
 
     // now, depending on the element type, put the value somewhere
+    const size_t nvalper = _val.size() / nsurfs;
     if (this->E == active) {
       // value is a fixed strength for the segment
-      Vector<S> new_s(_val.size());
+      // first the tangential/vortex component
+      Vector<S> new_s(nsurfs);
       ps[0] = std::move(new_s);
-      std::copy(_val.begin(), _val.end(), ps[0]->begin());
-      Vector<S> new_s1(_val.size());
+      // and the normal/source component
+      Vector<S> new_s1(nsurfs);
       ps[1] = std::move(new_s1);
-      std::copy(_val.begin(), _val.end(), ps[1]->begin());
+
+      // now assign these
+      if (nvalper == 1) {
+        std::copy(_val.begin(), _val.end(), ps[0]->begin());
+        std::fill(ps[1]->begin(), ps[1]->end(), 0.0);
+      } else if (nvalper == 2) {
+        for (size_t i=0; i<nsurfs; ++i) {
+          (*ps[0])[i] = _val[2*i];
+          (*ps[1])[i] = _val[2*i+1];
+        }
+      } else {
+        std::fill(ps[0]->begin(), ps[0]->end(), 0.0);
+        std::fill(ps[1]->begin(), ps[1]->end(), 0.0);
+      }
 
     } else if (this->E == reactive) {
       // value is a boundary condition
       // bc[0] is the tangential BC, typically 0.0
-      Vector<S> new_bc(_val.size());
+      Vector<S> new_bc(nsurfs);
       bc[0] = std::move(new_bc);
-      std::copy(_val.begin(), _val.end(), bc[0]->begin());
       // bc[1] is the normal BC, also typically 0.0
-      Vector<S> new_bc1(_val.size());
+      Vector<S> new_bc1(nsurfs);
       bc[1] = std::move(new_bc1);
-      std::copy(_val.begin(), _val.end(), bc[1]->begin());
+
+      // now assign these
+      if (nvalper == 1) {
+        std::copy(_val.begin(), _val.end(), bc[0]->begin());
+        std::fill(bc[1]->begin(), bc[1]->end(), 0.0);
+      } else if (nvalper == 2) {
+        for (size_t i=0; i<nsurfs; ++i) {
+          (*bc[0])[i] = _val[2*i];
+          (*bc[1])[i] = _val[2*i+1];
+        }
+      } else {
+        std::fill(bc[0]->begin(), bc[0]->end(), 0.0);
+        std::fill(bc[1]->begin(), bc[1]->end(), 0.0);
+      }
 
       // make space for the unknown sheet strengths
       for (size_t d=0; d<2; ++d) {
@@ -313,7 +340,6 @@ public:
 
     // and that it has the right number of values per elem
     if (this->E == inert) assert(_in.val.size() == 0 && "Input ElementPacket with inert Surfaces has nonzero val array");
-    else assert(_in.val.size() == nsurfs && "Input ElementPacket with Surfaces has bad val array size");
 
     // make sure input arrays are correctly-sized
     assert(_in.x.size() % Dimensions == 0 && "Position array is not an even multiple of dimensions");
@@ -366,27 +392,52 @@ public:
     compute_bases(neold+nsurfs);
 
     // now, depending on the element type, put the value somewhere - but panel-wise, so here
+    const size_t nvalper = _in.val.size() / nsurfs;
     if (this->E == active) {
       // value is a fixed strength for the element
-      ps[0]->reserve(neold+nsurfs); 
-      ps[0]->insert(ps[0]->end(), _in.val.begin(), _in.val.end());
-      // HACK - should use the size of _val to determine whether we have data here
-      ps[1]->reserve(neold+nsurfs); 
-      ps[1]->insert(ps[1]->end(), _in.val.begin(), _in.val.end());
+      ps[0]->resize(neold+nsurfs); 
+      ps[1]->resize(neold+nsurfs); 
+
+      // now assign these
+      if (nvalper == 1) {
+        std::copy(_in.val.begin(), _in.val.end(), ps[0]->begin()+neold);
+        std::fill(ps[1]->begin()+neold, ps[1]->end(), 0.0);
+      } else if (nvalper == 2) {
+        for (size_t i=0; i<nsurfs; ++i) {
+          const size_t iat = neold + i;
+          (*ps[0])[iat] = _in.val[2*i];
+          (*ps[1])[iat] = _in.val[2*i+1];
+        }
+      } else {
+        std::fill(ps[0]->begin()+neold, ps[0]->end(), 0.0);
+        std::fill(ps[1]->begin()+neold, ps[1]->end(), 0.0);
+      }
 
     } else if (this->E == reactive) {
       // value is a boundary condition
-      bc[0]->reserve(neold+nsurfs); 
-      bc[0]->insert(bc[0]->end(), _in.val.begin(), _in.val.end());
-      // HACK - should use the size of _val to determine whether we have data here
-      bc[1]->reserve(neold+nsurfs); 
-      bc[1]->insert(bc[1]->end(), _in.val.begin(), _in.val.end());
+      bc[0]->resize(neold+nsurfs); 
+      bc[1]->resize(neold+nsurfs); 
+
+      // now assign these
+      if (nvalper == 1) {
+        std::copy(_in.val.begin(), _in.val.end(), bc[0]->begin()+neold);
+        std::fill(bc[1]->begin()+neold, bc[1]->end(), 0.0);
+      } else if (nvalper == 2) {
+        for (size_t i=0; i<nsurfs; ++i) {
+          const size_t iat = neold + i;
+          (*bc[0])[iat] = _in.val[2*i];
+          (*bc[1])[iat] = _in.val[2*i+1];
+        }
+      } else {
+        std::fill(bc[0]->begin()+neold, bc[0]->end(), 0.0);
+        std::fill(bc[1]->begin()+neold, bc[1]->end(), 0.0);
+      }
 
       // upsize vortex sheet and raw strength arrays, too
       for (size_t d=0; d<2; ++d) {
         if (ps[d]) {
           ps[d]->resize(neold+nsurfs);
-          //std::fill(ps[d]->begin(), ps[d]->end(), 0.0);
+          std::fill(ps[d]->begin()+neold, ps[d]->end(), 0.0);
         }
       }
 
@@ -701,26 +752,6 @@ public:
     ElementBase<S>::finalize_vels(_fs);
   }
 
-/*
-  // up-size all arrays to the new size, filling with sane values
-  void resize(const size_t _nnew) {
-    const size_t currn = this->n;
-    //std::cout << "  inside Surfaces::resize with " << currn << " " << _nnew << std::endl;
-
-    // must explicitly call the method in the base class - this sets n
-    ElementBase<S>::resize(_nnew);
-
-    if (_nnew == currn) return;
-
-    // radii here
-    const size_t thisn = r.size();
-    r.resize(_nnew);
-    for (size_t i=thisn; i<_nnew; ++i) {
-      r[i] = 1.0;
-    }
-  }
-*/
-
 
   //
   // 1st order Euler advection and stretch
@@ -730,40 +761,6 @@ public:
 
     // must explicitly call the method in the base class
     ElementBase<S>::move(_time, _dt, _wt1, _u1);
-
-/*
-    // no specialization needed
-    if (this->M == lagrangian and this->E != inert) {
-      //std::cout << "  Stretching" << to_string() << " using 1st order" << std::endl;
-      S thismax = 0.0;
-
-      for (size_t i=0; i<this->n; ++i) {
-        S this_s = (*this->s)[i];
-
-        // compute stretch term
-        std::array<S,2> wdu = {0.0};
-
-        // add Cottet SFS
-
-        // update strengths
-        (*this->s)[i] = this_s + _dt * wdu[0];
-
-        // check for max strength
-        S thisstr = std::abs((*this->s)[i]);
-        if (thisstr > thismax) thismax = thisstr;
-
-      }
-      if (max_strength < 0.0) {
-        max_strength = thismax;
-      } else {
-        max_strength = 0.1*thismax + 0.9*max_strength;
-      }
-      //std::cout << "  New max_strength is " << max_strength << std::endl;
-    } else {
-      //std::cout << "  Not stretching" << to_string() << std::endl;
-      max_strength = 1.0;
-    }
-*/
 
     // and update the max strength measure
     (void) update_max_str();
@@ -807,46 +804,6 @@ public:
   // return a particle version of the panels (useful during Diffusion)
   // offset is in world units - NOT scaled
   //
-  std::vector<S> represent_as_particles(const S _offset, const S _vdelta) {
-
-    // how many panels?
-    const size_t num_pts = get_npanels();
-
-    // init the output vector (x, y, s, r)
-    std::vector<S> px(num_pts*4);
-
-    // get basis vectors
-    std::array<Vector<S>,2>& norm = b[1];
-
-    // the fluid is to the left walking from one point to the next
-    // so go CW around an external boundary starting at theta=0 (+x axis)
-
-    for (size_t i=0; i<num_pts; i++) {
-      Int id0 = idx[2*i];
-      Int id1 = idx[2*i+1];
-      // start at center of panel
-      px[4*i+0] = 0.5 * (this->x[0][id1] + this->x[0][id0]);
-      px[4*i+1] = 0.5 * (this->x[1][id1] + this->x[1][id0]);
-      //std::cout << "  panel center is " << px[4*i+0] << " " << px[4*i+1];
-      // push out a fixed distance
-      // this assumes properly resolved, vdelta and dt
-      px[4*i+0] += _offset * norm[0][i];
-      px[4*i+1] += _offset * norm[1][i];
-      // the panel strength is the solved strength plus the boundary condition
-      float this_str = (*ps[0])[i];
-      // add on the (vortex) bc value here
-      if (this->E == reactive) this_str += (*bc[0])[i];
-      // complete the element with a strength
-      px[4*i+2] = this_str * area[i];
-      // and the core size
-      px[4*i+3] = _vdelta;
-      //std::cout << "  new part is " << px[4*i+0] << " " << px[4*i+1] << " " << px[4*i+2] << " " << px[4*i+3] << std::endl;
-    }
-
-    return px;
-  }
-
-  // alternative function
   ElementPacket<S> represent_as_particles(const S _offset) {
 
     // how many panels?
@@ -969,13 +926,12 @@ public:
 
     if (ps[0]) {
       // make this easy - represent as particles - do we count BCs here?!?
-      std::vector<S> pts = represent_as_particles(0.0, 1.0);
+      ElementPacket<S> pts = represent_as_particles(0.0);
 
       // now compute impulse of those
-      for (size_t i=0; i<get_npanels(); ++i) {
-        const size_t idx = 4*i;
-        imp[0] -= pts[idx+2] * pts[idx+1];
-        imp[1] += pts[idx+2] * pts[idx+0];
+      for (size_t i=0; i<pts.nelem; ++i) {
+        imp[0] -= pts.val[i] * pts.x[2*i];
+        imp[1] += pts.val[i] * pts.x[2*i+1];
       }
     }
 

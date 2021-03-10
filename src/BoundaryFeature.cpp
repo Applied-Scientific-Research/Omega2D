@@ -298,8 +298,8 @@ BoundarySegment::init_elements(const float _ips) const {
 
   // created once
   std::vector<float>   x((num_panels+1)*2);
-  std::vector<Int>   idx(num_panels*2);
-  std::vector<float> val(num_panels);
+  std::vector<Int>   idx(num_panels*2);		// this is 1st order panel geometry (2 pts)
+  std::vector<float> val(num_panels*2);
 
   // outside is to the left walking from one point to the next
   // so go CW around the body
@@ -314,7 +314,8 @@ BoundarySegment::init_elements(const float _ips) const {
   for (size_t i=0; i<num_panels; i++) {
     idx[2*i]   = i;
     idx[2*i+1] = i+1;
-    val[i]     = m_tangflow;
+    val[2*i]   = m_tangflow;
+    val[2*i+1] = m_normflow;
   }
 
   // flip the orientation of the panels
@@ -349,9 +350,13 @@ BoundarySegment::debug(std::ostream& os) const {
 std::string
 BoundarySegment::to_string() const {
   std::stringstream ss;
+  // change from "segment" to "wall", "slip wall", "inlet", or "outlet"
   ss << "segment from " << m_x << " " << m_y << " to " << m_xe << " " << m_ye;
   if (std::abs(m_tangflow) > std::numeric_limits<float>::epsilon()) {
-    ss << " with boundary vel " << m_tangflow;
+    ss << " with tang vel " << m_tangflow;
+  }
+  if (std::abs(m_normflow) > std::numeric_limits<float>::epsilon()) {
+    ss << " with norm vel " << m_normflow;
   }
   return ss.str();
 }
@@ -394,6 +399,7 @@ bool BoundarySegment::draw_info_gui(const std::string action) {
   ImGui::InputFloat2("start", xc);
   ImGui::InputFloat2("end", xe);
   ImGui::SliderFloat("force tangential flow", &m_tangflow, -2.0f, 2.0f, "%.1f");
+  // put inlet GUI here
   ImGui::TextWrapped("This feature will add a solid boundary segment from start to end, where fluid is on the left when marching from start to end, and positive tangential flow is as if segment is moving along vector from start to end. Make sure enough segments are created to fully enclose a volume.");
   if (ImGui::Button(buttonText.c_str())) {
     add = true;
