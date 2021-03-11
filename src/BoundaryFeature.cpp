@@ -430,17 +430,58 @@ bool BoundarySegment::draw_info_gui(const std::string action) {
 
   ImGui::InputFloat2("start", xc);
   ImGui::InputFloat2("end", xe);
-  ImGui::SliderFloat("force tangential flow", &m_tangflow, -2.0f, 2.0f, "%.1f");
-  // put inlet GUI here
+  ImGui::Spacing();
+
+  // populate the rest of the properties
+  float outspeed = -m_normflow;
+  float inspeed = m_normflow;
+  int prof = m_normisuniform ? 0 : 1;
+
+  int item = 0;		// default to wall
+  if (std::abs(m_tangflow) > 0.0) item = 1;
+  else if (m_normflow > 0.0) item = 2;
+  else if (m_normflow < 0.0) item = 3;
+
+  static int numItems = 4;
+  const char* items[] = { "wall", "slip wall", "inlet", "outlet" };
+  ImGui::Combo("boundary condition", &item, items, numItems);
+  switch(item) {
+    case 0: {
+    } break;
+    case 1: {
+      // we can directly change m_tangflow here
+      ImGui::SliderFloat("speed", &m_tangflow, -2.0f, 2.0f, "%.1f");
+    } break;
+    case 2: {
+      // but we need to use a proxy here
+      ImGui::SliderFloat("mean inflow speed", &inspeed, 0.0f, 5.0f, "%.1f");
+      ImGui::RadioButton("uniform", &prof, 0); ImGui::SameLine();
+      ImGui::RadioButton("parabolic", &prof, 1);
+    } break;
+    case 3: {
+      ImGui::SliderFloat("relative outflow speed", &outspeed, 0.0f, 5.0f, "%.1f");
+      ImGui::RadioButton("uniform", &prof, 0); ImGui::SameLine();
+      ImGui::RadioButton("parabolic", &prof, 1);
+    } break;
+  }
+
+  // general help
+  ImGui::Spacing();
   ImGui::TextWrapped("This feature will add a solid boundary segment from start to end, where fluid is on the left when marching from start to end, and positive tangential flow is as if segment is moving along vector from start to end. Make sure enough segments are created to fully enclose a volume.");
   if (ImGui::Button(buttonText.c_str())) {
     add = true;
     ImGui::CloseCurrentPopup();
   }
+
   m_x = xc[0];
   m_y = xc[1];
   m_xe = xe[0];
   m_ye = xe[1];
+
+  if (item == 2) { m_normflow = inspeed; }
+  else if (item == 3) { m_normflow = -outspeed; }
+  else { m_normflow = 0.0; }
+  m_normisuniform = (prof == 0);
 
   return add;
 }
