@@ -104,11 +104,13 @@ public:
             float _xend = 1.0,
             float _yend = 0.0,
             float _normflow = 0.0,
+            bool _normunif = true,
             float _tangflow = 0.0)
     : BoundaryFeature(_bp, _ext, _x, _y),
       m_xe(_xend),
       m_ye(_yend),
       m_normflow(_normflow),
+      m_normisuniform(_normunif),
       m_tangflow(_tangflow)
     {}
   ~BoundarySegment() = default;
@@ -129,7 +131,9 @@ public:
 
 protected:
   float m_xe, m_ye;
-  float m_normflow, m_tangflow;
+  float m_normflow;
+  bool m_normisuniform;
+  float m_tangflow;
 };
 
 //
