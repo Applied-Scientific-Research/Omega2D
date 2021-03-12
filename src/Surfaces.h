@@ -806,12 +806,14 @@ public:
   //
   ElementPacket<S> represent_as_particles(const S _offset) {
 
-    // how many panels?
-    const size_t num_pts = get_npanels();
-
-    std::vector<float> _x(Dimensions*num_pts);
+    // prepare the vectors
+    std::vector<float> _x;
     std::vector<Int> _idx;
-    std::vector<float> _vals(num_pts);
+    std::vector<float> _vals;
+
+    // since there may be more points than panels, reserve space and emplace_back
+    _x.reserve(Dimensions*get_npanels());
+    _vals.reserve(get_npanels());
 
     // get basis vectors
     std::array<Vector<S>,2>& norm = b[1];
@@ -819,26 +821,21 @@ public:
     // the fluid is to the left walking from one point to the next
     // so go CW around an external boundary starting at theta=0 (+x axis)
 
-    for (size_t i=0; i<num_pts; ++i) {
+    for (size_t i=0; i<get_npanels(); ++i) {
       Int id0 = idx[2*i];
       Int id1 = idx[2*i+1];
-      // start at center of panel
-      _x[2*i+0] = 0.5 * (this->x[0][id1] + this->x[0][id0]);
-      _x[2*i+1] = 0.5 * (this->x[1][id1] + this->x[1][id0]);
-      //std::cout << "  panel center is " << px[4*i+0] << " " << px[4*i+1];
-      // push out a fixed distance
-      // this assumes properly resolved, vdelta and dt
-      _x[2*i+0] += _offset * norm[0][i];
-      _x[2*i+1] += _offset * norm[1][i];
+      // start at center of panel and push out a fixed distance
+      _x.emplace_back(0.5 * (this->x[0][id1] + this->x[0][id0]) + _offset * norm[0][i]);
+      _x.emplace_back(0.5 * (this->x[1][id1] + this->x[1][id0]) + _offset * norm[1][i]);
       // the panel strength is the solved strength plus the boundary condition
       float this_str = (*ps[0])[i];
       // add on the (vortex) bc value here
       if (this->E == reactive) this_str += (*bc[0])[i];
       // complete the element with a strength
-      _vals[i] = this_str * area[i];
+      _vals.emplace_back(this_str * area[i]);
     }
 
-    return ElementPacket<float>({_x, _idx, _vals, (size_t)num_pts, 0});
+    return ElementPacket<float>({_x, _idx, _vals, get_npanels(), 0});
   }
 
   // find the new peak vortex strength magnitude
