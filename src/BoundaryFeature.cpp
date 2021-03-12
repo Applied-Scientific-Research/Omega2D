@@ -445,7 +445,7 @@ bool BoundarySegment::draw_info_gui(const std::string action) {
   float inspeed = m_normflow;
   int prof = m_normisuniform ? 0 : 1;
 
-  int item = 0;		// default to wall
+  static int item = 0;		// default to wall
   if (std::abs(m_tangflow) > 0.0) item = 1;
   else if (m_normflow > 0.0) item = 2;
   else if (m_normflow < 0.0) item = 3;
