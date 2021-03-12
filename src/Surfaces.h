@@ -804,7 +804,7 @@ public:
   // return a particle version of the panels (useful during Diffusion)
   // offset is in world units - NOT scaled
   //
-  ElementPacket<S> represent_as_particles(const S _offset) {
+  ElementPacket<S> represent_as_particles(const S _offset, const S _ips) {
 
     // prepare the vectors
     std::vector<float> _x;
@@ -818,24 +818,38 @@ public:
     // get basis vectors
     std::array<Vector<S>,2>& norm = b[1];
 
+    const size_t nper = idx.size() / get_npanels();	// we can have >2 nodes per elem now
+
+    // if caller does not know ips, it sends -1.0, which we interpret here
+    S thisips = _ips;
+    if (_ips < 0.0) thisips = area[0];
+
     // the fluid is to the left walking from one point to the next
     // so go CW around an external boundary starting at theta=0 (+x axis)
 
     for (size_t i=0; i<get_npanels(); ++i) {
-      Int id0 = idx[2*i];
-      Int id1 = idx[2*i+1];
-      // start at center of panel and push out a fixed distance
-      _x.emplace_back(0.5 * (this->x[0][id1] + this->x[0][id0]) + _offset * norm[0][i]);
-      _x.emplace_back(0.5 * (this->x[1][id1] + this->x[1][id0]) + _offset * norm[1][i]);
+      // panel end points
+      const Int id0 = idx[nper*i];
+      const Int id1 = idx[nper*i+1];
       // the panel strength is the solved strength plus the boundary condition
       float this_str = (*ps[0])[i];
       // add on the (vortex) bc value here
       if (this->E == reactive) this_str += (*bc[0])[i];
-      // complete the element with a strength
-      _vals.emplace_back(this_str * area[i]);
+
+      // is the panel long enough to shed more than one particle?
+      const size_t nshed = 1 + std::max(0, (int)(area[i] / (1.2*thisips)));
+
+      for (size_t j=0; j<nshed; ++j) {
+        const S wgt = (1+2*j) / (S)(2*nshed);
+        // start on the panel and push out a fixed distance
+        _x.emplace_back(wgt*this->x[0][id1] + (1.0-wgt)*this->x[0][id0] + _offset * norm[0][i]);
+        _x.emplace_back(wgt*this->x[1][id1] + (1.0-wgt)*this->x[1][id0] + _offset * norm[1][i]);
+        // complete the element with a strength
+        _vals.emplace_back(this_str * area[i] / (S)nshed);
+      }
     }
 
-    return ElementPacket<float>({_x, _idx, _vals, get_npanels(), 0});
+    return ElementPacket<float>({_x, _idx, _vals, _vals.size(), 0});
   }
 
   // find the new peak vortex strength magnitude
@@ -923,7 +937,7 @@ public:
 
     if (ps[0]) {
       // make this easy - represent as particles - do we count BCs here?!?
-      ElementPacket<S> pts = represent_as_particles(0.0);
+      ElementPacket<S> pts = represent_as_particles(0.0, -1.0);
 
       // now compute impulse of those
       for (size_t i=0; i<pts.nelem; ++i) {
