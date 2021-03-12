@@ -446,6 +446,9 @@ std::string Simulation::check_initialization() {
     retstr.append("Boundary features have too many panels, program will run out of memory. Reduce Reynolds number or increase time step or both.\n");
   }
 
+  // adjust outlet speeds to conserve volume
+  (void)conserve_iolet_volume();
+
   return retstr;
 }
 
@@ -490,6 +493,45 @@ bool Simulation::any_nonzero_bcs() {
     if (std::abs(max_bc) > std::numeric_limits<float>::epsilon()) all_are_zero = false;
   }
   return not all_are_zero;
+}
+
+//
+// check all inlets and outlets to ensure volume conservation
+//
+void Simulation::conserve_iolet_volume() {
+
+  // current inlet and outlet volume flow rates (global summation!)
+  float inrate = 0.0;;
+  float outrate = 0.0;;
+  int num_tested = 0;
+
+  // loop over bdry Collections and find total inlet and outlet rates
+  for (auto &src : bdry) {
+    if (std::holds_alternative<Surfaces<float>>(src)) {
+      Surfaces<float>& surf = std::get<Surfaces<float>>(src);
+      if (surf.get_elemt() == reactive) {
+        inrate += surf.get_total_inflow();
+        outrate += surf.get_total_outflow();
+        num_tested++;
+      }
+    }
+  }
+  if (num_tested == 0) return;
+
+  std::cout << "  total inflow, outflow " << inrate << " " << outrate << std::endl;
+  std::cout << "  scaling outflows by " << inrate/outrate << std::endl;
+
+  // correct the outflow to match
+  for (auto &src : bdry) {
+    if (std::holds_alternative<Surfaces<float>>(src)) {
+      Surfaces<float>& surf = std::get<Surfaces<float>>(src);
+      if (surf.get_elemt() == reactive) {
+        surf.scale_outflow(inrate/outrate);
+      }
+    }
+  }
+
+  return;
 }
 
 //

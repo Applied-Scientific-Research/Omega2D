@@ -1015,13 +1015,12 @@ public:
 /*
     if (ps[0]) {
       // make this easy - represent as particles - do we count BCs here?!?
-      std::vector<S> pts = represent_as_particles(0.0, 1.0);
+      ElementPacket<S> pts = represent_as_particles(0.0);
 
       // now compute impulse of those
-      for (size_t i=0; i<get_nelems(); ++i) {
-        const size_t idx = 4*i;
-        imp[0] -= pts[idx+2] * pts[idx+1];
-        imp[1] += pts[idx+2] * pts[idx+0];
+      for (size_t i=0; i<pts.nelems; ++i) {
+        imp[0] -= pts.val[i] * pts.x[2*i+0];
+        imp[1] += pts.val[i] * pts.x[2*i+1];
       }
     }
 */

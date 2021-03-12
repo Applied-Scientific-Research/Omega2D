@@ -125,6 +125,7 @@ public:
   std::string check_simulation();
   bool do_any_bodies_move();
   bool any_nonzero_bcs();
+  void conserve_iolet_volume();
   bool test_for_new_results();
   std::vector<std::string> write_vtk(const int _index = -1,
                                      const bool _do_bdry = true,

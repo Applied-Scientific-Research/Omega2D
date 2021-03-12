@@ -1,0 +1,143 @@
+{
+  "bodies": [
+    {
+      "meshes": [
+        {
+          "name": "inlet",
+          "enabled": true,
+          "endpt": [ -5.0, 0.0 ],
+          "geometry": "segment",
+          "normalVel": 1.0,
+          "normalProfile": "parabolic",
+          "startpt": [ -5.0, 1.0 ],
+          "tangentialVel": 0.0
+        },
+        {
+          "enabled": true,
+          "endpt": [ 0.0, 0.0 ],
+          "geometry": "segment",
+          "normalVel": 0.0,
+          "startpt": [ -5.0, 0.0 ],
+          "tangentialVel": 0.0
+        },
+        {
+          "enabled": true,
+          "endpt": [ 0.0, -0.9423 ],
+          "geometry": "segment",
+          "normalVel": 0.0,
+          "startpt": [ 0.0, 0.0 ],
+          "tangentialVel": 0.0
+        },
+        {
+          "enabled": true,
+          "endpt": [ 20.0, -0.9423 ],
+          "geometry": "segment",
+          "normalVel": 0.0,
+          "startpt": [ 0.0, -0.9423 ],
+          "tangentialVel": 0.0
+        },
+        {
+          "name": "outlet",
+          "enabled": true,
+          "endpt": [ 20.0, 1.0 ],
+          "geometry": "segment",
+          "normalVel": -1.0,
+          "normalProfile": "parabolic",
+          "startpt": [ 20.0, -0.9423 ],
+          "tangentialVel": 0.0
+        },
+        {
+          "enabled": true,
+          "endpt": [ -5.0, 1.0 ],
+          "geometry": "segment",
+          "normalVel": 0.0,
+          "startpt": [ 20.0, 1.0 ],
+          "tangentialVel": 0.0
+        }
+      ],
+      "name": "ground",
+      "rotation": 0.0,
+      "translation": [ 0.0, 0.0 ]
+    }
+  ],
+  "description": "Back facing step, Re=100",
+  "drawparams": {
+    "backgroundColor": [ 0.0, 0.0, 0.0, 1.0 ],
+    "density": 0.3499999940395355,
+    "featureColor": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "negativeColor": [ 0.25, 0.25, 1.0, 1.0 ],
+    "positiveColor": [
+      0.6941176652908325,
+      0.1568627506494522,
+      0.1568627506494522,
+      1.0
+    ],
+    "tracerScale": 0.15000000596046448,
+    "viewPoint": [ 7.5, 0.0 ],
+    "viewScale": 13.0,
+    "vortonScale": 0.15,
+    "windowSize": [ 1920, 1080 ]
+  },
+  "flowparams": {
+    "Re": 50.0,
+    "Uinf": [ 0.0, 0.0 ]
+  },
+  "measurements": [
+    {
+      "emits": false,
+      "enabled": true,
+      "end": [ 0.001, 0.999 ],
+      "lagrangian": false,
+      "nx": [ 20, 20 ],
+      "order": 3,
+      "start": [ -1.0, 0.001 ],
+      "type": "measurement field"
+    },
+    {
+      "emits": false,
+      "enabled": true,
+      "end": [ 10.0, 0.999 ],
+      "lagrangian": false,
+      "nx": [ 200, 39 ],
+      "order": 3,
+      "start": [ 0.001, -0.9413 ],
+      "type": "measurement field"
+    }
+  ],
+  "simparams": {
+    "PSE": {
+      "ignoreBelow": 9.999999747378752e-06,
+      "relativeThresholds": true,
+      "useVolumes": true
+    },
+    "VRM": {
+      "ignoreBelow": 9.999999747378752e-06,
+      "relativeThresholds": true,
+      "solver": "nnls"
+    },
+    "coreSizeRatioSqrd": 6.0,
+    "hybrid": {
+      "elementOrder": 1,
+      "enabled": false,
+      "numSubsteps": 100,
+      "preconditioner": "none",
+      "solverType": "fgmres",
+      "timeOrder": 1
+    },
+    "nominalDt": 0.02,
+    "outputDt": 0.0,
+    "endTime": 50.0,
+    "overlapRatio": 2.0,
+    "timeOrder": 2,
+    "viscous": "vrm"
+  },
+  "version": {
+    "Omega2D": 1,
+    "jsonInput": 1
+  }
+}

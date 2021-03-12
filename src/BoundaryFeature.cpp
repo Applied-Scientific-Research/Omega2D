@@ -1,7 +1,7 @@
 /*
  * BoundaryFeature.cpp - GUI-side descriptions of boundary features
  *
- * (c)2017-20 Applied Scientific Research, Inc.
+ * (c)2017-21 Applied Scientific Research, Inc.
  *            Mark J Stock <markjstock@gmail.com>
  *            Blake B Hillier <blakehillier@mac.com>
  */
@@ -298,8 +298,8 @@ BoundarySegment::init_elements(const float _ips) const {
 
   // created once
   std::vector<float>   x((num_panels+1)*2);
-  std::vector<Int>   idx(num_panels*2);
-  std::vector<float> val(num_panels);
+  std::vector<Int>   idx(num_panels*2);		// this is 1st order panel geometry (2 pts)
+  std::vector<float> val(num_panels*2);		// always define tangential and normal BCs or strengths
 
   // outside is to the left walking from one point to the next
   // so go CW around the body
@@ -314,7 +314,31 @@ BoundarySegment::init_elements(const float _ips) const {
   for (size_t i=0; i<num_panels; i++) {
     idx[2*i]   = i;
     idx[2*i+1] = i+1;
-    val[i]     = m_tangflow;
+    val[2*i]   = m_tangflow;
+  }
+
+  if (m_normisuniform) {
+    for (size_t i=0; i<num_panels; i++) {
+      val[2*i+1] = m_normflow;
+    }
+  } else {
+    // normal flow follows a parabolic profile
+    float flowrate = 0.0;
+    for (size_t i=0; i<num_panels; i++) {
+      // use trapezoidal rule to find mean flow across this panel
+      //const size_t ix = 2*i
+      const float y1 = std::sqrt(std::pow(x[2*i]-m_x, 2) + std::pow(x[2*i+1]-m_y, 2)) / seg_length;
+      const float y2 = std::sqrt(std::pow(x[2*i+2]-m_x, 2) + std::pow(x[2*i+3]-m_y, 2)) / seg_length;
+      val[2*i+1] = 6.0*m_normflow * 0.5*(y1*(1.0-y1) + y2*(1.0-y2));
+      flowrate += val[2*i+1] * std::sqrt(std::pow(x[2*i+2]-x[2*i], 2) + std::pow(x[2*i+3]-x[2*i+1], 2));
+      //std::cout << "panel " << i << " has normal flow " << val[2*i+1] << std::endl;
+    }
+
+    // now correct to theoretical
+    float theorate = m_normflow * seg_length;
+    for (size_t i=0; i<num_panels; i++) {
+      val[2*i+1] *= theorate/flowrate;
+    }
   }
 
   // flip the orientation of the panels
@@ -349,9 +373,24 @@ BoundarySegment::debug(std::ostream& os) const {
 std::string
 BoundarySegment::to_string() const {
   std::stringstream ss;
-  ss << "segment from " << m_x << " " << m_y << " to " << m_xe << " " << m_ye;
+
   if (std::abs(m_tangflow) > std::numeric_limits<float>::epsilon()) {
-    ss << " with boundary vel " << m_tangflow;
+    ss << "slip";
+  }
+  if (m_normflow > std::numeric_limits<float>::epsilon()) {
+    ss << " inlet";
+  } else if (m_normflow < -std::numeric_limits<float>::epsilon()) {
+    ss << " outlet";
+  } else {
+    ss << " wall";
+  }
+
+  ss << " from " << m_x << " " << m_y << " to " << m_xe << " " << m_ye;
+  if (std::abs(m_tangflow) > std::numeric_limits<float>::epsilon()) {
+    ss << " with slip vel " << m_tangflow;
+  }
+  if (std::abs(m_normflow) > std::numeric_limits<float>::epsilon()) {
+    ss << " with mean vel " << m_normflow;
   }
   return ss.str();
 }
@@ -365,6 +404,11 @@ BoundarySegment::from_json(const nlohmann::json j) {
   m_xe = ep[0];
   m_ye = ep[1];
   m_normflow = j.value("normalVel", 0.0);
+  m_normisuniform = true;
+  if (j.find("normalProfile") != j.end()) {
+    const std::string ptype = j["normalProfile"];
+    if (ptype == "parabolic") { m_normisuniform = false; }
+  }
   m_tangflow = j.value("tangentialVel", 0.0);
   m_external = true;//j.value("external", true);
   m_enabled = j.value("enabled",true);
@@ -378,6 +422,7 @@ BoundarySegment::to_json() const {
   mesh["startpt"] = {m_x, m_y};
   mesh["endpt"] = {m_xe, m_ye};
   mesh["normalVel"] = m_normflow;
+  mesh["normalProfile"] = m_normisuniform ? "uniform" : "parabolic";
   mesh["tangentialVel"] = m_tangflow;
   //mesh["external"] = m_external;
   mesh["enabled"] = m_enabled;
@@ -393,16 +438,58 @@ bool BoundarySegment::draw_info_gui(const std::string action) {
 
   ImGui::InputFloat2("start", xc);
   ImGui::InputFloat2("end", xe);
-  ImGui::SliderFloat("force tangential flow", &m_tangflow, -2.0f, 2.0f, "%.1f");
+  ImGui::Spacing();
+
+  // populate the rest of the properties
+  float outspeed = -m_normflow;
+  float inspeed = m_normflow;
+  int prof = m_normisuniform ? 0 : 1;
+
+  int item = 0;		// default to wall
+  if (std::abs(m_tangflow) > 0.0) item = 1;
+  else if (m_normflow > 0.0) item = 2;
+  else if (m_normflow < 0.0) item = 3;
+
+  static int numItems = 4;
+  const char* items[] = { "wall", "slip wall", "inlet", "outlet" };
+  ImGui::Combo("boundary condition", &item, items, numItems);
+  switch(item) {
+    case 0: {
+    } break;
+    case 1: {
+      // we can directly change m_tangflow here
+      ImGui::SliderFloat("speed", &m_tangflow, -2.0f, 2.0f, "%.1f");
+    } break;
+    case 2: {
+      // but we need to use a proxy here
+      ImGui::SliderFloat("mean inflow speed", &inspeed, 0.0f, 5.0f, "%.1f");
+      ImGui::RadioButton("uniform", &prof, 0); ImGui::SameLine();
+      ImGui::RadioButton("parabolic", &prof, 1);
+    } break;
+    case 3: {
+      ImGui::SliderFloat("relative outflow speed", &outspeed, 0.0f, 5.0f, "%.1f");
+      ImGui::RadioButton("uniform", &prof, 0); ImGui::SameLine();
+      ImGui::RadioButton("parabolic", &prof, 1);
+    } break;
+  }
+
+  // general help
+  ImGui::Spacing();
   ImGui::TextWrapped("This feature will add a solid boundary segment from start to end, where fluid is on the left when marching from start to end, and positive tangential flow is as if segment is moving along vector from start to end. Make sure enough segments are created to fully enclose a volume.");
   if (ImGui::Button(buttonText.c_str())) {
     add = true;
     ImGui::CloseCurrentPopup();
   }
+
   m_x = xc[0];
   m_y = xc[1];
   m_xe = xe[0];
   m_ye = xe[1];
+
+  if (item == 2) { m_normflow = inspeed; }
+  else if (item == 3) { m_normflow = -outspeed; }
+  else { m_normflow = 0.0; }
+  m_normisuniform = (prof == 0);
 
   return add;
 }

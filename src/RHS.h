@@ -44,9 +44,10 @@ std::vector<S> vels_to_rhs_panels (Surfaces<S> const& targ) {
 
   // pull references to the element arrays
   const std::array<Vector<S>,Dimensions>& tu = targ.get_vel();
-  const std::array<Vector<S>,Dimensions>& tt = targ.get_tang();
-  const std::array<Vector<S>,Dimensions>& tn = targ.get_norm();
-  //const Vector<S>&                        tb = targ.get_tang_bcs();
+  const std::array<Vector<S>,Dimensions>& tt = targ.get_tang();		// tangential vectors
+  const std::array<Vector<S>,Dimensions>& tn = targ.get_norm();		// normal vectors
+  //const Vector<S>&                      ttbc = targ.get_tang_bcs();
+  const Vector<S>&                      tnbc = targ.get_norm_bcs();
 
   //std::cout << "tu[0].size() is " << tu[0].size() << std::endl;
   //std::cout << "tx[0].size() is " << tx[0].size() << std::endl;
@@ -73,7 +74,7 @@ std::vector<S> vels_to_rhs_panels (Surfaces<S> const& targ) {
       rhs[i] = -(tu[0][i]*tt[0][i] + tu[1][i]*tt[1][i]);
 
       // DO NOT include the influence of the boundary condition here, do it before shedding
-      //rhs[i] -= tb[i];
+      //rhs[i] -= ttbc[i];
 
       //std::cout << "  elem " << i << " vel is " << tu[0][i] << " " << tu[1][i] << std::endl;
       //std::cout << "       " << " tan vec is " << tt[0][i] << " " << tt[1][i] << std::endl;
@@ -85,7 +86,12 @@ std::vector<S> vels_to_rhs_panels (Surfaces<S> const& targ) {
     for (size_t i=0; i<ntarg; i++) {
       // dot product of normalized tangent with local velocity
       rhs[2*i]   = -(tu[0][i]*tt[0][i] + tu[1][i]*tt[1][i]);
+      // like above, do not add the tangential BC here, because it will be accounted for during shedding ?!?
+
+      // dot prod of normal vector with local vel
       rhs[2*i+1] = -(tu[0][i]*tn[0][i] + tu[1][i]*tn[1][i]);
+      // but here we need to add the normal velocity boundary condition
+      rhs[2*i+1] += tnbc[i];
     }
   }
 
