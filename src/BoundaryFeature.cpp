@@ -323,13 +323,21 @@ BoundarySegment::init_elements(const float _ips) const {
     }
   } else {
     // normal flow follows a parabolic profile
+    float flowrate = 0.0;
     for (size_t i=0; i<num_panels; i++) {
       // use trapezoidal rule to find mean flow across this panel
       //const size_t ix = 2*i
       const float y1 = std::sqrt(std::pow(x[2*i]-m_x, 2) + std::pow(x[2*i+1]-m_y, 2)) / seg_length;
       const float y2 = std::sqrt(std::pow(x[2*i+2]-m_x, 2) + std::pow(x[2*i+3]-m_y, 2)) / seg_length;
       val[2*i+1] = 6.0*m_normflow * 0.5*(y1*(1.0-y1) + y2*(1.0-y2));
-      std::cout << "panel " << i << " has normal flow " << val[2*i+1] << std::endl;
+      flowrate += val[2*i+1] * std::sqrt(std::pow(x[2*i+2]-x[2*i], 2) + std::pow(x[2*i+3]-x[2*i+1], 2));
+      //std::cout << "panel " << i << " has normal flow " << val[2*i+1] << std::endl;
+    }
+
+    // now correct to theoretical
+    float theorate = m_normflow * seg_length;
+    for (size_t i=0; i<num_panels; i++) {
+      val[2*i+1] *= theorate/flowrate;
     }
   }
 
