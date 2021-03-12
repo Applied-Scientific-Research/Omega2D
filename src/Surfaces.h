@@ -938,6 +938,46 @@ public:
     return imp;
   }
 
+  // total the inlet volume flow rate for this collection
+  S get_total_inflow() {
+    if (this->E != reactive) return S(0.0);
+
+    S insum = S(0.0);
+    for (size_t i=0; i<get_npanels(); ++i) {
+      if ((*bc[1])[i] > S(0.0)) {
+        // length times flow rate
+        insum += (*bc[1])[i] * area[i];
+      }
+    }
+
+    return insum;
+  }
+
+  // total the inlet volume flow rate for this collection
+  S get_total_outflow() {
+    if (this->E != reactive) return S(0.0);
+
+    S outsum = S(0.0);
+    for (size_t i=0; i<get_npanels(); ++i) {
+      if ((*bc[1])[i] < S(0.0)) {
+        // length times flow rate
+        outsum += -(*bc[1])[i] * area[i];
+      }
+    }
+
+    return outsum;
+  }
+
+  // linearly scale the outflow (normal BC vels) to enforce continuity
+  void scale_outflow(const S factor) {
+    if (this->E != reactive) return;
+    for (size_t i=0; i<get_npanels(); ++i) {
+      if ((*bc[1])[i] < S(0.0)) {
+        (*bc[1])[i] *= factor;
+      }
+    }
+  }
+
   // reset the circulation counter and saved rotation rate - useful for augmented BEM
   void reset_augmentation_vars() {
     this_omega = this->B->get_rotvel();
