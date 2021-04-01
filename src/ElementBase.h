@@ -109,48 +109,6 @@ public:
   }
 
   // child class calls here to add nodes and other properties
-  void add_new(const std::vector<float>& _in) {
-
-    // check inputs
-    if (_in.size() == 0) return;
-    const size_t nper = (this->E == inert) ? 2 : 4;
-    assert(_in.size() % nper == 0 && "Input vector not a multiple of 2 or 4");
-    const size_t nnew = _in.size()/nper;
-
-    // this initialization is specific to Points - so should we do it there?
-    for (size_t d=0; d<Dimensions; ++d) {
-      // extend with more space for new values
-      x[d].resize(n+nnew);
-      // copy new values to end of vector
-      for (size_t i=0; i<nnew; ++i) {
-        x[d][n+i] = _in[nper*i+d];
-      }
-    }
-
-    // strength
-    if (s) {
-      // must dereference s to get the actual vector
-      (*s).resize(n+nnew);
-      for (size_t i=0; i<nnew; ++i) {
-        (*s)[n+i] = _in[nper*i+2];
-      }
-    }
-
-    // extend the other vectors as well
-    for (size_t d=0; d<Dimensions; ++d) {
-      u[d].resize(n+nnew);
-    }
-    //if (dsdt) {
-    //  for (size_t d=0; d<Dimensions; ++d) {
-    //    (*dsdt)[d].resize(n+nnew);
-    //  }
-    //}
-
-    // finally, update n
-    n += nnew;
-  }
-
-  // child class calls here to add nodes and other properties
   void add_new(const ElementPacket<float>& _in) {
 
     // check inputs
