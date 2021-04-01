@@ -49,10 +49,6 @@ std::vector<S> vels_to_rhs_panels (Surfaces<S> const& targ) {
   //const Vector<S>&                      ttbc = targ.get_tang_bcs();
   const Vector<S>&                      tnbc = targ.get_norm_bcs();
 
-  //std::cout << "tu[0].size() is " << tu[0].size() << std::endl;
-  //std::cout << "tx[0].size() is " << tx[0].size() << std::endl;
-  //std::cout << "ti.size() is " << ti.size() << std::endl;
-
   assert(tu[0].size() == tt[0].size() && "Input array sizes do not match");
   assert(tu[0].size() == tn[0].size() && "Input array sizes do not match");
   //assert(tx[0].size() == tb.size() && "Input array sizes do not match");
@@ -92,6 +88,12 @@ std::vector<S> vels_to_rhs_panels (Surfaces<S> const& targ) {
       rhs[2*i+1] = -(tu[0][i]*tn[0][i] + tu[1][i]*tn[1][i]);
       // but here we need to add the normal velocity boundary condition
       rhs[2*i+1] += tnbc[i];
+
+      //std::cout << "  elem " << i << " vel is " << tu[0][i] << " " << tu[1][i] << std::endl;
+      //std::cout << "       " << " tan vec is " << tt[0][i] << " " << tt[1][i] << std::endl;
+      //std::cout << "       " << " nrm vec is " << tn[0][i] << " " << tn[1][i] << std::endl;
+      //std::cout << "       " << " tnbc is " << tnbc[i] << std::endl;
+      //std::cout << "       " << " rhs is " << rhs[2*i] << " " << rhs[2*i+1] << std::endl;
     }
   }
 
