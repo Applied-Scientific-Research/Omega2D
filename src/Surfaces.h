@@ -964,6 +964,14 @@ public:
     return insum;
   }
 
+  // if no outlets were defined, must zero the inflow to allow sim to proceed
+  void zero_inflow() {
+    if (this->E != reactive) return;
+    for (size_t i=0; i<get_npanels(); ++i) {
+      (*bc[1])[i] = 0.0;
+    }
+  }
+
   // total the inlet volume flow rate for this collection
   S get_total_outflow() {
     if (this->E != reactive) return S(0.0);
