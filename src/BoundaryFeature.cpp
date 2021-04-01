@@ -317,7 +317,8 @@ BoundarySegment::init_elements(const float _ips) const {
     val[2*i]   = m_tangflow;
   }
 
-  if (m_normisuniform) {
+  if (m_normisuniform or std::abs(m_normflow) < std::numeric_limits<float>::epsilon()) {
+    // uniform or zero
     for (size_t i=0; i<num_panels; i++) {
       val[2*i+1] = m_normflow;
     }
@@ -375,14 +376,14 @@ BoundarySegment::to_string() const {
   std::stringstream ss;
 
   if (std::abs(m_tangflow) > std::numeric_limits<float>::epsilon()) {
-    ss << "slip";
+    ss << "slip ";
   }
   if (m_normflow > std::numeric_limits<float>::epsilon()) {
-    ss << " inlet";
+    ss << "inlet";
   } else if (m_normflow < -std::numeric_limits<float>::epsilon()) {
-    ss << " outlet";
+    ss << "outlet";
   } else {
-    ss << " wall";
+    ss << "wall";
   }
 
   ss << " from " << m_x << " " << m_y << " to " << m_xe << " " << m_ye;
@@ -861,12 +862,8 @@ SolidSquare::init_elements(const float _ips) const {
   ElementPacket<float> packet = m_bsl.begin()->init_elements(_ips);
   for (auto i = std::next(m_bsl.begin()); i != m_bsl.end(); ++i) {
     packet.add(i->init_elements(_ips));
+    //std::cout << "  idx size is " << packet.idx.size() << " and last entries are " << packet.idx.end()[-2] << " " << packet.idx.end()[-1] << std::endl;
   }
-
-  // Packet adds as if they are segments, so we have to connect the beginning with the end
-  packet.idx.push_back(packet.idx.back());
-  packet.idx.push_back(0);
-  packet.ndim = 1;
 
   // flip the orientation of the panels
   if (not m_external) {
@@ -995,10 +992,6 @@ SolidRect::init_elements(const float _ips) const {
   for (auto i = std::next(m_bsl.begin()); i != m_bsl.end(); ++i) {
     packet.add(i->init_elements(_ips));
   }
-
-  packet.idx.push_back(packet.idx.back());
-  packet.idx.push_back(0);
-  packet.ndim = 1;
 
   // flip the orientation of the panels
   if (not m_external) {
@@ -1137,11 +1130,6 @@ SolidPolygon::init_elements(const float _ips) const {
   for (auto i = std::next(m_bsl.begin()); i != m_bsl.end(); ++i) {
     packet.add(i->init_elements(_ips));
   }
-
-  // Packet adds as if they are segments, so we have one too many and the last isn't 0
-  packet.idx.push_back(packet.idx.back());
-  packet.idx.push_back(0);
-  packet.ndim = 1;
 
   // flip the orientation of the panels
   if (not m_external) {
