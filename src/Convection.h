@@ -70,7 +70,15 @@ public:
                   std::vector<Collection>&,
                   std::vector<Collection>&,
                   BEM<S,I>&);
-  void advect_2nd(const double,
+  void advect_2nd_heun(const double,
+                  const double,
+                  const std::array<double,Dimensions>&,
+                  const S,
+                  std::vector<Collection>&,
+                  std::vector<Collection>&,
+                  std::vector<Collection>&,
+                  BEM<S,I>&);
+  void advect_2nd_ralston(const double,
                   const double,
                   const std::array<double,Dimensions>&,
                   const S,
@@ -239,7 +247,7 @@ void Convection<S,A,I>::advect(const double                         _time,
 
   // call the individual methods
   if (convection_order == 1) advect_1st(_time, _dt, _fs, _ips, _vort, _bdry, _fldpt, _bem);
-  else if (convection_order == 2) advect_2nd(_time, _dt, _fs, _ips, _vort, _bdry, _fldpt, _bem);
+  else if (convection_order == 2) advect_2nd_heun(_time, _dt, _fs, _ips, _vort, _bdry, _fldpt, _bem);
   else advect_3rd(_time, _dt, _fs, _ips, _vort, _bdry, _fldpt, _bem);
 
   // do the smarter, general way - ugh, maybe later
@@ -314,7 +322,7 @@ void Convection<S,A,I>::advect_1st(const double                         _time,
 // second-order RK2 forward integration (Heun's method)
 //
 template <class S, class A, class I>
-void Convection<S,A,I>::advect_2nd(const double                         _time,
+void Convection<S,A,I>::advect_2nd_heun(const double                         _time,
                                    const double                         _dt,
                                    const std::array<double,Dimensions>& _fs,
                                    const S                              _ips,
@@ -323,7 +331,7 @@ void Convection<S,A,I>::advect_2nd(const double                         _time,
                                    std::vector<Collection>&             _fldpt,
                                    BEM<S,I>&                            _bem) {
 
-  std::cout << "Inside Convection::advect_2nd with dt=" << _dt << std::endl;
+  std::cout << "Inside Convection::advect_2nd_heun with dt=" << _dt << std::endl;
 
   // take the first Euler step ---------
 
@@ -380,6 +388,88 @@ void Convection<S,A,I>::advect_2nd(const double                         _time,
       Points<float>& p1 = std::get<Points<float>>(c1);
       Points<float>& p2 = std::get<Points<float>>(c2);
       p1.move(_time, _dt, 0.5, p1, 0.5, p2);
+    }
+    ++v1p;
+    ++v2p;
+  }
+
+  // wrap up movement by pushing away *active* particles inside or too close to the body
+  clear_inner_layer<S>(1, _bdry, _vort, 0.5/std::sqrt(2.0*M_PI), _ips);
+  clear_inner_layer<S>(1, _bdry, _fldpt, 0.5/std::sqrt(2.0*M_PI), _ips);
+}
+
+
+//
+// second-order RK2 forward integration (Ralston's method)
+//
+template <class S, class A, class I>
+void Convection<S,A,I>::advect_2nd_ralston(const double                         _time,
+                                   const double                         _dt,
+                                   const std::array<double,Dimensions>& _fs,
+                                   const S                              _ips,
+                                   std::vector<Collection>&             _vort,
+                                   std::vector<Collection>&             _bdry,
+                                   std::vector<Collection>&             _fldpt,
+                                   BEM<S,I>&                            _bem) {
+
+  std::cout << "Inside Convection::advect_2nd_ralston with dt=" << _dt << std::endl;
+  const double twothirds = 2.0/3.0;
+
+  // take the first Euler step ---------
+
+  // compute derivatives
+  find_derivs(_time, _fs, _bem, _bdry, _vort, _fldpt);
+
+  // advect into an intermediate system
+  std::vector<Collection> interim_vort = _vort;
+  for (auto &coll : interim_vort) {
+    std::visit([=](auto& elem) { elem.move(_time, twothirds*_dt, 1.0, elem); }, coll);
+  }
+  clear_inner_layer<S>(1, _bdry, interim_vort, 0.5/std::sqrt(2.0*M_PI), _ips);
+  // now _vort has its original positions and the velocities evaluated there
+  // and interm_vort has the positions at t+2dt/3
+
+  // do the same for fldpt
+  std::vector<Collection> interim_fldpt = _fldpt;
+  for (auto &coll : interim_fldpt) {
+    std::visit([=](auto& elem) { elem.move(_time, twothirds*_dt, 1.0, elem); }, coll);
+  }
+  clear_inner_layer<S>(1, _bdry, interim_fldpt, 0.5/std::sqrt(2.0*M_PI), _ips);
+
+  // begin the 2nd step ---------
+
+  // compute derivatives
+  find_derivs(_time+twothirds*_dt, _fs, _bem, _bdry, interim_vort, interim_fldpt);
+
+  // _vort still has its original positions and the velocities evaluated there
+  // but interm_vort now has the velocities at t+2dt/3
+
+  // advect using the combination of both velocities
+  auto v1p = _vort.begin();
+  auto v2p = interim_vort.begin();
+  for (size_t i = 0; i < _vort.size(); ++i) {
+    Collection& c1 = *v1p;
+    Collection& c2 = *v2p;
+    // switch based on what type is actually held in the std::variant
+    if (std::holds_alternative<Points<float>>(c1) and std::holds_alternative<Points<float>>(c2)) {
+      Points<float>& p1 = std::get<Points<float>>(c1);
+      Points<float>& p2 = std::get<Points<float>>(c2);
+      p1.move(_time, _dt, 0.25, p1, 0.75, p2);
+    }
+    ++v1p;
+    ++v2p;
+  }
+
+  v1p = _fldpt.begin();
+  v2p = interim_fldpt.begin();
+  for (size_t i = 0; i < _fldpt.size(); ++i) {
+    Collection& c1 = *v1p;
+    Collection& c2 = *v2p;
+    // switch based on what type is actually held in the std::variant
+    if (std::holds_alternative<Points<float>>(c1) and std::holds_alternative<Points<float>>(c2)) {
+      Points<float>& p1 = std::get<Points<float>>(c1);
+      Points<float>& p2 = std::get<Points<float>>(c2);
+      p1.move(_time, _dt, 0.25, p1, 0.75, p2);
     }
     ++v1p;
     ++v2p;
