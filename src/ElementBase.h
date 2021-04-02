@@ -216,7 +216,6 @@ public:
       assert(e->size() == n && "Shear rate vector not sized properly in finalize_vels");
       for (size_t i=0; i<get_n(); ++i) {
         (*e)[i] *= factor;
-        std::cout << "    elem " << i << " has shear rate " << (S)(*e)[i] << std::endl;
       }
     }
   }
