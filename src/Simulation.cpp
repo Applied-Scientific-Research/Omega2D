@@ -352,6 +352,7 @@ std::vector<std::string> Simulation::write_vtk(const int _index,
   solve_bem<STORE,ACCUM,Int>(time, thisfs, vort, bdry, bem);
 
   // special - only here do we cacluate the vorticity as well as velocity, true means force
+  //if (_do_flow)    conv.find_vels(thisfs, vort, bdry, vort, velandshear, true);
   if (_do_flow)    conv.find_vels(thisfs, vort, bdry, vort, velandvort, true);
   if (_do_measure) conv.find_vels(thisfs, vort, bdry, fldpt, velandvort, true);
   if (_do_bdry)    conv.find_vels(thisfs, vort, bdry, bdry, velandvort, true);
@@ -636,6 +637,11 @@ void Simulation::step() {
   // we wind up using this a lot
   std::array<double,2> thisfs = {fs[0], fs[1]};
 
+#ifdef PLUGIN_AVRM
+  // calculate shear rates for adaptive vrm, and force it
+  if (diff.get_amr()) conv.find_vels(thisfs, vort, bdry, vort, velandshear, true);
+#endif
+
   if (use_2nd_order_operator_splitting) {
     // operator splitting requires one half-step diffuse (use coefficients from previous step, if available)
     diff.step(time, 0.5*dt, re, overlap_ratio, get_vdelta(), thisfs, vort, bdry, bem);
@@ -648,6 +654,11 @@ void Simulation::step() {
   conv.advect(time, dt, thisfs, get_ips(), vort, bdry, fldpt, bem);
 
   if (use_2nd_order_operator_splitting) {
+#ifdef PLUGIN_AVRM
+    // calculate shear rates for adaptive vrm, and force it
+    if (diff.get_amr()) conv.find_vels(thisfs, vort, bdry, vort, velandshear, true);
+#endif
+
     // operator splitting requires another half-step diffuse (must compute new coefficients)
     diff.step(time+dt, 0.5*dt, re, overlap_ratio, get_vdelta(), thisfs, vort, bdry, bem);
   }

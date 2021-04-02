@@ -235,11 +235,20 @@ void Diffusion<S,A,I>::step(const double                _time,
         // vectors are not passed as const, because they may be extended with new particles
         // this call also applies the changes, though we may want to save any changes into another
         //   vector of derivatives to be applied later
+#ifdef PLUGIN_AVRM
+        vrm.diffuse_all(pts.get_pos(),
+                        pts.get_str(),
+                        pts.get_rad(),
+                        pts.get_shear(),
+                        h_nu, core_func,
+                        _overlap);
+#else
         vrm.diffuse_all(pts.get_pos(),
                         pts.get_str(),
                         pts.get_rad(),
                         h_nu, core_func,
                         _overlap);
+#endif
 
         // resize the rest of the arrays
         pts.resize(pts.get_rad().size());
