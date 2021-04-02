@@ -1,8 +1,8 @@
 /*
  * BEMHelper.h - non-class to coordinate solving the BEM problem
  *
- * (c)2019 Applied Scientific Research, Inc.
- *         Written by Mark J Stock <markjstock@gmail.com>
+ * (c)2019,21 Applied Scientific Research, Inc.
+ *            Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -56,11 +56,11 @@ void solve_bem(const double                         _time,
   // need this for dispatching velocity influence calls, template param is accumulator type,
   //   member variable is default execution environment
 #ifdef USE_VC
-  InfluenceVisitor<A> ivisitor = {ResultsType(velonly), ExecEnv(true, direct, cpu_vc)};
+  InfluenceVisitor<S,A> ivisitor = {ResultsType(velonly), ExecEnv(true, direct, cpu_vc)};
 #else
-  InfluenceVisitor<A> ivisitor = {ResultsType(velonly), ExecEnv(true, direct, cpu_x86)};
+  InfluenceVisitor<S,A> ivisitor = {ResultsType(velonly), ExecEnv(true, direct, cpu_x86)};
 #endif
-  RHSVisitor rvisitor;
+  RHSVisitor<S> rvisitor;
 
   //
   // update rhs first
@@ -156,7 +156,7 @@ void solve_bem(const double                         _time,
     _bem.panels_changed();
 
     // this is the dispatcher for Points/Surfaces on Points/Surfaces
-    CoefficientVisitor cvisitor;
+    CoefficientVisitor<S> cvisitor;
 
     // loop over boundary collections
     for (auto &targ : _bdry) {

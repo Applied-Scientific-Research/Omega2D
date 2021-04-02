@@ -1,7 +1,7 @@
 /*
  * Influence.h - Non-class influence calculations
  *
- * (c)2017-20 Applied Scientific Research, Inc.
+ * (c)2017-21 Applied Scientific Research, Inc.
  *            Mark J Stock <markjstock@gmail.com>
  */
 
@@ -758,8 +758,8 @@ void panels_affect_panels (const Surfaces<S>& src, Surfaces<S>& targ, const Resu
   // run panels_affect_points instead
 
   // generate temporary colocation points as Points - is this inefficient?
-  ElementPacket<S> surfaspts = targ.represent_as_particles(0.0001, -1.0);
-  Points<float> temppts(surfaspts, active, lagrangian, nullptr, 0.0001);
+  ElementPacket<float> surfaspts = targ.represent_as_particles(0.0001, -1.0);
+  Points<S> temppts(surfaspts, active, lagrangian, nullptr, 0.0001);
 
   // run the calculation
   panels_affect_points<S,A>(src, temppts, restype, env);
@@ -794,12 +794,12 @@ void points_affect_bricks (const Points<S>& src, Volumes<S>& targ, const Results
   assert (!restype.compute_grad() && "Point elements cannot compute velocity gradients yet.");
 
   // generate temporary collocation points as Points
-  ElementPacket<S> nodesaspts = targ.represent_nodes_as_particles(true);
+  ElementPacket<float> nodesaspts = targ.represent_nodes_as_particles(true);
   Points<S> volsaspts(nodesaspts, inert, fixed, nullptr, 0.0f);
   // don't use this for hybrid
-  //ElementPacket<S> nodesaspts = targ.represent_nodes_as_particles(false);
+  //ElementPacket<float> nodesaspts = targ.represent_nodes_as_particles(false);
   //Points<S> volsaspts(nodesaspts, active, fixed, nullptr, 0.018f);
-  //ElementPacket<S> nodesaspts = targ.represent_nodes_as_particles(false);
+  //ElementPacket<float> nodesaspts = targ.represent_nodes_as_particles(false);
   //Points<S> volsaspts(nodesaspts, active, fixed, nullptr, targ.get_representative_size(1.0));
 
   // run the calculation
@@ -830,7 +830,7 @@ void panels_affect_bricks (const Surfaces<S>& src, Volumes<S>& targ, const Resul
   assert (!soln.compute_grad() && "Surface elements cannot compute velocity gradients yet.");
 
   // generate temporary collocation points as Points
-  ElementPacket<S> nodesaspts = targ.represent_nodes_as_particles(true);
+  ElementPacket<float> nodesaspts = targ.represent_nodes_as_particles(true);
   Points<S> volsaspts(nodesaspts, inert, fixed, nullptr, 0.0f);
 
   // run the calculation
@@ -860,18 +860,18 @@ void bricks_affect_bricks (const Volumes<S>& src, Volumes<S>& targ, const Result
 //
 // helper struct for dispatching through a variant
 //
-template <class A>
+template <class S, class A>
 struct InfluenceVisitor {
   // source collection, target collection, solution type, execution environment
-  void operator()(const Points<float>& src,   Points<float>& targ)   { points_affect_points<float,A>(src, targ, restype, env); }
-  void operator()(const Surfaces<float>& src, Points<float>& targ)   { panels_affect_points<float,A>(src, targ, restype, env); }
-  void operator()(const Volumes<float>& src,  Points<float>& targ)   { bricks_affect_points<float,A>(src, targ, restype, env); }
-  void operator()(const Points<float>& src,   Surfaces<float>& targ) { points_affect_panels<float,A>(src, targ, restype, env); }
-  void operator()(const Surfaces<float>& src, Surfaces<float>& targ) { panels_affect_panels<float,A>(src, targ, restype, env); }
-  void operator()(const Volumes<float>& src,  Surfaces<float>& targ) { bricks_affect_panels<float,A>(src, targ, restype, env); }
-  void operator()(const Points<float>& src,   Volumes<float>& targ)  { points_affect_bricks<float,A>(src, targ, restype, env); }
-  void operator()(const Surfaces<float>& src, Volumes<float>& targ)  { panels_affect_bricks<float,A>(src, targ, restype, env); }
-  void operator()(const Volumes<float>& src,  Volumes<float>& targ)  { bricks_affect_bricks<float,A>(src, targ, restype, env); }
+  void operator()(const Points<S>& src,   Points<S>& targ)   { points_affect_points<S,A>(src, targ, restype, env); }
+  void operator()(const Surfaces<S>& src, Points<S>& targ)   { panels_affect_points<S,A>(src, targ, restype, env); }
+  void operator()(const Volumes<S>& src,  Points<S>& targ)   { bricks_affect_points<S,A>(src, targ, restype, env); }
+  void operator()(const Points<S>& src,   Surfaces<S>& targ) { points_affect_panels<S,A>(src, targ, restype, env); }
+  void operator()(const Surfaces<S>& src, Surfaces<S>& targ) { panels_affect_panels<S,A>(src, targ, restype, env); }
+  void operator()(const Volumes<S>& src,  Surfaces<S>& targ) { bricks_affect_panels<S,A>(src, targ, restype, env); }
+  void operator()(const Points<S>& src,   Volumes<S>& targ)  { points_affect_bricks<S,A>(src, targ, restype, env); }
+  void operator()(const Surfaces<S>& src, Volumes<S>& targ)  { panels_affect_bricks<S,A>(src, targ, restype, env); }
+  void operator()(const Volumes<S>& src,  Volumes<S>& targ)  { bricks_affect_bricks<S,A>(src, targ, restype, env); }
 
   ResultsType restype;
   ExecEnv env;

@@ -53,10 +53,10 @@ public:
 
   // interleave arrays and write to the vtk file
   template <class S, long unsigned int I>
-  Vector<S> unpackArray(std::array<Vector<S>,I> const & _data) {
+  Vector<float> unpackArray(std::array<Vector<S>,I> const & _data) {
     // interleave the (2,3) vectors into a new one
     { assert((I==2 || I==3) && "ERROR with template I"); }
-    Vector<S> newvec;
+    Vector<float> newvec;
     newvec.resize(3 * _data[0].size());
     for (size_t i=0; i<_data[0].size(); ++i) {
       newvec[3*i+0] = _data[0][i];

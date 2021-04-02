@@ -1,8 +1,8 @@
 /*
  * Volumes.h - Specialized class for volumes in 2D
  *
- * (c)2020 Applied Scientific Research, Inc.
- *         Mark J Stock <markjstock@gmail.com>
+ * (c)2020-1 Applied Scientific Research, Inc.
+ *           Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -52,7 +52,7 @@ public:
   // constructor - accepts only ElementPacket
   //               last vector (_val) is either fixed strength or boundary
   //               condition for each element
-  Volumes(const ElementPacket<S>& _elems,
+  Volumes(const ElementPacket<float>& _elems,
           const elem_t _e,
           const move_t _m,
           std::shared_ptr<Body> _bp)
@@ -60,9 +60,9 @@ public:
       nb(_elems.nelem),
       max_strength(-1.0) {
 
-    const std::vector<S>&     _x = _elems.x;
-    const std::vector<Int>& _idx = _elems.idx;
-    const std::vector<S>&   _val = _elems.val;
+    const std::vector<float>&   _x = _elems.x;
+    const std::vector<Int>&   _idx = _elems.idx;
+    const std::vector<float>& _val = _elems.val;
 
     // assume all elements are 1st order quads (4 corner indices)
     const size_t nper = _idx.size() / nb;
@@ -885,7 +885,7 @@ public:
 
 
   // export all nodes as either singular (_inert) or thick particles
-  ElementPacket<S> represent_nodes_as_particles(bool _inert) {
+  ElementPacket<float> represent_nodes_as_particles(bool _inert) {
 
     // how many nodes?
     const size_t num_pts = this->get_n();
@@ -1015,7 +1015,7 @@ public:
 /*
     if (ps[0]) {
       // make this easy - represent as particles - do we count BCs here?!?
-      ElementPacket<S> pts = represent_as_particles(0.0, -1.0);
+      ElementPacket<float> pts = represent_as_particles(0.0, -1.0);
 
       // now compute impulse of those
       for (size_t i=0; i<pts.nelems; ++i) {

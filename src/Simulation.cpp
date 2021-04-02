@@ -1,7 +1,7 @@
 /*
  * Simulation.cpp - a class to control a 2D vortex particle sim
  *
- * (c)2017-20 Applied Scientific Research, Inc.
+ * (c)2017-21 Applied Scientific Research, Inc.
  *            Mark J Stock <markjstock@gmail.com>
  */
 
@@ -97,8 +97,8 @@ size_t Simulation::get_npanels() {
   for (auto &coll: bdry) {
     //std::visit([&n](auto& elem) { n += elem.get_npanels(); }, coll);
     // only proceed if the last collection is Surfaces
-    if (std::holds_alternative<Surfaces<float>>(coll)) {
-      Surfaces<float>& surf = std::get<Surfaces<float>>(coll);
+    if (std::holds_alternative<Surfaces<STORE>>(coll)) {
+      Surfaces<STORE>& surf = std::get<Surfaces<STORE>>(coll);
       n += surf.get_npanels();
     }
   }
@@ -508,8 +508,8 @@ void Simulation::conserve_iolet_volume() {
 
   // loop over bdry Collections and find total inlet and outlet rates
   for (auto &src : bdry) {
-    if (std::holds_alternative<Surfaces<float>>(src)) {
-      Surfaces<float>& surf = std::get<Surfaces<float>>(src);
+    if (std::holds_alternative<Surfaces<STORE>>(src)) {
+      Surfaces<STORE>& surf = std::get<Surfaces<STORE>>(src);
       if (surf.get_elemt() == reactive) {
         inrate += surf.get_total_inflow();
         outrate += surf.get_total_outflow();
@@ -529,8 +529,8 @@ void Simulation::conserve_iolet_volume() {
 
       // correct the outflow to match
       for (auto &src : bdry) {
-        if (std::holds_alternative<Surfaces<float>>(src)) {
-          Surfaces<float>& surf = std::get<Surfaces<float>>(src);
+        if (std::holds_alternative<Surfaces<STORE>>(src)) {
+          Surfaces<STORE>& surf = std::get<Surfaces<STORE>>(src);
           if (surf.get_elemt() == reactive) {
             surf.scale_outflow(inrate/outrate);
           }
@@ -543,8 +543,8 @@ void Simulation::conserve_iolet_volume() {
       std::cout << "  no outflows defined - zeroing all inflows" << std::endl;
 
       for (auto &src : bdry) {
-        if (std::holds_alternative<Surfaces<float>>(src)) {
-          Surfaces<float>& surf = std::get<Surfaces<float>>(src);
+        if (std::holds_alternative<Surfaces<STORE>>(src)) {
+          Surfaces<STORE>& surf = std::get<Surfaces<STORE>>(src);
           if (surf.get_elemt() == reactive) {
             surf.zero_inflow();
           }
@@ -739,12 +739,12 @@ Simulation::calculate_simple_forces() {
 
   // calculate impulse from particles
   for (auto &src : vort) {
-    std::array<float,Dimensions> this_imp = std::visit([=](auto& elem) { return elem.get_total_impulse(); }, src);
+    std::array<STORE,Dimensions> this_imp = std::visit([=](auto& elem) { return elem.get_total_impulse(); }, src);
     for (size_t i=0; i<Dimensions; ++i) this_impulse[i] += this_imp[i];
   }
   // then add up the impulse from bodies - DO WE NEED TO RE-SOLVE BEM FIRST?
   for (auto &src : bdry) {
-    std::array<float,Dimensions> this_imp = std::visit([=](auto& elem) { return elem.get_total_impulse(); }, src);
+    std::array<STORE,Dimensions> this_imp = std::visit([=](auto& elem) { return elem.get_total_impulse(); }, src);
     for (size_t i=0; i<Dimensions; ++i) this_impulse[i] += this_imp[i];
   }
 
@@ -805,11 +805,11 @@ void Simulation::file_elements(std::vector<Collection>& _collvec,
 
     // check Collections element dimension
     auto& coll = _collvec[i];
-    if (std::holds_alternative<Points<float>>(coll) and _elems.ndim != 0) {
+    if (std::holds_alternative<Points<STORE>>(coll) and _elems.ndim != 0) {
       this_match = false;
-    } else if (std::holds_alternative<Surfaces<float>>(coll) and _elems.ndim != 1) {
+    } else if (std::holds_alternative<Surfaces<STORE>>(coll) and _elems.ndim != 1) {
       this_match = false;
-    } else if (std::holds_alternative<Volumes<float>>(coll) and _elems.ndim != 2) {
+    } else if (std::holds_alternative<Volumes<STORE>>(coll) and _elems.ndim != 2) {
       this_match = false;
     }
 
@@ -823,11 +823,11 @@ void Simulation::file_elements(std::vector<Collection>& _collvec,
   if (no_match) {
     // make a new collection according to element dimension
     if (_elems.ndim == 0) {
-      _collvec.push_back(Points<float>(_elems, _et, _mt, _bptr, get_vdelta()));
+      _collvec.push_back(Points<STORE>(_elems, _et, _mt, _bptr, get_vdelta()));
     } else if (_elems.ndim == 1) {
-      _collvec.push_back(Surfaces<float>(_elems, _et, _mt, _bptr));
+      _collvec.push_back(Surfaces<STORE>(_elems, _et, _mt, _bptr));
     } else if (_elems.ndim == 2) {
-      _collvec.push_back(Volumes<float>(_elems, _et, _mt, _bptr));
+      _collvec.push_back(Volumes<STORE>(_elems, _et, _mt, _bptr));
     }
 
   } else {
@@ -836,13 +836,13 @@ void Simulation::file_elements(std::vector<Collection>& _collvec,
 
     // proceed to add the correct object type
     if (_elems.ndim == 0) {
-      Points<float>& pts = std::get<Points<float>>(coll);
+      Points<STORE>& pts = std::get<Points<STORE>>(coll);
       pts.add_new(_elems, get_vdelta());
     } else if (_elems.ndim == 1) {
-      Surfaces<float>& surf = std::get<Surfaces<float>>(coll);
+      Surfaces<STORE>& surf = std::get<Surfaces<STORE>>(coll);
       surf.add_new(_elems);
     } else if (_elems.ndim == 2) {
-      Volumes<float>& vols = std::get<Volumes<float>>(coll);
+      Volumes<STORE>& vols = std::get<Volumes<STORE>>(coll);
       vols.add_new(_elems);
     }
   }
@@ -866,7 +866,7 @@ void Simulation::add_hybrid(const std::vector<ElementPacket<float>>  _elems,
   //_elems[0] is the volume elements - always add unique Collection to euler
   //_elems[1] is the wall boundaries
   //_elems[2] is the open boundaries
-  euler.emplace_back(HOVolumes<float>(_elems[0], _elems[1], _elems[2], hybrid, fixed, _bptr));
+  euler.emplace_back(HOVolumes<STORE>(_elems[0], _elems[1], _elems[2], hybrid, fixed, _bptr));
   std::cout << "  euler now has " << euler.size() << " HOVolumes" << std::endl;
 
   // alternate way to assign the wall and open bc elements

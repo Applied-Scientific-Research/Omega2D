@@ -534,7 +534,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
     std::vector<Collection> euler_vols;
     euler_vols.emplace_back(solnpts);	// this is a COPY
     _conv.find_vort(_vort, _bdry, euler_vols);
-    Points<float>& solvedpts = std::get<Points<S>>(euler_vols[0]);
+    Points<S>& solvedpts = std::get<Points<S>>(euler_vols[0]);
     Vector<S>& lagvort = solvedpts.get_vort();
     assert(lagvort.size() == thisn && "ERROR (Hybrid::step) vorticity from particle sim is not the right size");
 
@@ -620,8 +620,8 @@ void Hybrid<S,A,I>::step(const double                         _time,
     std::cout << "  initial error " << thiserror << std::endl;
 
     // there must be an original set of vortex particles
-    assert(std::holds_alternative<Points<float>>(_vort[0]) && "ERROR: _vort[0] is not Points");
-    Points<float>& lag_vorts = std::get<Points<S>>(_vort[0]);
+    assert(std::holds_alternative<Points<S>>(_vort[0]) && "ERROR: _vort[0] is not Points");
+    Points<S>& lag_vorts = std::get<Points<S>>(_vort[0]);
 
     // during iterations, only generate particles with sufficient strength
     const S circ_thresh = 1.e-4 * lag_vorts.get_averaged_max_str();
@@ -639,7 +639,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
       // generate particles to fill the deficit
       //   note that cells may be a lot larger than particles!
-      ElementPacket<S> newparts = coll.get_equivalent_particles(circ, (S)_vd, circ_thresh);
+      ElementPacket<float> newparts = coll.get_equivalent_particles(circ, (S)_vd, circ_thresh);
 
       // make them a new collection in _vort (so that we can delete them later?)
       // or add them to the first collection?

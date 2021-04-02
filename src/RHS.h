@@ -115,10 +115,11 @@ std::vector<S> vels_to_rhs_elems (Volumes<S> const& targ) {
 
 
 // helper struct for dispatching through a variant
+template <class S>
 struct RHSVisitor {
   // source collection, target collection
-  std::vector<float> operator()(Points<float> const& targ)   { return vels_to_rhs_points<float>(targ); } 
-  std::vector<float> operator()(Surfaces<float> const& targ) { return vels_to_rhs_panels<float>(targ); } 
-  std::vector<float> operator()(Volumes<float> const& targ)  { return vels_to_rhs_elems<float>(targ); } 
+  std::vector<S> operator()(Points<S> const& targ)   { return vels_to_rhs_points<S>(targ); } 
+  std::vector<S> operator()(Surfaces<S> const& targ) { return vels_to_rhs_panels<S>(targ); } 
+  std::vector<S> operator()(Volumes<S> const& targ)  { return vels_to_rhs_elems<S>(targ); } 
 };
 

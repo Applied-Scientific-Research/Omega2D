@@ -195,7 +195,7 @@ void Diffusion<S,A,I>::step(const double                _time,
         Surfaces<S>& surf = std::get<Surfaces<S>>(coll);
 
         // generate particles just above the surface
-        ElementPacket<S> new_pts = surf.represent_as_particles(0.01*(S)h_nu, _vdelta/_overlap);
+        ElementPacket<float> new_pts = surf.represent_as_particles(0.01*(S)h_nu, _vdelta/_overlap);
 
         // add those particles to the main particle list
         if (_vort.size() == 0) {
@@ -316,7 +316,7 @@ void Diffusion<S,A,I>::step(const double                _time,
 
         // generate particles above the surface at the centroid of one step of
         //   diffusion from a flat plate
-        ElementPacket<S> new_pts = surf.represent_as_particles(h_nu*std::sqrt(4.0/M_PI), _vdelta/_overlap);
+        ElementPacket<float> new_pts = surf.represent_as_particles(h_nu*std::sqrt(4.0/M_PI), _vdelta/_overlap);
 
         // add those particles to the main particle list
         if (_vort.size() == 0) {

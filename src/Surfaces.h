@@ -51,7 +51,7 @@ public:
   //               each inner vector must have even number of floats
   //               last parameter (_val) is either fixed strength or boundary
   //               condition for each panel
-  Surfaces(const ElementPacket<S>& _elems,
+  Surfaces(const ElementPacket<float>& _elems,
            const elem_t _e,
            const move_t _m,
            std::shared_ptr<Body> _bp)
@@ -66,9 +66,9 @@ public:
       max_strength(-1.0) {
 
     // pull out the vectors
-    const std::vector<S>&   _x   = _elems.x;
+    const std::vector<float>&   _x   = _elems.x;
     const std::vector<Int>& _idx = _elems.idx;
-    const std::vector<S>&   _val = _elems.val;
+    const std::vector<float>&   _val = _elems.val;
 
     // make sure input arrays are correctly-sized
     assert(_elems.ndim == 1 && "Input elements are not (1D) surfaces");
@@ -804,7 +804,7 @@ public:
   // return a particle version of the panels (useful during Diffusion)
   // offset is in world units - NOT scaled
   //
-  ElementPacket<S> represent_as_particles(const S _offset, const S _ips) {
+  ElementPacket<float> represent_as_particles(const S _offset, const S _ips) {
 
     // prepare the vectors
     std::vector<float> _x;
@@ -937,12 +937,12 @@ public:
 
     if (ps[0]) {
       // make this easy - represent as particles - do we count BCs here?!?
-      ElementPacket<S> pts = represent_as_particles(0.0, -1.0);
+      ElementPacket<float> pts = represent_as_particles(0.0, -1.0);
 
       // now compute impulse of those
       for (size_t i=0; i<pts.nelem; ++i) {
-        imp[0] -= pts.val[i] * pts.x[2*i];
-        imp[1] += pts.val[i] * pts.x[2*i+1];
+        imp[0] -= (S)pts.val[i] * (S)pts.x[2*i];
+        imp[1] += (S)pts.val[i] * (S)pts.x[2*i+1];
       }
     }
 

@@ -35,17 +35,17 @@ class HOVolumes: public Volumes<S> {
 public:
 
   // use parent constructor
-  HOVolumes(const ElementPacket<S>& _velems,
-            const ElementPacket<S>& _welems,
-            const ElementPacket<S>& _oelems,
+  HOVolumes(const ElementPacket<float>& _velems,
+            const ElementPacket<float>& _welems,
+            const ElementPacket<float>& _oelems,
             const elem_t _e,
             const move_t _m,
             std::shared_ptr<Body> _bp)
     : Volumes<S>(_velems, _e, _m, _bp),
       wall_s(Surfaces<S>(_welems, _e, _m, _bp)),
       open_s(Surfaces<S>(_oelems, _e, _m, _bp)),
-      open_p(Points<S>(ElementPacket<S>((uint8_t)0), _e, _m, _bp, 0.0)),
-      soln_p(Points<S>(ElementPacket<S>((uint8_t)0), _e, _m, _bp, 0.0))//,
+      open_p(Points<S>(ElementPacket<float>((uint8_t)0), _e, _m, _bp, 0.0)),
+      soln_p(Points<S>(ElementPacket<float>((uint8_t)0), _e, _m, _bp, 0.0))//,
       //reduced_p(Points<S>(ElementPacket<S>((uint8_t)0), _e, _m, _bp, 0.0))
   { }
 
@@ -114,13 +114,13 @@ public:
     assert(_in.size() > 0 && "ERROR (set_soln_pts): received zero solution points from solver");
 
     // convert input vector to local coords
-    std::vector<S> x(_in.begin(), _in.end());
+    std::vector<float> x(_in.begin(), _in.end());
 
     // and dummy val array with zeros
-    std::vector<S> val(x.size()/2);
+    std::vector<float> val(x.size()/2);
 
     // ready to pass a packet to the ctor
-    soln_p.add_new(ElementPacket<S>(x, std::vector<Int>(), val, x.size()/2, 0), 0.0);
+    soln_p.add_new(ElementPacket<float>(x, std::vector<Int>(), val, x.size()/2, 0), 0.0);
   }
 
   // retrieve solution points on open boundary from solver, set them here
@@ -128,13 +128,13 @@ public:
     assert(_in.size() > 0 && "ERROR (set_open_pts): received zero open bc points from solver");
 
     // convert input vector to local coords
-    std::vector<S> x(_in.begin(), _in.end());
+    std::vector<float> x(_in.begin(), _in.end());
 
     // and dummy val array with zeros
-    std::vector<S> val(x.size()/2);
+    std::vector<float> val(x.size()/2);
 
     // ready to pass a packet to the ctor
-    open_p.add_new(ElementPacket<S>(x, std::vector<Int>(), val, x.size()/2, 0), 0.0);
+    open_p.add_new(ElementPacket<float>(x, std::vector<Int>(), val, x.size()/2, 0), 0.0);
   }
 
   // append a Surfaces to the object for the wall-boundary geometry
@@ -274,7 +274,7 @@ public:
   // new particles have given vdelta core size
   // only generate new particles with strength greater than a threshold
   //
-  ElementPacket<S> get_equivalent_particles(const Vector<S>& _circ, const S _vd, const S _thresh) {
+  ElementPacket<float> get_equivalent_particles(const Vector<S>& _circ, const S _vd, const S _thresh) {
 
     assert(_circ.size() == soln_p.get_n() && "HOVolumes::get_equivalent_particles input vector size mismatch");
 
@@ -300,7 +300,7 @@ public:
       // use size of element and particle radius to ensure overlap
     }
 
-    return ElementPacket<S>(_x, _idx, _val, thisn, (uint8_t)0);
+    return ElementPacket<float>(_x, _idx, _val, thisn, (uint8_t)0);
   }
 /*
   std::vector<S> represent_elems_as_particles(const S _offset, const S _vdelta) {

@@ -138,13 +138,13 @@ void Convection<S,A,I>::find_vort(std::vector<Collection>&             _vort,
     // accumulate from vorticity, but only from Points
     for (auto &src : _vort) if (std::holds_alternative<Points<S>>(src)) {
       Points<S>& psrc = std::get<Points<S>>(src);
-      points_affect_points_vorticity<float,A>(psrc, ptarg, conv_env);
+      points_affect_points_vorticity<S,A>(psrc, ptarg, conv_env);
     }
 
     // accumulate from reactive, but only from Points
     for (auto &src : _bdry) if (std::holds_alternative<Points<S>>(src)) {
       Points<S>& psrc = std::get<Points<S>>(src);
-      points_affect_points_vorticity<float,A>(psrc, ptarg, conv_env);
+      points_affect_points_vorticity<S,A>(psrc, ptarg, conv_env);
     }
 
     // finalize vels and vorticity by dividing by constant
@@ -169,7 +169,7 @@ void Convection<S,A,I>::find_vels(const std::array<double,Dimensions>& _fs,
 
   // need this for dispatching velocity influence calls, template param is accumulator type
   // member variable is passed-in execution environment
-  InfluenceVisitor<A> visitor = {ResultsType(_results), conv_env};
+  InfluenceVisitor<S,A> visitor = {ResultsType(_results), conv_env};
 
   // add vortex and source strengths to account for rotating bodies
   for (auto &src : _bdry) {
@@ -247,7 +247,8 @@ void Convection<S,A,I>::advect(const double                         _time,
 
   // call the individual methods
   if (convection_order == 1) advect_1st(_time, _dt, _fs, _ips, _vort, _bdry, _fldpt, _bem);
-  else if (convection_order == 2) advect_2nd_heun(_time, _dt, _fs, _ips, _vort, _bdry, _fldpt, _bem);
+  //else if (convection_order == 2) advect_2nd_heun(_time, _dt, _fs, _ips, _vort, _bdry, _fldpt, _bem);
+  else if (convection_order == 2) advect_2nd_ralston(_time, _dt, _fs, _ips, _vort, _bdry, _fldpt, _bem);
   else advect_3rd(_time, _dt, _fs, _ips, _vort, _bdry, _fldpt, _bem);
 
   // do the smarter, general way - ugh, maybe later
@@ -369,9 +370,9 @@ void Convection<S,A,I>::advect_2nd_heun(const double                         _ti
     Collection& c1 = *v1p;
     Collection& c2 = *v2p;
     // switch based on what type is actually held in the std::variant
-    if (std::holds_alternative<Points<float>>(c1) and std::holds_alternative<Points<float>>(c2)) {
-      Points<float>& p1 = std::get<Points<float>>(c1);
-      Points<float>& p2 = std::get<Points<float>>(c2);
+    if (std::holds_alternative<Points<S>>(c1) and std::holds_alternative<Points<S>>(c2)) {
+      Points<S>& p1 = std::get<Points<S>>(c1);
+      Points<S>& p2 = std::get<Points<S>>(c2);
       p1.move(_time, _dt, 0.5, p1, 0.5, p2);
     }
     ++v1p;
@@ -384,9 +385,9 @@ void Convection<S,A,I>::advect_2nd_heun(const double                         _ti
     Collection& c1 = *v1p;
     Collection& c2 = *v2p;
     // switch based on what type is actually held in the std::variant
-    if (std::holds_alternative<Points<float>>(c1) and std::holds_alternative<Points<float>>(c2)) {
-      Points<float>& p1 = std::get<Points<float>>(c1);
-      Points<float>& p2 = std::get<Points<float>>(c2);
+    if (std::holds_alternative<Points<S>>(c1) and std::holds_alternative<Points<S>>(c2)) {
+      Points<S>& p1 = std::get<Points<S>>(c1);
+      Points<S>& p2 = std::get<Points<S>>(c2);
       p1.move(_time, _dt, 0.5, p1, 0.5, p2);
     }
     ++v1p;
@@ -451,9 +452,9 @@ void Convection<S,A,I>::advect_2nd_ralston(const double                         
     Collection& c1 = *v1p;
     Collection& c2 = *v2p;
     // switch based on what type is actually held in the std::variant
-    if (std::holds_alternative<Points<float>>(c1) and std::holds_alternative<Points<float>>(c2)) {
-      Points<float>& p1 = std::get<Points<float>>(c1);
-      Points<float>& p2 = std::get<Points<float>>(c2);
+    if (std::holds_alternative<Points<S>>(c1) and std::holds_alternative<Points<S>>(c2)) {
+      Points<S>& p1 = std::get<Points<S>>(c1);
+      Points<S>& p2 = std::get<Points<S>>(c2);
       p1.move(_time, _dt, 0.25, p1, 0.75, p2);
     }
     ++v1p;
@@ -466,9 +467,9 @@ void Convection<S,A,I>::advect_2nd_ralston(const double                         
     Collection& c1 = *v1p;
     Collection& c2 = *v2p;
     // switch based on what type is actually held in the std::variant
-    if (std::holds_alternative<Points<float>>(c1) and std::holds_alternative<Points<float>>(c2)) {
-      Points<float>& p1 = std::get<Points<float>>(c1);
-      Points<float>& p2 = std::get<Points<float>>(c2);
+    if (std::holds_alternative<Points<S>>(c1) and std::holds_alternative<Points<S>>(c2)) {
+      Points<S>& p1 = std::get<Points<S>>(c1);
+      Points<S>& p2 = std::get<Points<S>>(c2);
       p1.move(_time, _dt, 0.25, p1, 0.75, p2);
     }
     ++v1p;
@@ -533,9 +534,9 @@ void Convection<S,A,I>::advect_3rd(const double                         _time,
   for (size_t i = 0; i < vort1.size(); ++i) {
     Collection& c1 = *v1p;
     Collection& c2 = *v2p;
-    if (std::holds_alternative<Points<float>>(c1) and std::holds_alternative<Points<float>>(c2)) {
-      Points<float>& p1 = std::get<Points<float>>(c1);
-      Points<float>& p2 = std::get<Points<float>>(c2);
+    if (std::holds_alternative<Points<S>>(c1) and std::holds_alternative<Points<S>>(c2)) {
+      Points<S>& p1 = std::get<Points<S>>(c1);
+      Points<S>& p2 = std::get<Points<S>>(c2);
       p2.move(_time, 0.75*_dt, 1.0, p1);
     }
     ++v1p;
@@ -551,9 +552,9 @@ void Convection<S,A,I>::advect_3rd(const double                         _time,
     Collection& c1 = *v1p;
     Collection& c2 = *v2p;
     // switch based on what type is actually held in the std::variant
-    if (std::holds_alternative<Points<float>>(c1) and std::holds_alternative<Points<float>>(c2)) {
-      Points<float>& p1 = std::get<Points<float>>(c1);
-      Points<float>& p2 = std::get<Points<float>>(c2);
+    if (std::holds_alternative<Points<S>>(c1) and std::holds_alternative<Points<S>>(c2)) {
+      Points<S>& p1 = std::get<Points<S>>(c1);
+      Points<S>& p2 = std::get<Points<S>>(c2);
       p2.move(_time, 0.75*_dt, 1.0, p1);
     }
     ++v1p;
@@ -577,10 +578,10 @@ void Convection<S,A,I>::advect_3rd(const double                         _time,
     Collection& c1 = *v1p;
     Collection& c2 = *v2p;
     // switch based on what type is actually held in the std::variant
-    if (std::holds_alternative<Points<float>>(c0)) {
-      Points<float>& p0 = std::get<Points<float>>(c0);
-      Points<float>& p1 = std::get<Points<float>>(c1);
-      Points<float>& p2 = std::get<Points<float>>(c2);
+    if (std::holds_alternative<Points<S>>(c0)) {
+      Points<S>& p0 = std::get<Points<S>>(c0);
+      Points<S>& p1 = std::get<Points<S>>(c1);
+      Points<S>& p2 = std::get<Points<S>>(c2);
       p0.move(_time, _dt, 2.0/9.0, p0, 3.0/9.0, p1, 4.0/9.0, p2);
     }
     ++v0p;
@@ -596,10 +597,10 @@ void Convection<S,A,I>::advect_3rd(const double                         _time,
     Collection& c1 = *v1p;
     Collection& c2 = *v2p;
     // switch based on what type is actually held in the std::variant
-    if (std::holds_alternative<Points<float>>(c0)) {
-      Points<float>& p0 = std::get<Points<float>>(c0);
-      Points<float>& p1 = std::get<Points<float>>(c1);
-      Points<float>& p2 = std::get<Points<float>>(c2);
+    if (std::holds_alternative<Points<S>>(c0)) {
+      Points<S>& p0 = std::get<Points<S>>(c0);
+      Points<S>& p1 = std::get<Points<S>>(c1);
+      Points<S>& p2 = std::get<Points<S>>(c2);
       p0.move(_time, _dt, 2.0/9.0, p0, 3.0/9.0, p1, 4.0/9.0, p2);
     }
     ++v0p;

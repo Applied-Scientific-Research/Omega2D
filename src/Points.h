@@ -1,7 +1,7 @@
 /*
  * Points.h - Specialized class for 2D points
  *
- * (c)2018-20 Applied Scientific Research, Inc.
+ * (c)2018-21 Applied Scientific Research, Inc.
  *            Mark J Stock <markjstock@gmail.com>
  */
 
@@ -38,7 +38,7 @@ template <class S>
 class Points: public ElementBase<S> {
 public:
   // only constructor now - using ElementPacket
-  Points(const ElementPacket<S>& _in,
+  Points(const ElementPacket<float>& _in,
          const elem_t _e,
          const move_t _m,
          std::shared_ptr<Body> _bp,
@@ -120,7 +120,8 @@ public:
   const float get_max_bc_value() const { return 0.0; }
 
   // append more elements this collection
-  void add_new(const ElementPacket<S>& _in, const float _vd) {
+  void add_new(const ElementPacket<float>& _in, const float _vd) {
+
     // ensure that this packet really is Points
     assert(_in.idx.size() == 0 && "Input ElementPacket is not Points");
     assert(_in.ndim == 0 && "Input ElementPacket is not Points");

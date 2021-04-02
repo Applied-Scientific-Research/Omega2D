@@ -1,7 +1,7 @@
 /*
  * Coefficients.h - Non-class influence coefficients calculations
  *
- * (c)2017-20 Applied Scientific Research, Inc.
+ * (c)2017-21 Applied Scientific Research, Inc.
  *            Mark J Stock <markjstock@gmail.com>
  */
 
@@ -336,7 +336,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
         // average this with the point-affects-panel influence
         if (use_two_way) {
           kernelu_1vos_0p<S,S>(tx0, ty0, tx1, ty1, 1.0, 1.0, 0.5*(sx0+sx1), 0.5*(sy0+sy1), &vortu, &vortv, &srcu, &srcv);
-          const float fact = sa[j]/ta[i];
+          const S fact = sa[j]/ta[i];
           col1[rptr] -= fact*(vortu*tt[0][i] + vortv*tt[1][i]);
           col1[rptr+1] -= fact*(vortu*tn[0][i] + vortv*tn[1][i]);
           col2[rptr] -= fact*(srcu*tt[0][i] + srcv*tt[1][i]);
@@ -595,16 +595,17 @@ Vector<S> bricks_on_bricks_coeff (Volumes<S> const& src, Volumes<S>& targ) {
 
 
 // helper struct for dispatching through a variant
+template <class S>
 struct CoefficientVisitor {
   // source collection, target collection
-  Vector<float> operator()(Points<float> const& src,   Points<float>& targ)   { return points_on_points_coeff<float>(src, targ); } 
-  Vector<float> operator()(Surfaces<float> const& src, Points<float>& targ)   { return panels_on_points_coeff<float>(src, targ); } 
-  Vector<float> operator()(Volumes<float> const& src,  Points<float>& targ)   { return bricks_on_points_coeff<float>(src, targ); } 
-  Vector<float> operator()(Points<float> const& src,   Surfaces<float>& targ) { return points_on_panels_coeff<float>(src, targ); } 
-  Vector<float> operator()(Surfaces<float> const& src, Surfaces<float>& targ) { return panels_on_panels_coeff<float>(src, targ); } 
-  Vector<float> operator()(Volumes<float> const& src,  Surfaces<float>& targ) { return bricks_on_panels_coeff<float>(src, targ); } 
-  Vector<float> operator()(Points<float> const& src,   Volumes<float>& targ)  { return points_on_bricks_coeff<float>(src, targ); } 
-  Vector<float> operator()(Surfaces<float> const& src, Volumes<float>& targ)  { return panels_on_bricks_coeff<float>(src, targ); } 
-  Vector<float> operator()(Volumes<float> const& src,  Volumes<float>& targ)  { return bricks_on_bricks_coeff<float>(src, targ); } 
+  Vector<S> operator()(Points<S> const& src,   Points<S>& targ)   { return points_on_points_coeff<S>(src, targ); } 
+  Vector<S> operator()(Surfaces<S> const& src, Points<S>& targ)   { return panels_on_points_coeff<S>(src, targ); } 
+  Vector<S> operator()(Volumes<S> const& src,  Points<S>& targ)   { return bricks_on_points_coeff<S>(src, targ); } 
+  Vector<S> operator()(Points<S> const& src,   Surfaces<S>& targ) { return points_on_panels_coeff<S>(src, targ); } 
+  Vector<S> operator()(Surfaces<S> const& src, Surfaces<S>& targ) { return panels_on_panels_coeff<S>(src, targ); } 
+  Vector<S> operator()(Volumes<S> const& src,  Surfaces<S>& targ) { return bricks_on_panels_coeff<S>(src, targ); } 
+  Vector<S> operator()(Points<S> const& src,   Volumes<S>& targ)  { return points_on_bricks_coeff<S>(src, targ); } 
+  Vector<S> operator()(Surfaces<S> const& src, Volumes<S>& targ)  { return panels_on_bricks_coeff<S>(src, targ); } 
+  Vector<S> operator()(Volumes<S> const& src,  Volumes<S>& targ)  { return bricks_on_bricks_coeff<S>(src, targ); } 
 };
 
