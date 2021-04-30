@@ -135,10 +135,12 @@ public:
   bool test_vs_stop_async();
 
   // read to and write from a json object
-  void flow_from_json(const nlohmann::json);
-  nlohmann::json flow_to_json() const;
   void from_json(const nlohmann::json);
   nlohmann::json to_json() const;
+  void flow_from_json(const nlohmann::json);
+  nlohmann::json flow_to_json() const;
+  void runtime_from_json(const nlohmann::json);
+  nlohmann::json runtime_to_json() const;
 
 #ifdef USE_GL
   // graphics pass-through calls

@@ -140,39 +140,6 @@ void Simulation::set_amr(const bool _do_amr) {
 // json read/write
 //
 
-// set "flowparams" json object
-void
-Simulation::flow_from_json(const nlohmann::json j) {
-
-  if (j.find("Re") != j.end()) {
-    re = j["Re"];
-    std::cout << "  setting re= " << re << std::endl;
-  }
-  if (j.find("Uinf") != j.end()) {
-    // eventually support an expression for Uinf instead of just a single float
-    std::vector<float> new_fs = {0.0, 0.0, 0.0};
-    new_fs.resize(Dimensions);
-    if (j["Uinf"].is_array()) {
-      new_fs = j["Uinf"].get<std::vector<float>>();
-    } else if (j["Uinf"].is_number()) {
-      new_fs[0] = j["Uinf"].get<float>();
-    }
-    for (size_t i=0; i<Dimensions; ++i) fs[i] = new_fs[i];
-    std::cout << "  setting freestream to " << fs[0] << " " << fs[1] << std::endl;
-  }
-}
-
-// create and write a json object for "flowparams"
-nlohmann::json
-Simulation::flow_to_json() const {
-  nlohmann::json j;
-
-  j["Re"] = re;
-  j["Uinf"] = {fs[0], fs[1]};
-
-  return j;
-}
-
 // read "simparams" json object
 void
 Simulation::from_json(const nlohmann::json j) {
@@ -248,6 +215,70 @@ Simulation::to_json() const {
 
   // Hybrid will create a "hybrid" section
   hybr.add_to_json(j);
+
+  return j;
+}
+
+// set "flowparams" json object
+void
+Simulation::flow_from_json(const nlohmann::json j) {
+
+  if (j.find("Re") != j.end()) {
+    re = j["Re"];
+    std::cout << "  setting re= " << re << std::endl;
+  }
+  if (j.find("Uinf") != j.end()) {
+    // eventually support an expression for Uinf instead of just a single float
+    std::vector<float> new_fs = {0.0, 0.0, 0.0};
+    new_fs.resize(Dimensions);
+    if (j["Uinf"].is_array()) {
+      new_fs = j["Uinf"].get<std::vector<float>>();
+    } else if (j["Uinf"].is_number()) {
+      new_fs[0] = j["Uinf"].get<float>();
+    }
+    for (size_t i=0; i<Dimensions; ++i) fs[i] = new_fs[i];
+    std::cout << "  setting freestream to " << fs[0] << " " << fs[1] << std::endl;
+  }
+}
+
+// create and write a json object for "flowparams"
+nlohmann::json
+Simulation::flow_to_json() const {
+  nlohmann::json j;
+
+  j["Re"] = re;
+  j["Uinf"] = {fs[0], fs[1]};
+
+  return j;
+}
+
+// set "runtime" json object
+void
+Simulation::runtime_from_json(const nlohmann::json j) {
+
+  sf.from_json(j);
+
+  if (j.find("autoStart") != j.end()) {
+    bool autostart = j["autoStart"];
+    set_auto_start(autostart);
+    std::cout << "  autostart? " << autostart << std::endl;
+  }
+  if (j.find("quitOnStop") != j.end()) {
+    bool qos = j["quitOnStop"];
+    set_quit_on_stop(qos);
+    std::cout << "  quit on stop? " << qos << std::endl;
+  }
+}
+
+// create and write a json object for "runtime"
+nlohmann::json
+Simulation::runtime_to_json() const {
+  nlohmann::json j;
+
+  sf.add_to_json(j);
+
+  j["autoStart"] = auto_start;
+  j["quitOnStop"] = quit_on_stop;
 
   return j;
 }
