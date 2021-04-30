@@ -762,12 +762,6 @@ Simulation::calculate_simple_forces() {
   static std::array<float,Dimensions> last_impulse = {0.0};
   std::array<float,Dimensions> this_impulse = {0.0};
 
-  // reset the "last" values if time is zero
-  if (time < 0.1*dt) {
-    last_time = -dt;
-    last_impulse.fill(0.0);
-  }
-
   // calculate impulse from particles
   for (auto &src : vort) {
     std::array<STORE,Dimensions> this_imp = std::visit([=](auto& elem) { return elem.get_total_impulse(); }, src);
@@ -777,6 +771,12 @@ Simulation::calculate_simple_forces() {
   for (auto &src : bdry) {
     std::array<STORE,Dimensions> this_imp = std::visit([=](auto& elem) { return elem.get_total_impulse(); }, src);
     for (size_t i=0; i<Dimensions; ++i) this_impulse[i] += this_imp[i];
+  }
+
+  // reset the "last" values if time is zero
+  if (time < 0.1*dt) {
+    last_time = -dt;
+    last_impulse = this_impulse;
   }
 
   // find the time derivative of the impulses
