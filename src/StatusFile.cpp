@@ -68,9 +68,10 @@ StatusFile::write_line() {
     }
 
     // write data line
-    for (auto &val : vals) {
+    for (size_t i=0; i<vals.size(); ++i) {
+      auto& val = vals[i];
       std::visit([&outfile](const auto& v) { outfile << v; }, val);
-      if (val == vals.back()) {
+      if (i == vals.size()-1) {
         outfile << std::endl;
       } else {
         if (format == csv) outfile << ",";
