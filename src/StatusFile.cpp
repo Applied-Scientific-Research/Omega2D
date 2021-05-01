@@ -42,13 +42,27 @@ StatusFile::reset_sim() {
   }
 }
 
+// append a title and an int or float to the list to write
+void
+StatusFile::append_value(const std::string _name, const float _val) {
+  names.push_back(_name);
+  vals.push_back(_val);
+}
+void
+StatusFile::append_value(const std::string _name, const int _val) {
+  names.push_back(_name);
+  vals.push_back(_val);
+}
+
 // append an int or float to the list to write
 void
 StatusFile::append_value(const float _val) {
+  names.push_back("float");
   vals.push_back(_val);
 }
 void
 StatusFile::append_value(const int _val) {
+  names.push_back("int");
   vals.push_back(_val);
 }
 
@@ -62,8 +76,20 @@ StatusFile::write_line() {
 
     // is this a new data set?
     if (num_lines == 0) {
+      // new data set needs white space
       if (num_sims > 0) outfile << std::endl;
-      outfile << "# new run" << std::endl;
+
+      // write header text line
+      if (format != csv) outfile << "# ";
+      for (size_t i=0; i<names.size(); ++i) {
+        outfile << names[i];
+        if (i == names.size()-1) break;
+        if (format == csv) outfile << ",";
+        else outfile << " ";
+      }
+      outfile << std::endl;
+
+      // keep count
       num_sims++;
     }
 

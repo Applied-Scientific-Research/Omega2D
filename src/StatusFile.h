@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-// write a simple space-delimited or comma-delimited
+// write a simple space-delimited (gnuplot-friendly) or comma-delimited (Paraview-friendly)
 enum StatusFormat { dat, csv };
 
 // a float or integer element
@@ -29,6 +29,7 @@ public:
     num_sims(0),
     num_lines(0),
     fn(""),
+    names(),
     vals()
   {}
 
@@ -37,6 +38,8 @@ public:
   void set_filename(const std::string);
   std::string get_filename();
   void reset_sim();
+  void append_value(const std::string,const float);
+  void append_value(const std::string,const int);
   void append_value(const float);
   void append_value(const int);
   void write_line();
@@ -51,6 +54,7 @@ public:
   int num_sims;				// number of data sets in this file
   int num_lines;			// number of data lines in this set
   std::string fn;			// the status file name
+  std::vector<std::string> names;	// names of the variables
   std::vector<StatusValue> vals;	// values to write at each step
 };
 

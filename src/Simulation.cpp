@@ -716,8 +716,8 @@ void Simulation::step() {
 void Simulation::dump_stats_to_status() {
   if (sf.is_active()) {
     // the basics
-    sf.append_value((float)time);
-    sf.append_value((int)get_nparts());
+    sf.append_value("time",(float)time);
+    sf.append_value("Nv",(int)get_nparts());
 
     // more advanced info
 
@@ -743,11 +743,13 @@ void Simulation::dump_stats_to_status() {
       tot_circ += std::visit([=](auto& elem) { return elem.get_total_circ(time); }, src);
       tot_circ += std::visit([=](auto& elem) { return elem.get_body_circ(time); }, src);
     }
-    sf.append_value(tot_circ);
+    sf.append_value("circ",tot_circ);
 
     // now forces
     std::array<float,Dimensions> impulse = calculate_simple_forces();
-    for (size_t i=0; i<Dimensions; ++i) sf.append_value(impulse[i]);
+    sf.append_value("fx",impulse[0]);
+    sf.append_value("fy",impulse[1]);
+    if (Dimensions > 2) sf.append_value("fz",impulse[3]);
 
     // write here
     sf.write_line();
