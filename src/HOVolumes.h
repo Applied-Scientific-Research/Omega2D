@@ -17,6 +17,8 @@
 // versions of the HO solver
 #ifdef HOFORTRAN
 #include "hofortran_interface.h"
+#elif HOCXX
+#include "HO_2D.hpp"
 #else
 #include "dummysolver.h"
 #endif
@@ -202,6 +204,8 @@ public:
 #ifdef HOFORTRAN
     getsolnareas_d((int32_t)hoarea.size(), hoarea.data());
     //get_hoquad_weights_d((int32_t)nper, wgt.data());
+#elif HOCXX
+    //solver.getsolnareas_d((int32_t)hoarea.size(), hoarea.data());
 #else
     //std::fill(wgt.begin(), wgt.end(), 1.0/(double)nper);
 #endif

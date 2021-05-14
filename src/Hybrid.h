@@ -1,8 +1,8 @@
 /*
  * Hybrid.h - coordinate with an external Eulerian flow solver to compute near-body flow
  *
- * (c)2020 Applied Scientific Research, Inc.
- *         Mark J Stock <markjstock@gmail.com>
+ * (c)2020-1 Applied Scientific Research, Inc.
+ *           Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -16,8 +16,8 @@
 // versions of the HO solver
 #ifdef HOFORTRAN
 #include "hofortran_interface.h"
-#else
-#include "dummysolver.h"
+#elif HOCXX
+#include "HO_2D.hpp"
 #endif
 
 #include <iostream>
@@ -41,7 +41,7 @@ public:
       numSubsteps(100),
       preconditioner("none"),
       solverType("fgmres")
-#ifndef HOFORTRAN
+#ifdef HOCXX
       ,solver()
 #endif
       //vrm(),
@@ -93,8 +93,10 @@ private:
   std::string solverType;
 
   // the HO Solver
-#ifndef HOFORTRAN
-  DummySolver::Solver solver;
+#ifdef HOFORTRAN
+  // none needed
+#elif HOCXX
+  HO_2D solver;
 #endif
 
   // local copies of particle data
@@ -121,16 +123,18 @@ void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
   (void) set_defaults();
   (void) enable_hybrid();
   (void) set_elemorder((int32_t)elementOrder);
-#else
+#elif HOCXX
   // set in the dummy C++ solver
-  solver.set_elemorder_d((int32_t)elementOrder);
+  solver.set_defaults();
+  solver.enable_hybrid();
+  solver.set_elemorder((int32_t)elementOrder);
 #endif
 
   for (auto &coll : _euler) {
     // transform to current position
     coll.move(0.0, 0.0, 1.0, coll);
 
-#ifdef HOFORTRAN
+#if defined(HOFORTRAN) || defined(HOCXX)
     // and, set the mesh in the Fortran solver
     {
     // make temporary vectors to convert data types
@@ -146,7 +150,11 @@ void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
     std::vector<int32_t> openidx(openidxu.begin(), openidxu.end());
 
     // now we can call this - HACK - need to find order of geom mesh
+#ifdef HOFORTRAN
     (void) load_mesh_arrays_d((int32_t)coll.get_geom_elem_order(),
+#elif HOCXX
+    solver.load_mesh_arrays_d((int32_t)coll.get_geom_elem_order(),
+#endif
                         (int32_t)nodes_as_dble.size(), nodes_as_dble.data(),
                         (int32_t)elemidx.size(), elemidx.data(),
                         (int32_t)wallidx.size(), wallidx.data(),
@@ -159,23 +167,39 @@ void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
                          coll.get_wall_idx(), coll.get_open_idx());
 #endif
 
-#ifdef HOFORTRAN
+#if defined(HOFORTRAN) || defined(HOCXX)
     // ask fort solver for the open BC solution nodes, and the full internal solution nodes
     {
       // again, since fortran is dumb, we need extra steps
+#ifdef HOFORTRAN
       int32_t solnptlen = getsolnptlen();
+#elif HOCXX
+      int32_t solnptlen = solver.getsolnptlen();
+#endif
       std::cout << "There are " << (solnptlen/2) << " solution nodes" << std::endl;
       std::vector<double> solnpts(solnptlen);
+#ifdef HOFORTRAN
       (void) getsolnpts_d(solnptlen, solnpts.data());
+#elif HOCXX
+      solver.getsolnpts_d(solnptlen, solnpts.data());
+#endif
       std::cout << "  First soln point is at " << solnpts[0] << " " << solnpts[1] << std::endl;
       std::cout << "  Secnd soln point is at " << solnpts[2] << " " << solnpts[3] << std::endl;
       coll.set_soln_pts(solnpts);
 
       // repeat for open boundary nodes
+#ifdef HOFORTRAN
       solnptlen = getopenptlen();
+#elif HOCXX
+      solnptlen = solver.getopenptlen();
+#endif
       std::cout << "There are " << (solnptlen/2) << " open boundary solution nodes" << std::endl;
       solnpts.resize(solnptlen);
+#ifdef HOFORTRAN
       (void) getopenpts_d(solnptlen, solnpts.data());
+#elif HOCXX
+      solver.getopenpts_d(solnptlen, solnpts.data());
+#endif
       std::cout << "  First open point is at " << solnpts[0] << " " << solnpts[1] << std::endl;
       std::cout << "  Secnd open point is at " << solnpts[2] << " " << solnpts[3] << std::endl;
       coll.set_open_pts(solnpts);
@@ -255,6 +279,8 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
     // transfer BC packet to solver
 #ifdef HOFORTRAN
     (void) setopenvels_d((int32_t)packedvels.size(), packedvels.data());
+#elif HOCXX
+    solver.setopenvels_d((int32_t)packedvels.size(), packedvels.data());
 #else
     (void) solver.setopenvels_d(packedvels);
 #endif
@@ -271,6 +297,8 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
     // transfer BC packet to solver
 #ifdef HOFORTRAN
     (void) setopenvort_d((int32_t)vorts.size(), vorts.data());
+#elif HOCXX
+    solver.setopenvort_d((int32_t)vorts.size(), vorts.data());
 #else
     // nothing here
 #endif
@@ -303,6 +331,8 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
     // transfer BC packet to solver
 #ifdef HOFORTRAN
     (void) setsolnvort_d((int32_t)vorts.size(), vorts.data());
+#elif HOCXX
+    (void) solver.setsolnvort_d((int32_t)vorts.size(), vorts.data());
 #else
     (void) solver.setsolnvort_d(vorts);
 #endif
@@ -326,6 +356,8 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
     // transfer BC packet to solver
 #ifdef HOFORTRAN
     (void) setptogweights_d((int32_t)ptog_d.size(), ptog_d.data());
+#elif HOCXX
+    (void) solver.setptogweights_d((int32_t)ptog_d.size(), ptog_d.data());
 #else
     (void) solver.setsolnvort_d(ptog_d);
 #endif
@@ -393,6 +425,8 @@ void Hybrid<S,A,I>::step(const double                         _time,
     // transfer BC packet to solver
 #ifdef HOFORTRAN
     (void) setopenvels_d((int32_t)packedvels.size(), packedvels.data());
+#elif HOCXX
+    (void) solver.setopenvels_d((int32_t)packedvels.size(), packedvels.data());
 #else
     (void) solver.setopenvels_d(packedvels);
 #endif
@@ -409,6 +443,8 @@ void Hybrid<S,A,I>::step(const double                         _time,
     // transfer BC packet to solver
 #ifdef HOFORTRAN
     (void) setopenvort_d((int32_t)vorts.size(), vorts.data());
+#elif HOCXX
+    (void) solver.setopenvort_d((int32_t)vorts.size(), vorts.data());
 #else
     // nothing here
 #endif
@@ -439,6 +475,8 @@ void Hybrid<S,A,I>::step(const double                         _time,
     // transfer BC packet to solver
 #ifdef HOFORTRAN
     (void) setsolnvort_d((int32_t)vorts.size(), vorts.data());
+#elif HOCXX
+    (void) solver.setsolnvort_d((int32_t)vorts.size(), vorts.data());
 #else
     (void) solver.setsolnvort_d(vorts);
 #endif
@@ -451,6 +489,8 @@ void Hybrid<S,A,I>::step(const double                         _time,
   // call solver - solves all Euler volumes at once?
 #ifdef HOFORTRAN
   (void) solveto_d((double)_dt, (int32_t)numSubsteps, (int32_t)timeOrder, (double)_re);
+#elif HOCXX
+  (void) solver.solveto_d((double)_dt, (int32_t)numSubsteps, (int32_t)timeOrder, (double)_re);
 #else
   (void) solver.solveto_d((double)_time, (int32_t)numSubsteps, (int32_t)timeOrder, (double)_re);
 #endif
@@ -489,13 +529,21 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
     // pull results from external solver (assume just one for now)
     std::vector<double> eulvort;
-#ifdef HOFORTRAN
+#if defined(HOFORTRAN) || defined(HOCXX)
     {
       // again, since fortran is dumb, we need extra steps
+#ifdef HOFORTRAN
       int32_t solnptlen = getsolnptlen() / 2;
+#elif HOCXX
+      int32_t solnptlen = solver.getsolnptlen() / 2;
+#endif
       std::cout << "There are " << solnptlen << " solution nodes" << std::endl;
       eulvort.resize(solnptlen);
+#ifdef HOFORTRAN
       (void) getallvorts_d(solnptlen, eulvort.data());
+#elif HOCXX
+      (void) solver.getallvorts_d(solnptlen, eulvort.data());
+#endif
       //std::cout << "  vort 2014 from solver " << eulvort[2013] << std::endl;
       //std::cout << "  vorts from solver " << eulvort[0] << " " << eulvort[1] << " " << eulvort[2] << std::endl;
       //std::cout << "               more " << eulvort[3] << " " << eulvort[4] << " " << eulvort[5] << std::endl;
@@ -748,6 +796,8 @@ void Hybrid<S,A,I>::step(const double                         _time,
     // finally, replace the vorticity in the HO solver with these new values
 #ifdef HOFORTRAN
     (void) setsolnvort_d((int32_t)eulvort.size(), eulvort.data());
+#elif HOCXX
+    (void) solver.setsolnvort_d((int32_t)eulvort.size(), eulvort.data());
 #else
     (void) solver.setsolnvort_d(eulvort);
 #endif
@@ -797,7 +847,7 @@ void Hybrid<S,A,I>::add_to_json(nlohmann::json& simj) const {
 template <class S, class A, class I>
 void Hybrid<S,A,I>::draw_advanced() {
 
-#ifndef HOFORTRAN
+#if !defined(HOFORTRAN) && !defined(HOCXX)
   return;
 #endif
 
