@@ -1,8 +1,8 @@
 /*
  * Merge.h - library code for a two-dimensional particle merging scheme
  *
- * (c)2017-9 Applied Scientific Research, Inc.
- *           Mark J Stock <markjstock@gmail.com>
+ * (c)2017-21 Applied Scientific Research, Inc.
+ *            Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -33,6 +33,7 @@ template <class S>
 size_t merge_close_particles(std::array<Vector<S>,2>& pos,
                              Vector<S>&               str,
                              Vector<S>&               rad,
+                             Vector<S>&               dts,
                              const S                  particle_overlap,
                              const S                  threshold,
                              const bool               adapt_radii) {
@@ -41,6 +42,7 @@ size_t merge_close_particles(std::array<Vector<S>,2>& pos,
   assert(pos[0].size()==pos[1].size() && "Input array sizes do not match");
   assert(pos[0].size()==str.size() && "Input array sizes do not match");
   assert(str.size()==rad.size() && "Input array sizes do not match");
+  assert(str.size()==dts.size() && "Input array sizes do not match");
   const size_t n = rad.size();
 
   std::cout << "  Merging close particles with n " << n << std::endl;
@@ -142,6 +144,7 @@ size_t merge_close_particles(std::array<Vector<S>,2>& pos,
                   r[i] = std::sqrt(omfrac*r[i]*r[i] + frac*r[iother]*r[iother]);
                 }
                 s[i] = s[i] + s[iother];
+                dts[i] = dts[i]*omfrac + dts[iother]*frac;
                 //std::cout << "    result   " << x[i] << " " << y[i] << " with str " << s[i] << " and rad " << r[i] << std::endl;
                 // flag other particle for deletion
                 erase_me[iother] = true;
@@ -167,6 +170,7 @@ size_t merge_close_particles(std::array<Vector<S>,2>& pos,
           y[copyto] = y[i];
           r[copyto] = r[i];
           s[copyto] = s[i];
+          dts[copyto] = dts[i];
         }
         copyto++;
       }
@@ -177,6 +181,7 @@ size_t merge_close_particles(std::array<Vector<S>,2>& pos,
     y.resize(new_n);
     r.resize(new_n);
     s.resize(new_n);
+    dts.resize(new_n);
 
     std::cout << "    merge removed " << num_removed << " particles" << std::endl;
   }
@@ -214,6 +219,7 @@ void merge_collection(Points<S>& _pts,
     (void) merge_close_particles(_pts.get_pos(),
                                  _pts.get_str(),
                                  _pts.get_rad(),
+                                 _pts.get_disttosurf(),
                                  _overlap,
                                  _thresh,
                                  _isadapt);

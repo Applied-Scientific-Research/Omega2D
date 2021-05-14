@@ -105,6 +105,29 @@ public:
   const Vector<S>& get_rad() const { return r; }
   Vector<S>&       get_rad()       { return r; }
 
+  const bool has_disttosurf() const { return (bool)dts; }
+  const Vector<S>& get_disttosurf() const {
+    // can't change this object, so return what we have
+    return *dts;
+  }
+  Vector<S>& get_disttosurf() {
+    // allowed to change this object, to resize or create the Vector
+    if (dts) {
+      // check size before returning
+      const size_t oldsize = dts->size();
+      if (dts->size() != this->n) dts->resize(this->n);
+      // zero any new entries
+      if (dts->size() > oldsize) std::fill((*dts).begin()+oldsize, (*dts).end(), 0.0);
+    } else {
+      // allocate and zero before returning
+      Vector<S> new_dts;
+      new_dts.resize(this->n);
+      dts = std::move(new_dts);
+      std::fill((*dts).begin(), (*dts).end(), 0.0);
+    }
+    return *dts;
+  }
+
   const S get_averaged_max_str() const { return max_strength; }
 
   // a little logic to see if we should augment the BEM equations for this object (see Surfaces.h)
@@ -197,6 +220,18 @@ public:
     // no other specialization required here
   }
 
+  // reduce all "distances to surfaces"
+  void update_dists_to_surf(const double _dt) {
+    // quit out if this parameter is not set
+    if (not has_disttosurf()) return;
+
+    // for each particle, reduce its distance to a surface by the max travelled
+    for (size_t i=0; i<this->n; ++i) {
+      (*dts)[i] -= (S)_dt * std::sqrt(std::pow(this->u[0][i],2) + std::pow(this->u[1][i],2));
+      if (i<10) std::cout << "  part " << i << " has dts " << (*dts)[i] << std::endl;
+    }
+  }
+
   //
   // 1st order Euler advection and stretch
   //
@@ -204,6 +239,9 @@ public:
             const double _wt1, Points<S> const & _u1) {
     // must explicitly call the method in the base class
     ElementBase<S>::move(_time, _dt, _wt1, _u1);
+
+    // update distances to surfaces
+    update_dists_to_surf(_dt);
 
     // and update the max strength measure
     (void) update_max_str();
@@ -220,6 +258,9 @@ public:
 
     // must confirm that incoming time derivates include velocity (?)
 
+    // update distances to surfaces
+    update_dists_to_surf(_dt);
+
     // and update the max strength measure
     (void) update_max_str();
   }
@@ -235,6 +276,9 @@ public:
     ElementBase<S>::move(_time, _dt, _wt0, _u0, _wt1, _u1, _wt2, _u2);
 
     // must confirm that incoming time derivates include velocity (?)
+
+    // update distances to surfaces
+    update_dists_to_surf(_dt);
 
     // and update the max strength measure
     (void) update_max_str();
@@ -726,9 +770,11 @@ public:
   }
 
 protected:
-  // additional state vector
+  // additional state vectors
   Vector<S> r;					// thickness/radius
   // in 3D, this is where elong and ug would be
+
+  std::optional<Vector<S>> dts;			// distance to any surface
 
 private:
 #ifdef USE_GL

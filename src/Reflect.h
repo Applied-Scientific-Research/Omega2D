@@ -448,6 +448,8 @@ S clear_inner_panp2 (const int _method,
   Vector<S>&                              ts = _targ.get_str();
   // if called on field points, there is no tr
   Vector<S>&                              tr = _targ.get_rad();
+  Vector<S>&                              td = _targ.get_disttosurf();
+  assert(td.size() == tx[0].size() && "Target distance vector not sized correctly");
   const bool are_fldpts = tr.empty();
 
   // pre-compute the node normals
@@ -480,11 +482,15 @@ S clear_inner_panp2 (const int _method,
   // create array of flags - any moved particle will be tested again
   std::vector<bool> untested;
   untested.assign(_targ.get_n(), true);
+  size_t ntests = 0;
+  for (int32_t i=0; i<(int32_t)_targ.get_n(); ++i) {
+    if (td[i] > _cutoff_mult*_ips) untested[i] = false;
+  }
 
   // iterate more than once to make sure particles get cleared from corners
   while (std::any_of(untested.begin(), untested.end(), [](bool x){return x;})) {
 
-    #pragma omp parallel for reduction(+:num_cropped,circ_removed)
+    #pragma omp parallel for reduction(+:num_cropped,circ_removed,ntests)
     for (int32_t i=0; i<(int32_t)_targ.get_n(); ++i) {
 
       if (untested[i]) {
@@ -580,7 +586,9 @@ S clear_inner_panp2 (const int _method,
         //std::cout << "  mean cp is " << cpx << " " << cpy << std::endl;
 
         // compare this mean norm to the vector from the contact point to the particle
-        const S dotp = normx*(tx[0][i]-cpx) + normy*(tx[1][i]-cpy) - _cutoff_mult*_ips;
+        const S disttosurf = normx*(tx[0][i]-cpx) + normy*(tx[1][i]-cpy);
+        td[i] = disttosurf;
+        const S dotp = disttosurf - _cutoff_mult*_ips;
         // now dotp is how far this point is above the cutoff layer
         // if dotp == 0.0 then the point is exactly on the cutoff layer, and it loses half of its strength
         // if dotp < -vdelta then the point loses all of its strength
@@ -630,16 +638,20 @@ S clear_inner_panp2 (const int _method,
           }
         }
 
+        ntests++;
       } // end if (untested)
     } // end loop over particles
   } // end loop over iterations
 
   // we did not resize the x array, so we don't need to touch the u array
 
+  std::cout << "    tested " << ntests << " particles";
   if (_method == 0) {
     std::cout << "    cropped " << num_cropped << " particles" << std::endl;
   } else if (_method == 1) {
     std::cout << "    pushed " << num_cropped << " particles" << std::endl;
+  } else {
+    std::cout << std::endl;
   }
 
   if (_method==0 and not are_fldpts) {
@@ -650,7 +662,8 @@ S clear_inner_panp2 (const int _method,
   }
 
   // flops count here is taken from reflect - might be different here
-  const S flops = (_targ.get_n()+num_cropped) * (62.0 + 27.0*_src.get_npanels());
+  //const S flops = (_targ.get_n()+num_cropped) * (62.0 + 27.0*_src.get_npanels());
+  const S flops = (ntests) * (62.0 + 27.0*_src.get_npanels());
 
   auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
