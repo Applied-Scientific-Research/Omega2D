@@ -260,10 +260,6 @@ ELSEIF( ${USE_HO_HYBRID} STREQUAL "CXX" )
   INCLUDE_DIRECTORIES ( "${AMGCL_ROOT}" )
   SET( EXTERNAL_LIBS ${EXTERNAL_LIBS} HO-CXX )
   SET (CPREPROCDEFS ${CPREPROCDEFS} -DHOCXX)
-ELSE()
-  ADD_SUBDIRECTORY( extern/dummy_solver )
-  INCLUDE_DIRECTORIES( "extern/dummy_solver" )
-  SET( EXTERNAL_LIBS ${EXTERNAL_LIBS} dummy_solver-static )
 ENDIF()
 
 # Define files and targets

@@ -73,6 +73,7 @@ public:
              std::vector<HOVolumes<S>>&,
              const float,
              const float);
+  void trigger_write( const size_t);
 
   // read/write parameters
   void from_json(const nlohmann::json);
@@ -134,7 +135,6 @@ void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
     // transform to current position
     coll.move(0.0, 0.0, 1.0, coll);
 
-#if defined(HOFORTRAN) || defined(HOCXX)
     // and, set the mesh in the Fortran solver
     {
     // make temporary vectors to convert data types
@@ -160,14 +160,7 @@ void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
                         (int32_t)wallidx.size(), wallidx.data(),
                         (int32_t)openidx.size(), openidx.data());
     }
-#else
-    // call the external solver with the current geometry
-    // this will calculate the Jacobian and other cell-specific properties
-    (void) solver.init_d(coll.get_node_pos(), coll.get_elem_idx(),
-                         coll.get_wall_idx(), coll.get_open_idx());
-#endif
 
-#if defined(HOFORTRAN) || defined(HOCXX)
     // ask fort solver for the open BC solution nodes, and the full internal solution nodes
     {
       // again, since fortran is dumb, we need extra steps
@@ -204,11 +197,6 @@ void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
       std::cout << "  Secnd open point is at " << solnpts[2] << " " << solnpts[3] << std::endl;
       coll.set_open_pts(solnpts);
     }
-#else
-    // and the dummy for the open BC solution nodes, and the full internal solution nodes
-    coll.set_open_pts(solver.getopenpts_d());
-    coll.set_soln_pts(solver.getsolnpts_d());
-#endif
 
   }
 
@@ -223,9 +211,11 @@ template <class S, class A, class I>
 void Hybrid<S,A,I>::reset() {
   initialized = false;
 
-#ifdef HOFORTRAN
   // clear out memory of the grid
+#ifdef HOFORTRAN
   (void) clean_up();
+#elif HOCXX
+  solver.clean_up();
 #endif
 }
 
@@ -281,8 +271,6 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
     (void) setopenvels_d((int32_t)packedvels.size(), packedvels.data());
 #elif HOCXX
     solver.setopenvels_d((int32_t)packedvels.size(), packedvels.data());
-#else
-    (void) solver.setopenvels_d(packedvels);
 #endif
   }
 
@@ -299,8 +287,6 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
     (void) setopenvort_d((int32_t)vorts.size(), vorts.data());
 #elif HOCXX
     solver.setopenvort_d((int32_t)vorts.size(), vorts.data());
-#else
-    // nothing here
 #endif
   }
 
@@ -333,8 +319,6 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
     (void) setsolnvort_d((int32_t)vorts.size(), vorts.data());
 #elif HOCXX
     (void) solver.setsolnvort_d((int32_t)vorts.size(), vorts.data());
-#else
-    (void) solver.setsolnvort_d(vorts);
 #endif
   }
 
@@ -358,8 +342,6 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
     (void) setptogweights_d((int32_t)ptog_d.size(), ptog_d.data());
 #elif HOCXX
     (void) solver.setptogweights_d((int32_t)ptog_d.size(), ptog_d.data());
-#else
-    (void) solver.setsolnvort_d(ptog_d);
 #endif
   }
   }
@@ -427,8 +409,6 @@ void Hybrid<S,A,I>::step(const double                         _time,
     (void) setopenvels_d((int32_t)packedvels.size(), packedvels.data());
 #elif HOCXX
     (void) solver.setopenvels_d((int32_t)packedvels.size(), packedvels.data());
-#else
-    (void) solver.setopenvels_d(packedvels);
 #endif
   }
 
@@ -445,8 +425,6 @@ void Hybrid<S,A,I>::step(const double                         _time,
     (void) setopenvort_d((int32_t)vorts.size(), vorts.data());
 #elif HOCXX
     (void) solver.setopenvort_d((int32_t)vorts.size(), vorts.data());
-#else
-    // nothing here
 #endif
   }
 
@@ -477,8 +455,6 @@ void Hybrid<S,A,I>::step(const double                         _time,
     (void) setsolnvort_d((int32_t)vorts.size(), vorts.data());
 #elif HOCXX
     (void) solver.setsolnvort_d((int32_t)vorts.size(), vorts.data());
-#else
-    (void) solver.setsolnvort_d(vorts);
 #endif
   }
 
@@ -491,8 +467,6 @@ void Hybrid<S,A,I>::step(const double                         _time,
   (void) solveto_d((double)_dt, (int32_t)numSubsteps, (int32_t)timeOrder, (double)_re);
 #elif HOCXX
   (void) solver.solveto_d((double)_dt, (int32_t)numSubsteps, (int32_t)timeOrder, (double)_re);
-#else
-  (void) solver.solveto_d((double)_time, (int32_t)numSubsteps, (int32_t)timeOrder, (double)_re);
 #endif
 
   // pull results from external solver (assume just one for now)
@@ -529,7 +503,6 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
     // pull results from external solver (assume just one for now)
     std::vector<double> eulvort;
-#if defined(HOFORTRAN) || defined(HOCXX)
     {
       // again, since fortran is dumb, we need extra steps
 #ifdef HOFORTRAN
@@ -548,9 +521,6 @@ void Hybrid<S,A,I>::step(const double                         _time,
       //std::cout << "  vorts from solver " << eulvort[0] << " " << eulvort[1] << " " << eulvort[2] << std::endl;
       //std::cout << "               more " << eulvort[3] << " " << eulvort[4] << " " << eulvort[5] << std::endl;
     }
-#else
-    eulvort = solver.getallvorts_d();
-#endif
     assert(eulvort.size() == thisn && "ERROR (Hybrid::step) vorticity from solver is not the right size");
 
     if (dumpray) {
@@ -798,14 +768,26 @@ void Hybrid<S,A,I>::step(const double                         _time,
     (void) setsolnvort_d((int32_t)eulvort.size(), eulvort.data());
 #elif HOCXX
     (void) solver.setsolnvort_d((int32_t)eulvort.size(), eulvort.data());
-#else
-    (void) solver.setsolnvort_d(eulvort);
 #endif
 
   }
 
   // done!!!
 }
+
+
+//
+// tell solver to dump out some files
+//
+template <class S, class A, class I>
+void Hybrid<S,A,I>::trigger_write(const size_t _step) {
+#ifdef HOFORTRAN
+    (void) trigger_write((int32_t)_step);
+#elif HOCXX
+    solver.trigger_write((int32_t)_step);
+#endif
+}
+
 
 //
 // read/write parameters to json
@@ -846,10 +828,6 @@ void Hybrid<S,A,I>::add_to_json(nlohmann::json& simj) const {
 //
 template <class S, class A, class I>
 void Hybrid<S,A,I>::draw_advanced() {
-
-#if !defined(HOFORTRAN) && !defined(HOCXX)
-  return;
-#endif
 
   ImGui::Separator();
   ImGui::Spacing();

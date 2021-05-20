@@ -9,9 +9,6 @@
 #include "Reflect.h"
 #include "BEMHelper.h"
 #include "GuiHelper.h"
-#ifdef HOFORTRAN
-#include "hofortran_interface.h"
-#endif
 
 #include <cassert>
 #include <cmath>
@@ -32,11 +29,15 @@ Simulation::Simulation()
     vort(),
     bdry(),
     fldpt(),
+#if defined(HOFORTRAN) || defined(HOCXX)
     euler(),
+#endif
     bem(),
     diff(),
     conv(),
+#if defined(HOFORTRAN) || defined(HOCXX)
     hybr(),
+#endif
     sf(),
     description(),
     time(0.0),
@@ -191,8 +192,10 @@ Simulation::from_json(const nlohmann::json j) {
   // Diffusion will find and set "viscous", "VRM" and "AMR" parameters
   diff.from_json(j);
 
+#if defined(HOFORTRAN) || defined(HOCXX)
   // set hybrid Eulerian-Lagrangian solution parameters
   hybr.from_json(j);
+#endif
 }
 
 // create and write a json object for "simparams"
@@ -213,8 +216,10 @@ Simulation::to_json() const {
   // Diffusion will write "viscous", "VRM" and "AMR" parameters
   diff.add_to_json(j);
 
+#if defined(HOFORTRAN) || defined(HOCXX)
   // Hybrid will create a "hybrid" section
   hybr.add_to_json(j);
+#endif
 
   return j;
 }
@@ -296,8 +301,10 @@ void Simulation::draw_advanced() {
   // set the diffusion parameters in Diffusion.h
   diff.draw_advanced();
   
+#if defined(HOFORTRAN) || defined(HOCXX)
   // set the hybrid parameters in Hybrid.h
   hybr.draw_advanced();
+#endif
 }
 #endif
 
@@ -355,9 +362,11 @@ void Simulation::reset() {
   vort.clear();
   bdry.clear();
   fldpt.clear();
-  euler.clear();
   bem.reset();
+#if defined(HOFORTRAN) || defined(HOCXX)
   hybr.reset();
+  euler.clear();
+#endif
   sf.reset_sim();
   sim_is_initialized = false;
   step_has_started = false;
@@ -429,13 +438,13 @@ std::vector<std::string> Simulation::write_vtk(const int _index,
     }
   }
 
+#if defined(HOFORTRAN) || defined(HOCXX)
   if (hybr.is_active()) {
     // there is only one hybrid volume allowed now, so no counting needed
-#ifdef HOFORTRAN
-    (void) trigger_write((int32_t)stepnum);
-#endif
+    hybr.trigger_write(stepnum);
     files.emplace_back("and a HO grid file");
   }
+#endif
 
   return files;
 }
@@ -638,8 +647,10 @@ void Simulation::first_step() {
   // update BEM and find vels on any particles but DO NOT ADVECT
   conv.advect_1st(time, 0.0, thisfs, get_ips(), vort, bdry, fldpt, bem);
 
+#if defined(HOFORTRAN) || defined(HOCXX)
   // call HO grid solver, but only to send first velocity results and initialize vorticity
   hybr.first_step(time, thisfs, vort, bdry, bem, conv, euler);
+#endif
 
   // and write status file
   dump_stats_to_status();
@@ -694,8 +705,10 @@ void Simulation::step() {
     diff.step(time+dt, 0.5*dt, re, overlap_ratio, get_vdelta(), thisfs, vort, bdry, bem);
   }
 
+#if defined(HOFORTRAN) || defined(HOCXX)
   // call HO grid solver to recalculate vorticity at the end of this time step
   hybr.step(time, dt, re, thisfs, vort, bdry, bem, conv, euler, overlap_ratio, get_vdelta());
+#endif
 
   // update time
   time += (double)dt;
@@ -885,6 +898,7 @@ void Simulation::file_elements(std::vector<Collection>& _collvec,
 void Simulation::add_hybrid(const std::vector<ElementPacket<float>>  _elems,
                             std::shared_ptr<Body> _bptr) {
 
+#if defined(HOFORTRAN) || defined(HOCXX)
   // skip out early if nothing's here
   if (_elems.size() == 0) return;
   // or if hybrid isn't turned on
@@ -905,6 +919,7 @@ void Simulation::add_hybrid(const std::vector<ElementPacket<float>>  _elems,
   // alternate way to assign the wall and open bc elements
   //euler.back().add_wall(_elems[1]);
   //euler.back().add_open(_elems[2]);
+#endif
 }
 
 // add a new Body with the given name

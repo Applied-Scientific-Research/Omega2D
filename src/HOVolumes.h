@@ -19,8 +19,6 @@
 #include "hofortran_interface.h"
 #elif HOCXX
 #include "HO_2D.hpp"
-#else
-#include "dummysolver.h"
 #endif
 
 #include <iostream>
