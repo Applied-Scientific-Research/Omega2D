@@ -1426,13 +1426,13 @@ FromMsh::init_elements(const float _ips) const {
 
   // read gmsh file
   ReadMsh::Mesh mesh;
-  std::cout << "Reading gmsh mesh file (" << m_infile << ")";
+  std::cout << "Reading gmsh mesh file (" << m_infile << ")" << std::endl;
   int32_t retval = mesh.read_msh_file(m_infile.c_str());
   if (retval == 1) {
-    std::cout << " contains " << mesh.get_nnodes() << " nodes";
+    std::cout << "  contains " << mesh.get_nnodes() << " nodes";
     std::cout << " and " << mesh.get_nelems() << " elems" << std::endl;
   } else {
-    std::cout << " does not exist or did not read properly (code=";
+    std::cout << "  does not exist or did not read properly (code=";
     std::cout << retval << "), skipping." << std::endl;
     return ElementPacket<float>();
   }
@@ -1527,13 +1527,13 @@ FromMsh::init_hybrid(const float _ips) const {
 
   // read gmsh file
   ReadMsh::Mesh mesh;
-  std::cout << "Reading gmsh mesh file (" << m_infile << ")";
+  std::cout << "Reading gmsh mesh file (" << m_infile << ")" << std::endl;
   int32_t retval = mesh.read_msh_file(m_infile.c_str());
   if (retval == 1) {
-    std::cout << " contains " << mesh.get_nnodes() << " nodes";
+    std::cout << "  contains " << mesh.get_nnodes() << " nodes";
     std::cout << " and " << mesh.get_nelems() << " elems" << std::endl;
   } else {
-    std::cout << " does not exist or did not read properly (code=";
+    std::cout << "  does not exist or did not read properly (code=";
     std::cout << retval << "), skipping." << std::endl;
     return pack;
   }
@@ -1648,7 +1648,7 @@ FromMsh::init_hybrid(const float _ips) const {
 
     // set the idx pointers to the new surface elements
     const size_t np = open.N_edges;
-    //std::cout << "  open has " << np << " edges" << std::endl;
+    std::cout << "  open has " << np << " edges" << std::endl;
     idx.clear();
     for (uint32_t thisedge : open.edges) {
       const size_t nn = edges[thisedge].N_nodes;
