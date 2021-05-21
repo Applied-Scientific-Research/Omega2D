@@ -62,8 +62,7 @@ int main(int argc, char const *argv[]) {
   for (auto const& ff: ffeatures) {
     if (ff->is_enabled()) {
       ElementPacket<float> newpacket = ff->init_elements(sim.get_ips());
-      // echo any errors
-      /*if (good)*/ sim.add_elements( newpacket, active, lagrangian, ff->get_body() );
+      sim.add_elements( newpacket, active, lagrangian, ff->get_body() );
     }
   }
 
@@ -81,6 +80,15 @@ int main(int argc, char const *argv[]) {
     if (mf->is_enabled()) {
       const move_t newMoveType = (mf->get_is_lagrangian() ? lagrangian : fixed);
       sim.add_elements( mf->init_elements(rparams.tracer_scale*sim.get_ips()), inert, newMoveType, mf->get_body() );
+    }
+  }
+
+  // initialize hybrid features
+  for (auto const& bf : bfeatures) {
+    if (bf->is_enabled()) {
+      // get interior elems and then boundaries
+      // this is a noop if hybrid is not enabled
+      sim.add_hybrid(bf->init_hybrid(1.0), bf->get_body() );
     }
   }
 
@@ -119,13 +127,17 @@ int main(int argc, char const *argv[]) {
 
       for (auto const& mf: mfeatures) {
         if (mf->is_enabled()) {
-          const move_t newMoveType = (mf->get_is_lagrangian() ? lagrangian : fixed);
+          move_t newMoveType = fixed;
+          if (mf->moves() or mf->emits()) {
+            newMoveType = lagrangian;
+          }
           sim.add_elements( mf->step_elements(rparams.tracer_scale*sim.get_ips()), inert, newMoveType, mf->get_body() );
         }
       }
 
       // begin a new dynamic step: convection and diffusion
       sim.step();
+
     } else {
       // the last step had some difficulty
       std::cout << std::endl << "ERROR: " << sim_err_msg;
