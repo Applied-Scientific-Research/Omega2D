@@ -176,8 +176,9 @@ void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
 #elif HOCXX
       solver.getsolnpts_d(solnptlen, solnpts.data());
 #endif
-      std::cout << "  First soln point is at " << solnpts[0] << " " << solnpts[1] << std::endl;
-      std::cout << "  Secnd soln point is at " << solnpts[2] << " " << solnpts[3] << std::endl;
+      //std::cout << "  First soln point is at " << solnpts[0] << " " << solnpts[1] << std::endl;
+      //std::cout << "  Secnd soln point is at " << solnpts[2] << " " << solnpts[3] << std::endl;
+      //std::cout << "  Third soln point is at " << solnpts[4] << " " << solnpts[5] << std::endl;
       coll.set_soln_pts(solnpts);
 
       // repeat for open boundary nodes
@@ -193,8 +194,9 @@ void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
 #elif HOCXX
       solver.getopenpts_d(solnptlen, solnpts.data());
 #endif
-      std::cout << "  First open point is at " << solnpts[0] << " " << solnpts[1] << std::endl;
-      std::cout << "  Secnd open point is at " << solnpts[2] << " " << solnpts[3] << std::endl;
+      //std::cout << "  First open point is at " << solnpts[0] << " " << solnpts[1] << std::endl;
+      //std::cout << "  Secnd open point is at " << solnpts[2] << " " << solnpts[3] << std::endl;
+      //std::cout << "  Third open point is at " << solnpts[4] << " " << solnpts[5] << std::endl;
       coll.set_open_pts(solnpts);
     }
 
@@ -325,7 +327,6 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
   //
   // finally, send the grid-to-particle weights to the solver
   //
-  if (true) {
   for (auto &coll : _euler) {
 
     // first, we need to do this
@@ -343,7 +344,6 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
 #elif HOCXX
     (void) solver.setptogweights_d((int32_t)ptog_d.size(), ptog_d.data());
 #endif
-  }
   }
 }
 
@@ -369,7 +369,8 @@ void Hybrid<S,A,I>::step(const double                         _time,
   std::cout << "Inside Hybrid::step at t=" << _time << " and dt=" << _dt << std::endl;
 
   const bool dumpray = true;
-  static float dumpslope = 0.4868;
+  static float dumpslope = 1.0;	// cylinder 0.4868, oval 1.0
+  const float dumpslopetol = 1.e-2;	// cylinder 1.e-5, oval 1e-2
   static bool setslope = false;
 
   //
@@ -541,7 +542,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
       // now we can dump safely
       std::cout << "  vorticity from eulerian " << std::endl;
       for (size_t i=0; i<thisn; ++i) {
-        if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < 1.e-5 && locs[0][i] > 0.0) {
+        if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < dumpslopetol && locs[0][i] > 0.0) {
           const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
           std::cout << "  " << i << " " << dist << " " << eulvort[i] << std::endl;
         }
@@ -560,7 +561,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
       std::cout << "  vorticity from lagrangian " << std::endl;
       const auto& locs = solvedpts.get_pos();
       for (size_t i=0; i<thisn; ++i) {
-        if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < 1.e-5 && locs[0][i] > 0.0) {
+        if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < dumpslopetol && locs[0][i] > 0.0) {
           const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
           std::cout << "  " << i << " " << dist << " " << lagvort[i] << std::endl;
         }
@@ -583,7 +584,11 @@ void Hybrid<S,A,I>::step(const double                         _time,
     // uses a mask for the solution nodes (elements here!) to indicate which we will consider,
     // and which are too close to the wall (and thus too thin) to require correction
     // use one full vdelta for this (input _vd)
+#ifdef HOFORTRAN
     (void) coll.set_soln_areas();
+#elif HOCXX
+    (void) coll.set_soln_areas(solver);
+#endif
     const Vector<S>& area = coll.get_soln_area();
     assert(area.size() == thisn && "ERROR (Hybrid::step) volume area vector is not the right size");
 
@@ -700,7 +705,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
         std::cout << "    indx  rad   area * gtop * ( eulvort - lagvort ) = circ" << std::endl;
         const auto& locs = solvedpts.get_pos();
         for (size_t i=0; i<thisn; ++i) {
-          if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < 1.e-5 && locs[0][i] > 0.0) {
+          if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < dumpslopetol && locs[0][i] > 0.0) {
             const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
             std::cout << "    " << i << "  " << dist << " " << area[i] << " * " << gtop[i] << " * ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
           }
@@ -754,7 +759,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
       std::cout << "    indx  rad   ptog   neweulvort   lagvort" << std::endl;
       const auto& locs = solvedpts.get_pos();
       for (size_t i=0; i<thisn; ++i) {
-        if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < 1.e-5 && locs[0][i] > 0.0) {
+        if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < dumpslopetol && locs[0][i] > 0.0) {
           const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
           std::cout << "    " << i << "  " << dist << "  " << ptog[i] << "  " << eulvort[i] << "  " << lagvort[i] << std::endl;
         }

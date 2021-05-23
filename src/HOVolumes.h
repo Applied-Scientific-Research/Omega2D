@@ -183,7 +183,11 @@ public:
   //
   // generate and save a measure of the area of each *solution* node
   //
+#ifdef HOFORTRAN
   void set_soln_areas() {
+#elif HOCXX
+  void set_soln_areas(HO_2D& solver) {
+#endif
 
     // return if we do not need to recalculate these (vdelta changes)
 
@@ -203,9 +207,7 @@ public:
     getsolnareas_d((int32_t)hoarea.size(), hoarea.data());
     //get_hoquad_weights_d((int32_t)nper, wgt.data());
 #elif HOCXX
-    //solver.getsolnareas_d((int32_t)hoarea.size(), hoarea.data());
-#else
-    //std::fill(wgt.begin(), wgt.end(), 1.0/(double)nper);
+    solver.getsolnareas_d((int32_t)hoarea.size(), hoarea.data());
 #endif
     //std::cout << "  first row of weight mask is ";
     //for (size_t j=0; j<std::sqrt(nper); ++j) std::cout << " " << wgt[j];
@@ -232,6 +234,8 @@ public:
   //
   void set_overlap_weights(const S gtop_center, const S gtop_width,
                            const S ptog_center, const S ptog_width) {
+
+    std::cout << "In set_overlap_weights" << std::endl;
 
     // get this array so we can reference it more easily
     //const std::array<Vector<S>,Dimensions>& ptx = soln_p.get_pos();
