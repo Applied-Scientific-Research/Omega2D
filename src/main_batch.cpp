@@ -97,7 +97,13 @@ int main(int argc, char const *argv[]) {
   // check init for blow-up or errors
   sim_err_msg = sim.check_initialization();
 
-  if (not sim_err_msg.empty()) {
+  if (sim_err_msg.empty()) {
+
+    // take the 0 step (find state at t=0)
+    sim.first_step();
+
+  } else {
+
     // the initialization had some difficulty
     std::cout << std::endl << "ERROR: " << sim_err_msg;
     // stop the run
