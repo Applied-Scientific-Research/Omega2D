@@ -38,7 +38,8 @@ public:
       initialized(false),
       elementOrder(1),
       timeOrder(1),
-      numSubsteps(100),
+      numSubsteps(40),
+      numSubstepsFirst(50),
       preconditioner("none"),
       solverType("fgmres")
 #ifdef HOCXX
@@ -90,6 +91,7 @@ private:
   int elementOrder;
   int timeOrder;
   int numSubsteps;
+  int numSubstepsFirst;
   std::string preconditioner;
   std::string solverType;
 
@@ -370,7 +372,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
   const bool dumpray = true;
   static float dumpslope = 1.0;	// cylinder 0.4868, oval 1.0
-  const float dumpslopetol = 1.e-2;	// cylinder 1.e-5, oval 1e-2
+  const float dumpslopetol = 3.e-2;	// cylinder 1.e-5, oval 1e-2
   static bool setslope = false;
 
   //
@@ -464,10 +466,11 @@ void Hybrid<S,A,I>::step(const double                         _time,
   //
 
   // call solver - solves all Euler volumes at once?
+  const int32_t nss = (_time < 0.5*_dt) ? numSubstepsFirst : numSubsteps;
 #ifdef HOFORTRAN
-  (void) solveto_d((double)_dt, (int32_t)numSubsteps, (int32_t)timeOrder, (double)_re);
+  (void) solveto_d((double)_dt, nss, (int32_t)timeOrder, (double)_re);
 #elif HOCXX
-  (void) solver.solveto_d((double)_dt, (int32_t)numSubsteps, (int32_t)timeOrder, (double)_re);
+  (void) solver.solveto_d((double)_dt, nss, (int32_t)timeOrder, (double)_re);
 #endif
 
   // pull results from external solver (assume just one for now)
@@ -807,7 +810,8 @@ void Hybrid<S,A,I>::from_json(const nlohmann::json simj) {
     active = j.value("enabled", false);
     elementOrder = j.value("elementOrder", 1);
     timeOrder = j.value("timeOrder", 1);
-    numSubsteps = j.value("numSubsteps", 100);
+    numSubsteps = j.value("numSubsteps", 40);
+    numSubstepsFirst = j.value("numSubstepsFirst", 50);
     preconditioner = j.value("preconditioner", "none");
     solverType = j.value("solverType", "fgmres");
   }
@@ -821,6 +825,7 @@ void Hybrid<S,A,I>::add_to_json(nlohmann::json& simj) const {
   j["elementOrder"] = elementOrder; //1-5
   j["timeOrder"] = timeOrder; //1,2,4
   j["numSubsteps"] = numSubsteps; //1-1000
+  j["numSubstepsFirst"] = numSubstepsFirst; //1-1000
   j["preconditioner"] = preconditioner;
   j["solverType"] = solverType;
 
@@ -860,6 +865,11 @@ void Hybrid<S,A,I>::draw_advanced() {
   if (ImGui::InputInt("Number of Substeps", &numSubsteps)) {
     if (numSubsteps < 1) { numSubsteps = 1; }
     else if (numSubsteps > 1000) { numSubsteps = 1000; }
+  }
+  
+  if (ImGui::InputInt("Number of Substeps for first step", &numSubstepsFirst)) {
+    if (numSubstepsFirst < 1) { numSubstepsFirst = 1; }
+    else if (numSubstepsFirst > 1000) { numSubstepsFirst = 1000; }
   }
   
   const int numPreconditioners = 1;
