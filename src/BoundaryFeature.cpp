@@ -1547,8 +1547,8 @@ FromMsh::init_hybrid(const float _ips) const {
   const std::vector<ReadMsh::node>& nodes = mesh.get_nodes();
   for (auto& thisnode : nodes) {
     const ReadMsh::Cmpnts2& thispos = thisnode.coor;
-    x.push_back(thispos.x);
-    x.push_back(thispos.y);
+    x.push_back(thispos.x + m_x);
+    x.push_back(thispos.y + m_y);
   }
   const Int nn = x.size() / 2;
   std::cout << "  read in " << nn << " nodes" << std::endl;
