@@ -265,6 +265,8 @@ public:
     if (M == lagrangian) {
       std::cout << "  Moving" << to_string() << std::endl;
 
+      // we do not need to update vels because _u1 is the same as this
+
       // update positions
       for (size_t d=0; d<Dimensions; ++d) {
         for (size_t i=0; i<n; ++i) {
@@ -289,10 +291,17 @@ public:
     if (M == lagrangian) {
       std::cout << "  Moving" << to_string() << std::endl;
 
+      // update vels, note that _u1 is the same as this
+      for (size_t d=0; d<Dimensions; ++d) {
+        for (size_t i=0; i<n; ++i) {
+          u[d][i] = _wt1*_u1.u[d][i] + _wt2*_u2.u[d][i];
+        }
+      }
+
       // update positions
       for (size_t d=0; d<Dimensions; ++d) {
         for (size_t i=0; i<n; ++i) {
-          x[d][i] += (S)_dt * (_wt1*_u1.u[d][i] + _wt2*_u2.u[d][i]);
+          x[d][i] += (S)_dt * u[d][i];
         }
       }
 
@@ -314,10 +323,17 @@ public:
     if (M == lagrangian) {
       std::cout << "  Moving" << to_string() << std::endl;
 
+      // update vels, note that _u1 is the same as this
+      for (size_t d=0; d<Dimensions; ++d) {
+        for (size_t i=0; i<n; ++i) {
+          u[d][i] = _wt0*_u0.u[d][i] + _wt1*_u1.u[d][i] + _wt2*_u2.u[d][i];
+        }
+      }
+
       // update positions
       for (size_t d=0; d<Dimensions; ++d) {
         for (size_t i=0; i<n; ++i) {
-          x[d][i] += (S)_dt * (_wt0*_u0.u[d][i] + _wt1*_u1.u[d][i] + _wt2*_u2.u[d][i]);
+          x[d][i] += (S)_dt * u[d][i];
         }
       }
 
