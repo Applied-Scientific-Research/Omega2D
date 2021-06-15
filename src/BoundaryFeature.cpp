@@ -853,7 +853,7 @@ void SolidSquare::create() {
 
   // since boundary segments don't store "external", we must enforce it here
   //   with the order of the nodes!
-  if (m_external) {
+  if (not m_external) {
     std::reverse(pxs.begin(), pxs.end());
     std::reverse(pys.begin(), pys.end());
   }
@@ -988,7 +988,7 @@ void SolidRect::create() {
 
   // since boundary segments don't store "external", we must enforce it here
   //   with the order of the nodes!
-  if (m_external) {
+  if (not m_external) {
     std::reverse(pxs.begin(), pxs.end());
     std::reverse(pys.begin(), pys.end());
   }
