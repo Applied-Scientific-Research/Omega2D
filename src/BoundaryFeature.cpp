@@ -456,6 +456,9 @@ bool BoundarySegment::draw_info_gui(const std::string action) {
   ImGui::Combo("boundary condition", &item, items, numItems);
   switch(item) {
     case 0: {
+      // must zero these or else user won't be able to select "wall"
+      m_tangflow = 0.0;
+      m_normflow = 0.0;
     } break;
     case 1: {
       // we can directly change m_tangflow here
