@@ -411,6 +411,7 @@ BoundarySegment::from_json(const nlohmann::json j) {
     if (ptype == "parabolic") { m_normisuniform = false; }
   }
   m_tangflow = j.value("tangentialVel", 0.0);
+  // boundary segments use their orientation to determine external-vs-internal
   m_external = true;//j.value("external", true);
   m_enabled = j.value("enabled",true);
 }
@@ -425,6 +426,7 @@ BoundarySegment::to_json() const {
   mesh["normalVel"] = m_normflow;
   mesh["normalProfile"] = m_normisuniform ? "uniform" : "parabolic";
   mesh["tangentialVel"] = m_tangflow;
+  // boundary segments use their orientation to determine external-vs-internal, don't save it
   //mesh["external"] = m_external;
   mesh["enabled"] = m_enabled;
   return mesh;
@@ -848,11 +850,22 @@ void SolidSquare::create() {
   const float p = 0.5*m_side;
   std::vector<float> pxs = {-p, -p, p, p};
   std::vector<float> pys = {-p, p, p, -p};
+
+  // since boundary segments don't store "external", we must enforce it here
+  //   with the order of the nodes!
+  if (m_external) {
+    std::reverse(pxs.begin(), pxs.end());
+    std::reverse(pys.begin(), pys.end());
+  }
+
   for (int i = 0; i<4; i++) {
     const int j = (i+1)%4;
-    m_bsl.emplace_back(BoundarySegment(m_bp, m_external,  m_x+pxs[i]*ct-pys[i]*st,
-                                       m_y+pxs[i]*st+pys[i]*ct, m_x+pxs[j]*ct-pys[j]*st, 
-                                       m_y+pxs[j]*st+pys[j]*ct, 0.0, 0.0));
+    m_bsl.emplace_back(BoundarySegment(m_bp, true,
+                                       m_x+pxs[i]*ct-pys[i]*st,
+                                       m_y+pxs[i]*st+pys[i]*ct,
+                                       m_x+pxs[j]*ct-pys[j]*st, 
+                                       m_y+pxs[j]*st+pys[j]*ct,
+                                       0.0, true, 0.0));
   }
 }
 
@@ -868,12 +881,7 @@ SolidSquare::init_elements(const float _ips) const {
     //std::cout << "  idx size is " << packet.idx.size() << " and last entries are " << packet.idx.end()[-2] << " " << packet.idx.end()[-1] << std::endl;
   }
 
-  // flip the orientation of the panels
-  if (not m_external) {
-    for (size_t i=0; i<packet.idx.size(); i++) {
-      std::swap(packet.idx[2*i], packet.idx[2*i+1]);
-    }
-  }
+  // no need to flip the orientation of the panels, as BoundarySegment creates them correctly
 
   if (packet.verify(packet.x.size(), packet.x.size())) {
     return packet;
@@ -977,11 +985,22 @@ void SolidRect::create() {
   const float py = 0.5*m_sidey;
   std::vector<float> pxs = {-px, -px, px, px};
   std::vector<float> pys = {-py, py, py, -py};
+
+  // since boundary segments don't store "external", we must enforce it here
+  //   with the order of the nodes!
+  if (m_external) {
+    std::reverse(pxs.begin(), pxs.end());
+    std::reverse(pys.begin(), pys.end());
+  }
+
   for (int i = 0; i<4; i++) {
     const int j = (i+1)%4;
-    m_bsl.emplace_back(BoundarySegment(m_bp, m_external,  m_x+pxs[i]*ct-pys[i]*st,
-                                       m_y+pxs[i]*st+pys[i]*ct, m_x+pxs[j]*ct-pys[j]*st, 
-                                       m_y+pxs[j]*st+pys[j]*ct, 0.0, 0.0));
+    m_bsl.emplace_back(BoundarySegment(m_bp, true,
+                                       m_x+pxs[i]*ct-pys[i]*st,
+                                       m_y+pxs[i]*st+pys[i]*ct,
+                                       m_x+pxs[j]*ct-pys[j]*st, 
+                                       m_y+pxs[j]*st+pys[j]*ct,
+                                       0.0, true, 0.0));
   }
 }
 
@@ -996,12 +1015,7 @@ SolidRect::init_elements(const float _ips) const {
     packet.add(i->init_elements(_ips));
   }
 
-  // flip the orientation of the panels
-  if (not m_external) {
-    for (size_t i=0; i<packet.idx.size(); i++) {
-      std::swap(packet.idx[2*i], packet.idx[2*i+1]);
-    }
-  }
+  // no need to flip the orientation of the panels, as BoundarySegment creates them correctly
 
   if (packet.verify(packet.x.size(), packet.x.size())) {
     return packet;
