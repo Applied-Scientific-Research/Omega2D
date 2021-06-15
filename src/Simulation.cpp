@@ -9,6 +9,7 @@
 #include "Reflect.h"
 #include "BEMHelper.h"
 #include "GuiHelper.h"
+#include "FutureHelper.h"
 
 #include <cassert>
 #include <cmath>
@@ -19,6 +20,7 @@
 #ifdef _WIN32
 #pragma STDC FENV_ACCESS ON // For fp exceptions
 #endif
+
 
 // constructor
 Simulation::Simulation()
@@ -53,7 +55,8 @@ Simulation::Simulation()
     quit_on_stop(false),
     sim_is_initialized(false),
     step_has_started(false),
-    step_is_finished(false)
+    step_is_finished(false),
+    stepfuture()
   {}
 
 // addresses for use in imgui
@@ -898,17 +901,18 @@ void Simulation::file_elements(std::vector<Collection>& _collvec,
 void Simulation::add_hybrid(const std::vector<ElementPacket<float>>  _elems,
                             std::shared_ptr<Body> _bptr) {
 
-#if defined(HOFORTRAN) || defined(HOCXX)
   // skip out early if nothing's here
   if (_elems.size() == 0) return;
+
+#if defined(HOFORTRAN) || defined(HOCXX)
   // or if hybrid isn't turned on
   if (not hybr.is_active()) return;
 
   std::cout << "In Simulation::add_hybrid" << std::endl;
-  //std::cout << "  incoming vector has " << _elems.size() << " ElementPackets" << std::endl;
+  std::cout << "  incoming vector has " << _elems.size() << " ElementPackets" << std::endl;
 
   // make sure we've got the right data
-  assert(_elems.size() == 3 && "Improper number of ElementPackets in add_hybrid");
+  assert((_elems.size() == 3 ||  _elems.size() == 5) && "Bad number of ElementPackets in add_hybrid");
 
   //_elems[0] is the volume elements - always add unique Collection to euler
   //_elems[1] is the wall boundaries
@@ -919,6 +923,12 @@ void Simulation::add_hybrid(const std::vector<ElementPacket<float>>  _elems,
   // alternate way to assign the wall and open bc elements
   //euler.back().add_wall(_elems[1]);
   //euler.back().add_open(_elems[2]);
+
+  // generate inlets and outlets, if available
+  if (_elems.size() > 3) {
+    euler.back().add_inlet(_elems[3]);
+    euler.back().add_outlet(_elems[4]);
+  }
 #endif
 }
 

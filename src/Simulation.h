@@ -27,7 +27,6 @@
 #include <string>
 #include <vector>
 #include <future>
-#include <chrono>
 
 #ifdef USE_VC
 #define STORE float
@@ -37,11 +36,6 @@
 #define ACCUM double
 #endif
 
-template <class T>
-bool is_future_ready(std::future<T> const& f) {
-    if (!f.valid()) return false;
-    return f.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
-}
 
 //
 // A set of particles, can be sources or targets

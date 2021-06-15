@@ -1420,7 +1420,7 @@ void SolidAirfoil::generate_draw_geom() {
   m_draw = init_elements(m_chordLength/20.0);
 }
 
-// Initialize elements
+// Initialize elements **for the Lagrangian simulation**
 ElementPacket<float>
 FromMsh::init_elements(const float _ips) const {
 
@@ -1514,15 +1514,16 @@ FromMsh::init_elements(const float _ips) const {
 }
 
 //
-// Create the volume and boundary grids for this feature
+// Create the volume and boundary grids **for the Eulerian side**
 //
 std::vector<ElementPacket<float>>
 FromMsh::init_hybrid(const float _ips) const {
 
-  // we need to have three ElementPacket objects in this vector:
+  // we need to have 3 or 5 ElementPacket objects in this vector:
   //   first one is the Volumes (2D) elements
   //   second is the wall Surfaces (1D) elements
-  //   last is the open Surfaces (1D) elements
+  //   third is the open Surfaces (1D) elements
+  //   4th and 5th are optional inlet and outlet Surfaces (1D) elements
   std::vector<ElementPacket<float>> pack;
 
   // read gmsh file
@@ -1664,6 +1665,76 @@ FromMsh::init_hybrid(const float _ips) const {
     // set boundary condition value to 0.0 (velocity BC)
     vals.resize(np);
     std::fill(vals.begin(), vals.end(), 0.0);
+
+    // return the element packet (will have many unused nodes - that's OK)
+    pack.emplace_back(ElementPacket<float>({x, idx, vals, (size_t)(np), (uint8_t)1}));
+  }
+
+  //
+  // fourth EP is the inlet
+  //
+
+  // get the boundary from the mesh corresponding to this feature
+  const ReadMsh::boundary inlet = mesh.get_bdry("inlet");
+  if (inlet.N_edges == 0) {
+    std::cout << "  no boundary called 'inlet' in this msh file, skipping." << std::endl;
+
+    // don't place a dummy packet at the end of the list
+    //pack.emplace_back(ElementPacket<float>());
+
+  } else {
+    std::cout << "Generate Inlet Boundary" << std::endl;
+
+    // set the idx pointers to the new surface elements
+    const size_t np = inlet.N_edges;
+    std::cout << "  inlet has " << np << " edges" << std::endl;
+    idx.clear();
+    for (uint32_t thisedge : inlet.edges) {
+      const size_t nn = edges[thisedge].N_nodes;
+      //std::cout << "  edge " << thisedge << " has " << nn << " nodes" << std::endl;
+      // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
+      assert(nn > 1 && "Edge does not have enough nodes!");
+      for (size_t i=0; i<nn; ++i) idx.push_back(edges[thisedge].nodes[i]);
+    }
+
+    // set boundary condition value to 1.0 (uniform normal velocity BC)
+    vals.resize(np);
+    std::fill(vals.begin(), vals.end(), 1.0);
+
+    // return the element packet (will have many unused nodes - that's OK)
+    pack.emplace_back(ElementPacket<float>({x, idx, vals, (size_t)(np), (uint8_t)1}));
+  }
+
+  //
+  // last EP is the outlet (assume one for now)
+  //
+
+  // get the boundary from the mesh corresponding to this feature
+  const ReadMsh::boundary outlet = mesh.get_bdry("outlet");
+  if (outlet.N_edges == 0) {
+    std::cout << "  no boundary called 'outlet' in this msh file, skipping." << std::endl;
+
+    // don't place a dummy packet at the end of the list
+    //pack.emplace_back(ElementPacket<float>());
+
+  } else {
+    std::cout << "Generate Inlet Boundary" << std::endl;
+
+    // set the idx pointers to the new surface elements
+    const size_t np = outlet.N_edges;
+    std::cout << "  outlet has " << np << " edges" << std::endl;
+    idx.clear();
+    for (uint32_t thisedge : outlet.edges) {
+      const size_t nn = edges[thisedge].N_nodes;
+      //std::cout << "  edge " << thisedge << " has " << nn << " nodes" << std::endl;
+      // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
+      assert(nn > 1 && "Edge does not have enough nodes!");
+      for (size_t i=0; i<nn; ++i) idx.push_back(edges[thisedge].nodes[i]);
+    }
+
+    // set boundary condition value to -1.0 (uniform normal velocity BC)
+    vals.resize(np);
+    std::fill(vals.begin(), vals.end(), -1.0);
 
     // return the element packet (will have many unused nodes - that's OK)
     pack.emplace_back(ElementPacket<float>({x, idx, vals, (size_t)(np), (uint8_t)1}));
