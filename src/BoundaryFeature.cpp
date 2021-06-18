@@ -1441,12 +1441,19 @@ FromMsh::init_elements(const float _ips) const {
   const size_t np = wall.N_edges;
   std::cout << "  wall has " << np << " edges" << std::endl;
   for (uint32_t thisedge : wall.edges) {
-    //std::cout << "  edge " << thisedge << " has " << edges[thisedge].N_nodes << " nodes" << std::endl;
+    const size_t nn = edges[thisedge].N_nodes;
+    //std::cout << "  edge " << thisedge << " has " << nn << " nodes" << std::endl;
+
     // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
-    assert(edges[thisedge].N_nodes > 1 && "Edge does not have enough nodes!");
-    // HACK - annular gmsh meshes have wall defined CCW (right wall is to fluid), not CW (left wall is)
-    idx.push_back(edges[thisedge].nodes[1]);
-    idx.push_back(edges[thisedge].nodes[0]);
+    assert(nn > 1 && "Edge does not have enough nodes!");
+
+    //
+    // If edges in gmsh are defined with fluid on the left as you walk along the edge,
+    //   then the node numbering here should be correct !!!
+    //
+    // only load in start and end nodes, as that's all we need for the particle solver BEM
+    for (size_t i=0; i<nn; ++i) idx.push_back(edges[thisedge].nodes[i]);
+
     // TODO: check edge element length vs. _ips and subsample if necessary
   }
 
@@ -1591,13 +1598,23 @@ FromMsh::init_hybrid(const float _ips) const {
       //std::cout << "  edge " << thisedge << " has " << nn << " nodes" << std::endl;
       // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
       assert(nn > 1 && "Edge does not have enough nodes!");
+      //
+      // If edges in gmsh are defined with fluid on the left as you walk along the edge,
+      //   then the node numbering here should be correct !!!
+      //
+      for (size_t i=0; i<nn; ++i) idx.push_back(edges[thisedge].nodes[i]);
+
       // reversing the orientation of the wall elements
-      idx.push_back(edges[thisedge].nodes[1]);
-      idx.push_back(edges[thisedge].nodes[0]);
-      for (size_t i=1; i<nn-1; ++i) idx.push_back(edges[thisedge].nodes[nn-i]);
+      //idx.push_back(edges[thisedge].nodes[1]);
+      //idx.push_back(edges[thisedge].nodes[0]);
+      //for (size_t i=1; i<nn-1; ++i) idx.push_back(edges[thisedge].nodes[nn-i]);
       //std::cout << "    ";
+
+      //std::cout << "edge " << (idx.size()/nn - 1) << " " << std::endl;
       //for (size_t i=0; i<edges[thisedge].N_nodes; ++i) {
-      //  std::cout << " " << edges[thisedge].nodes[i];
+        //const size_t ii = edges[thisedge].nodes[i];
+        //std::cout << "  " << ii << std::endl;
+        //std::cout << "    " << x[2*ii] << " " << x[2*ii+1] << std::endl;
       //}
       //std::cout << std::endl;
     }
@@ -1631,12 +1648,19 @@ FromMsh::init_hybrid(const float _ips) const {
     for (uint32_t thisedge : open.edges) {
       const size_t nn = edges[thisedge].N_nodes;
       //std::cout << "  edge " << thisedge << " has " << nn << " nodes" << std::endl;
+
       // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
       assert(nn > 1 && "Edge does not have enough nodes!");
-      // note - annular gmsh meshes have open defined CCW, which is correct here
+
+      //
+      // If edges in gmsh are defined with fluid on the left as you walk along the edge,
+      //   then the node numbering here should be correct !!!
+      //
+      for (size_t i=0; i<nn; ++i) idx.push_back(edges[thisedge].nodes[i]);
+
+      // this is how we would reverse the element orientation
       //idx.push_back(edges[thisedge].nodes[0]);
       //idx.push_back(edges[thisedge].nodes[1]);
-      for (size_t i=0; i<nn; ++i) idx.push_back(edges[thisedge].nodes[i]);
     }
 
     // set boundary condition value to 0.0 (velocity BC)
