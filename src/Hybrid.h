@@ -237,6 +237,7 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
                          std::vector<HOVolumes<S>>&           _euler) {
 
   if (not active) return;
+  if (_euler.size() == 0) return;
   if (not initialized) init(_euler);
 
   std::cout << "Inside Hybrid::first_step at t=" << _time << std::endl;
@@ -366,6 +367,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
                          const float                          _vd) {
 
   if (not active) return;
+  if (_euler.size() == 0) return;
   if (not initialized) init(_euler);
 
   std::cout << "Inside Hybrid::step at t=" << _time << " and dt=" << _dt << std::endl;

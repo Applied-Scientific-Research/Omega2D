@@ -45,7 +45,9 @@ public:
       wall_s(Surfaces<S>(_welems, _e, _m, _bp)),
       open_s(Surfaces<S>(_oelems, _e, _m, _bp)),
       open_p(Points<S>(ElementPacket<float>((uint8_t)0), _e, _m, _bp, 0.0)),
-      soln_p(Points<S>(ElementPacket<float>((uint8_t)0), _e, _m, _bp, 0.0))//,
+      soln_p(Points<S>(ElementPacket<float>((uint8_t)0), _e, _m, _bp, 0.0)),
+      inlet_s(Surfaces<S>(ElementPacket<float>((uint8_t)1), _e, _m, _bp)),
+      outlet_s(Surfaces<S>(ElementPacket<float>((uint8_t)1), _e, _m, _bp))
       //reduced_p(Points<S>(ElementPacket<S>((uint8_t)0), _e, _m, _bp, 0.0))
   { }
 
@@ -167,6 +169,26 @@ public:
     // and that it has the right number of values per element/node
     //if (this->E == inert) assert(_in.val.size() == 0 && "Input ElementPacket with inert Volumes has nonzero val array");
     //else assert(_in.val.size() == _in.nelem && "Input ElementPacket with Volumes has bad val array size");
+  }
+
+  // append a Surfaces to the object for the inlet
+  void add_inlet(const ElementPacket<float>& _in) {
+
+    // ensure that this packet really is Surfaces
+    assert(_in.idx.size() != 0 && "Input ElementPacket is empty");
+    assert(_in.ndim == 1 && "Input ElementPacket is not Surfaces");
+
+    inlet_s = Surfaces<S>(_in, this->E, this->M, this->B);
+  }
+
+  // append a Surfaces to the object for the outlet
+  void add_outlet(const ElementPacket<float>& _in) {
+
+    // ensure that this packet really is Surfaces
+    assert(_in.idx.size() != 0 && "Input ElementPacket is empty");
+    assert(_in.ndim == 1 && "Input ElementPacket is not Surfaces");
+
+    outlet_s = Surfaces<S>(_in, this->E, this->M, this->B);
   }
 
   // set vorticity at solution points, to use for reprojecting to particles
@@ -362,6 +384,10 @@ protected:
   Points<S>               open_p;   // solution nodes at open boundary (from HO Solver)
   Points<S>               soln_p;   // solution nodes (from HO Solver)
   //Points<S>            reduced_p;   // reduced set of solution nodes
+
+  // optional boundary elements (one inlet and one outlet for now)
+  Surfaces<S>            inlet_s;	// inlet boundary surface (from msh file)
+  Surfaces<S>           outlet_s;	// outlet boundary surface (from msh file)
 
 private:
 

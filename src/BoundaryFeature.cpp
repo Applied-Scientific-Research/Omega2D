@@ -11,6 +11,7 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_stdlib.h"
 #include "Simulation.h"
+#include "Distribution.h"
 #include "read_MSH_Mesh.h"
 
 #define __STDCPP_WANT_MATH_SPEC_FUNCS__ 1
@@ -238,47 +239,6 @@ void BoundaryFeature::draw_feature_list(std::vector<std::unique_ptr<BoundaryFeat
 }
 #endif
 
-// node distribution with dense points at each end
-double chebeshev_node(double a, double b, double k, double n) {
-  return (a+b)*0.5+(b-a)*0.5*std::cos((2*(n-k)-1)*M_PI*0.5/n);
-}
-
-// node distribution with tunable density at each end
-// first, a measure of how many panels are needed given densities at each end and relative panel size
-size_t chebeshev_node_2_count(const double dens_left, const double dens_right, const double rel_pan_size) {
-  // first, compute theta bounds given node densities
-  assert(dens_left > 0.0 && dens_left < 1.0 && dens_right > 0.0 && dens_right < 1.0 && "Panel densities out of range");
-  const double theta_left = M_PI - std::asin(dens_left);
-  const double theta_right = std::asin(dens_right);
-  // theta range
-  const double theta_range = theta_left - theta_right;
-  // x range from these
-  const double x_range = std::cos(theta_right) - std::cos(theta_left);
-  // now, size of the middle panel
-  const double x_panel = x_range * rel_pan_size;
-  // convert that to an angle
-  const double theta_panel = 2.0 * std::asin(0.5*x_panel);
-  // finally, find panel count
-  return std::max((int)3, (int)(0.5 + theta_range/theta_panel));
-}
-
-// then the mathematics itself to generate the node positions
-double chebeshev_node_2(const double dens_left, const double dens_right, const size_t k, const size_t n) {
-  // first, compute theta bounds given node densities
-  assert(dens_left > 0.0 && dens_left < 1.0 && dens_right > 0.0 && dens_right < 1.0 && "Panel densities out of range");
-  const double theta_left = M_PI - std::asin(dens_left);
-  const double theta_right = std::asin(dens_right);
-  // theta range
-  const double theta_range = theta_left - theta_right;
-  // x range from these
-  const double x_range = std::cos(theta_right) - std::cos(theta_left);
-
-  // now, find test theta from input indices
-  const double theta = theta_right + theta_range*k/(double)n;
-
-  // finally, compute and scale the return value (from 0..1)
-  return (std::cos(theta_right) - std::cos(theta)) / x_range;
-}
 
 //
 // Create a segment of a solid boundary
@@ -291,7 +251,7 @@ BoundarySegment::init_elements(const float _ips) const {
   //const size_t num_panels = std::min(10000, std::max(1, (int)(seg_length / _ips)));
   const float leftDist = 0.333;
   const float rightDist = 0.333;
-  const size_t num_panels = chebeshev_node_2_count(leftDist, rightDist, _ips/seg_length);
+  const size_t num_panels = chebyshev_node_2_count<double>(leftDist, rightDist, _ips/seg_length);
 
   std::cout << "Creating segment with " << num_panels << " panels" << std::endl;
   std::cout << "  " << to_string() << std::endl;
@@ -305,7 +265,7 @@ BoundarySegment::init_elements(const float _ips) const {
   // so go CW around the body
   size_t icnt = 0;
   for (size_t i=0; i<num_panels+1; i++) {
-    const float s = chebeshev_node_2(leftDist, rightDist, i, num_panels);
+    const float s = chebyshev_node_2<double>(leftDist, rightDist, i, num_panels);
     x[icnt++] = (1.0-s)*m_x + s*m_xe;
     x[icnt++] = (1.0-s)*m_y + s*m_ye;
   }
@@ -411,6 +371,7 @@ BoundarySegment::from_json(const nlohmann::json j) {
     if (ptype == "parabolic") { m_normisuniform = false; }
   }
   m_tangflow = j.value("tangentialVel", 0.0);
+  // boundary segments use their orientation to determine external-vs-internal
   m_external = true;//j.value("external", true);
   m_enabled = j.value("enabled",true);
 }
@@ -425,6 +386,7 @@ BoundarySegment::to_json() const {
   mesh["normalVel"] = m_normflow;
   mesh["normalProfile"] = m_normisuniform ? "uniform" : "parabolic";
   mesh["tangentialVel"] = m_tangflow;
+  // boundary segments use their orientation to determine external-vs-internal, don't save it
   //mesh["external"] = m_external;
   mesh["enabled"] = m_enabled;
   return mesh;
@@ -456,6 +418,9 @@ bool BoundarySegment::draw_info_gui(const std::string action) {
   ImGui::Combo("boundary condition", &item, items, numItems);
   switch(item) {
     case 0: {
+      // must zero these or else user won't be able to select "wall"
+      m_tangflow = 0.0;
+      m_normflow = 0.0;
     } break;
     case 1: {
       // we can directly change m_tangflow here
@@ -845,11 +810,22 @@ void SolidSquare::create() {
   const float p = 0.5*m_side;
   std::vector<float> pxs = {-p, -p, p, p};
   std::vector<float> pys = {-p, p, p, -p};
+
+  // since boundary segments don't store "external", we must enforce it here
+  //   with the order of the nodes!
+  if (not m_external) {
+    std::reverse(pxs.begin(), pxs.end());
+    std::reverse(pys.begin(), pys.end());
+  }
+
   for (int i = 0; i<4; i++) {
     const int j = (i+1)%4;
-    m_bsl.emplace_back(BoundarySegment(m_bp, m_external,  m_x+pxs[i]*ct-pys[i]*st,
-                                       m_y+pxs[i]*st+pys[i]*ct, m_x+pxs[j]*ct-pys[j]*st, 
-                                       m_y+pxs[j]*st+pys[j]*ct, 0.0, 0.0));
+    m_bsl.emplace_back(BoundarySegment(m_bp, true,
+                                       m_x+pxs[i]*ct-pys[i]*st,
+                                       m_y+pxs[i]*st+pys[i]*ct,
+                                       m_x+pxs[j]*ct-pys[j]*st, 
+                                       m_y+pxs[j]*st+pys[j]*ct,
+                                       0.0, true, 0.0));
   }
 }
 
@@ -865,12 +841,7 @@ SolidSquare::init_elements(const float _ips) const {
     //std::cout << "  idx size is " << packet.idx.size() << " and last entries are " << packet.idx.end()[-2] << " " << packet.idx.end()[-1] << std::endl;
   }
 
-  // flip the orientation of the panels
-  if (not m_external) {
-    for (size_t i=0; i<packet.idx.size(); i++) {
-      std::swap(packet.idx[2*i], packet.idx[2*i+1]);
-    }
-  }
+  // no need to flip the orientation of the panels, as BoundarySegment creates them correctly
 
   if (packet.verify(packet.x.size(), packet.x.size())) {
     return packet;
@@ -974,11 +945,22 @@ void SolidRect::create() {
   const float py = 0.5*m_sidey;
   std::vector<float> pxs = {-px, -px, px, px};
   std::vector<float> pys = {-py, py, py, -py};
+
+  // since boundary segments don't store "external", we must enforce it here
+  //   with the order of the nodes!
+  if (not m_external) {
+    std::reverse(pxs.begin(), pxs.end());
+    std::reverse(pys.begin(), pys.end());
+  }
+
   for (int i = 0; i<4; i++) {
     const int j = (i+1)%4;
-    m_bsl.emplace_back(BoundarySegment(m_bp, m_external,  m_x+pxs[i]*ct-pys[i]*st,
-                                       m_y+pxs[i]*st+pys[i]*ct, m_x+pxs[j]*ct-pys[j]*st, 
-                                       m_y+pxs[j]*st+pys[j]*ct, 0.0, 0.0));
+    m_bsl.emplace_back(BoundarySegment(m_bp, true,
+                                       m_x+pxs[i]*ct-pys[i]*st,
+                                       m_y+pxs[i]*st+pys[i]*ct,
+                                       m_x+pxs[j]*ct-pys[j]*st, 
+                                       m_y+pxs[j]*st+pys[j]*ct,
+                                       0.0, true, 0.0));
   }
 }
 
@@ -993,12 +975,7 @@ SolidRect::init_elements(const float _ips) const {
     packet.add(i->init_elements(_ips));
   }
 
-  // flip the orientation of the panels
-  if (not m_external) {
-    for (size_t i=0; i<packet.idx.size(); i++) {
-      std::swap(packet.idx[2*i], packet.idx[2*i+1]);
-    }
-  }
+  // no need to flip the orientation of the panels, as BoundarySegment creates them correctly
 
   if (packet.verify(packet.x.size(), packet.x.size())) {
     return packet;
@@ -1260,7 +1237,7 @@ SolidAirfoil::init_elements(const float _ips) const {
   
   // number of panels on top surface
   //const size_t numX = std::ceil(m_chordLength*M_PI/_ips);
-  const size_t numX = chebeshev_node_2_count(0.75, 0.1, _ips/m_chordLength);
+  const size_t numX = chebyshev_node_2_count<double>(0.75, 0.1, _ips/m_chordLength);
   std::cout << "Creating NACA 4-digit airfoil with " << 2*numX << " panels" << std::endl;
   std::vector<float> x(4*numX);
   std::vector<Int> idx(4*numX);
@@ -1276,8 +1253,8 @@ SolidAirfoil::init_elements(const float _ips) const {
 
   // march along the chord, generating nodes and panels
   for (size_t i=1; i<=numX; i++) {
-    //const float xol = chebeshev_node(0.0, 1.0, i, numX);
-    const float xol = chebeshev_node_2(0.75, 0.1, i, numX);
+    //const float xol = chebyshev_node<double>(0.0, 1.0, i, numX);
+    const float xol = chebyshev_node_2<double>(0.75, 0.1, i, numX);
     float yc;
     float dyc;
     if (xol < p) {
@@ -1420,7 +1397,7 @@ void SolidAirfoil::generate_draw_geom() {
   m_draw = init_elements(m_chordLength/20.0);
 }
 
-// Initialize elements
+// Initialize elements **for the Lagrangian simulation**
 ElementPacket<float>
 FromMsh::init_elements(const float _ips) const {
 
@@ -1514,15 +1491,16 @@ FromMsh::init_elements(const float _ips) const {
 }
 
 //
-// Create the volume and boundary grids for this feature
+// Create the volume and boundary grids **for the Eulerian side**
 //
 std::vector<ElementPacket<float>>
 FromMsh::init_hybrid(const float _ips) const {
 
-  // we need to have three ElementPacket objects in this vector:
+  // we need to have 3 or 5 ElementPacket objects in this vector:
   //   first one is the Volumes (2D) elements
   //   second is the wall Surfaces (1D) elements
-  //   last is the open Surfaces (1D) elements
+  //   third is the open Surfaces (1D) elements
+  //   4th and 5th are optional inlet and outlet Surfaces (1D) elements
   std::vector<ElementPacket<float>> pack;
 
   // read gmsh file
@@ -1664,6 +1642,76 @@ FromMsh::init_hybrid(const float _ips) const {
     // set boundary condition value to 0.0 (velocity BC)
     vals.resize(np);
     std::fill(vals.begin(), vals.end(), 0.0);
+
+    // return the element packet (will have many unused nodes - that's OK)
+    pack.emplace_back(ElementPacket<float>({x, idx, vals, (size_t)(np), (uint8_t)1}));
+  }
+
+  //
+  // fourth EP is the inlet
+  //
+
+  // get the boundary from the mesh corresponding to this feature
+  const ReadMsh::boundary inlet = mesh.get_bdry("inlet");
+  if (inlet.N_edges == 0) {
+    std::cout << "  no boundary called 'inlet' in this msh file, skipping." << std::endl;
+
+    // don't place a dummy packet at the end of the list
+    //pack.emplace_back(ElementPacket<float>());
+
+  } else {
+    std::cout << "Generate Inlet Boundary" << std::endl;
+
+    // set the idx pointers to the new surface elements
+    const size_t np = inlet.N_edges;
+    std::cout << "  inlet has " << np << " edges" << std::endl;
+    idx.clear();
+    for (uint32_t thisedge : inlet.edges) {
+      const size_t nn = edges[thisedge].N_nodes;
+      //std::cout << "  edge " << thisedge << " has " << nn << " nodes" << std::endl;
+      // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
+      assert(nn > 1 && "Edge does not have enough nodes!");
+      for (size_t i=0; i<nn; ++i) idx.push_back(edges[thisedge].nodes[i]);
+    }
+
+    // set boundary condition value to 1.0 (uniform normal velocity BC)
+    vals.resize(np);
+    std::fill(vals.begin(), vals.end(), 1.0);
+
+    // return the element packet (will have many unused nodes - that's OK)
+    pack.emplace_back(ElementPacket<float>({x, idx, vals, (size_t)(np), (uint8_t)1}));
+  }
+
+  //
+  // last EP is the outlet (assume one for now)
+  //
+
+  // get the boundary from the mesh corresponding to this feature
+  const ReadMsh::boundary outlet = mesh.get_bdry("outlet");
+  if (outlet.N_edges == 0) {
+    std::cout << "  no boundary called 'outlet' in this msh file, skipping." << std::endl;
+
+    // don't place a dummy packet at the end of the list
+    //pack.emplace_back(ElementPacket<float>());
+
+  } else {
+    std::cout << "Generate Inlet Boundary" << std::endl;
+
+    // set the idx pointers to the new surface elements
+    const size_t np = outlet.N_edges;
+    std::cout << "  outlet has " << np << " edges" << std::endl;
+    idx.clear();
+    for (uint32_t thisedge : outlet.edges) {
+      const size_t nn = edges[thisedge].N_nodes;
+      //std::cout << "  edge " << thisedge << " has " << nn << " nodes" << std::endl;
+      // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
+      assert(nn > 1 && "Edge does not have enough nodes!");
+      for (size_t i=0; i<nn; ++i) idx.push_back(edges[thisedge].nodes[i]);
+    }
+
+    // set boundary condition value to -1.0 (uniform normal velocity BC)
+    vals.resize(np);
+    std::fill(vals.begin(), vals.end(), -1.0);
 
     // return the element packet (will have many unused nodes - that's OK)
     pack.emplace_back(ElementPacket<float>({x, idx, vals, (size_t)(np), (uint8_t)1}));
