@@ -66,9 +66,9 @@ public:
       max_strength(-1.0) {
 
     // pull out the vectors
-    const std::vector<float>&   _x   = _elems.x;
-    const std::vector<Int>& _idx = _elems.idx;
-    const std::vector<float>&   _val = _elems.val;
+    const std::vector<float>& _x   = _elems.x;
+    const std::vector<Int>&   _idx = _elems.idx;
+    const std::vector<float>& _val = _elems.val;
 
     // make sure input arrays are correctly-sized
     assert(_elems.ndim == 1 && "Input elements are not (1D) surfaces");
@@ -198,11 +198,11 @@ public:
     // debug print
     if (false) {
       std::cout << "Nodes" << std::endl;
-      for (size_t i=0; i<nnodes; ++i) {
+      for (size_t i=0; i<std::min((size_t)100,nnodes); ++i) {
         std::cout << "  " << i << " " << this->x[0][i] << " " << this->x[1][i] << std::endl;
       }
       std::cout << "Segments" << std::endl;
-      for (size_t i=0; i<nsurfs; ++i) {
+      for (size_t i=0; i<std::min((size_t)100,nsurfs); ++i) {
         std::cout << "  " << i << " " << idx[2*i] << " " << idx[2*i+1] << std::endl;
       }
     }
@@ -653,10 +653,10 @@ public:
 
       // add this to the running sums
       //std::cout << "    and area " << thisarea << " and center " << xc << " " << yc << std::endl;
-      //std::cout << "    running sums " << asum << " " << xsum << " " << ysum << std::endl;
       asum += thisarea;
       xsum += xc*thisarea;
       ysum += yc*thisarea;
+      //std::cout << "    running sums " << asum << " " << xsum << " " << ysum << std::endl;
     }
     vol = (S)asum;
     utc[0] = (S)(xsum/asum);
