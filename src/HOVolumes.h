@@ -64,6 +64,9 @@ public:
   const Points<S>& get_vol_nodes(const S _time) const { return soln_p; }
   Points<S>&       get_vol_nodes(const S _time)       { return soln_p; }
 
+  const bool have_inlet() const  { return (inlet_s.get_npanels()  > 0) ? true : false; }
+  const bool have_outlet() const { return (outlet_s.get_npanels() > 0) ? true : false; }
+
   // if anyone needs to know the order of the geometric elements
   const int32_t get_geom_elem_order() const {
     // what kinds of elements do we have?
@@ -96,19 +99,41 @@ public:
 
   // return a new vector of the indices of the geometry
   std::vector<uint32_t> get_elem_idx() {
-    const std::vector<Int>& elemgeom = this->get_idx();
-    std::vector<uint32_t> elemidx(elemgeom.begin(), elemgeom.end());
-    return elemidx;
+    const std::vector<Int>& tempgeom = this->get_idx();
+    std::vector<uint32_t> returnidx(tempgeom.begin(), tempgeom.end());
+    return returnidx;
   }
   std::vector<uint32_t> get_wall_idx() {
-    const std::vector<Int>& wallgeom = wall_s.get_idx();
-    std::vector<uint32_t> wallidx(wallgeom.begin(), wallgeom.end());
-    return wallidx;
+    const std::vector<Int>& tempgeom = wall_s.get_idx();
+    std::vector<uint32_t> returnidx(tempgeom.begin(), tempgeom.end());
+    return returnidx;
   }
   std::vector<uint32_t> get_open_idx() {
-    const std::vector<Int>& opengeom = open_s.get_idx();
-    std::vector<uint32_t> openidx(opengeom.begin(), opengeom.end());
-    return openidx;
+    const std::vector<Int>& tempgeom = open_s.get_idx();
+    std::vector<uint32_t> returnidx(tempgeom.begin(), tempgeom.end());
+    return returnidx;
+  }
+  std::vector<uint32_t> get_inlet_idx() {
+    const std::vector<Int>& tempgeom = inlet_s.get_idx();
+    std::vector<uint32_t> returnidx(tempgeom.begin(), tempgeom.end());
+    return returnidx;
+  }
+  std::vector<uint32_t> get_outlet_idx() {
+    const std::vector<Int>& tempgeom = outlet_s.get_idx();
+    std::vector<uint32_t> returnidx(tempgeom.begin(), tempgeom.end());
+    return returnidx;
+  }
+
+  // return a new vector of the inlet/outlet velocities
+  std::vector<double> get_inlet_vel() {
+    const Vector<S>& normvel = inlet_s.get_norm_bcs();
+    const std::vector<double> retvels(normvel.begin(), normvel.end());
+    return retvels;
+  }
+  std::vector<double> get_outlet_vel() {
+    const Vector<S>& normvel = outlet_s.get_norm_bcs();
+    const std::vector<double> retvels(normvel.begin(), normvel.end());
+    return retvels;
   }
 
   // retrieve solution points from solver, set them here
