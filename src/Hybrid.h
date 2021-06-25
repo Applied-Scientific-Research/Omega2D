@@ -372,9 +372,9 @@ void Hybrid<S,A,I>::step(const double                         _time,
 
   std::cout << "Inside Hybrid::step at t=" << _time << " and dt=" << _dt << std::endl;
 
-  const bool dumpray = true;
-  static float dumpslope = 1.0;	// cylinder 0.4868, oval 1.0
-  const float dumpslopetol = 3.e-2;	// cylinder 1.e-5, oval 1e-2
+  const bool dumpray = false;
+  static float dumpslope = 0.3;	// cylinder 0.4868, oval 1.0, cavity 0.3
+  const float dumpslopetol = 2.e-3;	// cylinder 1.e-5, oval 1e-2, cavity 1.e-4
   static bool setslope = false;
 
   //
@@ -536,19 +536,24 @@ void Hybrid<S,A,I>::step(const double                         _time,
         float minslopedist = 9.9e+9;
         size_t minslopeidx = 0;
         for (size_t i=0; i<thisn; ++i) {
-          const float thisslopedist = std::abs(locs[1][i]/locs[0][i] - dumpslope);
-          if (thisslopedist < minslopedist && locs[0][i] > 0.0) {
+          //const float thisslopedist = std::abs(locs[1][i]/locs[0][i] - dumpslope);
+          //if (thisslopedist < minslopedist && locs[0][i] > 0.0) {
+          const float thisslopedist = std::abs(locs[0][i] - dumpslope);
+          if (thisslopedist < minslopedist && locs[1][i] < 0.5) {
             minslopedist = thisslopedist;
             minslopeidx = i;
           }
         }
-        dumpslope = locs[1][minslopeidx]/locs[0][minslopeidx];
+        //dumpslope = locs[1][minslopeidx]/locs[0][minslopeidx];
+        dumpslope = locs[0][minslopeidx];
       }
       // now we can dump safely
       std::cout << "  vorticity from eulerian " << std::endl;
       for (size_t i=0; i<thisn; ++i) {
-        if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < dumpslopetol && locs[0][i] > 0.0) {
-          const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
+        //if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < dumpslopetol && locs[0][i] > 0.0) {
+        //  const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
+        if (std::abs(locs[0][i]-dumpslope) < dumpslopetol && locs[1][i] < 0.5) {
+          const S dist = locs[1][i];
           std::cout << "  " << i << " " << dist << " " << eulvort[i] << std::endl;
         }
       }
@@ -566,8 +571,10 @@ void Hybrid<S,A,I>::step(const double                         _time,
       std::cout << "  vorticity from lagrangian " << std::endl;
       const auto& locs = solvedpts.get_pos();
       for (size_t i=0; i<thisn; ++i) {
-        if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < dumpslopetol && locs[0][i] > 0.0) {
-          const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
+        //if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < dumpslopetol && locs[0][i] > 0.0) {
+        //  const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
+        if (std::abs(locs[0][i]-dumpslope) < dumpslopetol && locs[1][i] < 0.5) {
+          const S dist = locs[1][i];
           std::cout << "  " << i << " " << dist << " " << lagvort[i] << std::endl;
         }
       }
@@ -626,9 +633,11 @@ void Hybrid<S,A,I>::step(const double                         _time,
       std::cout << "    indx  rad   area * gtop * ( eulvort - lagvort ) = circ" << std::endl;
       const auto& locs = solvedpts.get_pos();
       for (size_t i=0; i<thisn; ++i) {
-        if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < 1.e-5 && locs[0][i] > 0.0) {
-          const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
-          std::cout << "    " << i << "  " << dist << " " << area[i] << " * " << gtop[i] << " ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
+        //if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < 1.e-5 && locs[0][i] > 0.0) {
+        //  const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
+        if (std::abs(locs[0][i]-dumpslope) < dumpslopetol && locs[1][i] < 0.5) {
+          const S dist = locs[1][i];
+          std::cout << "    " << i << "  " << locs[0][i] << " " << dist << " " << area[i] << " * " << gtop[i] << " ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
         }
       }
     }
@@ -710,8 +719,10 @@ void Hybrid<S,A,I>::step(const double                         _time,
         std::cout << "    indx  rad   area * gtop * ( eulvort - lagvort ) = circ" << std::endl;
         const auto& locs = solvedpts.get_pos();
         for (size_t i=0; i<thisn; ++i) {
-          if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < dumpslopetol && locs[0][i] > 0.0) {
-            const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
+          //if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < dumpslopetol && locs[0][i] > 0.0) {
+          //  const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
+          if (std::abs(locs[0][i]-dumpslope) < dumpslopetol && locs[1][i] < 0.5) {
+            const S dist = locs[1][i];
             std::cout << "    " << i << "  " << dist << " " << area[i] << " * " << gtop[i] << " * ( " << eulvort[i] << " - " << lagvort[i] << " ) = " << circ[i] << std::endl;
           }
         }
@@ -734,7 +745,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
     //
     // Daeninck calls this "Euler adjustment region"
     // we use a set of weights to adjust the difference
-    if (false) {
+    if (true) {
 
     std::cout << "Inside Hybrid::step updating particle strengths" << std::endl;
 
@@ -764,8 +775,10 @@ void Hybrid<S,A,I>::step(const double                         _time,
       std::cout << "    indx  rad   ptog   neweulvort   lagvort" << std::endl;
       const auto& locs = solvedpts.get_pos();
       for (size_t i=0; i<thisn; ++i) {
-        if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < dumpslopetol && locs[0][i] > 0.0) {
-          const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
+        //if (std::abs(locs[1][i]/locs[0][i]-dumpslope) < dumpslopetol && locs[0][i] > 0.0) {
+        //  const S dist = std::sqrt(locs[0][i]*locs[0][i]+locs[1][i]*locs[1][i]);
+        if (std::abs(locs[0][i]-dumpslope) < dumpslopetol && locs[1][i] < 0.5) {
+          const S dist = locs[1][i];
           std::cout << "    " << i << "  " << dist << "  " << ptog[i] << "  " << eulvort[i] << "  " << lagvort[i] << std::endl;
         }
       }
