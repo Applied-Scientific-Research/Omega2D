@@ -380,8 +380,14 @@ public:
           bool _ext = true,
           float _x = 0.0,
           float _y = 0.0,
+          float _inflow = 1.0,
+          bool _inunif = true,
+          float _tangflow = 0.0,
           std::string _infile = "input.msh")
-    : BoundaryFeature(_bp, _ext, _x, _y)
+    : BoundaryFeature(_bp, _ext, _x, _y),
+      m_inmeanflow(_inflow),
+      m_inisuniform(_inunif),
+      m_tangflow(_tangflow)
     {}
   ~FromMsh() = default;
   FromMsh* copy() const override { return new FromMsh(*this); }
@@ -401,5 +407,8 @@ public:
 
 protected:
   std::string m_infile;
+  float m_inmeanflow;
+  bool m_inisuniform;
+  float m_tangflow;
   std::list<BoundarySegment> m_bsl;
 };

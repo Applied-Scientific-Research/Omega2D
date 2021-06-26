@@ -1771,6 +1771,14 @@ FromMsh::from_json(const nlohmann::json j) {
   m_x = tr[0];
   m_y = tr[1];
 
+  m_inmeanflow = j.value("inletMeanVel", 0.0);
+  m_inisuniform = true;
+  if (j.find("inletProfile") != j.end()) {
+    const std::string ptype = j["inletProfile"];
+    if (ptype == "parabolic") { m_inisuniform = false; }
+  }
+  m_tangflow = j.value("tangentialVel", 0.0);
+
   m_enabled = j.value("enabled",true);
 }
 
@@ -1780,6 +1788,9 @@ FromMsh::to_json() const {
   nlohmann::json mesh = nlohmann::json::object();
   mesh["geometry"] = m_infile;
   mesh["translation"] = {m_x, m_y};
+  mesh["inletMeanVel"] = m_inmeanflow;
+  mesh["inletProfile"] = m_inisuniform ? "uniform" : "parabolic";
+  mesh["tangentialVel"] = m_tangflow;
   mesh["enabled"] = m_enabled;
   return mesh;
 }
@@ -1796,10 +1807,27 @@ bool FromMsh::draw_info_gui(const std::string action) {
   std::vector<std::string> tmp;
 
   float xc[2] = {m_x, m_y};
-  ImGui::InputFloat2("center", xc);
+  ImGui::InputFloat2("Translation", xc);
+  ImGui::SameLine();
+  ShowHelpMarker("Translate the coordinates in the mesh file by this vector.");
+
+  // and the velocities in case "slipwall", "inlet" or "outlet" appear in the mesh file
+  ImGui::SliderFloat("Inlet mean flow", &m_inmeanflow, 0.0f, 5.0f, "%.1f");
+  ImGui::SameLine();
+  ShowHelpMarker("If any surfaces are labeled 'inlet' in mesh file, this is their mean flow rate.");
+
+  int prof = m_inisuniform ? 0 : 1;
+  ImGui::Text("Inlet has "); ImGui::SameLine();
+  ImGui::RadioButton("uniform or ", &prof, 0); ImGui::SameLine();
+  ImGui::RadioButton("parabolic profile", &prof, 1);
+  m_inisuniform = (prof == 0);
+
+  ImGui::SliderFloat("Slip wall speed", &m_tangflow, -2.0f, 2.0f, "%.1f");
+  ImGui::SameLine();
+  ShowHelpMarker("If any surfaces are labeled 'slipwall' in mesh file, use this speed.");
 
   if (!finish) {
-    const std::string fileIO_text = "Load " + infile;
+    const std::string fileIO_text = "Load mesh file";
     if (fileIOWindow(try_it, infile, tmp,  fileIO_text.c_str(), {"*.msh", "*.*"}, true, ImVec2(200+26*fontSize,300))) {
       finish = true;
     }
