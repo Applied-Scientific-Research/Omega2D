@@ -150,7 +150,7 @@ public:
         std::fill(ps[1]->begin(), ps[1]->end(), 0.0);
       }
 
-    } else if (this->E == reactive) {
+    } else if (this->E == reactive or this->E == hybrid) {
       // value is a boundary condition
       // bc[0] is the tangential BC, typically 0.0
       Vector<S> new_bc(nsurfs);
@@ -173,12 +173,14 @@ public:
         std::fill(bc[1]->begin(), bc[1]->end(), 0.0);
       }
 
-      // make space for the unknown sheet strengths
+      // make space for the unknown sheet strengths (only if reactive)
+      if (this->E == reactive) {
       for (size_t d=0; d<2; ++d) {
         if (ps[d]) {
           ps[d]->resize(nsurfs);
           std::fill(ps[d]->begin(), ps[d]->end(), 0.0);
         }
+      }
       }
 
     } else if (this->E == inert) {
@@ -241,8 +243,8 @@ public:
   Vector<S>&                            get_src_str()       { return *ps[1]; }
 
   // and (reactive only) boundary conditions
-  const Vector<S>&                     get_tang_bcs() const { return *bc[0]; }
-  const Vector<S>&                     get_norm_bcs() const { return *bc[1]; }
+  const Vector<S>&                     get_tang_bcs() const { return (bc[0] ? *bc[0] : Vector<S>(0)); }
+  const Vector<S>&                     get_norm_bcs() const { return (bc[1] ? *bc[1] : Vector<S>(0)); }
 
   // find out the next row index in the BEM after this collection
   void set_first_row(const Int _i) { istart = _i; }
