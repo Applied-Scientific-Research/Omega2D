@@ -163,8 +163,9 @@ void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
                         (int32_t)openidx.size(), openidx.data());
     }
 
-    // if present, sent inlet and outlet elements
+    // if present, send inlet and outlet elements
     if (coll.have_inlet() and coll.have_outlet()) {
+
       // make temporary vectors to convert data types
       std::vector<double> innorm_as_dble = coll.get_inlet_vel();
       std::vector<uint32_t> inletidxu = coll.get_inlet_idx();
@@ -173,14 +174,24 @@ void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
       std::vector<double> outnorm_as_dble = coll.get_outlet_vel();
       std::vector<uint32_t> outletidxu = coll.get_outlet_idx();
       std::vector<int32_t> outletidx(outletidxu.begin(), outletidxu.end());
+
 #ifdef HOFORTRAN
-      //assert(false && "HO-Fortran does not support inlets/outlets");
+      assert(false && "HO-Fortran does not support inlets/outlets");
 #elif HOCXX
-      //solver.load_inout_arrays_d((int32_t)innorm_as_dble.size(), innorm_as_dble.data(),
-      //                           (int32_t)inletidx.size(), inletidx.data(),
-      //                           (int32_t)outletidx.size(), outletidx.data());
+      solver.load_inout_arrays_d((int32_t)innorm_as_dble.size(), innorm_as_dble.data(),
+                                 (int32_t)inletidx.size(), inletidx.data(),
+                                 (int32_t)outnorm_as_dble.size(), outnorm_as_dble.data(),
+                                 (int32_t)outletidx.size(), outletidx.data());
 #endif
     }
+
+    // tell HO solver to process all geometry
+#ifdef HOFORTRAN
+    // already done
+#elif HOCXX
+    solver.process_mesh_input();
+#endif
+
 
     // ask HO solver for the open BC solution nodes, and the full internal solution nodes
     {
