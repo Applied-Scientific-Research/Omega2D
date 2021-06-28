@@ -51,7 +51,6 @@ std::vector<S> vels_to_rhs_panels (Surfaces<S> const& targ) {
 
   assert(tu[0].size() == tt[0].size() && "Input array sizes do not match");
   assert(tu[0].size() == tn[0].size() && "Input array sizes do not match");
-  //assert(tx[0].size() == tb.size() && "Input array sizes do not match");
 
   // find array sizes
   const size_t ntarg = targ.get_npanels();
@@ -79,6 +78,8 @@ std::vector<S> vels_to_rhs_panels (Surfaces<S> const& targ) {
 
   } else {
     // we have unknown vortex and source strengths - use tangential and normal boundary conditions
+    assert(tu[0].size() == tnbc.size() && "Input array sizes do not match");
+
     for (size_t i=0; i<ntarg; i++) {
       // dot product of normalized tangent with local velocity
       rhs[2*i]   = -(tu[0][i]*tt[0][i] + tu[1][i]*tt[1][i]);

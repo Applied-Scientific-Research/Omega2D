@@ -243,8 +243,8 @@ public:
   Vector<S>&                            get_src_str()       { return *ps[1]; }
 
   // and (reactive only) boundary conditions
-  const Vector<S>&                     get_tang_bcs() const { return (bc[0] ? *bc[0] : Vector<S>(0)); }
-  const Vector<S>&                     get_norm_bcs() const { return (bc[1] ? *bc[1] : Vector<S>(0)); }
+  const Vector<S>&                     get_tang_bcs() const { return *bc[0]; }
+  const Vector<S>&                     get_norm_bcs() const { return *bc[1]; }
 
   // find out the next row index in the BEM after this collection
   void set_first_row(const Int _i) { istart = _i; }
