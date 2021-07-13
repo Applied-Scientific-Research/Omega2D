@@ -706,7 +706,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
     //
     // Daeninck calls this "Euler adjustment region"
     // we use a set of weights to adjust the difference
-    if (false) {
+    if (true) {
 
     std::cout << "Inside Hybrid::step updating particle strengths" << std::endl;
 
