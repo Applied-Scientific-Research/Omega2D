@@ -1693,23 +1693,32 @@ FromMsh::to_json() const {
 bool FromMsh::draw_info_gui(const std::string action) {
   bool add = false;
   bool try_it = false;
-  static bool finish = false;
-  //static bool selectFile = false;
-  static std::string infile = "input.msh";
-  const std::string buttonText = action+" object";
+  static bool show_msh_input_window = false;
+  static std::string infile = "input.msh";	// full path
+  static std::string infileshort = infile;	// just file name
+  const std::string buttonText = action+" mesh";
   const float fontSize = 20;
   std::vector<std::string> tmp;
+
+  if (ImGui::Button(infileshort.c_str())) show_msh_input_window = true;
+  ImGui::SameLine();
+  ImGui::Text("Gmsh file name");
 
   float xc[2] = {m_x, m_y};
   ImGui::InputFloat2("center", xc);
 
-  if (!finish) {
-    const std::string fileIO_text = "Load " + infile;
+  if (show_msh_input_window) {
+    const std::string fileIO_text = "Load selected file";
     if (fileIOWindow(try_it, infile, tmp,  fileIO_text.c_str(), {"*.msh", "*.*"}, true, ImVec2(200+26*fontSize,300))) {
-      finish = true;
+      show_msh_input_window = false;
+      // convert full path name to just file name
+      const MiniPath fullpath(infile);
+      infileshort = fullpath.getName();
     }
   }
-  
+
+  ImGui::TextWrapped("This feature will read a GMSH-generated msh file and place it at the given coordinates");
+
   if (ImGui::Button(buttonText.c_str())) {
     if (try_it and !infile.empty()) {
       std::cout << infile << std::endl;
