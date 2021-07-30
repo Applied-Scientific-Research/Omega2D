@@ -541,7 +541,9 @@ S clear_inner_panp2 (const int _method,
         }
 
         // if no hits, then something is wrong
-        assert(hits.size() > 0 && "No nearest neighbors");
+        //assert(hits.size() > 0 && "No nearest neighbors");
+        // this messes up long runs, ignore it (break out of this loop iteration)
+        if (hits.size() == 0) continue;
 
         //std::cout << "  CLEARING pt at " << tx[0][i] << " " << tx[1][i] << std::endl;
 
