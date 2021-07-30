@@ -449,7 +449,7 @@ bool fileIOWindow(
     if( current_folder == "x" )
         current_folder = MiniPath::getCurrentDir();
 
-    static char current_file[ 256 ] = "select_a_file.json";
+    static char current_file[ 256 ] = "none selected";
     static int  file_type_selected = 0;
     static int  file_selected = 0;
     static int  directory_selected = 0;
