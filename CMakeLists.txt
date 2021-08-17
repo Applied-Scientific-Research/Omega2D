@@ -1,6 +1,6 @@
 #
 # Omega2D
-# (c)2017-2020 Applied Scientific Research, Inc.
+# (c)2017-2021 Applied Scientific Research, Inc.
 #
 CMAKE_MINIMUM_REQUIRED( VERSION 2.8 )
 PROJECT( Omega2D )
@@ -18,7 +18,8 @@ SET (USE_OMP FALSE CACHE BOOL "Use OpenMP multithreading")
 SET (USE_VC FALSE CACHE BOOL "Use Vc for vector arithmetic")
 SET (USE_PLUGIN_AVRM FALSE CACHE BOOL "Enable adaptive VRM plugin")
 SET (USE_PLUGIN_SIMPLEX FALSE CACHE BOOL "Enable simplex solver plugin")
-SET (USE_EXTERNAL_SUM FALSE CACHE BOOL "Enable external velocity solver")
+SET (USE_EXTERNAL_SUM "None" CACHE STRING "Enable external velocity solver, if any")
+SET_PROPERTY(CACHE USE_EXTERNAL_SUM PROPERTY STRINGS "None" "onbody" "fmm2d")
 SET (USE_HO_FORTRAN FALSE CACHE BOOL "Enable HO-Fortran external hybrid solver")
 SET (CMAKE_VERBOSE_MAKEFILE on)
 SET (CMAKE_EXPORT_COMPILE_COMMANDS on)
@@ -229,17 +230,18 @@ IF( USE_PLUGIN_SIMPLEX )
 ENDIF()
 
 # external fast summation routine
-IF( USE_EXTERNAL_SUM )
+IF (${USE_EXTERNAL_SUM} STREQUAL "onbody")
   SET (CPREPROCDEFS ${CPREPROCDEFS} -DEXTERNAL_VEL_SOLVE)
   SET (FASTSUM_LIBS "libfastsumm.a" CACHE STRING "Static library exposing velocity summation function call" )
   #FIND_LIBRARY( FASTSUM_LIBS NAMES Vc PATHS "${VC_ROOT}/lib" )
+  SET( EXTERNAL_LIBS ${FASTSUM_LIBS} )
+ELSEIF( ${USE_EXTERNAL_SUM} STREQUAL "fmm2d" )
+  SET (CPREPROCDEFS ${CPREPROCDEFS} -DEXTERNAL_VEL_SOLVE)
+  SET (FASTSUM_LIBS "libfastsumm.a" CACHE STRING "Static library exposing velocity summation function call" )
+  SET( EXTERNAL_LIBS ${FASTSUM_LIBS} gfortran )
 ELSE()
   SET (FASTSUM_LIBS "")
 ENDIF()
-# fmm2d needs this
-#SET( EXTERNAL_LIBS ${FASTSUM_LIBS} gfortran )
-# but onbody needs this
-SET( EXTERNAL_LIBS ${FASTSUM_LIBS} )
 
 # Enable submodules
 ADD_SUBDIRECTORY( extern/gmsh-reader )
