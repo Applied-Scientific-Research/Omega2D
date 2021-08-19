@@ -25,7 +25,6 @@
 #include <vector>
 #include <array>
 #include <memory>
-#include <optional>
 #include <iomanip> // for setfill
 #include <random>
 #include <cassert>

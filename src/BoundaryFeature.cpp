@@ -1495,6 +1495,8 @@ FromMsh::init_elements(const float _ips) const {
   for (uint32_t thisedge : inlet.edges) {
     const size_t nn = edges[thisedge].N_nodes;
     assert(nn > 1 && "Edge does not have enough nodes!");
+    //std::cout << "    edge has " << nn << " nodes: " << edges[thisedge].nodes[0] << " " << edges[thisedge].nodes[1] << std::endl;
+    //std::cout << "      start " << x[2*edges[thisedge].nodes[0]] << "," << x[2*edges[thisedge].nodes[0]+1] << " to " << x[2*edges[thisedge].nodes[1]] << "," << x[2*edges[thisedge].nodes[1]+1] << std::endl;
     idx.push_back(edges[thisedge].nodes[0]);
     idx.push_back(edges[thisedge].nodes[1]);
     // boundary conditions are even more complicated (assume uniform for now)
