@@ -216,6 +216,39 @@ public:
     outlet_s = Surfaces<S>(_in, this->E, this->M, this->B);
   }
 
+  // need to ensure that inlet flows equal outlet flows, I believe?
+  void conserve_iolet_volume() {
+    std::cout << "  in conserve_iolet_volume with " << inlet_s.get_npanels() << " and " << outlet_s.get_npanels() << " panels" << std::endl;
+
+    // only do this if there are inlet AND outlet surfaces
+    if (inlet_s.get_npanels() == 0 or outlet_s.get_npanels() == 0) return;
+
+    const float inrate = inlet_s.get_total_inflow();
+    const float outrate = outlet_s.get_total_outflow();
+
+    std::cout << "  total HOVolume inflow, outflow " << inrate << " " << outrate << std::endl;
+
+    if (inrate > std::numeric_limits<float>::epsilon()) {
+      if (outrate > std::numeric_limits<float>::epsilon()) {
+        // there is finite inflow and outflow, ensure their magnitudes are matched
+
+        std::cout << "    scaling outflows by " << inrate/outrate << std::endl;
+
+        // correct the outflow to match
+        outlet_s.scale_outflow(inrate/outrate);
+
+      } else {
+        // there is inflow, but zero outflow - set outflow to accept all inflow
+        // note: this is different than what we do in Simulation::conserve_iolet_volume() !
+
+        std::cout << "    outflow was 0 - setting to match inflows" << std::endl;
+
+        const float outarea = outlet_s.get_total_arclength();
+        outlet_s.set_outflow(inrate/outarea);
+      }
+    }
+  }
+
   // set vorticity at solution points, to use for reprojecting to particles
   void set_soln_vort(std::vector<double> _in) {
     assert(_in.size() > 0 && "ERROR (set_soln_vort): received zero solution points from solver");

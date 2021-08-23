@@ -544,7 +544,8 @@ bool Simulation::any_nonzero_bcs() {
 //
 void Simulation::conserve_iolet_volume() {
 
-  // current inlet and outlet volume flow rates (global summation!)
+  // current inlet and outlet volume flow rates (global summation, includes the Surfaces
+  //   from HOVolumes loaded in via meshes but used on the Lagrangian side)
   float inrate = 0.0;
   float outrate = 0.0;
   int num_tested = 0;
@@ -562,13 +563,13 @@ void Simulation::conserve_iolet_volume() {
   }
   if (num_tested == 0) return;
 
-  std::cout << "  total inflow, outflow " << inrate << " " << outrate << std::endl;
+  std::cout << "  total lagrangian sim inflow, outflow " << inrate << " " << outrate << std::endl;
 
   if (inrate > std::numeric_limits<float>::epsilon()) {
     if (outrate > std::numeric_limits<float>::epsilon()) {
       // there is finite inflow and outflow, ensure their magnitudes are matched
 
-      std::cout << "  scaling outflows by " << inrate/outrate << std::endl;
+      std::cout << "    scaling outflows by " << inrate/outrate << std::endl;
 
       // correct the outflow to match
       for (auto &src : bdry) {
@@ -583,7 +584,7 @@ void Simulation::conserve_iolet_volume() {
     } else {
       // there is inflow, but zero outflow - just zero the inflow and continue
 
-      std::cout << "  no outflows defined - zeroing all inflows" << std::endl;
+      std::cout << "    no outflows defined - zeroing all inflows" << std::endl;
 
       for (auto &src : bdry) {
         if (std::holds_alternative<Surfaces<STORE>>(src)) {
@@ -898,7 +899,7 @@ void Simulation::file_elements(std::vector<Collection>& _collvec,
 }
 
 // Add elements - cells for hybrid calculation
-void Simulation::add_hybrid(const std::vector<ElementPacket<float>>  _elems,
+void Simulation::add_hybrid(const std::vector<ElementPacket<float>> _elems,
                             std::shared_ptr<Body> _bptr) {
 
   // skip out early if nothing's here
@@ -929,6 +930,9 @@ void Simulation::add_hybrid(const std::vector<ElementPacket<float>>  _elems,
     euler.back().add_inlet(_elems[3]);
     euler.back().add_outlet(_elems[4]);
   }
+
+  // tell the HOVolume to run its own conserve_iolet_volume routine to set/scale outlet rates
+  euler.back().conserve_iolet_volume();
 #endif
 }
 

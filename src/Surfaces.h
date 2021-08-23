@@ -961,9 +961,18 @@ public:
     return imp;
   }
 
+  // total the arc length for this collection
+  S get_total_arclength() {
+    S outsum = S(0.0);
+    for (size_t i=0; i<get_npanels(); ++i) {
+      outsum += area[i];
+    }
+    return outsum;
+  }
+
   // total the inlet volume flow rate for this collection
   S get_total_inflow() {
-    if (this->E != reactive) return S(0.0);
+    if (this->E != reactive and this->E != hybrid) return S(0.0);
 
     S insum = S(0.0);
     for (size_t i=0; i<get_npanels(); ++i) {
@@ -978,7 +987,7 @@ public:
 
   // if no outlets were defined, must zero the inflow to allow sim to proceed
   void zero_inflow() {
-    if (this->E != reactive) return;
+    if (this->E != reactive and this->E != hybrid) return;
     for (size_t i=0; i<get_npanels(); ++i) {
       (*bc[1])[i] = 0.0;
     }
@@ -986,7 +995,7 @@ public:
 
   // total the inlet volume flow rate for this collection
   S get_total_outflow() {
-    if (this->E != reactive) return S(0.0);
+    if (this->E != reactive and this->E != hybrid) return S(0.0);
 
     S outsum = S(0.0);
     for (size_t i=0; i<get_npanels(); ++i) {
@@ -1001,11 +1010,19 @@ public:
 
   // linearly scale the outflow (normal BC vels) to enforce continuity
   void scale_outflow(const S factor) {
-    if (this->E != reactive) return;
+    if (this->E != reactive and this->E != hybrid) return;
     for (size_t i=0; i<get_npanels(); ++i) {
       if ((*bc[1])[i] < S(0.0)) {
         (*bc[1])[i] *= factor;
       }
+    }
+  }
+
+  // outright set the outflow (normal BC vels) (ideally to enforce continuity)
+  void set_outflow(const S factor) {
+    if (this->E != reactive and this->E != hybrid) return;
+    for (size_t i=0; i<get_npanels(); ++i) {
+      (*bc[1])[i] = -factor;
     }
   }
 
