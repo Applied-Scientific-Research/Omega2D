@@ -1403,7 +1403,7 @@ FromMsh::init_elements(const float _ips) const {
 
   // read gmsh file
   ReadMsh::Mesh mesh;
-  std::cout << "Reading gmsh mesh file (" << m_infile << ")" << std::endl;
+  std::cout << "Reading gmsh mesh file (" << m_infile << ") for the LAGRANGIAN simulation" << std::endl;
   int32_t retval = mesh.read_msh_file(m_infile.c_str());
   if (retval == 1) {
     std::cout << "  contains " << mesh.get_nnodes() << " nodes";
@@ -1571,7 +1571,7 @@ FromMsh::init_hybrid(const float _ips) const {
 
   // read gmsh file
   ReadMsh::Mesh mesh;
-  std::cout << "Reading gmsh mesh file (" << m_infile << ")" << std::endl;
+  std::cout << "Reading gmsh mesh file (" << m_infile << ") for the EULERIAN simulation" << std::endl;
   int32_t retval = mesh.read_msh_file(m_infile.c_str());
   if (retval == 1) {
     std::cout << "  contains " << mesh.get_nnodes() << " nodes";
