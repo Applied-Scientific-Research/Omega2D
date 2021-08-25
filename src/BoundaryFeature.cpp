@@ -13,6 +13,7 @@
 #include "Simulation.h"
 #include "Distribution.h"
 #include "read_MSH_Mesh.h"
+#include "SegmentHelper.h"
 
 #define __STDCPP_WANT_MATH_SPEC_FUNCS__ 1
 #include <cassert>
@@ -434,8 +435,8 @@ bool BoundarySegment::draw_info_gui(const std::string action) {
     } break;
     case 3: {
       ImGui::SliderFloat("relative outflow speed", &outspeed, 0.0f, 5.0f, "%.1f");
-      ImGui::RadioButton("uniform", &prof, 0); ImGui::SameLine();
-      ImGui::RadioButton("parabolic", &prof, 1);
+      //ImGui::RadioButton("uniform", &prof, 0); ImGui::SameLine();
+      //ImGui::RadioButton("parabolic", &prof, 1);
     } break;
   }
 
@@ -1492,17 +1493,34 @@ FromMsh::init_elements(const float _ips) const {
   {
   npanels += inlet.N_edges;
   std::cout << "  inlet has " << inlet.N_edges << " edges" << std::endl;
+
+  // local idx and vals to assist in post-processing
+  std::vector<Int> myidx;
+  std::vector<float> myvals;
+
   for (uint32_t thisedge : inlet.edges) {
     const size_t nn = edges[thisedge].N_nodes;
     assert(nn > 1 && "Edge does not have enough nodes!");
     //std::cout << "    edge has " << nn << " nodes: " << edges[thisedge].nodes[0] << " " << edges[thisedge].nodes[1] << std::endl;
     //std::cout << "      start " << x[2*edges[thisedge].nodes[0]] << "," << x[2*edges[thisedge].nodes[0]+1] << " to " << x[2*edges[thisedge].nodes[1]] << "," << x[2*edges[thisedge].nodes[1]+1] << std::endl;
-    idx.push_back(edges[thisedge].nodes[0]);
-    idx.push_back(edges[thisedge].nodes[1]);
-    // boundary conditions are even more complicated (assume uniform for now)
-    vals.push_back(0.0);
-    vals.push_back(m_inmeanflow);
+    myidx.push_back(edges[thisedge].nodes[0]);
+    myidx.push_back(edges[thisedge].nodes[1]);
+    // assume uniform inlet boundary condition for now
+    myvals.push_back(0.0);
+    myvals.push_back(m_inmeanflow);
   }
+
+    // now that we know each inlet edge, determine flow rate through each edge when inletProfile is parabolic
+    if (not m_inisuniform) {
+      std::vector<float> newvels = find_parabolic_vels(x, myidx, inlet.N_edges);
+      for (size_t ie=0; ie<inlet.N_edges; ++ie) {
+        myvals[2*ie+1] = m_inmeanflow * newvels[ie];
+      }
+    }
+
+    // append vectors
+    idx.insert(idx.end(), myidx.begin(), myidx.end());
+    vals.insert(vals.end(), myvals.begin(), myvals.end());
   }
 
   // outlets
@@ -1764,6 +1782,14 @@ FromMsh::init_hybrid(const float _ips) const {
       // set boundary condition values (tangential then normal)
       vals.push_back(0.0);
       vals.push_back(m_inmeanflow);
+    }
+
+    // now that we know each inlet edge, determine flow rate through each edge when inletProfile is parabolic
+    if (not m_inisuniform) {
+      std::vector<float> newvels = find_parabolic_vels(x, idx, inlet.N_edges);
+      for (size_t ie=0; ie<inlet.N_edges; ++ie) {
+        vals[2*ie+1] = m_inmeanflow * newvels[ie];
+      }
     }
 
     // return the element packet (will have many unused nodes - that's OK)
