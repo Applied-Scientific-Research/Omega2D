@@ -40,6 +40,7 @@ public:
   // must specifically destroy buffers
   ~GlState() {
     //std::cout << "In ~GlState glIsVertexArray(vao) == " << (glIsVertexArray(vao)==GL_TRUE) << std::endl;
+    // closing out of the program dies here, but we put GlState in a unique_ptr, so wtf?
     if (glIsVertexArray(vao) == GL_FALSE) return;
     //std::cout << " finishing ~GlState" << std::endl;
 
