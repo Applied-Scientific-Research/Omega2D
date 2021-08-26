@@ -109,6 +109,7 @@ Generate an X.264-encoded video from a series of png images with the following c
 ## To do
 Tasks to consider or implement:
 
+* Move boundary conditions to their own class, with normal and tangential vels, inlets/outlets, constant/formula, etc.
 * Add support for NACA wings to be created by reading geometry files in standard formats - this might mean enabling Kutta points (reactive Points)
 * Add an openmp setting to the CPU execution environment, to show the effects of multithreading
 * Bug: static field points should not be pushed out of bodies
@@ -118,21 +119,18 @@ Tasks to consider or implement:
 * Would be nice to have an option to have solid bodies randomly shed tracers (small chance per step per panel)
 * Consider a zlib implementation for both vtu and png files: [zstr](https://github.com/mateidavid/zstr), [miniz](https://github.com/richgel999/miniz), or [gzip-hpp](https://github.com/mapbox/gzip-hpp)
 * How awesome would it be to show the flow as a time-consistent LIC image? See UFLIC (Shen & Kao, IEEE ToVaCG 1999)
-* Add inlet and outlet surfaces to push flow around - the BC is that normal flow must equal some number
 * When background is white, nothing else shows up! Check blending mode. Need this to change so that we can make more attractive visuals. Like, presets for "technical (red/blue), b/w (white/grey), vibrant (??)
 * If I add a measurement structure in the middle of a simulation, it doesn't init - should it?
 * Move some initialization back into ElementBase - like positions and such, keep radius in Points, then ElementBase can draw points?
 * Add a "ms/frame" and "FPS" for the simulation component also
 * Add "got it" button to first section (the welcome section) to make it go away (forever?)
 * Ideal initial interface: lots of stuff hidden, just a graphical menu with circles, squares, vortex patches, etc. Each has handles that you can drag to resize and reposition the element; all sizes/locations quantized to 0.1 or 0.05. "Expert" box lets you change Re, dt, etc.
-* Have "status" line indicate when we're waiting for a step to finish after we've hit pause
 * Instead of manipulating the projection matrix, have the mouse change the view matrix (assume model matrix is unity), see [here](https://solarianprogrammer.com/2013/05/22/opengl-101-matrices-projection-view-model/) for a nice write-up on the three OpenGL matrices
 * Support 2nd order time accuracy in VRM by caching values from first half to use in second half
 * Make more of the sliders dynamic (like dt ~~and color~~) - be able to add new particles while a sim is running
 * Right-click on the draw screen to add features - hard? can imgui handle it?
-* Create an OpenGL compute shader routine for the particle-particle influence
+* Create an OpenGL compute shader routine for the particle-particle influence, like in Omega3D
 * Add option to draw particles as thin white dots/lines "Draw elements"
-* Re-orient the VRM insertion points to align to the nearest boundary - should smooth out the shedding
 * Draw a freestream arrow in the LR corner
 * Let the user grab the fs arrow to dynamically change the freestream
 * Allow a formula for the freestream instead of it being constant

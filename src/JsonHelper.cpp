@@ -1,8 +1,8 @@
 /*
  * JsonHelper.cpp - Methods to help with reading and writing JSON files
  *
- * (c)2019 Applied Scientific Research, Inc.
- *         Mark J Stock <markjstock@gmail.com>
+ * (c)2019-21 Applied Scientific Research, Inc.
+ *            Mark J Stock <markjstock@gmail.com>
  */
 
 #include "JsonHelper.h"
@@ -31,7 +31,11 @@ json read_json (const std::string filename) {
   std::ifstream json_in(filename);
   json j;
   // TODO: this next line is where we crash if the file is not present!
-  json_in >> j;
+  try {
+    json_in >> j;
+  } catch (...) {
+    std::cout << "The json file " << filename << " does not exist." << std::endl;
+  }
   return j;
 }
 

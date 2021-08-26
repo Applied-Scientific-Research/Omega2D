@@ -13,6 +13,7 @@
 #include "Simulation.h"
 #include "Distribution.h"
 #include "read_MSH_Mesh.h"
+#include "SegmentHelper.h"
 
 #define __STDCPP_WANT_MATH_SPEC_FUNCS__ 1
 #include <cassert>
@@ -434,8 +435,8 @@ bool BoundarySegment::draw_info_gui(const std::string action) {
     } break;
     case 3: {
       ImGui::SliderFloat("relative outflow speed", &outspeed, 0.0f, 5.0f, "%.1f");
-      ImGui::RadioButton("uniform", &prof, 0); ImGui::SameLine();
-      ImGui::RadioButton("parabolic", &prof, 1);
+      //ImGui::RadioButton("uniform", &prof, 0); ImGui::SameLine();
+      //ImGui::RadioButton("parabolic", &prof, 1);
     } break;
   }
 
@@ -1397,19 +1398,19 @@ void SolidAirfoil::generate_draw_geom() {
   m_draw = init_elements(m_chordLength/20.0);
 }
 
-// Initialize elements
+// Initialize elements **for the Lagrangian simulation** or for drawing
 ElementPacket<float>
 FromMsh::init_elements(const float _ips) const {
 
   // read gmsh file
   ReadMsh::Mesh mesh;
-  std::cout << "Reading gmsh mesh file (" << m_infile << ")";
+  std::cout << "Reading gmsh mesh file (" << m_infile << ") for the LAGRANGIAN simulation" << std::endl;
   int32_t retval = mesh.read_msh_file(m_infile.c_str());
   if (retval == 1) {
-    std::cout << " contains " << mesh.get_nnodes() << " nodes";
+    std::cout << "  contains " << mesh.get_nnodes() << " nodes";
     std::cout << " and " << mesh.get_nelems() << " elems" << std::endl;
   } else {
-    std::cout << " does not exist or did not read properly (code=";
+    std::cout << "  does not exist or did not read properly (code=";
     std::cout << retval << "), skipping." << std::endl;
     return ElementPacket<float>();
   }
@@ -1419,10 +1420,16 @@ FromMsh::init_elements(const float _ips) const {
   std::vector<Int> idx;
   std::vector<float> vals;
 
-  // get the boundary corresponding to the wall
+  // get each boundary type
   const ReadMsh::boundary wall = mesh.get_bdry("wall");
-  if (wall.N_edges == 0) {
-    std::cout << "  no boundary called 'wall' in this msh file, skipping." << std::endl;
+  const ReadMsh::boundary slipwall = mesh.get_bdry("slipwall");
+  const ReadMsh::boundary inlet = mesh.get_bdry("inlet");
+  const ReadMsh::boundary outlet = mesh.get_bdry("outlet");
+  // we don't care about "open" boundaries
+
+  if ((wall.N_edges + slipwall.N_edges + inlet.N_edges + outlet.N_edges) == 0) {
+    std::cout << "  no usable boundaries in this msh file, skipping." << std::endl;
+    std::cout << "  (accepted boundary names: wall, slipwall, inlet, outlet)" << std::endl;
     return ElementPacket<float>();
   }
 
@@ -1437,17 +1444,98 @@ FromMsh::init_elements(const float _ips) const {
   // get a reference to the complete edge list
   const std::vector<ReadMsh::edge>& edges = mesh.get_edges();
 
-  // find out how large each array will be
-  const size_t np = wall.N_edges;
-  std::cout << "  wall has " << np << " edges" << std::endl;
+  // break out by boundary type
+  size_t npanels = 0;
+
+  // first do non-slip walls
+  {
+  npanels += wall.N_edges;
+  std::cout << "  wall has " << wall.N_edges << " edges" << std::endl;
   for (uint32_t thisedge : wall.edges) {
-    //std::cout << "  edge " << thisedge << " has " << edges[thisedge].N_nodes << " nodes" << std::endl;
+    const size_t nn = edges[thisedge].N_nodes;
+    //std::cout << "  edge " << thisedge << " has " << nn << " nodes" << std::endl;
+
     // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
-    assert(edges[thisedge].N_nodes > 1 && "Edge does not have enough nodes!");
-    // HACK - annular gmsh meshes have wall defined CCW (right wall is to fluid), not CW (left wall is)
-    idx.push_back(edges[thisedge].nodes[1]);
+    assert(nn > 1 && "Edge does not have enough nodes!");
+
+    //
+    // If edges in gmsh are defined with fluid on the left as you walk along the edge,
+    //   then the node numbering here should be correct !!!
+    //
+    // only load in start and end nodes, as that's all we need for the particle solver BEM
+    //for (size_t i=0; i<nn; ++i) idx.push_back(edges[thisedge].nodes[i]);
     idx.push_back(edges[thisedge].nodes[0]);
+    idx.push_back(edges[thisedge].nodes[1]);
+
     // TODO: check edge element length vs. _ips and subsample if necessary
+  }
+  // set boundary condition values (normal and tangential) to 0.0
+  vals.resize(2*wall.N_edges);
+  std::fill(vals.begin(), vals.end(), 0.0);
+  }
+
+  // then slip walls
+  {
+  npanels += slipwall.N_edges;
+  std::cout << "  slipwall has " << slipwall.N_edges << " edges" << std::endl;
+  for (uint32_t thisedge : slipwall.edges) {
+    const size_t nn = edges[thisedge].N_nodes;
+    assert(nn > 1 && "Edge does not have enough nodes!");
+    idx.push_back(edges[thisedge].nodes[0]);
+    idx.push_back(edges[thisedge].nodes[1]);
+    // here's the difference: set boundary condition values (normal is 0, tangential is as given)
+    vals.push_back(m_tangflow);
+    vals.push_back(0.0);
+  }
+  }
+
+  // inlets
+  {
+  npanels += inlet.N_edges;
+  std::cout << "  inlet has " << inlet.N_edges << " edges" << std::endl;
+
+  // local idx and vals to assist in post-processing
+  std::vector<Int> myidx;
+  std::vector<float> myvals;
+
+  for (uint32_t thisedge : inlet.edges) {
+    const size_t nn = edges[thisedge].N_nodes;
+    assert(nn > 1 && "Edge does not have enough nodes!");
+    //std::cout << "    edge has " << nn << " nodes: " << edges[thisedge].nodes[0] << " " << edges[thisedge].nodes[1] << std::endl;
+    //std::cout << "      start " << x[2*edges[thisedge].nodes[0]] << "," << x[2*edges[thisedge].nodes[0]+1] << " to " << x[2*edges[thisedge].nodes[1]] << "," << x[2*edges[thisedge].nodes[1]+1] << std::endl;
+    myidx.push_back(edges[thisedge].nodes[0]);
+    myidx.push_back(edges[thisedge].nodes[1]);
+    // assume uniform inlet boundary condition for now
+    myvals.push_back(0.0);
+    myvals.push_back(m_inmeanflow);
+  }
+
+    // now that we know each inlet edge, determine flow rate through each edge when inletProfile is parabolic
+    if (not m_inisuniform) {
+      std::vector<float> newvels = find_parabolic_vels(x, myidx, inlet.N_edges);
+      for (size_t ie=0; ie<inlet.N_edges; ++ie) {
+        myvals[2*ie+1] = m_inmeanflow * newvels[ie];
+      }
+    }
+
+    // append vectors
+    idx.insert(idx.end(), myidx.begin(), myidx.end());
+    vals.insert(vals.end(), myvals.begin(), myvals.end());
+  }
+
+  // outlets
+  {
+  npanels += outlet.N_edges;
+  std::cout << "  outlet has " << outlet.N_edges << " edges" << std::endl;
+  for (uint32_t thisedge : outlet.edges) {
+    const size_t nn = edges[thisedge].N_nodes;
+    assert(nn > 1 && "Edge does not have enough nodes!");
+    idx.push_back(edges[thisedge].nodes[0]);
+    idx.push_back(edges[thisedge].nodes[1]);
+    // just set normal flow to -1.0, Simulation::conserve_iolet_volume will set it
+    vals.push_back(0.0);
+    vals.push_back(-1.0);
+  }
   }
 
   // compress the nodes vector to remove unused, adjust idx pointers
@@ -1461,7 +1549,7 @@ FromMsh::init_elements(const float _ips) const {
   size_t nnodesused = 0;
   for (size_t i=0; i<newidx.size(); ++i) {
     if (newidx[i] == -1) {
-      // this node is not used in the wall boundary
+      // this node is not used in any (non-open) boundary
     } else {
       // this node *is* used
       // move it backwards AND translate it
@@ -1477,12 +1565,8 @@ FromMsh::init_elements(const float _ips) const {
   // reset indices to indicate their new position in the compressed array
   for (auto& thisidx : idx) thisidx = newidx[thisidx];
 
-  // set boundary condition value to 0.0 (velocity BC)
-  vals.resize(np);
-  std::fill(vals.begin(), vals.end(), 0.0);
-
   // return the element packet
-  ElementPacket<float> packet({x, idx, vals, (size_t)(np), (uint8_t)1});
+  ElementPacket<float> packet({x, idx, vals, (size_t)(npanels), (uint8_t)1});
   if (packet.verify(packet.x.size(), Dimensions)) {
     return packet;
   } else {
@@ -1491,26 +1575,27 @@ FromMsh::init_elements(const float _ips) const {
 }
 
 //
-// Create the volume and boundary grids for this feature
+// Create the volume and boundary grids **for the Eulerian side**
 //
 std::vector<ElementPacket<float>>
 FromMsh::init_hybrid(const float _ips) const {
 
-  // we need to have three ElementPacket objects in this vector:
+  // we need to have 3 or 5 ElementPacket objects in this vector:
   //   first one is the Volumes (2D) elements
   //   second is the wall Surfaces (1D) elements
-  //   last is the open Surfaces (1D) elements
+  //   third is the open Surfaces (1D) elements
+  //   4th and 5th are optional inlet and outlet Surfaces (1D) elements
   std::vector<ElementPacket<float>> pack;
 
   // read gmsh file
   ReadMsh::Mesh mesh;
-  std::cout << "Reading gmsh mesh file (" << m_infile << ")";
+  std::cout << "Reading gmsh mesh file (" << m_infile << ") for the EULERIAN simulation" << std::endl;
   int32_t retval = mesh.read_msh_file(m_infile.c_str());
   if (retval == 1) {
-    std::cout << " contains " << mesh.get_nnodes() << " nodes";
+    std::cout << "  contains " << mesh.get_nnodes() << " nodes";
     std::cout << " and " << mesh.get_nelems() << " elems" << std::endl;
   } else {
-    std::cout << " does not exist or did not read properly (code=";
+    std::cout << "  does not exist or did not read properly (code=";
     std::cout << retval << "), skipping." << std::endl;
     return pack;
   }
@@ -1585,29 +1670,42 @@ FromMsh::init_hybrid(const float _ips) const {
     const size_t np = wall.N_edges;
     std::cout << "  wall has " << np << " edges" << std::endl;
     idx.clear();
+    vals.clear();
     for (uint32_t thisedge : wall.edges) {
       const size_t nn = edges[thisedge].N_nodes;
       //std::cout << "  edge " << thisedge << " has " << nn << " nodes" << std::endl;
       // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
       assert(nn > 1 && "Edge does not have enough nodes!");
+      //
+      // If edges in gmsh are defined with fluid on the left as you walk along the edge,
+      //   then the node numbering here should be correct !!!
+      //
+      for (size_t i=0; i<nn; ++i) idx.push_back(edges[thisedge].nodes[i]);
+
       // reversing the orientation of the wall elements
-      idx.push_back(edges[thisedge].nodes[1]);
-      idx.push_back(edges[thisedge].nodes[0]);
-      for (size_t i=1; i<nn-1; ++i) idx.push_back(edges[thisedge].nodes[nn-i]);
+      //idx.push_back(edges[thisedge].nodes[1]);
+      //idx.push_back(edges[thisedge].nodes[0]);
+      //for (size_t i=1; i<nn-1; ++i) idx.push_back(edges[thisedge].nodes[nn-i]);
       //std::cout << "    ";
+
+      //std::cout << "edge " << (idx.size()/nn - 1) << " " << std::endl;
       //for (size_t i=0; i<edges[thisedge].N_nodes; ++i) {
-      //  std::cout << " " << edges[thisedge].nodes[i];
+        //const size_t ii = edges[thisedge].nodes[i];
+        //std::cout << "  " << ii << std::endl;
+        //std::cout << "    " << x[2*ii] << " " << x[2*ii+1] << std::endl;
       //}
       //std::cout << std::endl;
-    }
 
-    // set boundary condition value to 0.0 (velocity BC)
-    vals.resize(np);
-    std::fill(vals.begin(), vals.end(), 0.0);
+      // set boundary condition values (tangential then normal) to 0.0 (velocity BC)
+      vals.push_back(0.0);
+      vals.push_back(0.0);
+    }
 
     // return the element packet (will have many unused nodes - that's OK)
     pack.emplace_back(ElementPacket<float>({x, idx, vals, (size_t)(np), (uint8_t)1}));
   }
+
+  // what about slip wall?
 
   //
   // third EP is the open boundary
@@ -1625,22 +1723,114 @@ FromMsh::init_hybrid(const float _ips) const {
 
     // set the idx pointers to the new surface elements
     const size_t np = open.N_edges;
-    //std::cout << "  open has " << np << " edges" << std::endl;
+    std::cout << "  open has " << np << " edges" << std::endl;
     idx.clear();
+    vals.clear();
     for (uint32_t thisedge : open.edges) {
+      const size_t nn = edges[thisedge].N_nodes;
+      //std::cout << "  edge " << thisedge << " has " << nn << " nodes" << std::endl;
+
+      // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
+      assert(nn > 1 && "Edge does not have enough nodes!");
+
+      //
+      // If edges in gmsh are defined with fluid on the left as you walk along the edge,
+      //   then the node numbering here should be correct !!!
+      //
+      for (size_t i=0; i<nn; ++i) idx.push_back(edges[thisedge].nodes[i]);
+
+      // this is how we would reverse the element orientation
+      //idx.push_back(edges[thisedge].nodes[0]);
+      //idx.push_back(edges[thisedge].nodes[1]);
+
+      // set boundary condition values (tangential then normal) to 0.0 (velocity BC)
+      vals.push_back(0.0);
+      vals.push_back(0.0);
+    }
+
+    // return the element packet (will have many unused nodes - that's OK)
+    pack.emplace_back(ElementPacket<float>({x, idx, vals, (size_t)(np), (uint8_t)1}));
+  }
+
+  //
+  // fourth EP is the inlet
+  //
+
+  // get the boundary from the mesh corresponding to this feature
+  const ReadMsh::boundary inlet = mesh.get_bdry("inlet");
+  if (inlet.N_edges == 0) {
+    std::cout << "  no boundary called 'inlet' in this msh file, skipping." << std::endl;
+
+    // don't place a dummy packet at the end of the list
+    //pack.emplace_back(ElementPacket<float>());
+
+  } else {
+    std::cout << "Generate Inlet Boundary" << std::endl;
+
+    // set the idx pointers to the new surface elements
+    const size_t np = inlet.N_edges;
+    std::cout << "  inlet has " << np << " edges" << std::endl;
+    idx.clear();
+    vals.clear();
+    for (uint32_t thisedge : inlet.edges) {
       const size_t nn = edges[thisedge].N_nodes;
       //std::cout << "  edge " << thisedge << " has " << nn << " nodes" << std::endl;
       // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
       assert(nn > 1 && "Edge does not have enough nodes!");
-      // note - annular gmsh meshes have open defined CCW, which is correct here
-      //idx.push_back(edges[thisedge].nodes[0]);
-      //idx.push_back(edges[thisedge].nodes[1]);
       for (size_t i=0; i<nn; ++i) idx.push_back(edges[thisedge].nodes[i]);
+
+      // set boundary condition values (tangential then normal)
+      vals.push_back(0.0);
+      vals.push_back(m_inmeanflow);
     }
 
-    // set boundary condition value to 0.0 (velocity BC)
+    // now that we know each inlet edge, determine flow rate through each edge when inletProfile is parabolic
+    if (not m_inisuniform) {
+      std::vector<float> newvels = find_parabolic_vels(x, idx, inlet.N_edges);
+      for (size_t ie=0; ie<inlet.N_edges; ++ie) {
+        vals[2*ie+1] = m_inmeanflow * newvels[ie];
+      }
+    }
+
+    // return the element packet (will have many unused nodes - that's OK)
+    pack.emplace_back(ElementPacket<float>({x, idx, vals, (size_t)(np), (uint8_t)1}));
+  }
+
+  //
+  // last EP is the outlet (assume one for now)
+  //
+
+  // get the boundary from the mesh corresponding to this feature
+  const ReadMsh::boundary outlet = mesh.get_bdry("outlet");
+  if (outlet.N_edges == 0) {
+    std::cout << "  no boundary called 'outlet' in this msh file, skipping." << std::endl;
+
+    // don't place a dummy packet at the end of the list
+    //pack.emplace_back(ElementPacket<float>());
+
+  } else {
+    std::cout << "Generate Outlet Boundary" << std::endl;
+
+    // set the idx pointers to the new surface elements
+    const size_t np = outlet.N_edges;
+    std::cout << "  outlet has " << np << " edges" << std::endl;
+    idx.clear();
+    vals.clear();
+    for (uint32_t thisedge : outlet.edges) {
+      const size_t nn = edges[thisedge].N_nodes;
+      //std::cout << "  edge " << thisedge << " has " << nn << " nodes" << std::endl;
+      // 1st and 2nd nodes are the end nodes, regardless of how many nodes there are on this edge
+      assert(nn > 1 && "Edge does not have enough nodes!");
+      for (size_t i=0; i<nn; ++i) idx.push_back(edges[thisedge].nodes[i]);
+
+      // set boundary condition values (tangential then normal)
+      vals.push_back(0);
+      vals.push_back(-1.0);
+    }
+
+    // set boundary condition value to -1.0 (uniform normal velocity BC)
     vals.resize(np);
-    std::fill(vals.begin(), vals.end(), 0.0);
+    std::fill(vals.begin(), vals.end(), -1.0);
 
     // return the element packet (will have many unused nodes - that's OK)
     pack.emplace_back(ElementPacket<float>({x, idx, vals, (size_t)(np), (uint8_t)1}));
@@ -1676,6 +1866,14 @@ FromMsh::from_json(const nlohmann::json j) {
   m_x = tr[0];
   m_y = tr[1];
 
+  m_inmeanflow = j.value("inletMeanVel", 0.0);
+  m_inisuniform = true;
+  if (j.find("inletProfile") != j.end()) {
+    const std::string ptype = j["inletProfile"];
+    if (ptype == "parabolic") { m_inisuniform = false; }
+  }
+  m_tangflow = j.value("tangentialVel", 0.0);
+
   m_enabled = j.value("enabled",true);
 }
 
@@ -1685,6 +1883,9 @@ FromMsh::to_json() const {
   nlohmann::json mesh = nlohmann::json::object();
   mesh["geometry"] = m_infile;
   mesh["translation"] = {m_x, m_y};
+  mesh["inletMeanVel"] = m_inmeanflow;
+  mesh["inletProfile"] = m_inisuniform ? "uniform" : "parabolic";
+  mesh["tangentialVel"] = m_tangflow;
   mesh["enabled"] = m_enabled;
   return mesh;
 }
@@ -1705,7 +1906,24 @@ bool FromMsh::draw_info_gui(const std::string action) {
   ImGui::Text("Gmsh file name");
 
   float xc[2] = {m_x, m_y};
-  ImGui::InputFloat2("center", xc);
+  ImGui::InputFloat2("Translation", xc);
+  ImGui::SameLine();
+  ShowHelpMarker("Translate the coordinates in the mesh file by this vector.");
+
+  // and the velocities in case "slipwall", "inlet" or "outlet" appear in the mesh file
+  ImGui::SliderFloat("Inlet mean flow", &m_inmeanflow, 0.0f, 5.0f, "%.1f");
+  ImGui::SameLine();
+  ShowHelpMarker("If any surfaces are labeled 'inlet' in mesh file, this is their mean flow rate.");
+
+  int prof = m_inisuniform ? 0 : 1;
+  ImGui::Text("Inlet has "); ImGui::SameLine();
+  ImGui::RadioButton("uniform or ", &prof, 0); ImGui::SameLine();
+  ImGui::RadioButton("parabolic profile", &prof, 1);
+  m_inisuniform = (prof == 0);
+
+  ImGui::SliderFloat("Slip wall speed", &m_tangflow, -2.0f, 2.0f, "%.1f");
+  ImGui::SameLine();
+  ShowHelpMarker("If any surfaces are labeled 'slipwall' in mesh file, use this speed.");
 
   if (show_msh_input_window) {
     const std::string fileIO_text = "Load selected file";

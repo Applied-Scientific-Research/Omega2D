@@ -17,8 +17,8 @@
 // versions of the HO solver
 #ifdef HOFORTRAN
 #include "hofortran_interface.h"
-#else
-#include "dummysolver.h"
+#elif HOCXX
+#include "HO_2D.hpp"
 #endif
 
 #include <iostream>
@@ -45,7 +45,9 @@ public:
       wall_s(Surfaces<S>(_welems, _e, _m, _bp)),
       open_s(Surfaces<S>(_oelems, _e, _m, _bp)),
       open_p(Points<S>(ElementPacket<float>((uint8_t)0), _e, _m, _bp, 0.0)),
-      soln_p(Points<S>(ElementPacket<float>((uint8_t)0), _e, _m, _bp, 0.0))//,
+      soln_p(Points<S>(ElementPacket<float>((uint8_t)0), _e, _m, _bp, 0.0)),
+      inlet_s(Surfaces<S>(ElementPacket<float>((uint8_t)1), _e, _m, _bp)),
+      outlet_s(Surfaces<S>(ElementPacket<float>((uint8_t)1), _e, _m, _bp))
       //reduced_p(Points<S>(ElementPacket<S>((uint8_t)0), _e, _m, _bp, 0.0))
   { }
 
@@ -61,6 +63,9 @@ public:
   // return a Collection of the solution nodes
   const Points<S>& get_vol_nodes(const S _time) const { return soln_p; }
   Points<S>&       get_vol_nodes(const S _time)       { return soln_p; }
+
+  const bool have_inlet() const  { return (inlet_s.get_npanels()  > 0) ? true : false; }
+  const bool have_outlet() const { return (outlet_s.get_npanels() > 0) ? true : false; }
 
   // if anyone needs to know the order of the geometric elements
   const int32_t get_geom_elem_order() const {
@@ -94,19 +99,41 @@ public:
 
   // return a new vector of the indices of the geometry
   std::vector<uint32_t> get_elem_idx() {
-    const std::vector<Int>& elemgeom = this->get_idx();
-    std::vector<uint32_t> elemidx(elemgeom.begin(), elemgeom.end());
-    return elemidx;
+    const std::vector<Int>& tempgeom = this->get_idx();
+    std::vector<uint32_t> returnidx(tempgeom.begin(), tempgeom.end());
+    return returnidx;
   }
   std::vector<uint32_t> get_wall_idx() {
-    const std::vector<Int>& wallgeom = wall_s.get_idx();
-    std::vector<uint32_t> wallidx(wallgeom.begin(), wallgeom.end());
-    return wallidx;
+    const std::vector<Int>& tempgeom = wall_s.get_idx();
+    std::vector<uint32_t> returnidx(tempgeom.begin(), tempgeom.end());
+    return returnidx;
   }
   std::vector<uint32_t> get_open_idx() {
-    const std::vector<Int>& opengeom = open_s.get_idx();
-    std::vector<uint32_t> openidx(opengeom.begin(), opengeom.end());
-    return openidx;
+    const std::vector<Int>& tempgeom = open_s.get_idx();
+    std::vector<uint32_t> returnidx(tempgeom.begin(), tempgeom.end());
+    return returnidx;
+  }
+  std::vector<uint32_t> get_inlet_idx() {
+    const std::vector<Int>& tempgeom = inlet_s.get_idx();
+    std::vector<uint32_t> returnidx(tempgeom.begin(), tempgeom.end());
+    return returnidx;
+  }
+  std::vector<uint32_t> get_outlet_idx() {
+    const std::vector<Int>& tempgeom = outlet_s.get_idx();
+    std::vector<uint32_t> returnidx(tempgeom.begin(), tempgeom.end());
+    return returnidx;
+  }
+
+  // return a new vector of the inlet/outlet velocities
+  std::vector<double> get_inlet_vel() {
+    const Vector<S>& normvel = inlet_s.get_norm_bcs();
+    const std::vector<double> retvels(normvel.begin(), normvel.end());
+    return retvels;
+  }
+  std::vector<double> get_outlet_vel() {
+    const Vector<S>& normvel = outlet_s.get_norm_bcs();
+    const std::vector<double> retvels(normvel.begin(), normvel.end());
+    return retvels;
   }
 
   // retrieve solution points from solver, set them here
@@ -169,6 +196,59 @@ public:
     //else assert(_in.val.size() == _in.nelem && "Input ElementPacket with Volumes has bad val array size");
   }
 
+  // append a Surfaces to the object for the inlet
+  void add_inlet(const ElementPacket<float>& _in) {
+
+    // ensure that this packet really is Surfaces
+    assert(_in.idx.size() != 0 && "Input ElementPacket is empty");
+    assert(_in.ndim == 1 && "Input ElementPacket is not Surfaces");
+
+    inlet_s = Surfaces<S>(_in, this->E, this->M, this->B);
+  }
+
+  // append a Surfaces to the object for the outlet
+  void add_outlet(const ElementPacket<float>& _in) {
+
+    // ensure that this packet really is Surfaces
+    assert(_in.idx.size() != 0 && "Input ElementPacket is empty");
+    assert(_in.ndim == 1 && "Input ElementPacket is not Surfaces");
+
+    outlet_s = Surfaces<S>(_in, this->E, this->M, this->B);
+  }
+
+  // need to ensure that inlet flows equal outlet flows, I believe?
+  void conserve_iolet_volume() {
+    std::cout << "  in conserve_iolet_volume with " << inlet_s.get_npanels() << " and " << outlet_s.get_npanels() << " panels" << std::endl;
+
+    // only do this if there are inlet AND outlet surfaces
+    if (inlet_s.get_npanels() == 0 or outlet_s.get_npanels() == 0) return;
+
+    const float inrate = inlet_s.get_total_inflow();
+    const float outrate = outlet_s.get_total_outflow();
+
+    std::cout << "  total HOVolume inflow, outflow " << inrate << " " << outrate << std::endl;
+
+    if (inrate > std::numeric_limits<float>::epsilon()) {
+      if (outrate > std::numeric_limits<float>::epsilon()) {
+        // there is finite inflow and outflow, ensure their magnitudes are matched
+
+        std::cout << "    scaling outflows by " << inrate/outrate << std::endl;
+
+        // correct the outflow to match
+        outlet_s.scale_outflow(inrate/outrate);
+
+      } else {
+        // there is inflow, but zero outflow - set outflow to accept all inflow
+        // note: this is different than what we do in Simulation::conserve_iolet_volume() !
+
+        std::cout << "    outflow was 0 - setting to match inflows" << std::endl;
+
+        const float outarea = outlet_s.get_total_arclength();
+        outlet_s.set_outflow(inrate/outarea);
+      }
+    }
+  }
+
   // set vorticity at solution points, to use for reprojecting to particles
   void set_soln_vort(std::vector<double> _in) {
     assert(_in.size() > 0 && "ERROR (set_soln_vort): received zero solution points from solver");
@@ -183,7 +263,11 @@ public:
   //
   // generate and save a measure of the area of each *solution* node
   //
+#ifdef HOFORTRAN
   void set_soln_areas() {
+#elif HOCXX
+  void set_soln_areas(HO_2D& solver) {
+#endif
 
     // return if we do not need to recalculate these (vdelta changes)
 
@@ -202,8 +286,8 @@ public:
 #ifdef HOFORTRAN
     getsolnareas_d((int32_t)hoarea.size(), hoarea.data());
     //get_hoquad_weights_d((int32_t)nper, wgt.data());
-#else
-    //std::fill(wgt.begin(), wgt.end(), 1.0/(double)nper);
+#elif HOCXX
+    solver.getsolnareas_d((int32_t)hoarea.size(), hoarea.data());
 #endif
     //std::cout << "  first row of weight mask is ";
     //for (size_t j=0; j<std::sqrt(nper); ++j) std::cout << " " << wgt[j];
@@ -230,6 +314,8 @@ public:
   //
   void set_overlap_weights(const S gtop_center, const S gtop_width,
                            const S ptog_center, const S ptog_width) {
+
+    std::cout << "In set_overlap_weights" << std::endl;
 
     // get this array so we can reference it more easily
     //const std::array<Vector<S>,Dimensions>& ptx = soln_p.get_pos();
@@ -356,6 +442,10 @@ protected:
   Points<S>               open_p;   // solution nodes at open boundary (from HO Solver)
   Points<S>               soln_p;   // solution nodes (from HO Solver)
   //Points<S>            reduced_p;   // reduced set of solution nodes
+
+  // optional boundary elements (one inlet and one outlet for now)
+  Surfaces<S>            inlet_s;	// inlet boundary surface (from msh file)
+  Surfaces<S>           outlet_s;	// outlet boundary surface (from msh file)
 
 private:
 

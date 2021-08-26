@@ -66,9 +66,9 @@ public:
       max_strength(-1.0) {
 
     // pull out the vectors
-    const std::vector<float>&   _x   = _elems.x;
-    const std::vector<Int>& _idx = _elems.idx;
-    const std::vector<float>&   _val = _elems.val;
+    const std::vector<float>& _x   = _elems.x;
+    const std::vector<Int>&   _idx = _elems.idx;
+    const std::vector<float>& _val = _elems.val;
 
     // make sure input arrays are correctly-sized
     assert(_elems.ndim == 1 && "Input elements are not (1D) surfaces");
@@ -150,7 +150,7 @@ public:
         std::fill(ps[1]->begin(), ps[1]->end(), 0.0);
       }
 
-    } else if (this->E == reactive) {
+    } else if (this->E == reactive or this->E == hybrid) {
       // value is a boundary condition
       // bc[0] is the tangential BC, typically 0.0
       Vector<S> new_bc(nsurfs);
@@ -173,12 +173,14 @@ public:
         std::fill(bc[1]->begin(), bc[1]->end(), 0.0);
       }
 
-      // make space for the unknown sheet strengths
+      // make space for the unknown sheet strengths (only if reactive)
+      if (this->E == reactive) {
       for (size_t d=0; d<2; ++d) {
         if (ps[d]) {
           ps[d]->resize(nsurfs);
           std::fill(ps[d]->begin(), ps[d]->end(), 0.0);
         }
+      }
       }
 
     } else if (this->E == inert) {
@@ -198,11 +200,11 @@ public:
     // debug print
     if (false) {
       std::cout << "Nodes" << std::endl;
-      for (size_t i=0; i<nnodes; ++i) {
+      for (size_t i=0; i<std::min((size_t)100,nnodes); ++i) {
         std::cout << "  " << i << " " << this->x[0][i] << " " << this->x[1][i] << std::endl;
       }
       std::cout << "Segments" << std::endl;
-      for (size_t i=0; i<nsurfs; ++i) {
+      for (size_t i=0; i<std::min((size_t)100,nsurfs); ++i) {
         std::cout << "  " << i << " " << idx[2*i] << " " << idx[2*i+1] << std::endl;
       }
     }
@@ -653,10 +655,10 @@ public:
 
       // add this to the running sums
       //std::cout << "    and area " << thisarea << " and center " << xc << " " << yc << std::endl;
-      //std::cout << "    running sums " << asum << " " << xsum << " " << ysum << std::endl;
       asum += thisarea;
       xsum += xc*thisarea;
       ysum += yc*thisarea;
+      //std::cout << "    running sums " << asum << " " << xsum << " " << ysum << std::endl;
     }
     vol = (S)asum;
     utc[0] = (S)(xsum/asum);
@@ -959,9 +961,18 @@ public:
     return imp;
   }
 
+  // total the arc length for this collection
+  S get_total_arclength() {
+    S outsum = S(0.0);
+    for (size_t i=0; i<get_npanels(); ++i) {
+      outsum += area[i];
+    }
+    return outsum;
+  }
+
   // total the inlet volume flow rate for this collection
   S get_total_inflow() {
-    if (this->E != reactive) return S(0.0);
+    if (this->E != reactive and this->E != hybrid) return S(0.0);
 
     S insum = S(0.0);
     for (size_t i=0; i<get_npanels(); ++i) {
@@ -976,7 +987,7 @@ public:
 
   // if no outlets were defined, must zero the inflow to allow sim to proceed
   void zero_inflow() {
-    if (this->E != reactive) return;
+    if (this->E != reactive and this->E != hybrid) return;
     for (size_t i=0; i<get_npanels(); ++i) {
       (*bc[1])[i] = 0.0;
     }
@@ -984,7 +995,7 @@ public:
 
   // total the inlet volume flow rate for this collection
   S get_total_outflow() {
-    if (this->E != reactive) return S(0.0);
+    if (this->E != reactive and this->E != hybrid) return S(0.0);
 
     S outsum = S(0.0);
     for (size_t i=0; i<get_npanels(); ++i) {
@@ -999,11 +1010,19 @@ public:
 
   // linearly scale the outflow (normal BC vels) to enforce continuity
   void scale_outflow(const S factor) {
-    if (this->E != reactive) return;
+    if (this->E != reactive and this->E != hybrid) return;
     for (size_t i=0; i<get_npanels(); ++i) {
       if ((*bc[1])[i] < S(0.0)) {
         (*bc[1])[i] *= factor;
       }
+    }
+  }
+
+  // outright set the outflow (normal BC vels) (ideally to enforce continuity)
+  void set_outflow(const S factor) {
+    if (this->E != reactive and this->E != hybrid) return;
+    for (size_t i=0; i<get_npanels(); ++i) {
+      (*bc[1])[i] = -factor;
     }
   }
 

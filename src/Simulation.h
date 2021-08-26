@@ -10,11 +10,13 @@
 #include "Omega2D.h"
 #include "Body.h"
 #include "Collection.h"
-#include "HOVolumes.h"
 #include "BEM.h"
 #include "Convection.h"
 #include "Diffusion.h"
+#if defined(HOFORTRAN) || defined(HOCXX)
+#include "HOVolumes.h"
 #include "Hybrid.h"
+#endif
 #include "ElementPacket.h"
 #include "StatusFile.h"
 
@@ -25,7 +27,6 @@
 #include <string>
 #include <vector>
 #include <future>
-#include <chrono>
 
 #ifdef USE_VC
 #define STORE float
@@ -35,11 +36,6 @@
 #define ACCUM double
 #endif
 
-template <class T>
-bool is_future_ready(std::future<T> const& f) {
-    if (!f.valid()) return false;
-    return f.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
-}
 
 //
 // A set of particles, can be sources or targets
@@ -172,8 +168,10 @@ private:
   // Object with all of the non-reactive, non-active (inert) points
   std::vector<Collection> fldpt;	// tracers and field points
 
+#if defined(HOFORTRAN) || defined(HOCXX)
   // Object with all of the near-body, Eulerian solution regions
   std::vector<HOVolumes<STORE>> euler;	// hybrid/euler regions
+#endif
 
   // The need to solve for the unknown strengths of reactive elements inside both the
   //   diffusion and convection steps necessitates a BEM object here
@@ -191,10 +189,12 @@ private:
   // Note that with Vc, the storage and accumulator classes have to be the same
   Convection<STORE,ACCUM,Int> conv;
 
+#if defined(HOFORTRAN) || defined(HOCXX)
   // Hybrid class controls data exchange to and from an external Euler solver
   //   to be used for near-body regions, and routines to affect existing vortex
   //   particles from grid-based vorticity
   Hybrid<STORE,ACCUM,Int> hybr;
+#endif
 
   // status file
   StatusFile sf;

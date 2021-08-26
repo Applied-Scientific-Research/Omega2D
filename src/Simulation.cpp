@@ -9,9 +9,7 @@
 #include "Reflect.h"
 #include "BEMHelper.h"
 #include "GuiHelper.h"
-#ifdef HOFORTRAN
-#include "hofortran_interface.h"
-#endif
+#include "FutureHelper.h"
 
 #include <cassert>
 #include <cmath>
@@ -23,6 +21,7 @@
 #pragma STDC FENV_ACCESS ON // For fp exceptions
 #endif
 
+
 // constructor
 Simulation::Simulation()
   : re(100.0),
@@ -32,11 +31,15 @@ Simulation::Simulation()
     vort(),
     bdry(),
     fldpt(),
+#if defined(HOFORTRAN) || defined(HOCXX)
     euler(),
+#endif
     bem(),
     diff(),
     conv(),
+#if defined(HOFORTRAN) || defined(HOCXX)
     hybr(),
+#endif
     sf(),
     description(),
     time(0.0),
@@ -52,7 +55,8 @@ Simulation::Simulation()
     quit_on_stop(false),
     sim_is_initialized(false),
     step_has_started(false),
-    step_is_finished(false)
+    step_is_finished(false),
+    stepfuture()
   {}
 
 // addresses for use in imgui
@@ -191,8 +195,10 @@ Simulation::from_json(const nlohmann::json j) {
   // Diffusion will find and set "viscous", "VRM" and "AMR" parameters
   diff.from_json(j);
 
+#if defined(HOFORTRAN) || defined(HOCXX)
   // set hybrid Eulerian-Lagrangian solution parameters
   hybr.from_json(j);
+#endif
 }
 
 // create and write a json object for "simparams"
@@ -213,8 +219,10 @@ Simulation::to_json() const {
   // Diffusion will write "viscous", "VRM" and "AMR" parameters
   diff.add_to_json(j);
 
+#if defined(HOFORTRAN) || defined(HOCXX)
   // Hybrid will create a "hybrid" section
   hybr.add_to_json(j);
+#endif
 
   return j;
 }
@@ -296,8 +304,10 @@ void Simulation::draw_advanced() {
   // set the diffusion parameters in Diffusion.h
   diff.draw_advanced();
   
+#if defined(HOFORTRAN) || defined(HOCXX)
   // set the hybrid parameters in Hybrid.h
   hybr.draw_advanced();
+#endif
 }
 #endif
 
@@ -355,9 +365,11 @@ void Simulation::reset() {
   vort.clear();
   bdry.clear();
   fldpt.clear();
-  euler.clear();
   bem.reset();
+#if defined(HOFORTRAN) || defined(HOCXX)
   hybr.reset();
+  euler.clear();
+#endif
   sf.reset_sim();
   sim_is_initialized = false;
   step_has_started = false;
@@ -429,13 +441,13 @@ std::vector<std::string> Simulation::write_vtk(const int _index,
     }
   }
 
+#if defined(HOFORTRAN) || defined(HOCXX)
   if (hybr.is_active()) {
     // there is only one hybrid volume allowed now, so no counting needed
-#ifdef HOFORTRAN
-    (void) trigger_write((int32_t)stepnum);
-#endif
+    hybr.trigger_write(stepnum);
     files.emplace_back("and a HO grid file");
   }
+#endif
 
   return files;
 }
@@ -532,7 +544,8 @@ bool Simulation::any_nonzero_bcs() {
 //
 void Simulation::conserve_iolet_volume() {
 
-  // current inlet and outlet volume flow rates (global summation!)
+  // current inlet and outlet volume flow rates (global summation, includes the Surfaces
+  //   from HOVolumes loaded in via meshes but used on the Lagrangian side)
   float inrate = 0.0;
   float outrate = 0.0;
   int num_tested = 0;
@@ -550,13 +563,13 @@ void Simulation::conserve_iolet_volume() {
   }
   if (num_tested == 0) return;
 
-  std::cout << "  total inflow, outflow " << inrate << " " << outrate << std::endl;
+  std::cout << "  total lagrangian sim inflow, outflow " << inrate << " " << outrate << std::endl;
 
   if (inrate > std::numeric_limits<float>::epsilon()) {
     if (outrate > std::numeric_limits<float>::epsilon()) {
       // there is finite inflow and outflow, ensure their magnitudes are matched
 
-      std::cout << "  scaling outflows by " << inrate/outrate << std::endl;
+      std::cout << "    scaling outflows by " << inrate/outrate << std::endl;
 
       // correct the outflow to match
       for (auto &src : bdry) {
@@ -571,7 +584,7 @@ void Simulation::conserve_iolet_volume() {
     } else {
       // there is inflow, but zero outflow - just zero the inflow and continue
 
-      std::cout << "  no outflows defined - zeroing all inflows" << std::endl;
+      std::cout << "    no outflows defined - zeroing all inflows" << std::endl;
 
       for (auto &src : bdry) {
         if (std::holds_alternative<Surfaces<STORE>>(src)) {
@@ -638,8 +651,10 @@ void Simulation::first_step() {
   // update BEM and find vels on any particles but DO NOT ADVECT
   conv.advect_1st(time, 0.0, thisfs, get_ips(), vort, bdry, fldpt, bem);
 
+#if defined(HOFORTRAN) || defined(HOCXX)
   // call HO grid solver, but only to send first velocity results and initialize vorticity
   hybr.first_step(time, thisfs, vort, bdry, bem, conv, euler);
+#endif
 
   // and write status file
   dump_stats_to_status();
@@ -694,8 +709,10 @@ void Simulation::step() {
     diff.step(time+dt, 0.5*dt, re, overlap_ratio, get_vdelta(), thisfs, vort, bdry, bem);
   }
 
+#if defined(HOFORTRAN) || defined(HOCXX)
   // call HO grid solver to recalculate vorticity at the end of this time step
   hybr.step(time, dt, re, thisfs, vort, bdry, bem, conv, euler, overlap_ratio, get_vdelta());
+#endif
 
   // update time
   time += (double)dt;
@@ -882,19 +899,21 @@ void Simulation::file_elements(std::vector<Collection>& _collvec,
 }
 
 // Add elements - cells for hybrid calculation
-void Simulation::add_hybrid(const std::vector<ElementPacket<float>>  _elems,
+void Simulation::add_hybrid(const std::vector<ElementPacket<float>> _elems,
                             std::shared_ptr<Body> _bptr) {
 
   // skip out early if nothing's here
   if (_elems.size() == 0) return;
+
+#if defined(HOFORTRAN) || defined(HOCXX)
   // or if hybrid isn't turned on
   if (not hybr.is_active()) return;
 
   std::cout << "In Simulation::add_hybrid" << std::endl;
-  //std::cout << "  incoming vector has " << _elems.size() << " ElementPackets" << std::endl;
+  std::cout << "  incoming vector has " << _elems.size() << " ElementPackets" << std::endl;
 
   // make sure we've got the right data
-  assert(_elems.size() == 3 && "Improper number of ElementPackets in add_hybrid");
+  assert((_elems.size() == 3 ||  _elems.size() == 5) && "Bad number of ElementPackets in add_hybrid");
 
   //_elems[0] is the volume elements - always add unique Collection to euler
   //_elems[1] is the wall boundaries
@@ -905,6 +924,16 @@ void Simulation::add_hybrid(const std::vector<ElementPacket<float>>  _elems,
   // alternate way to assign the wall and open bc elements
   //euler.back().add_wall(_elems[1]);
   //euler.back().add_open(_elems[2]);
+
+  // generate inlets and outlets, if available
+  if (_elems.size() > 3) {
+    euler.back().add_inlet(_elems[3]);
+    euler.back().add_outlet(_elems[4]);
+  }
+
+  // tell the HOVolume to run its own conserve_iolet_volume routine to set/scale outlet rates
+  euler.back().conserve_iolet_volume();
+#endif
 }
 
 // add a new Body with the given name
