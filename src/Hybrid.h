@@ -868,9 +868,14 @@ void Hybrid<S,A,I>::trigger_write(const size_t _step, std::vector<HOVolumes<S>>&
 #ifdef HOFORTRAN
   (void) trigger_write((int32_t)_step);
 #elif HOCXX
+  int ieuler = -1;
   for (auto &coll : _euler) {
+    // when there is 1 Eulerian volume, keep the subindex as -1, telling the writer to not add a subindex
+    if (_euler.size() > 1) ieuler++;
+
+    // now get the solver handle and trigger the vtk output
     HO_2D& solver = coll.get_ho_solver();
-    solver.trigger_write((int32_t)_step);
+    solver.trigger_write((int32_t)_step, (int32_t)ieuler);
   }
 #endif
 }
