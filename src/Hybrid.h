@@ -42,9 +42,6 @@ public:
       numSubstepsFirst(50),
       preconditioner("none"),
       solverType("fgmres")
-#ifdef HOCXX
-      ,solver()
-#endif
       //vrm(),
       //h_nu(0.1)
     {}
@@ -55,7 +52,7 @@ public:
   void deactivate() { active = false; }
 
   void init( std::vector<HOVolumes<S>>&);
-  void reset();
+  void reset( std::vector<HOVolumes<S>>&);
   void first_step( const double,
              const std::array<double,Dimensions>&,
              std::vector<Collection>&,
@@ -74,7 +71,8 @@ public:
              std::vector<HOVolumes<S>>&,
              const float,
              const float);
-  void trigger_write( const size_t);
+  void trigger_write( const size_t,
+             std::vector<HOVolumes<S>>&);
 
   // read/write parameters
   void from_json(const nlohmann::json);
@@ -95,13 +93,6 @@ private:
   std::string preconditioner;
   std::string solverType;
 
-  // the HO Solver
-#ifdef HOFORTRAN
-  // none needed
-#elif HOCXX
-  HO_2D solver;
-#endif
-
   // local copies of particle data
   //Particles<S> temp;
 
@@ -119,7 +110,10 @@ private:
 template <class S, class A, class I>
 void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
   std::cout << "Inside Hybrid::init with " << _euler.size() << " volumes" << std::endl;
-  assert(_euler.size() == 1 && "ERROR Hybrid::init does not support more than 1 hybrid volume");
+
+#ifdef HOFORTRAN
+  assert(_euler.size() == 1 && "ERROR Hybrid-Fortran does not support more than 1 hybrid volume");
+#endif
 
 #ifdef HOFORTRAN
   // set in the Fortran solver
@@ -127,35 +121,45 @@ void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
   (void) enable_hybrid();
   (void) set_elemorder((int32_t)elementOrder);
 #elif HOCXX
-  // set in the dummy C++ solver
-  solver.set_defaults();
-  solver.enable_hybrid();
-  solver.set_elemorder((int32_t)elementOrder);
+  // set in the C++ solver
+  for (auto &coll : _euler) {
+    HO_2D& solver = coll.get_ho_solver();
+    solver.set_defaults();
+    solver.enable_hybrid();
+    solver.set_elemorder((int32_t)elementOrder);
+  }
 #endif
 
   for (auto &coll : _euler) {
+
+    std::cout << std::endl << "Hybrid::init another HOVolume" << std::endl;
+
     // transform to current position
     coll.move(0.0, 0.0, 1.0, coll);
 
+#ifdef HOCXX
+    HO_2D& solver = coll.get_ho_solver();
+#endif
+
     // and, set the mesh in the external solver
     {
-    // make temporary vectors to convert data types
-    std::vector<double> nodes_as_dble = coll.get_node_pos();
+      // make temporary vectors to convert data types
+      std::vector<double> nodes_as_dble = coll.get_node_pos();
 
-    std::vector<uint32_t> elemidxu = coll.get_elem_idx();
-    std::vector<int32_t> elemidx(elemidxu.begin(), elemidxu.end());
+      std::vector<uint32_t> elemidxu = coll.get_elem_idx();
+      std::vector<int32_t> elemidx(elemidxu.begin(), elemidxu.end());
 
-    std::vector<uint32_t> wallidxu = coll.get_wall_idx();
-    std::vector<int32_t> wallidx(wallidxu.begin(), wallidxu.end());
+      std::vector<uint32_t> wallidxu = coll.get_wall_idx();
+      std::vector<int32_t> wallidx(wallidxu.begin(), wallidxu.end());
 
-    std::vector<uint32_t> openidxu = coll.get_open_idx();
-    std::vector<int32_t> openidx(openidxu.begin(), openidxu.end());
+      std::vector<uint32_t> openidxu = coll.get_open_idx();
+      std::vector<int32_t> openidx(openidxu.begin(), openidxu.end());
 
-    // now we can call this - HACK - need to find order of geom mesh
+      // now we can call this - HACK - need to find order of geom mesh
 #ifdef HOFORTRAN
-    (void) load_mesh_arrays_d((int32_t)coll.get_geom_elem_order(),
+      (void) load_mesh_arrays_d((int32_t)coll.get_geom_elem_order(),
 #elif HOCXX
-    solver.load_mesh_arrays_d((int32_t)coll.get_geom_elem_order(),
+      solver.load_mesh_arrays_d((int32_t)coll.get_geom_elem_order(),
 #endif
                         (int32_t)nodes_as_dble.size(), nodes_as_dble.data(),
                         (int32_t)elemidx.size(), elemidx.data(),
@@ -232,7 +236,7 @@ void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
       coll.set_open_pts(solnpts);
     }
 
-  }
+  } // end loop over _euler
 
   initialized = true;
 }
@@ -242,14 +246,17 @@ void Hybrid<S,A,I>::init(std::vector<HOVolumes<S>>& _euler) {
 // Simulation is reset - do we need to clear the Euler grid initialization?
 //
 template <class S, class A, class I>
-void Hybrid<S,A,I>::reset() {
+void Hybrid<S,A,I>::reset(std::vector<HOVolumes<S>>& _euler) {
   initialized = false;
 
   // clear out memory of the grid
 #ifdef HOFORTRAN
   (void) clean_up();
 #elif HOCXX
-  solver.clean_up();
+  for (auto &coll : _euler) {
+    HO_2D& solver = coll.get_ho_solver();
+    solver.clean_up();
+  }
 #endif
 }
 
@@ -272,26 +279,29 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
 
   std::cout << "Inside Hybrid::first_step at t=" << _time << std::endl;
 
-  //
-  // solve for velocity at each open-boundary solution node
-  //
-
-  // make a list of euler boundary regions
-  std::vector<Collection> euler_bdrys;
+  // loop over each hybrid region completely separately
   for (auto &coll : _euler) {
+
+    std::cout << std::endl << "Hybrid::first_step another HOVolume" << std::endl;
+
+    HO_2D& solver = coll.get_ho_solver();
+
+    //
+    // solve for velocity at each open-boundary solution node
+    //
+
     // transform to current position
     coll.move(_time, 0.0, 1.0, coll);
-
+    // make a list of euler boundary regions
+    std::vector<Collection> euler_bdrys;
     // isolate open/outer boundaries
     euler_bdrys.emplace_back(coll.get_bc_nodes(_time));
-  }
 
-  // get vels and vorts on each euler region - and force it
-  _conv.find_vels(_fs, _vort, _bdry, euler_bdrys, velonly, true);
+    // get vels and vorts on each euler region - and force it
+    _conv.find_vels(_fs, _vort, _bdry, euler_bdrys, velonly, true);
 
-  for (auto &coll : euler_bdrys) {
     // convert to transferable packet
-    std::array<Vector<S>,Dimensions> openvels = std::visit([=](auto& elem) { return elem.get_vel(); }, coll);
+    std::array<Vector<S>,Dimensions> openvels = std::visit([=](auto& elem) { return elem.get_vel(); }, euler_bdrys[0]);
 
     // convert to a std::vector<double>
     std::vector<double> packedvels(Dimensions*openvels[0].size());
@@ -307,60 +317,57 @@ void Hybrid<S,A,I>::first_step(const double                   _time,
 #elif HOCXX
     solver.setopenvels_d((int32_t)packedvels.size(), packedvels.data());
 #endif
-  }
 
-  // get vels and vorts on each euler region - and force it
-  _conv.find_vort(_vort, _bdry, euler_bdrys);
 
-  for (auto &coll : euler_bdrys) {
+    // get vels and vorts on each euler region - and force it
+    _conv.find_vort(_vort, _bdry, euler_bdrys);
+
     // now prepare the open boundary vorticity values
-    Vector<S> volvort = std::visit([=](auto& elem) { return elem.get_vort(); }, coll);
-    std::vector<double> vorts(volvort.begin(), volvort.end());
+    {
+      Vector<S> volvort = std::visit([=](auto& elem) { return elem.get_vort(); }, euler_bdrys[0]);
+      std::vector<double> vorts(volvort.begin(), volvort.end());
 
-    // transfer BC packet to solver
+      // transfer BC packet to solver
 #ifdef HOFORTRAN
-    (void) setopenvort_d((int32_t)vorts.size(), vorts.data());
+      (void) setopenvort_d((int32_t)vorts.size(), vorts.data());
 #elif HOCXX
-    solver.setopenvort_d((int32_t)vorts.size(), vorts.data());
+      solver.setopenvort_d((int32_t)vorts.size(), vorts.data());
 #endif
-  }
+    }
 
-  //
-  // now do the same for the vorticity at each solution node
-  //
+    //
+    // now do the same for the vorticity at each solution node
+    //
 
-  // make a list of euler volume regions
-  std::vector<Collection> euler_vols;
-  for (auto &coll : _euler) {
     // transform to current position
-    coll.move(_time, 0.0, 1.0, coll);
+    //coll.move(_time, 0.0, 1.0, coll);
 
+    // make a list of euler volume regions
+    std::vector<Collection> euler_vols;
     // grab all of the solution nodes
     euler_vols.emplace_back(coll.get_vol_nodes(_time));
-  }
 
-  // get vorts on each euler region - and force it
-  _conv.find_vort(_vort, _bdry, euler_vols);
+    // get vorts on each euler region - and force it
+    _conv.find_vort(_vort, _bdry, euler_vols);
 
-  for (auto &coll : euler_vols) {
-    // convert to transferable packet
-    Vector<S> volvort = std::visit([=](auto& elem) { return elem.get_vort(); }, coll);
+    {
+      // convert to transferable packet
+      Vector<S> volvort = std::visit([=](auto& elem) { return elem.get_vort(); }, euler_vols[0]);
 
-    // convert to a std::vector<double>
-    std::vector<double> vorts(volvort.begin(), volvort.end());
+      // convert to a std::vector<double>
+      std::vector<double> vorts(volvort.begin(), volvort.end());
 
-    // transfer BC packet to solver
+      // transfer BC packet to solver
 #ifdef HOFORTRAN
-    (void) setsolnvort_d((int32_t)vorts.size(), vorts.data());
+      (void) setsolnvort_d((int32_t)vorts.size(), vorts.data());
 #elif HOCXX
-    (void) solver.setsolnvort_d((int32_t)vorts.size(), vorts.data());
+      (void) solver.setsolnvort_d((int32_t)vorts.size(), vorts.data());
 #endif
-  }
+    }
 
-  //
-  // finally, send the grid-to-particle weights to the solver
-  //
-  for (auto &coll : _euler) {
+    //
+    // finally, send the grid-to-particle weights to the solver
+    //
 
     // first, we need to do this
     (void) coll.set_overlap_weights(0.5, 0.25, 1.0, 0.25);
@@ -407,29 +414,34 @@ void Hybrid<S,A,I>::step(const double                         _time,
   const float dumpslopetol = 2.e-3;	// cylinder 1.e-5, oval 1e-2, cavity 1.e-4
   static bool setslope = false;
 
+  // before anything: update the BEM solution
+  solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
+
   //
   // part A - prepare BCs for Euler solver
   //
 
-  // update the BEM solution
-  solve_bem<S,A,I>(_time, _fs, _vort, _bdry, _bem);
-
-  // make a list of euler boundary regions
-  std::vector<Collection> euler_bdrys;
+  // loop over each hybrid region separately
+  int ieuler = 0;
   for (auto &coll : _euler) {
+
+    if (_euler.size() > 1) std::cout << std::endl << "Hybrid::step part A, HOVolume " << ieuler << std::endl;
+
+    HO_2D& solver = coll.get_ho_solver();
+
     // transform to current position
     coll.move(_time, 0.0, 1.0, coll);
 
+    // make a list of euler boundary regions
+    std::vector<Collection> euler_bdrys;
     // isolate open/outer boundaries
     euler_bdrys.emplace_back(coll.get_bc_nodes(_time));
-  }
 
-  // get vels on each euler region - and force it
-  _conv.find_vels(_fs, _vort, _bdry, euler_bdrys, velonly, true);
+    // get vels on each euler region - and force it
+    _conv.find_vels(_fs, _vort, _bdry, euler_bdrys, velonly, true);
 
-  for (auto &coll : euler_bdrys) {
     // convert to transferable packet
-    std::array<Vector<S>,Dimensions> openvels = std::visit([=](auto& elem) { return elem.get_vel(); }, coll);
+    std::array<Vector<S>,Dimensions> openvels = std::visit([=](auto& elem) { return elem.get_vel(); }, euler_bdrys[0]);
 
     // convert to a std::vector<double>
     std::vector<double> packedvels(Dimensions*openvels[0].size());
@@ -445,14 +457,13 @@ void Hybrid<S,A,I>::step(const double                         _time,
 #elif HOCXX
     (void) solver.setopenvels_d((int32_t)packedvels.size(), packedvels.data());
 #endif
-  }
 
-  // get vorts on each euler region
-  _conv.find_vort(_vort, _bdry, euler_bdrys);
+    // get vorts on each euler region
+    _conv.find_vort(_vort, _bdry, euler_bdrys);
 
-  for (auto &coll : euler_bdrys) {
+    {
     // now prepare the open boundary vorticity values
-    Vector<S> volvort = std::visit([=](auto& elem) { return elem.get_vort(); }, coll);
+    Vector<S> volvort = std::visit([=](auto& elem) { return elem.get_vort(); }, euler_bdrys[0]);
     std::vector<double> vorts(volvort.begin(), volvort.end());
 
     // transfer BC packet to solver
@@ -461,26 +472,24 @@ void Hybrid<S,A,I>::step(const double                         _time,
 #elif HOCXX
     (void) solver.setopenvort_d((int32_t)vorts.size(), vorts.data());
 #endif
-  }
+    }
 
-  // and get vorts on the solution nodes of each euler region
+    // and get vorts on the solution nodes of each euler region
 
-  // make a list of euler volume regions
-  std::vector<Collection> euler_vols;
-  for (auto &coll : _euler) {
     // transform to current position
-    coll.move(_time, 0.0, 1.0, coll);
+    //coll.move(_time, 0.0, 1.0, coll);
 
+    {
+    // make a list of euler volume regions
+    std::vector<Collection> euler_vols;
     // grab all of the solution nodes
     euler_vols.emplace_back(coll.get_vol_nodes(_time));
-  }
 
-  // get vorts on each euler region - and force it
-  _conv.find_vort(_vort, _bdry, euler_vols);
+    // get vorts on each euler region - and force it
+    _conv.find_vort(_vort, _bdry, euler_vols);
 
-  for (auto &coll : euler_vols) {
     // convert to transferable packet
-    Vector<S> volvort = std::visit([=](auto& elem) { return elem.get_vort(); }, coll);
+    Vector<S> volvort = std::visit([=](auto& elem) { return elem.get_vort(); }, euler_vols[0]);
 
     // convert to a std::vector<double>
     std::vector<double> vorts(volvort.begin(), volvort.end());
@@ -491,19 +500,34 @@ void Hybrid<S,A,I>::step(const double                         _time,
 #elif HOCXX
     (void) solver.setsolnvort_d((int32_t)vorts.size(), vorts.data());
 #endif
+    }
+
+    ++ieuler;
   }
 
   //
   // part B - call Euler solver
   //
 
-  // call solver - solves all Euler volumes at once?
   const int32_t nss = (_time < 0.5*_dt) ? numSubstepsFirst : numSubsteps;
+
+  ieuler = 0;
+  for (auto &coll : _euler) {
+
+    if (_euler.size() > 1) std::cout << std::endl << "Hybrid::step part B, HOVolume " << ieuler << std::endl;
+
+    HO_2D& solver = coll.get_ho_solver();
+
+    // call solver - solves each Euler volumes separately
 #ifdef HOFORTRAN
-  (void) solveto_d((double)_dt, nss, (int32_t)timeOrder, (double)_re);
+    (void) solveto_d((double)_dt, nss, (int32_t)timeOrder, (double)_re);
 #elif HOCXX
-  (void) solver.solveto_d((double)_dt, nss, (int32_t)timeOrder, (double)_re);
+    (void) solver.solveto_d((double)_dt, nss, (int32_t)timeOrder, (double)_re, (int32_t)ieuler);
 #endif
+
+    ++ieuler;
+  }
+
 
   // pull results from external solver (assume just one for now)
   //for (auto &coll : _euler) {
@@ -521,18 +545,25 @@ void Hybrid<S,A,I>::step(const double                         _time,
   // part C - update particle strengths accordionly
   //
 
-  std::cout << "Inside Hybrid::step updating particle strengths" << std::endl;
-
-  // here's one way to do it:
-  // identify all free vortex particles inside of euler regions and remove them
-  //   (add up how much circulation we remove)
-  //   then we'd need to re-run BEM
-
-  // another way:
-  // don't remove any existing particles, just add new ones over the old ones
-  //   and let merge take care of the extra density - this is what we do here:
-
+  ieuler = 0;
   for (auto &coll : _euler) {
+
+    if (_euler.size() > 1) std::cout << std::endl << "Hybrid::step part C, HOVolume " << ieuler << std::endl;
+    ++ieuler;
+
+    HO_2D& solver = coll.get_ho_solver();
+
+    //std::cout << "Inside Hybrid::step updating particle strengths" << std::endl;
+
+    // here's one way to do it:
+    // identify all free vortex particles inside of euler regions and remove them
+    //   (add up how much circulation we remove)
+    //   then we'd need to re-run BEM
+
+    // another way:
+    // don't remove any existing particles, just add new ones over the old ones
+    //   and let merge take care of the extra density - this is what we do here:
+
 
     Points<S>& solnpts = coll.get_vol_nodes(_time);
     const size_t thisn = solnpts.get_n();
@@ -777,7 +808,7 @@ void Hybrid<S,A,I>::step(const double                         _time,
     // we use a set of weights to adjust the difference
     if (true) {
 
-    std::cout << "Inside Hybrid::step updating particle strengths" << std::endl;
+    std::cout << "Inside Hybrid::step updating Eulerian vorticity" << std::endl;
 
     // convert the new vort to a new circ
     std::transform(eulvort.begin(), eulvort.end(),
@@ -833,11 +864,14 @@ void Hybrid<S,A,I>::step(const double                         _time,
 // tell solver to dump out some files
 //
 template <class S, class A, class I>
-void Hybrid<S,A,I>::trigger_write(const size_t _step) {
+void Hybrid<S,A,I>::trigger_write(const size_t _step, std::vector<HOVolumes<S>>& _euler) {
 #ifdef HOFORTRAN
-    (void) trigger_write((int32_t)_step);
+  (void) trigger_write((int32_t)_step);
 #elif HOCXX
+  for (auto &coll : _euler) {
+    HO_2D& solver = coll.get_ho_solver();
     solver.trigger_write((int32_t)_step);
+  }
 #endif
 }
 

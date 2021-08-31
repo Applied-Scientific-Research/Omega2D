@@ -367,7 +367,7 @@ void Simulation::reset() {
   fldpt.clear();
   bem.reset();
 #if defined(HOFORTRAN) || defined(HOCXX)
-  hybr.reset();
+  hybr.reset(euler);
   euler.clear();
 #endif
   sf.reset_sim();
@@ -444,7 +444,7 @@ std::vector<std::string> Simulation::write_vtk(const int _index,
 #if defined(HOFORTRAN) || defined(HOCXX)
   if (hybr.is_active()) {
     // there is only one hybrid volume allowed now, so no counting needed
-    hybr.trigger_write(stepnum);
+    hybr.trigger_write(stepnum, euler);
     files.emplace_back("and a HO grid file");
   }
 #endif

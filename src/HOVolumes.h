@@ -49,7 +49,10 @@ public:
       inlet_s(Surfaces<S>(ElementPacket<float>((uint8_t)1), _e, _m, _bp)),
       outlet_s(Surfaces<S>(ElementPacket<float>((uint8_t)1), _e, _m, _bp))
       //reduced_p(Points<S>(ElementPacket<S>((uint8_t)0), _e, _m, _bp, 0.0))
-  { }
+#ifdef HOCXX
+      ,solver()
+#endif
+  { std::cout << "  in HOVolumes()" << std::endl; }
 
   // useful getter for the areas of participating elements
   const Vector<S>&             get_soln_area() const { return solnarea; }
@@ -63,6 +66,10 @@ public:
   // return a Collection of the solution nodes
   const Points<S>& get_vol_nodes(const S _time) const { return soln_p; }
   Points<S>&       get_vol_nodes(const S _time)       { return soln_p; }
+
+#ifdef HOCXX
+  HO_2D& get_ho_solver() { return solver; }
+#endif
 
   const bool have_inlet() const  { return (inlet_s.get_npanels()  > 0) ? true : false; }
   const bool have_outlet() const { return (outlet_s.get_npanels() > 0) ? true : false; }
@@ -446,6 +453,13 @@ protected:
   // optional boundary elements (one inlet and one outlet for now)
   Surfaces<S>            inlet_s;	// inlet boundary surface (from msh file)
   Surfaces<S>           outlet_s;	// outlet boundary surface (from msh file)
+
+  // the HO Solver
+#ifdef HOFORTRAN
+  // none needed
+#elif HOCXX
+  HO_2D solver;
+#endif
 
 private:
 
