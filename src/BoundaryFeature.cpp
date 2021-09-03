@@ -1895,7 +1895,7 @@ bool FromMsh::draw_info_gui(const std::string action) {
   bool add = false;
   bool try_it = false;
   static bool show_msh_input_window = false;
-  static std::string infile = "input.msh";	// full path
+  static std::string infile = m_infile;	// full path
   static std::string infileshort = infile;	// just file name
   const std::string buttonText = action+" mesh";
   const float fontSize = 20;
@@ -1926,6 +1926,10 @@ bool FromMsh::draw_info_gui(const std::string action) {
   ShowHelpMarker("If any surfaces are labeled 'slipwall' in mesh file, use this speed.");
 
   if (show_msh_input_window) {
+
+    // FileIO is now a modal, see code in lib/imgui/ImguiWindowsFileIO.cpp
+    ImGui::OpenPopup("FileIO");
+
     const std::string fileIO_text = "Load selected file";
     if (fileIOWindow(try_it, infile, tmp,  fileIO_text.c_str(), {"*.msh", "*.*"}, true, ImVec2(200+26*fontSize,300))) {
       show_msh_input_window = false;

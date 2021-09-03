@@ -484,7 +484,9 @@ bool fileIOWindow(
     SetNextWindowSize( size, ImGuiCond_FirstUseEver);
     // I have no idea why I can't resize this window!?!
     ImGuiWindowFlags window_flags = 0;//!ImGuiWindowFlags_AlwaysAutoResize;
-    Begin( "FileIO", NULL, window_flags );
+
+    //Begin( "FileIO", NULL, window_flags );
+    ImGui::BeginPopupModal( "FileIO", NULL, window_flags );
 
     Text("Directory: "); SameLine();
     PushItemWidth( GetWindowWidth() - 145 );
@@ -652,7 +654,8 @@ bool fileIOWindow(
         close_it = true;
         try_open = false;
     }
-    End();
+    //End();
+    ImGui::EndPopup();
 
     return close_it;
 }

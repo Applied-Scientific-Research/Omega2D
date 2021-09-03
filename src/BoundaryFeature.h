@@ -387,7 +387,8 @@ public:
     : BoundaryFeature(_bp, _ext, _x, _y),
       m_inmeanflow(_inflow),
       m_inisuniform(_inunif),
-      m_tangflow(_tangflow)
+      m_tangflow(_tangflow),
+      m_infile(_infile)
     {}
   ~FromMsh() = default;
   FromMsh* copy() const override { return new FromMsh(*this); }
@@ -406,9 +407,10 @@ public:
   void generate_draw_geom() override;
 
 protected:
-  std::string m_infile;
   float m_inmeanflow;
   bool m_inisuniform;
   float m_tangflow;
+  std::string m_infile;
+
   std::list<BoundarySegment> m_bsl;
 };
