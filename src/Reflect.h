@@ -40,6 +40,61 @@ struct ClosestReturn {
 //
 // minimum 22 flops, maximum 26, average is probably 23
 //
+/*
+template <class S>
+S panel_point_distance_simd(const S sx0, const S sy0,
+                            const S sx1, const S sy1,
+                            const S tx,  const S ty) {
+
+  S retval;
+
+  // segment vector
+  const S bx    = sx1-sx0;
+  const S by    = sy1-sy0;
+  const S ooblensq  = S(1.0) / (bx*bx + by*by);
+  //std::cout << "point is " << tx << " " << ty << std::endl;
+  //std::cout << "  panel is " << sx0 << " " << sy0 << " to " << sx1 << " " << sy1 << std::endl;
+
+  // leg vector
+  const S ax    = tx-sx0;
+  const S ay    = ty-sy0;
+
+  // t is a parametric value between 0 and 1 along the segment
+  const S t     = (ax*bx + ay*by) * ooblensq;
+  //std::cout << "  t is " << t << std::endl;
+
+  if (t > 0.0 and t < 1.0) {
+    // point is closest to the segment, not the nodes
+    // note that the normal of the panel is (-by, bx)/sqrt(blensq)
+    //std::cout << "  returning " << std::sqrt((std::pow(ay*bx - ax*by, 2) / blensq)) << std::endl;
+    retval.distsq = std::pow(ay*bx - ax*by, 2) * ooblensq;
+    return retval;
+  }
+
+  // side lengths of the triangle s0, s1, t
+  const S rij2  = std::pow(ax,2) + std::pow(ay,2);
+  const S rij12 = std::pow(tx-sx1,2) + std::pow(ty-sy1,2);
+  //std::cout << "  rij2 is " << rij2 << " and rij12 is " << rij12 << std::endl;
+
+  //std::cout << "  returning " << std::sqrt(std::min(rij2, rij12)) << std::endl;
+  if (rij2 < rij12) {
+    retval.distsq = rij2;
+  } else {
+    retval.distsq = rij12;
+  }
+
+  return retval;
+}
+*/
+
+
+//
+// find closest distance from a point to a line segment and return some related data
+// logic taken from pointElemDistance2d
+// does not work on simd data structures
+//
+// minimum 22 flops, maximum 26, average is probably 23
+//
 template <class S>
 ClosestReturn<S> panel_point_distance(const S sx0, const S sy0,
                                       const S sx1, const S sy1,
