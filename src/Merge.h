@@ -143,6 +143,10 @@ size_t merge_close_particles(std::array<Vector<S>,2>& pos,
                 }
                 s[i] = s[i] + s[iother];
                 //std::cout << "    result   " << x[i] << " " << y[i] << " with str " << s[i] << " and rad " << r[i] << std::endl;
+
+                // note: Rossi 1996 has a different calculation for final radius,
+                //   and also only merge like-signed vorticies (Spalart 1988)
+
                 // flag other particle for deletion
                 erase_me[iother] = true;
               }
