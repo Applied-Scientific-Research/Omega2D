@@ -2,7 +2,7 @@
  * RenderParams.cpp - Methods for rendering/drawing parameters
  *
  * (c)2019 Applied Scientific Research, Inc.
- *         Written by Mark J Stock <markjstock@gmail.com>
+ *         Mark J Stock <markjstock@gmail.com>
  */
 
 #include "RenderParams.h"

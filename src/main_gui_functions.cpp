@@ -181,7 +181,7 @@ void draw_stats_window(const long int numPanels, const long int numFieldPts, con
   //ImGui::SetNextWindowPos(ImVec2(10.0f, (displayH-34*numrows-1.1*fontSize*4)/2));
   ImGui::SetNextWindowPos(ImVec2(20, (displayH-fontSize*(1.1*numrows+1)-30*numrows)/2));
 #else
-  ImGui::SetNextWindowSize(ImVec2(10+fontSize*11,10+1.1*fontSize*numrows));
+  ImGui::SetNextWindowSize(ImVec2(10+fontSize*11, 10+1.1*fontSize*numrows));
   ImGui::SetNextWindowPos(ImVec2(20, displayH-fontSize*(1.1*numrows+1)));
 #endif
   ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;

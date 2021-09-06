@@ -17,7 +17,7 @@
 #include "Reflect.h"
 #include "GuiHelper.h"
 
-#include <json/json.hpp>
+#include "json/json.hpp"
 
 #include <cstdlib>
 #include <iostream>

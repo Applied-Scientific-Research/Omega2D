@@ -2,7 +2,7 @@
  * Core.h - Useful values for diffusion for various core functions
  *
  * (c)2017-8 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
+ *           Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
