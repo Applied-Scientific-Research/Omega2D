@@ -2,7 +2,7 @@
  * Body.h - class for an independent solid boundary
  *
  * (c)2017-9 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
+ *           Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once
@@ -10,8 +10,8 @@
 #include "Omega2D.h"
 
 #define TE_NAT_LOG
-#include <tinyexpr/tinyexpr.h>
-#include <json/json.hpp>
+#include "tinyexpr/tinyexpr.h"
+#include "json/json.hpp"
 
 #include <string>
 #include <memory>

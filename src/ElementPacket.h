@@ -79,10 +79,10 @@ public:
     //}
 
     /* Do no special manipulation - it's OK to have unique, overlapping nodes
-    // Compare the point at the end of this to the point at the 
+    // Check if they have overlapping points on the edges
     int samef = 0;
     for (size_t i = x.size()-1; i > x.size()-Dimensions-1; i--) {
-      const int j = (i+Dimensions) % x.size();
+      const size_t j = (i+Dimensions) % x.size();
       if (x[i] == _in.x[j]) { samef += 1; }
     } // also need to do idx and val. Could just create erase function for packets
     if (samef == Dimensions) { _in.x.erase(_in.x.begin(), _in.x.begin()+Dimensions); }
@@ -106,12 +106,19 @@ public:
                    std::bind(std::plus<Int>(), std::placeholders::_1, nodecnt));
     idx.insert(idx.end(), _in.idx.begin(), _in.idx.end());
 
-    // Combine the rest of the vectors 
+    // Combine the rest of the vectors
     x.insert(x.end(), _in.x.begin(), _in.x.end());
     val.insert(val.end(), _in.val.begin(), _in.val.end());
 
     // be careful about this - don't use val.size()
     nelem += _in.nelem;
+  }
+
+  void print() {
+    for(size_t i=0; i<x.size()/Dimensions; i++) {
+      std::cout << "idx: " << idx[i] << " x: " << x[Dimensions*i] << " " << x[Dimensions*i+1] << std::endl;
+    }
+    std::cout << std::endl;
   }
 
   std::vector<S> x;

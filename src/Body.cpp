@@ -2,7 +2,7 @@
  * Body.cpp - class for an independent solid boundary
  *
  * (c)2017-9 Applied Scientific Research, Inc.
- *           Written by Mark J Stock <markjstock@gmail.com>
+ *           Mark J Stock <markjstock@gmail.com>
  */
 
 #include "Body.h"

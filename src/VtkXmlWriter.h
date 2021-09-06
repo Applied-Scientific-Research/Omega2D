@@ -7,8 +7,11 @@
  *            Mark J Stock <markjstock@gmail.com>
  *            Blake B Hillier <blakehillier@mac.com>
  */
-#ifndef VTK_H
-#define VTK_H
+
+#pragma once
+
+#include "cppcodec/base64_rfc4648.hpp"
+#include "tinyxml2/tinyxml2.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -16,8 +19,6 @@
 #include <string>
 #include <vector>
 
-#include <cppcodec/base64_rfc4648.hpp>
-#include <tinyxml2/tinyxml2.h>
 
 class VtkXmlWriter {
 public:
@@ -129,4 +130,4 @@ private:
   int m_openElements;
   std::unique_ptr<tinyxml2::XMLPrinter> m_p;
 };
-#endif
+

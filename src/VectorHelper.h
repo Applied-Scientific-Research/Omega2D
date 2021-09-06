@@ -2,7 +2,7 @@
  * VectorHelper.h - Allows the same code to use std::vector of floats or Vc's SIMD float types
  *
  * (c)2018 Applied Scientific Research, Inc.
- *         Written by Mark J Stock <markjstock@gmail.com>
+ *         Mark J Stock <markjstock@gmail.com>
  */
 
 #pragma once

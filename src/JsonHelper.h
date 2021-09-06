@@ -2,7 +2,7 @@
  * JsonHelper.h - Methods to help with reading and writing JSON files
  *
  * (c)2019 Applied Scientific Research, Inc.
- *         Written by Mark J Stock <markjstock@gmail.com>
+ *         Mark J Stock <markjstock@gmail.com>
  */
 
 #include "Simulation.h"
