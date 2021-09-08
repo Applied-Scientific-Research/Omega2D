@@ -237,6 +237,7 @@ public:
   void transform(const double _time) {
     // reset positions according to prescribed motion
     if (B and M == bodybound) {
+
       // tell the Body to compute and save its position, vel, angular pos and angular vel
       B->transform(_time);
 

@@ -16,7 +16,7 @@
 #include "RenderParams.h"
 #include "OglHelper.h"
 #include "ShaderHelper.h"
-#include <glad/glad.h>
+#include "glad/glad.h"
 #endif
 
 #include <iostream>
@@ -24,7 +24,6 @@
 #include <vector>
 #include <array>
 #include <algorithm> // for max_element
-#include <iomanip> // for setfill
 #include <optional>
 #include <cassert>
 

@@ -17,7 +17,7 @@
 #include "RenderParams.h"
 #include "OglHelper.h"
 #include "ShaderHelper.h"
-#include <glad/glad.h>
+#include "glad/glad.h"
 #endif
 
 #include <iostream>
@@ -25,7 +25,6 @@
 #include <vector>
 #include <array>
 #include <memory>
-#include <iomanip> // for setfill
 #include <random>
 #include <cassert>
 #include <cmath>

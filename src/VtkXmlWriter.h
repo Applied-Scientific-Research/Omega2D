@@ -1,4 +1,6 @@
 /*
+ * VtkXmlWriter.h - Write an XML-format VTK data file using TinyXML2
+ *
  * This class manages a writer object for vtk using the xml format.
  * Currently only supports 64 encoding and unstructured grids.
  * The next step is to start generalizing bigger writing processes for the vtu format.
