@@ -17,7 +17,7 @@
 
 #include <cmath>
 
-// helper functions: exp, recip, rsqrt, rcbrt, acos
+// helper functions: exp, recip, sqrt, rsqrt, rcbrt, acos
 
 #ifdef USE_VC
 template <class S>
