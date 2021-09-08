@@ -45,11 +45,8 @@ template <class S> using Basis = std::array<std::array<Vector<S>,Dimensions>,Dim
 template <class S>
 class Surfaces: public ElementBase<S> {
 public:
-  // constructor - accepts vector of vectors of (x,y,s) pairs
-  //               makes one boundary for each outer vector
-  //               each inner vector must have even number of floats
-  //               last parameter (_val) is either fixed strength or boundary
-  //               condition for each panel
+  // constructor - accepts standard ElementPacket now
+  //               last parameter (_val) is either fixed strength or BC for each panel
   Surfaces(const ElementPacket<float>& _elems,
            const elem_t _e,
            const move_t _m,
@@ -174,12 +171,12 @@ public:
 
       // make space for the unknown sheet strengths (only if reactive)
       if (this->E == reactive) {
-      for (size_t d=0; d<2; ++d) {
-        if (ps[d]) {
-          ps[d]->resize(nsurfs);
-          std::fill(ps[d]->begin(), ps[d]->end(), 0.0);
+        for (size_t d=0; d<2; ++d) {
+          if (ps[d]) {
+            ps[d]->resize(nsurfs);
+            std::fill(ps[d]->begin(), ps[d]->end(), 0.0);
+          }
         }
-      }
       }
 
     } else if (this->E == inert) {
@@ -784,6 +781,7 @@ public:
   void move(const double _time, const double _dt,
             const double _wt1, Surfaces<S> const & _u1,
             const double _wt2, Surfaces<S> const & _u2) {
+
     // must explicitly call the method in the base class
     ElementBase<S>::move(_time, _dt, _wt1, _u1, _wt2, _u2);
 
@@ -801,6 +799,7 @@ public:
             const double _wt0, Surfaces<S> const & _u0,
             const double _wt1, Surfaces<S> const & _u1,
             const double _wt2, Surfaces<S> const & _u2) {
+
     // must explicitly call the method in the base class
     ElementBase<S>::move(_time, _dt, _wt0, _u0, _wt1, _u1, _wt2, _u2);
 

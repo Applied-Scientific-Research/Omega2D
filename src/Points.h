@@ -200,6 +200,7 @@ public:
   //
   void move(const double _time, const double _dt,
             const double _wt1, Points<S> const & _u1) {
+
     // must explicitly call the method in the base class
     ElementBase<S>::move(_time, _dt, _wt1, _u1);
 
@@ -213,6 +214,7 @@ public:
   void move(const double _time, const double _dt,
             const double _wt1, Points<S> const & _u1,
             const double _wt2, Points<S> const & _u2) {
+
     // must explicitly call the method in the base class
     ElementBase<S>::move(_time, _dt, _wt1, _u1, _wt2, _u2);
 
