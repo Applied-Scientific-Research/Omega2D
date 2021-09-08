@@ -1,7 +1,7 @@
 /*
  * BEMHelper.h - non-class to coordinate solving the BEM problem
  *
- * (c)2019,21 Applied Scientific Research, Inc.
+ * (c)2019-21 Applied Scientific Research, Inc.
  *            Mark J Stock <markjstock@gmail.com>
  */
 
@@ -14,6 +14,7 @@
 #include "Coefficients.h"
 #include "RHS.h"
 #include "BEM.h"
+#include "ResultsType.h"
 
 #include <cstdlib>
 #include <iostream>
