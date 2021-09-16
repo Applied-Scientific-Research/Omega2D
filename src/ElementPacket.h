@@ -46,13 +46,13 @@ public:
   // To deal with points, etc. as well
   bool verify(int attribute, int check) {
     bool good = (attribute % check == 0);
-    
+
     if (x.size() % Dimensions != 0) {
       std::cout << "Size of x is not divisible by Dimensions!\nx.size(): ";
       std::cout  << x.size() << " Dimensions: " << Dimensions << std::endl;
       good = false;
     }
-    
+
    /* if (val.size() % x.size()/Dimensions != 0) {
       std::cout << "val does not have correct number of panels!\nval.size(): ";
       std::cout  << val.size() << " number of panels: " << x.size()/Dimensions << std::endl;
@@ -60,7 +60,7 @@ public:
     }*/
     return good;
   }
- 
+
   // This simply appends an Element Packet to the end of the existing packet,
   // removing any duplicate points. The end result currently is a longer segment.
   // Boundaries will need to add another set of idx values and a 0 to close it.
@@ -126,6 +126,6 @@ public:
   std::vector<S> val;
   size_t nelem;
   uint8_t ndim;	// 0=points, 1=surfaces, 2=volumes for 2D
-		// 0=points, 1=lines, 2=surfaces, 3=volumes for 3D
+                // 0=points, 1=lines, 2=surfaces, 3=volumes for 3D
 };
 

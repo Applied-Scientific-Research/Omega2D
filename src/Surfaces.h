@@ -1391,6 +1391,7 @@ protected:
 
   // strengths and BCs
   Strength<S>                       ps; // panel-wise strengths per unit length (for "active" and "reactive")
+                                        // vortex sheet strengths are 0, source is in 1
   Strength<S>                       bc; // boundary condition for the elements (only when "reactive")
   bool           source_str_is_unknown; // should the BEM solve for source strengths?
 
