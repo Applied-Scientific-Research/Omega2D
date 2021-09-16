@@ -12,7 +12,8 @@
 #include "Omega2D.h"
 #include "Feature.h"
 #include "ElementPacket.h"
-#include <json/json.hpp>
+
+#include "json/json.hpp"
 
 #include <iostream>
 #include <vector>

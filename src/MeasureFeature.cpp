@@ -291,7 +291,7 @@ MeasurementBlob::init_elements(float _ips) const {
     }
   }
   }
-  
+
   ElementPacket<float> packet({x, idx, vals, (size_t)(x.size()/2), (uint8_t)0});
   if (packet.verify(packet.x.size(), Dimensions)) {
     return packet;
@@ -371,7 +371,7 @@ bool MeasurementBlob::draw_info_gui(const std::string action, const float &trace
   float xc[2] = {m_x, m_y};
   bool add = false;
   const std::string buttonText = action+" circle of tracers";
- 
+
   ImGui::InputFloat2("center", xc);
   ImGui::SliderFloat("radius", &m_rad, ips, 1.0f, "%.4f");
   if (!m_emits) {

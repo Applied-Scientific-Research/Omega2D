@@ -11,7 +11,8 @@
 #include "Body.h"
 #include "Feature.h"
 #include "ElementPacket.h"
-#include <json/json.hpp>
+
+#include "json/json.hpp"
 
 #include <memory>
 #include <iostream>
@@ -39,17 +40,14 @@ public:
   virtual ElementPacket<float> init_elements(float) const = 0;
   virtual ElementPacket<float> step_elements(float) const = 0;
   virtual void generate_draw_geom() = 0;
+
 #ifdef USE_IMGUI
   virtual bool draw_info_gui(const std::string, const float) = 0;
-#endif 
-  
-#ifdef USE_IMGUI
   static int draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &, const float);
   static void draw_feature_list(std::vector<std::unique_ptr<FlowFeature>> &, std::unique_ptr<FlowFeature> &, int &,
                                 int &, bool &, int &);
 #endif
 
-  // emit particles as vector of float4
 };
 
 std::ostream& operator<<(std::ostream& os, FlowFeature const& ff);
@@ -74,7 +72,7 @@ public:
     {}
   SingleParticle* copy() const override 
                   { return new SingleParticle(*this); }
-  
+
   void debug(std::ostream& os) const override;
   std::string to_string() const override;
   void from_json(const nlohmann::json) override;
@@ -301,9 +299,7 @@ public:
 protected:
 };
 
-// uniformly-spaced particles
-
-// particles from file
+// read particles from file
 
 //
 // Parser for converting json object to new feature

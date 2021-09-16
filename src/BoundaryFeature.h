@@ -47,11 +47,9 @@ public:
   virtual ElementPacket<float> init_elements(const float) const = 0;
   virtual std::vector<ElementPacket<float>> init_hybrid(const float) const = 0;
   virtual void generate_draw_geom() = 0;
-#ifdef USE_IMGUI
-  virtual bool draw_info_gui(const std::string) = 0;
-#endif
 
 #ifdef USE_IMGUI
+  virtual bool draw_info_gui(const std::string) = 0;
   static int obj_movement_gui(int &, char* , char* , char* );
   static int draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeature>> &, Simulation&);
   static void draw_feature_list(std::vector<std::unique_ptr<BoundaryFeature>> &, std::unique_ptr<BoundaryFeature> &,

@@ -655,8 +655,7 @@ int main(int argc, char const *argv[]) {
 
       ImGui::Spacing();
 
-      // button and modal window for adding new boundary objects
-      // if (ImGui::Button("Add boundary")) ImGui::OpenPopup("New boundary structure");
+      // button and window for adding new boundary objects
       static bool create_bdry_f = false;
       if (ImGui::Button("Add boundary")) { create_bdry_f = true; }
       if (create_bdry_f) {
@@ -673,11 +672,10 @@ int main(int argc, char const *argv[]) {
         ImGui::End();
       }
 
-      // button and modal window for adding new flow structures
+      // button and window for adding new flow structures
       ImGui::SameLine();
       static bool create_flow_f = false;
       if (ImGui::Button("Add vortex")) { create_flow_f = true; }
-      //ImGui::OpenPopup("New flow structure");
       if (create_flow_f) {
         ImGui::SetNextWindowPos(ImVec2(100, 100), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
@@ -692,14 +690,13 @@ int main(int argc, char const *argv[]) {
         ImGui::End();
       }
 
-      // button and modal window for adding new measurement objects
+      // button and window for adding new measurement objects
       ImGui::SameLine();
-      //if (ImGui::Button("Add measurement")) ImGui::OpenPopup("New measurement structure");
       static bool create_ms_f = false;
       if (ImGui::Button("Add measurement")) { create_ms_f = true; }
       if (create_ms_f) {
         ImGui::SetNextWindowPos(ImVec2(100, 100), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(400,200), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(400, 200), ImGuiCond_FirstUseEver);
         ImGui::Begin("New measurement structure");
         int status = MeasureFeature::draw_creation_gui(mfeatures, sim.get_ips(), rparams.tracer_scale);
         if (status == 1) {
@@ -744,7 +741,7 @@ int main(int argc, char const *argv[]) {
         ImGui::EndPopup();
         }
       }
-      
+
       if (del_feat_index > -1) {
         std::cout << "Asked to delete flow feature " << del_feat_index << std::endl;
         ffeatures.erase(ffeatures.begin()+del_feat_index);
@@ -761,11 +758,11 @@ int main(int argc, char const *argv[]) {
         }
         redraw = false;
       }
-      
+
       // list existing boundary features here
       static std::unique_ptr<BoundaryFeature> tmpbf = nullptr;
       BoundaryFeature::draw_feature_list(bfeatures, tmpbf, edit_feat_index, del_feat_index, redraw, buttonIDs);
-    
+
       if (tmpbf) {
         ImGui::OpenPopup("Edit boundary feature");
         ImGui::SetNextWindowSize(ImVec2(400,275), ImGuiCond_FirstUseEver);
@@ -797,7 +794,7 @@ int main(int argc, char const *argv[]) {
         del_feat_index = -1;
         redraw = true;
       }
-     
+
       if (redraw) {
         // clear out and re-make all boundary draw geometry
         bdraw.clear_elements();

@@ -123,31 +123,30 @@ int BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeatu
   if (changed) {
     switch(mitem) {
       case 0:
-         // this geometry is fixed (attached to inertial)
-         bp = _sim.get_pointer_to_body("ground");
-         break;
+        // this geometry is fixed (attached to inertial)
+        bp = _sim.get_pointer_to_body("ground");
+        break;
       case 1:
-         // this geometry is attached to the previous geometry (or ground)
-         bp = _sim.get_last_body();
-         break;
+        // this geometry is attached to the previous geometry (or ground)
+        bp = _sim.get_last_body();
+        break;
       case 2:
-         // this geometry is attached to a new moving body
-         bp = std::make_shared<Body>();
-         bp->set_pos(0, std::string(strx));
-         bp->set_pos(1, std::string(stry));
-         bp->set_rot(std::string(strrad));
-         break;
+        // this geometry is attached to a new moving body
+        bp = std::make_shared<Body>();
+        bp->set_pos(0, std::string(strx));
+        bp->set_pos(1, std::string(stry));
+        bp->set_rot(std::string(strrad));
+        break;
     }
   }
-  
+
   // define geometry second
   static int item = 0;
   static int oldItem = -1;
-  static int numItems = 8;
-  const char* items[] = { "circle", "square", "oval", "rectangle", "segment", "polygon", "NACA 4-digit", "Msh File" };
+  const char* items[] = { "circle", "square", "oval", "rectangle", "segment", "polygon", "NACA 4-digit", "gmsh file" };
+  ImGui::Spacing();
+  ImGui::Combo("geometry type", &item, items, 8);
 
-  ImGui::Combo("geometry type", &item, items, numItems);
-  
 
   // show different inputs based on what is selected
   static std::unique_ptr<BoundaryFeature> bf = nullptr;
@@ -203,7 +202,7 @@ int BoundaryFeature::draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeatu
     created = 2;
     bf = nullptr;
   }
- 
+
   return created;
 }
 
