@@ -9,8 +9,6 @@
 #include "BoundaryFeature.h"
 #include "FlowFeature.h"
 #include "imgui/imgui.h"
-#include "imgui/imgui_impl_glfw.h"
-#include "imgui/imgui_impl_opengl3.h"
 
 #include <algorithm>
 #include <cmath>
@@ -59,7 +57,9 @@ void parse_flow_json(std::vector<std::unique_ptr<FlowFeature>>& _flist,
 int FlowFeature::draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &ffs, const float ips) {
   static int item = 1;
   static int oldItem = -1;
-  const char* items[] = { "single particle", "round vortex blob", "Gaussian vortex blob", "asymmetric vortex blob", "block of vorticity", "random particles", "particle emitter" };
+  const char* items[] = { "single particle", "round vortex blob", "Gaussian vortex blob",
+                          "asymmetric vortex blob", "block of vorticity", "random particles",
+                          "particle emitter" };
   ImGui::Combo("type", &item, items, 7);
 
   // show different inputs based on what is selected
@@ -145,9 +145,7 @@ void FlowFeature::draw_feature_list(std::vector<std::unique_ptr<FlowFeature>> &f
 #endif
 
 //
-// important feature: convert flow feature definition into actual float4 particles
-//
-// each 4 floats is one particle's: x, y, strength, vdelta (radius)
+// important feature: convert flow feature definition into an ElementPacket
 //
 
 //
@@ -156,8 +154,7 @@ void FlowFeature::draw_feature_list(std::vector<std::unique_ptr<FlowFeature>> &f
 ElementPacket<float>
 SingleParticle::init_elements(float _ips) const {
   std::cout << "Creating single particle" << std::endl;
-  //if (this->is_enabled()) return std::vector<float>({m_x, m_y, m_str, 0.0});
-  //else return std::vector<float>();
+
   std::vector<float> x = {m_x, m_y};
   std::vector<Int> idx = {};
   std::vector<float> vals = {m_str};
@@ -218,13 +215,14 @@ bool SingleParticle::draw_info_gui(const std::string action, const float ips) {
   // a single vortex particle
   float xc[2] = {m_x, m_y};
   const std::string buttonText = action+" single particle";
- 
+
   ImGui::InputFloat2("center", xc);
   ImGui::SliderFloat("strength", &m_str, -1.0f, 1.0f, "%.4f");
   ImGui::TextWrapped("This feature will add 1 particle");
   if (ImGui::Button(buttonText.c_str())) { add = true; }
   m_x = xc[0];
   m_y = xc[1];
+
   return add;
 }
 #endif

@@ -60,7 +60,8 @@ void parse_measure_json(std::vector<std::unique_ptr<MeasureFeature>>& _flist,
 int MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &mfs, const float _ips, const float &_tracerScale) {
   static int item = 0;
   static int oldItem = -1;
-  const char* items[] = { "single point", "measurement circle", "measurement line", "measurement grid", "measurement field", "annular field" };
+  const char* items[] = { "single point", "measurement circle", "measurement line", "measurement grid",
+                          "measurement field", "annular field" };
   ImGui::Combo("type", &item, items, 6);
 
   // show different inputs based on what is selected
@@ -109,13 +110,13 @@ int MeasureFeature::draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature
 }
 
 void MeasureFeature::draw_feature_list(std::vector<std::unique_ptr<MeasureFeature>> &feat,
-                                       std::unique_ptr<MeasureFeature> &editingFeat, int &edit_feat_index, 
+                                       std::unique_ptr<MeasureFeature> &editingFeat, int &edit_feat_index,
                                        int &del_feat_index, bool &redraw, int &buttonIDs) {
   for (int i=0; i<(int)feat.size(); ++i) {
     ImGui::PushID(++buttonIDs);
     if (ImGui::Checkbox("", feat[i]->addr_enabled())) { redraw = true; }
     ImGui::PopID();
-    
+
     // add an "edit" button after the checkbox (so it's not easy to accidentally hit remove)
     ImGui::SameLine();
     ImGui::PushID(++buttonIDs);
@@ -124,7 +125,7 @@ void MeasureFeature::draw_feature_list(std::vector<std::unique_ptr<MeasureFeatur
       edit_feat_index = i;
     }
     ImGui::PopID();
-    
+
     if (feat[i]->is_enabled()) {
       ImGui::SameLine();
       ImGui::Text("%s", feat[i]->to_string().c_str());

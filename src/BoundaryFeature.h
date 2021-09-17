@@ -37,7 +37,7 @@ public:
 
   virtual ~BoundaryFeature() = default;
   virtual BoundaryFeature* copy() const = 0;
-  
+
   virtual void debug(std::ostream& os) const = 0;
   virtual std::string to_string() const = 0;
   virtual std::string to_short_string() const = 0;
@@ -52,7 +52,8 @@ public:
   virtual bool draw_info_gui(const std::string) = 0;
   static int obj_movement_gui(int &, char* , char* , char* );
   static int draw_creation_gui(std::vector<std::unique_ptr<BoundaryFeature>> &, Simulation&);
-  static void draw_feature_list(std::vector<std::unique_ptr<BoundaryFeature>> &, std::unique_ptr<BoundaryFeature> &,
+  static void draw_feature_list(std::vector<std::unique_ptr<BoundaryFeature>> &,
+                                std::unique_ptr<BoundaryFeature> &,
                                 int &, int &, bool &, int &);
 #endif
 

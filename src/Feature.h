@@ -37,7 +37,7 @@ public:
   virtual nlohmann::json to_json() const = 0;
   virtual ElementPacket<float> init_elements(float) const = 0;
   virtual void generate_draw_geom() = 0;
-  
+
   void enable() { m_enabled = true; };
   void disable() { m_enabled = false; };
   bool is_enabled() const { return m_enabled; };

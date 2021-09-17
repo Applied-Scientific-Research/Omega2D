@@ -47,7 +47,7 @@ public:
 #ifdef USE_IMGUI
   virtual bool draw_info_gui(const std::string, const float &, const float) = 0;
 #endif
- 
+
   bool moves() const { return m_is_lagrangian; }
   bool emits() const { return m_emits; }
   float jitter(const float, const float) const;
@@ -55,7 +55,8 @@ public:
 
 #ifdef USE_IMGUI
   static int draw_creation_gui(std::vector<std::unique_ptr<MeasureFeature>> &, const float, const float &);
-  static void draw_feature_list(std::vector<std::unique_ptr<MeasureFeature>> &, std::unique_ptr<MeasureFeature> &,
+  static void draw_feature_list(std::vector<std::unique_ptr<MeasureFeature>> &,
+                                std::unique_ptr<MeasureFeature> &,
                                 int &, int &, bool &, int &);
 #endif
 

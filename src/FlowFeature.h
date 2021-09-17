@@ -44,7 +44,8 @@ public:
 #ifdef USE_IMGUI
   virtual bool draw_info_gui(const std::string, const float) = 0;
   static int draw_creation_gui(std::vector<std::unique_ptr<FlowFeature>> &, const float);
-  static void draw_feature_list(std::vector<std::unique_ptr<FlowFeature>> &, std::unique_ptr<FlowFeature> &, int &,
+  static void draw_feature_list(std::vector<std::unique_ptr<FlowFeature>> &,
+                                std::unique_ptr<FlowFeature> &, int &,
                                 int &, bool &, int &);
 #endif
 
