@@ -1,5 +1,5 @@
 /*
- * PSE.h - Library code for a two-dimensional Particle-strength-exchange scheme
+ * PSE.h - Library code for a two-dimensional Particle-Strength-Exchange scheme
  *
  * (c)2018-20 Applied Scientific Research, Inc.
  *            Mark J Stock <markjstock@gmail.com>
@@ -9,12 +9,13 @@
 
 #include "Core.h"
 #include "VectorHelper.h"
+
 #include "nanoflann/nanoflann.hpp"
-#include <json/json.hpp>
+#include "json/json.hpp"
 
 #include <Eigen/Dense>
 
-#include <algorithm>
+#include <algorithm>	// for std::max
 #include <cassert>
 #include <cmath>
 #include <cstdint>
@@ -79,12 +80,14 @@ protected:
 
 private:
 
+  // useful constants
+  static const int32_t minNearby = 7;
+  static const int32_t max_near = 256;
+
   // new point insertion sites (normalized to nominal separation and centered around origin)
   static const size_t num_sites = 30;
   std::array<ST,num_sites> xsite,ysite;
   void initialize_sites();
-  static const int32_t minNearby = 7;
-  static const int32_t max_near = 256;
 
   // do not perform PSE if source particle strength is less than
   //   this fraction of max particle strength
@@ -164,8 +167,8 @@ size_t PSE<ST,CT>::add_new_boundary_parts(Vector<ST>& x,
   std::cout << "  Adding buffer particles with n " << n << std::endl;
 
   // convert particle positions into something nanoflann can understand
-  Eigen::Matrix<ST, Eigen::Dynamic, 2> xp;
-  xp.resize(n,2);
+  Eigen::Matrix<ST, Eigen::Dynamic, Dimensions> xp;
+  xp.resize(n,Dimensions);
   xp.col(0) = Eigen::Map<Eigen::Matrix<ST, Eigen::Dynamic, 1> >(x.data(), n);
   xp.col(1) = Eigen::Map<Eigen::Matrix<ST, Eigen::Dynamic, 1> >(y.data(), n);
   
@@ -219,7 +222,7 @@ size_t PSE<ST,CT>::add_new_boundary_parts(Vector<ST>& x,
 
       // now direct search over all newer particles
       for (size_t j=initial_n; j<n; ++j) {
-        ST distsq = std::pow(x[i]-x[j], 2) + std::pow(y[i]-y[j], 2);
+        const ST distsq = std::pow(x[i]-x[j], 2) + std::pow(y[i]-y[j], 2);
         if (distsq < distsq_thresh) inear.push_back((int32_t)j);
       }
 
@@ -228,7 +231,7 @@ size_t PSE<ST,CT>::add_new_boundary_parts(Vector<ST>& x,
       //   ideally this would be a tree search
       const ST distsq_thresh = std::pow(search_rad, 2);
       for (size_t j=0; j<n; ++j) {
-        ST distsq = std::pow(x[i]-x[j], 2) + std::pow(y[i]-y[j], 2);
+        const ST distsq = std::pow(x[i]-x[j], 2) + std::pow(y[i]-y[j], 2);
         if (distsq < distsq_thresh) inear.push_back((int32_t)j);
       }
     }
@@ -284,7 +287,7 @@ std::pair<ST,ST> PSE<ST,CT>::fill_neighborhood_search(const int32_t idx,
     // find the nearest particle to this site
     ST mindistsq = nom_sep * nom_sep;
     for (size_t j=0; j<inear.size(); ++j) {
-      ST distsq = std::pow(x[inear[j]]-tx[i], 2) + std::pow(y[inear[j]]-ty[i], 2);
+      const ST distsq = std::pow(x[inear[j]]-tx[i], 2) + std::pow(y[inear[j]]-ty[i], 2);
       if (distsq < mindistsq) mindistsq = distsq;
     }
     nearest[i] = mindistsq;
@@ -350,8 +353,8 @@ void PSE<ST,CT>::diffuse_all(std::array<Vector<ST>,2>& pos,
   n = x.size();
 
   // convert particle positions into something nanoflann can understand
-  Eigen::Matrix<ST, Eigen::Dynamic, 2> xp;
-  xp.resize(n,2);
+  Eigen::Matrix<ST, Eigen::Dynamic, Dimensions> xp;
+  xp.resize(n,Dimensions);
   xp.col(0) = Eigen::Map<Eigen::Matrix<ST, Eigen::Dynamic, 1> >(x.data(), n);
   xp.col(1) = Eigen::Map<Eigen::Matrix<ST, Eigen::Dynamic, 1> >(y.data(), n);
   
@@ -402,7 +405,7 @@ void PSE<ST,CT>::diffuse_all(std::array<Vector<ST>,2>& pos,
         // direct search: look for all neighboring particles
         const ST distsq_thresh = std::pow(search_rad, 2);
         for (size_t j=0; j<n; ++j) {
-          ST distsq = std::pow(x[i]-x[j], 2) + std::pow(y[i]-y[j], 2);
+          const ST distsq = std::pow(x[i]-x[j], 2) + std::pow(y[i]-y[j], 2);
           if (distsq < distsq_thresh) inear.push_back((int32_t)j);
         }
       }
@@ -462,15 +465,6 @@ void PSE<ST,CT>::diffuse_all(std::array<Vector<ST>,2>& pos,
 
   std::cout << "  Running PSE with n " << n << std::endl;
 
-  // zero out delta vector
-  std::fill(ds.begin(), ds.end(), 0.0);
-
-  // what is maximum strength of all particles?
-  //const ST maxStr = s[std::max_element(s.begin(), s.end()) - s.begin()];
-  //const ST minStr = s[std::min_element(s.begin(), s.end()) - s.begin()];
-  //const ST maxAbsStr = std::max(maxStr, -1.f*minStr);
-  //std::cout << "maxAbsStr " << maxAbsStr << std::endl;
-
   // for each particle (can parallelize this part)
   size_t nneibs = 0;
   size_t minneibs = 999999;
@@ -510,7 +504,7 @@ void PSE<ST,CT>::diffuse_all(std::array<Vector<ST>,2>& pos,
       // direct search: look for all neighboring particles
       const ST distsq_thresh = std::pow(search_rad, 2);
       for (size_t j=0; j<n; ++j) {
-        ST distsq = std::pow(x[i]-x[j], 2) + std::pow(y[i]-y[j], 2);
+        const ST distsq = std::pow(x[i]-x[j], 2) + std::pow(y[i]-y[j], 2);
         if (distsq < distsq_thresh) inear.push_back((int32_t)j);
       }
 
@@ -556,15 +550,6 @@ void PSE<ST,CT>::diffuse_all(std::array<Vector<ST>,2>& pos,
       // loop over all participating particles
       for (size_t j=0; j<inear.size(); ++j) {
         const int32_t jdx = inear[j];
-        // for now, do not consider particle sizes or volumes
-        CT str_diff;
-        if (use_volumes) {
-          // scale strengths by volumes
-          str_diff = vol[i]*s[jdx] - vol[jdx]*s[i];
-        } else {
-          // no volumes - just compare strengths
-          str_diff = s[jdx] - s[i];
-        }
         // all distances are unnormalized
         const CT dx = x[i] - x[jdx];
         const CT dy = y[i] - y[jdx];
@@ -574,8 +559,15 @@ void PSE<ST,CT>::diffuse_all(std::array<Vector<ST>,2>& pos,
         // eta_eps in PSE terminology is corefunc / -dist
         const CT eta = dist * std::exp(-distcub);
         //printf("  part %d w str %g has neib %d %g away, eta is %g and change is %g\n", i, s[i], jdx, dist*r[i], eta, 2.0*h_nu*str_diff*eta);
-        // compute the strength change
-        ds[i] += str_diff * eta;
+
+        // compute and apply the strength change
+        if (use_volumes) {
+          // scale strengths by volumes
+          ds[i] += eta * (vol[i]*s[jdx] - vol[jdx]*s[i]);
+        } else {
+          // no volumes - just compare strengths
+          ds[i] += eta * (s[jdx] - s[i]);
+        }
       }
 
       // scale the ds by the proper constant factor
