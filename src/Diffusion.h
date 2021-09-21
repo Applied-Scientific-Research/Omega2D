@@ -321,7 +321,7 @@ void Diffusion<S,A,I>::step(const double                _time,
         // add those particles to the main particle list
         if (_vort.size() == 0) {
           // no collections yet? make a new collection
-          _vort.push_back(Points<S>(new_pts, active, lagrangian, nullptr, _vdelta));      // vortons
+          _vort.push_back(Points<S>(new_pts, active, lagrangian, nullptr, _vdelta));
         } else {
           // HACK - add all particles to first collection
           auto& coll = _vort.back();
@@ -360,6 +360,13 @@ void Diffusion<S,A,I>::draw_advanced() {
   ImGui::Spacing();
   ImGui::Text("Diffusion settings");
 
+  //ImGui::PushItemWidth(-270);
+  //float merge_thresh = sim.get_merge_thresh();
+  //ImGui::SliderFloat("Merge threshold", &merge_thresh, 0.0, 0.5, "%.2f");
+  //ImGui::SameLine();
+  //ShowHelpMarker("Merge pairs of particles closer than this relative distance.");
+  //sim.set_merge_thresh(merge_thresh);
+  //ImGui::PopItemWidth();
 
   // select diffusion type among available
   int diff_item = 3;		// default is VRM
