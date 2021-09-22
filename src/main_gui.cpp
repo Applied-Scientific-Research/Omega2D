@@ -15,9 +15,12 @@
 #include "Body.h"
 #include "RenderParams.h"
 #include "FeatureDraw.h"
-#include "json/json.hpp"
 #include "main_gui_functions.cpp"
+#include "GuiHelper.h"
+
+#include "json/json.hpp"
 #include "imgui/imgui_internal.h"
+#include "miniz/FrameBufferToImage.h"
 
 #ifdef _WIN32
   // for glad
@@ -29,12 +32,6 @@
 #endif
 #include "glad.h"
 
-// header-only immediate-mode GUI
-#include "GuiHelper.h"
-
-// header-only png writing
-#include "miniz/FrameBufferToImage.h"
-
 //#include <GL/gl3w.h>    // This example is using gl3w to access OpenGL
 // functions (because it is small). You may use glew/glad/glLoadGen/etc.
 // whatever already works for you.
@@ -44,7 +41,6 @@
 #include <iostream>
 #include <vector>
 #include <iomanip>	// for setfill, setw
-//#include <fenv.h>
 
 
 // execution starts here
@@ -714,6 +710,7 @@ int main(int argc, char const *argv[]) {
 
       ImGui::Spacing();
 
+      // list existing flow features here
       static std::unique_ptr<FlowFeature> tmpff = nullptr;
       static int edit_feat_index = -1;
       int del_feat_index = -1;
