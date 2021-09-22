@@ -1896,7 +1896,7 @@ FromMsh::to_json() const {
 #ifdef USE_IMGUI
 bool FromMsh::draw_info_gui(const std::string action) {
   bool add = false;
-  bool try_it = false;
+  static bool try_it = false;
   static bool show_msh_input_window = false;
   static std::string infile = m_infile;	// full path
   static std::string infileshort = infile;	// just file name
@@ -1947,6 +1947,7 @@ bool FromMsh::draw_info_gui(const std::string action) {
   if (ImGui::Button(buttonText.c_str())) {
     if (try_it and !infile.empty()) {
       std::cout << infile << std::endl;
+      try_it = false;
     } else {
       std::cout << "ERROR LOADING FILE FROM .msh FILE" << std::endl;
     }
