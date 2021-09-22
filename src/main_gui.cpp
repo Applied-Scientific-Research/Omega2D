@@ -461,9 +461,13 @@ int main(int argc, char const *argv[]) {
     if (ImGui::Button("Load from json", ImVec2(10+fontSize*8,0))) show_json_input_window = true;
 
     if (show_json_input_window) {
+
+      // FileIO is now a modal, see code in lib/imgui/ImguiWindowsFileIO.cpp
+      ImGui::OpenPopup("FileIO");
+
       bool try_it = false;
       static std::string infile = "input.json";
-      if (fileIOWindow( try_it, infile, recent_json_files, "Open", {"*.json", "*.*"}, true, ImVec2(200+26*fontSize,300))) {
+      if (fileIOWindow(try_it, infile, recent_json_files, "Open", {"*.json", "*.*"}, true, ImVec2(200+26*fontSize,300))) {
         show_json_input_window = false;
 
         if (try_it and !infile.empty()) {
@@ -900,7 +904,10 @@ int main(int argc, char const *argv[]) {
       bool try_it = false;
       static std::string outfile = "file_name.json";
 
-      if (fileIOWindow( try_it, outfile, recent_json_files, "Save", {"*.json"}, false, ImVec2(200+26*fontSize,300))) {
+      // FileIO is now a modal, see code in lib/imgui/ImguiWindowsFileIO.cpp
+      ImGui::OpenPopup("FileIO");
+
+      if (fileIOWindow(try_it, outfile, recent_json_files, "Save", {"*.json"}, false, ImVec2(200+26*fontSize,300))) {
         show_file_output_window = false;
 
         if (try_it) {
