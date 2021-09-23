@@ -1,14 +1,17 @@
 /*
  * Body.cpp - class for an independent solid boundary
  *
- * (c)2017-9 Applied Scientific Research, Inc.
- *           Mark J Stock <markjstock@gmail.com>
+ * (c)2017-21 Applied Scientific Research, Inc.
+ *            Mark J Stock <markjstock@gmail.com>
  */
 
 #include "Body.h"
 
 #include <cassert>
 #include <iostream>
+
+// use this differential to evaluate velocities (in the absence of a differentiator function)
+const double DT = 1.e-6;
 
 //
 // A single rigid body
@@ -125,84 +128,52 @@ void Body::set_rot(const std::string _val) {
   }
 }
 
-void Body::transform(const double _time) {
-
-  // evaluate all expressions at this time
-  const double dt = 1.e-5;
-
-  for (size_t i=0; i<Dimensions; ++i) {
-    if (pos_func[i]) {
-      this_time = _time;
-      pos[i] = te_eval(pos_func[i]);
-
-      this_time = _time + dt;
-      const double pplus = te_eval(pos_func[i]);
-      this_time = _time - dt;
-      const double pminus = te_eval(pos_func[i]);
-      vel[i] = (pplus - pminus) / (2.0*dt);
-    }
-  }
-
-  if (apos_func) {
-    this_time = _time;
-    apos = te_eval(apos_func);
-    apos = std::remainder(apos, 2.0*M_PI);
-
-    this_time = _time + dt;
-    const double pplus = te_eval(apos_func);
-    this_time = _time - dt;
-    const double pminus = te_eval(apos_func);
-    // 2-point first derivative estimate
-    avel = (pplus - pminus) / (2.0*dt);
-  }
-}
-
 Vec Body::get_pos() {
   return pos;
 }
 Vec Body::get_pos(const double _time) {
-  // for testing, return a loop
-  //pos[0] = 0.5 * sin(2.0*_time);
-  //pos[1] = 0.5 * (1.0-cos(2.0*_time));
+  Vec newpos;
 
-  // for realsies, get the value or evaluate the expression
+  // get the value or evaluate the expression
   this_time = _time;
   //std::cout << "  MOVING BODY (" << get_name() << ") at time " << _time << std::endl;
   for (size_t i=0; i<Dimensions; ++i) {
     if (pos_func[i]) {
-      pos[i] = te_eval(pos_func[i]);
+      newpos[i] = te_eval(pos_func[i]);
       //std::cout << "IDEAL POS " << (0.5 * (1.0-cos(2.0*_time))) << "  AND ACTUAL " << pos[i] << std::endl;
       //std::cout << "  MOVED BODY pos[" << i << "] to " << pos[i] << std::endl;
+    } else {
+      newpos[i] = pos[i];
     }
   }
 
-  return pos;
+  return newpos;
 }
 
 Vec Body::get_vel() {
   return vel;
 }
 Vec Body::get_vel(const double _time) {
-  // for testing, return a loop
-  //vel[0] = cos(2.0*_time);
-  //vel[1] = 0.5 * 2.0*sin(2.0*_time);
+  Vec newvel;
 
-  // 2-point first derivative estimate
-  const double dt = 1.e-5;
+  // use 2-point first derivative estimate
   for (size_t i=0; i<Dimensions; ++i) {
     if (pos_func[i]) {
-      this_time = _time + dt;
+      this_time = _time + DT;
       const double pplus = te_eval(pos_func[i]);
-      this_time = _time - dt;
+      this_time = _time - DT;
       const double pminus = te_eval(pos_func[i]);
-      vel[i] = (pplus - pminus) / (2.0*dt);
+      newvel[i] = (pplus - pminus) / (2.0*DT);
       //std::cout << "      VEL " << (0.5 * 2.0*sin(2.0*_time)) << "  AND ACTUAL " << vel[i] << std::endl;
       //std::cout << "        used " << pplus << " and " << pminus << std::endl;
+    } else {
+      newvel[i] = vel[i];
     }
   }
 
-  return vel;
+  return newvel;
 }
+  
 
 double Body::get_orient() {
   return apos;
@@ -225,18 +196,29 @@ double Body::get_rotvel() {
 }
 double Body::get_rotvel(const double _time) {
 
-  // 2-point first derivative estimate
-  const double dt = 1.e-5;
+  // use 2-point first derivative estimate
   if (apos_func) {
-    this_time = _time + dt;
+    this_time = _time + DT;
     const double pplus = te_eval(apos_func);
-    this_time = _time - dt;
+    this_time = _time - DT;
     const double pminus = te_eval(apos_func);
-    avel = (pplus - pminus) / (2.0*dt);
+    avel = (pplus - pminus) / (2.0*DT);
   }
 
   return avel;
 }
+
+
+void Body::transform(const double _time) {
+  // first do positions and velocities
+  pos = get_pos(_time);
+  vel = get_vel(_time);
+
+  // then rotations
+  apos = get_orient(_time);
+  avel = get_rotvel(_time);
+}
+
 
 // compare motion vs another Body
 bool Body::relative_motion_vs(std::shared_ptr<Body> _other, const double _last, const double _current) {
