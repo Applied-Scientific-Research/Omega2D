@@ -252,35 +252,6 @@ void Convection<S,A,I>::advect(const double                         _time,
   else advect_3rd(_time, _dt, _fs, _ips, _vort, _bdry, _fldpt, _bem);
 
   // do the smarter, general way - ugh, maybe later
-
-  // require temporary storage for multistep methods
-  //typedef typename std::pair<double,std::vector<Collection>> SubStep;
-  //std::vector<std::vector<Collection>> vortss(convection_order-1);
-  //std::vector<std::vector<Collection>> fldptss(convection_order-1);
-
-  if (convection_order == 1) {
-    // just take the first step and be done
-    //find_derivs(_time, _fs, _bem, _bdry, _vort, _fldpt);
-    //step_into(_time, 1.0*_dt, _bdry, _bdry, _bdry);
-    //step_into(_time, 1.0*_dt, _vort, _vort, _vort);
-    //step_into(_time, 1.0*_dt, _fldpt, _fldpt, _fldpt);
-    //clear_inner_layer<S>(1, _bdry, _vort, 0.5/std::sqrt(2.0*M_PI), _ips);
-    //clear_inner_layer<S>(1, _bdry, _fldpt, 0.5/std::sqrt(2.0*M_PI), _ips);
-  } else if (convection_order == 2) {
-    // first step
-    //find_derivs(_time, _fs, _bdry, _bem, _vort, _fldpt);
-    //step_into(_time, 1.0*_dt, _bdry, _bdry, _bdry);
-    //step_into(_time, 1.0*_dt, _vort, _vort, vortss[0]);
-    //step_into(_time, 1.0*_dt, _fldpt, _fldpt, fldptss[0]);
-    // second step
-    //find_derivs(_time, _fs, _bdry, _bem, vortss[0], fldptss[0]);
-    //step_into(_time, 0.5*_dt, _vort, _vort, _vort);
-    //step_into(_time, 0.5*_dt, _vort, vortss[0], _vort);
-    //step_into(_time, 0.5*_dt, _fldpt, vortss[0], fldptss[0]);
-  } else if (convection_order == 3) {
-  } else if (convection_order == 4) {
-  } else {
-  }
 }
 
 
