@@ -596,6 +596,10 @@ void Convection<S,A,I>::draw_advanced() {
   ImGui::Spacing();
   ImGui::Text("Convection settings");
 
+  ImGui::SliderInt("Time Order", &convection_order, 1, 3);
+  ImGui::SameLine();
+  ShowHelpMarker("Select Euler's 1st order, Ralston's 2nd, or Ralston's 3rd order methods.");
+
   static bool use_internal_solver = conv_env.is_internal();
 #ifdef EXTERNAL_VEL_SOLVE
   ImGui::Checkbox("Use internal velocity solver", &use_internal_solver);
