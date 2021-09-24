@@ -228,12 +228,12 @@ public:
   // 3rd order RK advection and stretch
   //
   void move(const double _time, const double _dt,
-            const double _wt0, Points<S> const & _u0,
             const double _wt1, Points<S> const & _u1,
-            const double _wt2, Points<S> const & _u2) {
+            const double _wt2, Points<S> const & _u2,
+            const double _wt3, Points<S> const & _u3) {
 
     // must explicitly call the method in the base class
-    ElementBase<S>::move(_time, _dt, _wt0, _u0, _wt1, _u1, _wt2, _u2);
+    ElementBase<S>::move(_time, _dt, _wt1, _u1, _wt2, _u2, _wt3, _u3);
 
     // must confirm that incoming time derivates include velocity (?)
 
