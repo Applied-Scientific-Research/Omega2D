@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <glad/glad.h>
+#include "glad.h"
 
 #include <iostream>
 #include <vector>
@@ -70,11 +70,12 @@ public:
   // we probably don't need this
   GLsizei num_uploaded;
 
-  // some number of attributes
+  // drawing attributes
   GLint projmat_attribute, projmat_attribute_bl, projmat_attribute_pt, quad_attribute_bl, quad_attribute_pt;
   GLint def_color_attribute, pos_color_attribute, neg_color_attribute; //, back_color_attribute; 
   GLint use_def_attribute; //, use_back_attribute;
   GLint str_scale_attribute, unif_rad_attribute, rad_scale_attribute;
 
+  // compute attributes would go here
 };
 

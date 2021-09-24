@@ -15,6 +15,7 @@
 #include "RHS.h"
 #include "BEM.h"
 #include "ResultsType.h"
+#include "ExecEnv.h"
 
 #include <cstdlib>
 #include <iostream>

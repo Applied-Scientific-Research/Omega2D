@@ -10,10 +10,10 @@
 #ifdef USE_IMGUI
 
 // header-only immediate-mode GUI
-#include <imgui/imgui.h>
-#include <imgui/imgui_impl_glfw.h>
-#include <imgui/imgui_impl_opengl3.h>
-#include <imgui/ImguiWindowsFileIO.hpp>
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
+#include "imgui/ImguiWindowsFileIO.hpp"
 
 // adds a (?) help text
 static inline void ShowHelpMarker(const char* desc)
