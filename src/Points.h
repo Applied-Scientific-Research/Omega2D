@@ -36,7 +36,7 @@ template <class S>
 class Points: public ElementBase<S> {
 public:
   // only constructor now - using ElementPacket
-  Points(const ElementPacket<float>& _in,
+  Points(const ElementPacket<S>& _in,
          const elem_t _e,
          const move_t _m,
          std::shared_ptr<Body> _bp,
@@ -231,6 +231,7 @@ public:
             const double _wt0, Points<S> const & _u0,
             const double _wt1, Points<S> const & _u1,
             const double _wt2, Points<S> const & _u2) {
+
     // must explicitly call the method in the base class
     ElementBase<S>::move(_time, _dt, _wt0, _u0, _wt1, _u1, _wt2, _u2);
 
@@ -726,13 +727,13 @@ public:
   }
 
 protected:
-  // additional state vector
-  Vector<S> r;					// thickness/radius
-  // in 3D, this is where elong and ug would be
+  // additional state vectors
+  Vector<S> r;		// thickness/radius
+  // elong and ug in 3D
 
 private:
 #ifdef USE_GL
-  std::shared_ptr<GlState> mgl;
+  std::shared_ptr<GlState> mgl;		// for drawing only
 #endif
   float max_strength;
 };
