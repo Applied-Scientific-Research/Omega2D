@@ -50,12 +50,11 @@ The above commands should work verbatim on Linux and OSX. Don't ask about Window
 #### Compile
 Upon installation of the prerequisites, the following commands should build Omega2D.
 
-    git clone git@github.com:Applied-Scientific-Research/Omega2D.git
+    git clone --recurse-submodules git@github.com:Applied-Scientific-Research/Omega2D.git
     cd Omega2D
-    git submodule update --init --recursive
     mkdir build
     cd build
-    cmake -DCMAKE_BUILD_TYPE=Release -DUSE_OMP=ON -DUSE_VC=OFF ..
+    cmake -DCMAKE_BUILD_TYPE=Release -DUSE_HO_HYBRID=CXX -DUSE_OMP=ON -DUSE_VC=OFF ..
     make
 
 If you were able to build and install Vc, then you should set `-DUSE_VC=ON` in the above `cmake` command.
@@ -87,6 +86,15 @@ There are several collapsible headers which you can open to modify this simulati
 ![screenshot](media/Screenshot_v5b.png?raw=true "Flow over a circular cylinder")
 
 Pictured above is a simulation of viscous flow over a circular cylinder at Reynolds number 250 after 76 steps. The blue and red fields represent negative and positive vorticity (rotation). Vorticity is created when flow moves over a solid boundary, but must stick to the boundary surface. Because this flow solver uses vortex methods, we only require computational elements (vortex particles) where there is vorticity - nowhere else.
+
+### Run a hybrid case
+Omega2D now comes batched with HO-CXX, a submodule which contains a high-order Eulerian velocity-vorticity CFD solver. This method can be used to achieve better resolution and accuracy in regions with high vorticity gradients like walls.
+
+To run a case which uses this Eulerian solver in some regions and the default Lagrangian vortex methods solver in all other regions, you will need a mesh created by a more recent version of [GMSH](https://gmsh.info/). Look in the `extern/gmsh-reader/data` directory for some scripts to assist you. This mesh must define one or more named `Physical Curve` objects called `open`, and optionally `wall`, `inlet`, and `outlet`. The fluid domain should be a `Physical Surface("fluid")`.
+
+Load the mesh file into the GUI under `Startup structures`->`Add boundary`->`gmsh file`. Then under the `Solver parameters (advanced)` tab, inside `Hybrid/Grid settings` you can set runtime parameters such as the element order, integration order, and number of substeps.
+
+Output from the gridded region will automatically be written to high-order xml-based VTK files when you click `All to VTU`. Open these files in [ParaView](https://www.paraview.org/) alongside the particle data.
 
 ### Run a batch job
 If you already have an input file in JSON format, or you exported one from the GUI, you can run a batch (no GUI) simulation with
