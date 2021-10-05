@@ -1,5 +1,11 @@
 R"(
 #version 150
+//
+// surfaceline.frag - color pass-through
+//
+// (c)2019 Applied Scientific Research, Inc.
+//         Mark J. Stock <markjstock@gmail.com>
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
