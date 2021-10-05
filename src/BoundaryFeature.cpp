@@ -12,7 +12,9 @@
 #include "read_MSH_Mesh.h"
 #include "SegmentHelper.h"
 
+#ifdef USE_IMGUI
 #include "imgui/imgui_stdlib.h"	// needed for ImGui::InputText
+#endif
 
 #define __STDCPP_WANT_MATH_SPEC_FUNCS__ 1
 #include <cassert>
