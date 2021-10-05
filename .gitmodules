@@ -1,3 +1,6 @@
 [submodule "extern/gmsh-reader"]
 	path = extern/gmsh-reader
 	url = https://github.com/Applied-Scientific-Research/gmsh-reader.git
+[submodule "extern/HO-CXX"]
+	path = extern/HO-CXX
+	url = git@github.com:Applied-Scientific-Research/HO-CXX.git
