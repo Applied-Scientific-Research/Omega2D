@@ -1,7 +1,7 @@
 /*
  * ElementPacket.h - Pass around fundamental geometry
  *
- * (c)2018-21 Applied Scientific Research, Inc.
+ * (c)2018-22 Applied Scientific Research, Inc.
  *            Mark J Stock <markjstock@gmail.com>
  *            Blake B Hillier <blakehillier@mac.com>
  *
@@ -127,6 +127,35 @@ public:
     nelem += _in.nelem;
   }
 
+  // move the geometry the given amount - affects only the x vector
+  void translate(const S _x, const S _y) {
+    for (size_t i=0; i<x.size()/Dimensions; ++i) {
+      x[i*Dimensions+0] += _x;
+      x[i*Dimensions+1] += _y;
+    }
+  }
+
+  // flip the normals by juggling the node index order
+  void reorient() {
+    if (ndim == 0) {
+      // points can't be reversed
+      assert(false && "Trying to reorient a point in 2D");
+    } else if (ndim == 1) {
+      // lines can, and will be, but not high order lines!
+      const size_t nidxper = idx.size() / nelem;
+      for (size_t ielem=0; ielem<nelem; ++ielem) {
+        std::reverse(idx.begin()+ielem*nidxper, idx.begin()+(ielem+1)*nidxper-1);
+      }
+    } else if (ndim == 2) {
+      // surfaces can, but we won't
+      assert(false && "Trying to reorient a surface in 2D");
+    } else if (ndim == 3) {
+      // volumes don't exist
+      assert(false && "Trying to reorient a volume in 2D");
+    }
+  }
+
+  // output the nodes (for debugging only)
   void print() {
     for(size_t i=0; i<x.size()/Dimensions; i++) {
       std::cout << "idx: " << idx[i] << " x: " << x[Dimensions*i] << " " << x[Dimensions*i+1] << std::endl;
@@ -138,7 +167,7 @@ public:
   std::vector<Int> idx;
   std::vector<S> val;
   size_t nelem;
-  uint8_t ndim;	// 0=points, 1=surfaces, 2=volumes for 2D
-                // 0=points, 1=lines, 2=surfaces, 3=volumes for 3D
+  uint8_t ndim;	// in 2D this means: 0=points, 1=surfaces, 2=volumes
+                // in 3D this means: 0=points, 1=lines, 2=surfaces, 3=volumes
 };
 
