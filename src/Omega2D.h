@@ -1,8 +1,8 @@
 /*
  * Omega2D.h - Useful definitions for anywhere in the code
  *
- * (c)2018-20 Applied Scientific Research, Inc.
- *            Mark J Stock <markjstock@gmail.com>
+ * (c)2018-20,2 Applied Scientific Research, Inc.
+ *              Mark J Stock <markjstock@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 #pragma once
 
 // Use this for indexes into panels or bodies
-// this means we can have no more than 65536 element segments in the system - seems reasonable for 2D
+// using 32-bit because we may have more than 65536 triangles/elements in the system
 #include <cstdint>
 using Int = uint32_t;
 #include <cstdlib>
