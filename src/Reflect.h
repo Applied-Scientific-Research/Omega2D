@@ -390,7 +390,6 @@ std::vector<std::tuple<S,S,S>> init_cut_tables (const S _dx) {
   const S max_rad = 3.0;
   // how many entries?
   const int nx = (int)(0.5 + max_rad / _dx);
-  assert((float)nx != 0); // Can't divide by 0
   const S dx = max_rad / (float)nx;
   //std::cout << "Making cut tables with nx " << nx << " and dx " << dx << std::endl;
 
@@ -415,7 +414,6 @@ std::vector<std::tuple<S,S,S>> init_cut_tables (const S _dx) {
     // scale by the cell size
     rwgt *= std::pow(dx, 2);
     // this is a pure 2D Gaussian
-    assert(M_PI != 0); // Can't divide by 0
     rwgt *= 1.0/M_PI;
     // this is for a 2D compact Gaussian
     //rwgt *= 0.3526021;
