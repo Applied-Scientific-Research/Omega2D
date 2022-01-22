@@ -945,7 +945,7 @@ void Hybrid<S,A,I>::draw_advanced() {
   if (active) {
 
   ImGui::SliderInt("Element Order", &elementOrder, 1, 5);
-  ImGui::SliderInt("Time Order", &timeOrder, 1, 4);
+  ImGui::SliderInt("Substep Time Order", &timeOrder, 1, 4);
 
   /*
   const int numTimeOrders = 3;
