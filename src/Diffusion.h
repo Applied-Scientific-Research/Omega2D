@@ -310,9 +310,10 @@ void Diffusion<S,A,I>::step(const double                _time,
 
 
   //
-  // clean up by removing the innermost layer - the one that will be represented by boundary strengths
+  // clean up by pushing out the innermost layer
   //
-  // use method which simply pushes all still-active particles to be at or above a threshold distance
+  // method 0 trims and weakens particles to allow the new strengths to be represented as thick-cored parts
+  // method 1 simply pushes all still-active particles to be at or above a threshold distance
   // cutoff is a multiple of ips (these are the last two arguments)
   (void) clear_inner_layer<S>(1, _bdry, _vort, clear_thick, _vdelta/_overlap);
 
