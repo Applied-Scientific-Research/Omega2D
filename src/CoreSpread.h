@@ -2,7 +2,7 @@
  * CoreSpread.h - the pure core-spreading method for diffusion in 2D
  *
  * (c)2020 Applied Scientific Research, Inc.
- *         Written by Mark J Stock <markjstock@gmail.com>
+ *         Mark J Stock <markjstock@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@ public:
   CoreSpread();
 
   // all-to-all diffuse; can change array sizes
-  void diffuse_all(const std::array<Vector<ST>,2>&,
+  void diffuse_all(const std::array<Vector<ST>,Dimensions>&,
                    const Vector<ST>&,
                    Vector<ST>&,
                    const ST,
@@ -67,7 +67,7 @@ CoreSpread<ST>::CoreSpread() {}
 // Apply the random vortex method to the particles
 //
 template <class ST>
-void CoreSpread<ST>::diffuse_all(const std::array<Vector<ST>,2>& pos,
+void CoreSpread<ST>::diffuse_all(const std::array<Vector<ST>,Dimensions>& pos,
                                  const Vector<ST>& str,
                                  Vector<ST>& rad,
                                  const ST h_nu,
@@ -89,7 +89,7 @@ void CoreSpread<ST>::diffuse_all(const std::array<Vector<ST>,2>& pos,
   // for each particle (can parallelize this part)
   // note that an OpenMP loop here will need to use int32_t as the counter variable type
   for (size_t i=0; i<n; ++i) {
-    // apply the random walk
+    // increase the core radius
     rad[i] = std::sqrt( std::pow(rad[i], 2) + (2.0/core_second_mom)*std::pow(h_nu, 2));
   }
 
