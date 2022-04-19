@@ -281,7 +281,7 @@ public:
 
     // copy the BEM-solved strengths into the panel-strength data structures
     if (source_str_is_unknown) {
-      // there are source strengths
+      // vortex and source terms
       for (size_t i=0; i<get_npanels(); ++i) {
         (*ps[0])[i] = _in[2*i];
         (*ps[1])[i] = _in[2*i+1];
@@ -854,10 +854,12 @@ public:
       // panel end points
       const Int id0 = idx[nper*i];
       const Int id1 = idx[nper*i+1];
+
       // the panel strength is the solved strength plus the boundary condition
       float this_str = (*ps[0])[i];
       // add on the (vortex) bc value here
       if (this->E == reactive) this_str += (*bc[0])[i];
+      this_str *= area[i];
 
       // is the panel long enough to shed more than one particle?
       const size_t nshed = 1 + std::max(0, (int)(area[i] / (1.2*thisips)));
@@ -868,7 +870,7 @@ public:
         _x.emplace_back(wgt*this->x[0][id1] + (1.0-wgt)*this->x[0][id0] + _offset * norm[0][i]);
         _x.emplace_back(wgt*this->x[1][id1] + (1.0-wgt)*this->x[1][id0] + _offset * norm[1][i]);
         // complete the element with a strength
-        _vals.emplace_back(this_str * area[i] / (S)nshed);
+        _vals.emplace_back(this_str / (S)nshed);
       }
     }
 
