@@ -179,6 +179,9 @@ ELSEIF( UNIX )
   # this seems to be more general
   FIND_LIBRARY( FRAMEWORK_LIBS NAMES glfw3 glfw libglfw PATHS /usr/local/lib )
 
+  # tell imgui to use glad
+  SET (CPREPROCDEFS ${CPREPROCDEFS} -DIMGUI_IMPL_OPENGL_LOADER_GLAD)
+
   # but glad needs dl, which cmake doesn't think glfw needs
   SET( FRAMEWORK_LIBS glfw dl )
 
