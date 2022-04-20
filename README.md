@@ -1,8 +1,6 @@
 # Omega2D
 Two-dimensional flow solver with GUI using vortex particle and boundary element methods
 
-*NOTE: This program currrently uses O(N^2) calculations for velocity, so runs more slowly than desired. A O(N log N) treecode is being prepared to alleviate this.*
-
 ![startupvideo](media/IntroCircle1.gif?raw=true "Session sample")
 
 ## Overview
@@ -62,6 +60,8 @@ If you forgot to use ``--recurse-submodules`` when cloning, and cmake gives an e
     git submodule update --init
 
 If you were able to build and install Vc, then you should set `-DUSE_VC=ON` in the above `cmake` command, or set it in c`ccmake`.
+
+If you want to use [onbody](https://github.com/Applied-Scientific-Research/onbody) instead of the internal O(N^2) Biot-Savart integrator (and you should), make sure to set `USE_EXTERNAL_SUM` to `onbody`. This method is slower when the number of particles is under 50k-100k, but faster when above (and *much* faster when N gets really huge).
 
 To use the system Clang on Linux, you will want the following variables defined:
 
