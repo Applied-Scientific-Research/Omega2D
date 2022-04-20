@@ -19,7 +19,7 @@ This code uses some C++17 features (like `std::variant` and `<filesystem>`, so r
 #### Prerequisites
 Users will also need CMake, Eigen (version 3.3 or newer), and GLFW version 3 on their machines to build this, other requirements are included in this distribution. Get these on Fedora with
 
-    sudo dnf install cmake glfw3-devel eigen3-devel
+    sudo dnf install cmake glfw-devel eigen3-devel
 
 The hybrid version also requires the following packages.
 
@@ -57,7 +57,11 @@ Upon installation of the prerequisites, the following commands should build Omeg
     cmake -DCMAKE_BUILD_TYPE=Release -DUSE_HO_HYBRID=CXX -DUSE_OMP=ON -DUSE_VC=OFF ..
     make
 
-If you were able to build and install Vc, then you should set `-DUSE_VC=ON` in the above `cmake` command.
+If you forgot to use ``--recurse-submodules`` when cloning, and cmake gives an error, pull the submodules with
+
+    git submodule update --init
+
+If you were able to build and install Vc, then you should set `-DUSE_VC=ON` in the above `cmake` command, or set it in c`ccmake`.
 
 To use the system Clang on Linux, you will want the following variables defined:
 
