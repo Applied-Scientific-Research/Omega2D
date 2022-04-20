@@ -4,3 +4,6 @@
 [submodule "extern/HO-CXX"]
 	path = extern/HO-CXX
 	url = git@github.com:Applied-Scientific-Research/HO-CXX.git
+[submodule "extern/onbody"]
+	path = extern/onbody
+	url = git@github.com:Applied-Scientific-Research/onbody.git
