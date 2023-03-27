@@ -353,9 +353,10 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
     int32_t nspread = 0;
     int32_t nvrm = 0;
     int32_t nshrink = 0;
+    auto astart = std::chrono::steady_clock::now();
 
     // note that an OpenMP loop here will need to use int32_t as the counter variable type
-    for (size_t i=0; i<n; ++i) {
+    for (int32_t i=0; i<(int32_t)n; ++i) {
       // compute all new radii before performing any VRM
 
       // nominal separation for this particle
@@ -390,7 +391,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
       // given our limit to the spatial gradient of particle size
       ST lapserad = 2.f * r[i];  // start with a large radius
       for (size_t j=0; j<inear.size(); ++j) {
-        const size_t jdx = inear[j];
+        const int32_t jdx = inear[j];
         if (jdx != i) {
           ST dist = std::sqrt( std::pow(x[jdx]-x[i], 2) + std::pow(y[jdx]-y[i], 2) );
           // find the the largest that the current particle could become given a smaller nearby particle
@@ -522,6 +523,11 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
 
     }
     std::cout << "    adapt: shrink/vrm/spread/ignore " << nshrink << "/" << nvrm << "/" << nspread << "/" << nignore << std::endl;
+
+    // finish timer and report
+    auto aend = std::chrono::steady_clock::now();
+    std::chrono::duration<double> a_seconds = aend-astart;
+    printf("    vrm.adapt_radii:\t[%.4f] seconds\n", (float)a_seconds.count());
 
   } else {
     // do not adapt radii -- copy current to new
@@ -1034,7 +1040,7 @@ void VRM<ST,CT,MAXMOM>::draw_advanced() {
 
   ImGui::Checkbox("Adapt by strength/vorticity", &adapt_by_vort);
   ImGui::SameLine();
-  ShowHelpMarker("Temp");
+  ShowHelpMarker("Adapt particle sizes based on their strengths.");
 
   if (adapt_by_vort) {
     ImGui::PushItemWidth(-270);
