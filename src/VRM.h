@@ -1,7 +1,8 @@
 /*
  * VRM.h - the Vorticity Redistribution Method for 2D vortex particles
+ *                 with particle size adaptivity
  *
- * (c)2017-20 Applied Scientific Research, Inc.
+ * (c)2017-21 Applied Scientific Research, Inc.
  *            Mark J Stock <markjstock@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -22,6 +23,7 @@
 
 #include "Core.h"
 #include "VectorHelper.h"
+#include "GuiHelper.h"
 #include "nanoflann/nanoflann.hpp"
 #ifdef PLUGIN_SIMPLEX
 #include "simplex.h"
@@ -57,11 +59,15 @@ public:
   void set_relative(const bool _in) { thresholds_are_relative = _in; }
   void set_ignore(const float _in) { ignore_thresh = _in; }
   void set_simplex(const bool _in) { use_solver = (_in ? simplex : nnls); }
+  void set_radgrad(const float _in) { radius_lapse = _in; }
+  void set_adapt(const float _in) { adapt_thresh = _in; }
 
   const bool get_adaptive_radii() const { return adapt_radii; }
   const bool get_relative() const { return thresholds_are_relative; }
   const float get_ignore() const { return ignore_thresh; }
   const bool get_simplex() const { return (use_solver==simplex); }
+  const float get_radgrad() const { return radius_lapse; }
+  const float get_adapt() const { return adapt_thresh; }
 
   // all-to-all diffuse; can change array sizes
   void diffuse_all(std::array<Vector<ST>,2>&,
@@ -77,6 +83,10 @@ public:
 
   void from_json(const nlohmann::json);
   void add_to_json(nlohmann::json&) const;
+
+#ifdef USE_IMGUI
+  void draw_advanced();
+#endif
 
 protected:
   // search for new target location
@@ -102,7 +112,7 @@ private:
   static const int32_t num_moments = MAXMOM;
   static constexpr int32_t num_rows = (num_moments+1) * (num_moments+2) / 2;
   // we needed 16 here for static solutions, 32 for dynamic, and 64 for dynamic with adaptivity
-  static constexpr int32_t max_near = 32 * num_moments;
+  static constexpr int32_t max_near = 64 * num_moments;
 
   // new point insertion sites (normalized to h_nu and centered around origin)
   static constexpr size_t num_sites = 30 * ((MAXMOM>2) ? 2 : 1);
@@ -119,7 +129,19 @@ private:
 
   // for any adaptive particle size VRM
   bool adapt_radii = false;
-  // would have more here
+  ST radius_lapse = 0.15;
+
+  // adapt size by local strength
+  bool adapt_by_vort = true;
+  // only adapt particles if their strength is less than this
+  //   fraction of max particle strength
+  ST adapt_thresh = 1.e-3;
+
+  // adapt size by distance from the origin
+  bool adapt_by_distance = false;
+  ST adapt_dist_ratio_max = 0.02;
+  ST adapt_dist_ratio_min = 0.01;
+  //std::array<ST,2> adapt_dist_center(0.0,0.0);
 
   // use nanoflann for nearest-neighbor searching? false uses direct search
   const bool use_tree = true;
@@ -188,8 +210,8 @@ void VRM<ST,CT,MAXMOM>::initialize_sites() {
 
 template <class ST, class CT, uint8_t MAXMOM>
 void VRM<ST,CT,MAXMOM>::set_adaptive_radii(const bool _doamr) {
-  //if (!adapt_radii and _doamr) std::cout << "Particle radii will adapt to solution" << std::endl;
-  //if (adapt_radii and !_doamr) std::cout << "Particle radii will not adapt to solution" << std::endl;
+  if (!adapt_radii and _doamr) std::cout << "Particle radii will adapt to solution" << std::endl;
+  if (adapt_radii and !_doamr) std::cout << "Particle radii will not adapt to solution" << std::endl;
   adapt_radii = _doamr;
 }
 
@@ -266,17 +288,40 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
   newr.resize(n);
   ds.resize(n);
 
+  // the adaptivity criterion
+  Vector<ST> crit;
+  crit.resize(n);
+
+  // save whether we will VRM any given particle
+  std::vector<bool> tovrm;
+  tovrm.resize(n);
+  std::fill(tovrm.begin(), tovrm.end(), true);
+
   // zero out delta vector
   std::fill(ds.begin(), ds.end(), 0.0);
 
   // and copy the new radius
   std::copy(r.begin(), r.end(), newr.begin());
 
+  // fill the adaptivity criterion
+  ST maxCrit = 0.0;
+  for (size_t i=0; i<n; ++i) {
+    // just circulation magnitude
+    crit[i] = std::abs(s[i]);
+    // circulation times radius
+    //crit[i] = r[i] * std::abs(s[i]);
+
+    if (crit[i] > maxCrit) maxCrit = crit[i];
+  }
+
   // create the matrix elements, reusable, and dynamically allocated
   Eigen::Matrix<CT, Eigen::Dynamic, 1> fractions;
 
   const int32_t minNearby = 7;
   const int32_t maxNewParts = num_moments*8 - 4;
+
+  // the Ixx and Iyy moments of these core functions is half of the 2nd radial moment
+  const CT core_second_mom = get_core_second_mom<CT>(core_func);
 
   // what is maximum strength of all particles?
   const ST maxStr = s[std::max_element(s.begin(), s.end()) - s.begin()];
@@ -302,8 +347,192 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
   nanoflann::SearchParams params;
   params.sorted = true;
 
-  // do not adapt particle radii -- copy current to new
-  newr = r;
+  // Adaptive radius pre-search
+  if (adapt_radii) {
+    int32_t nignore = 0;
+    int32_t nspread = 0;
+    int32_t nvrm = 0;
+    int32_t nshrink = 0;
+
+    // note that an OpenMP loop here will need to use int32_t as the counter variable type
+    for (size_t i=0; i<n; ++i) {
+      // compute all new radii before performing any VRM
+
+      // nominal separation for this particle
+      const ST nom_sep = r[i] / particle_overlap;
+
+      // what are h_nu (global), search radius, and new particle distance?
+      const ST search_rad = nom_sep * ((num_moments > 2) ? 2.5 : 1.6);
+      const ST distsq_thresh = std::pow(search_rad, 2);
+
+      // initialize vector of indexes of nearest particles
+      std::vector<int32_t> inear;
+
+      // switch on search method
+      if (use_tree) {
+        // tree-based search with nanoflann
+        const ST query_pt[2] = { x[i], y[i] };
+        (void) mat_index.index->radiusSearch(query_pt, distsq_thresh, ret_matches, params);
+
+        // copy the indexes into my vector
+        for (size_t j=0; j<ret_matches.size(); ++j) inear.push_back(ret_matches[j].first);
+
+      } else {
+        // direct search: look for all neighboring particles
+        for (size_t j=0; j<n; ++j) {
+          ST distsq = std::pow(x[i]-x[j], 2) + std::pow(y[i]-y[j], 2);
+          if (distsq < distsq_thresh) inear.push_back(j);
+        }
+      }
+
+      // lets figure out how much larger we can make this particle
+
+      // given our limit to the spatial gradient of particle size
+      ST lapserad = 2.f * r[i];  // start with a large radius
+      for (size_t j=0; j<inear.size(); ++j) {
+        const size_t jdx = inear[j];
+        if (jdx != i) {
+          ST dist = std::sqrt( std::pow(x[jdx]-x[i], 2) + std::pow(y[jdx]-y[i], 2) );
+          // find the the largest that the current particle could become given a smaller nearby particle
+          ST thisrad = r[jdx] + radius_lapse * dist;
+          // and update if this is smaller than our current guess
+          if (thisrad < lapserad) lapserad = thisrad;
+        }
+      }
+      // lapserad is now an upper bound on particle size
+      //std::cout << " can lapse to " << lapserad;
+
+      // and how much should core-spreading grow this particle given no other constraints?
+      //const ST growrad = std::sqrt( std::pow(r[i], 2) + 4.0*std::pow(h_nu, 2));
+      const ST growrad = std::sqrt( std::pow(r[i], 2) + (2.0/core_second_mom)*std::pow(h_nu, 2));
+      // growrad is another upper bound on particle size
+      //std::cout << " and spread to " << growrad;
+
+      // grow, but never grow more than the above limits dictate
+      ST newrad = std::min(lapserad, growrad);
+
+      // only go half as far as this, to allow for subtle changes in the distribution
+      //   without having to shrink the particle later
+      if (newrad > r[i]) {
+        //newrad = 0.5*newrad + 0.5*r[i];
+        newrad = 0.25*newrad + 0.75*r[i];
+      } else {
+        // if there are smaller nearby particles, we will need to shrink - just not too fast
+        // or if they are equal, we continue with the same radius
+        newrad = std::max(newrad, (ST)(0.9*r[i]));
+        nshrink++;
+        //std::cout << "shrink " << x[i] << " " << y[i] << std::endl;
+      }
+
+      // now use this to set the new particle size!
+      bool allow_dist_to_adapt = true;
+      bool allow_vort_to_adapt = true;
+
+      // top priority: if the particle is too weak to VRM at all, grow it
+      if (std::abs(s[i]) < ignore_thresh * (thresholds_are_relative ? maxAbsStr : 1.0)) {
+      //if (crit[i] < ignore_thresh * (thresholds_are_relative ? maxCrit : 1.0)) {
+
+        // some of this particle's diffusion goes into core-spreading
+        newr[i] = newrad;
+        // or ALL of it goes into core-spreading
+        //newr[i] = growrad;
+
+        tovrm[i] = false;
+        nignore++;
+        // don't allow any other adaptivity criteria
+        allow_dist_to_adapt = false;
+        allow_vort_to_adapt = false;
+      }
+
+      // second priority: adapt by distance from origin
+      if (adapt_by_distance and allow_dist_to_adapt) {
+        const ST dist = std::sqrt(std::pow(x[i], 2) + std::pow(y[i], 2));
+
+        // particle is too small for its distance - core-spread it
+        if (r[i]/dist < adapt_dist_ratio_min) {
+          // some of this particle's diffusion goes into core-spreading
+          newr[i] = newrad;
+          // or ALL of it goes into core-spreading
+          //newr[i] = growrad;
+          tovrm[i] = false;
+          nignore++;
+          // this overrules adaptivity by strength
+          allow_vort_to_adapt = false;
+
+        // particle is in the sweet zone, allow it to grow and VRM
+        } else if (r[i]/dist < adapt_dist_ratio_max) {
+          // grow, but never grow more than the above limits dictate
+          newr[i] = newrad;
+          tovrm[i] = true;
+          if (not adapt_by_vort) nspread++;
+          // but if also adapting by vorticity, let it dictate the behavior
+          allow_vort_to_adapt = true;
+
+        // particle is too large for its distance - shrink it via VRM
+        } else {
+          // may change core size, but only to shrink a little
+          newr[i] = std::min(r[i], newrad);
+          tovrm[i] = true;
+          if (not adapt_by_vort) nvrm++;
+          // but if also adapting by vorticity, let it dictate the behavior
+          allow_vort_to_adapt = true;
+        }
+      }
+
+      // adapt by strength
+      if (adapt_by_vort and allow_vort_to_adapt) {
+
+        // particle is so weak that it shouldn't VRM
+        //if (std::abs(s[i]) < ignore_thresh * (thresholds_are_relative ? maxAbsStr : 1.0)) {
+        if (crit[i] < ignore_thresh * (thresholds_are_relative ? maxCrit : 1.0)) {
+
+          // some of this particle's diffusion goes into core-spreading
+          newr[i] = newrad;
+          // or ALL of it goes into core-spreading
+          //newr[i] = growrad;
+
+          tovrm[i] = false;
+          nignore++;
+          //std::cout << "ignore " << x[i] << " " << y[i] << std::endl;
+          //std::cout << "ignore r=" << r[i] << " dist=" << dist << std::endl;
+
+        // particle is weak enough to begin considering
+        //} else if (std::abs(s[i]) < adapt_thresh * (thresholds_are_relative ? maxAbsStr : 1.0)) {
+        } else if (crit[i] < adapt_thresh * (thresholds_are_relative ? maxCrit : 1.0)) {
+
+          //std::cout << "  radius will change to " << newrad << std::endl;
+          // grow, but never grow more than the above limits dictate
+          newr[i] = newrad;
+          tovrm[i] = true;
+          nspread++;
+          //std::cout << "spread " << x[i] << " " << y[i] << std::endl;
+          //std::cout << "spread r=" << r[i] << " dist=" << dist << std::endl;
+
+        // particle is stronger than adapt_thresh, perform standard VRM
+        } else {
+
+          // may change core size, but only to shrink a little
+          newr[i] = std::min(r[i], newrad);
+          tovrm[i] = true;
+          nvrm++;
+          //std::cout << "vrm    " << x[i] << " " << y[i] << std::endl;
+          //std::cout << "vrm r=" << r[i] << " dist=" << dist << std::endl;
+        }
+      }
+
+    }
+    std::cout << "    adapt: shrink/vrm/spread/ignore " << nshrink << "/" << nvrm << "/" << nspread << "/" << nignore << std::endl;
+
+  } else {
+    // do not adapt radii -- copy current to new
+    newr = r;
+    for (size_t i=0; i<n; ++i) {
+      // flag very weak particles to be ignored - always use strength here
+      if (std::abs(s[i]) < ignore_thresh * (thresholds_are_relative ? maxAbsStr : 1.0)) {
+        tovrm[i] = false;
+      }
+    }
+  }
 
   // for each particle (can parallelize this part)
   const size_t initial_n = n;
@@ -319,10 +548,8 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
     //std::cout << "\nDiffusing particle " << i << " with strength " << s[i] << std::endl;
     //std::cout << "  part " << i << " with strength " << s[i] << std::endl;
 
-    // if current particle strength is very small, skip out
-    //   (this particle could still core-spread if adaptive particle size is on)
-    if ((thresholds_are_relative && (std::abs(s[i]) < maxAbsStr * ignore_thresh)) or
-        (!thresholds_are_relative && (std::abs(s[i]) < ignore_thresh))) continue;
+    // if current particle will not vrm, skip out (particle can still core-spread)
+    if (!tovrm[i]) continue;
 
     nsolved++;
 
@@ -541,9 +768,9 @@ bool VRM<ST,CT,MAXMOM>::attempt_solution(const int32_t idiff,
   const CT oohnu = 1.0 / h_nu;
 
   // the Ixx and Iyy moments of these core functions is half of the 2nd radial moment
-  //static const CT core_second_mom = get_core_second_mom<CT>(core_func);
+  static const CT core_second_mom = get_core_second_mom<CT>(core_func);
   // the Ixxxx and Iyyyy moments of these core functions is 3/8th of the 4th radial moment
-  //static const CT core_fourth_mom = get_core_fourth_mom<CT>(core_func);
+  static const CT core_fourth_mom = get_core_fourth_mom<CT>(core_func);
 
   // for non-adaptive method and floats, 1e-6 fails immediately, 1e-5 fails quickly, 3e-5 seems to work
   // for doubles, can use 1e-6, will increase accuracy for slight performance hit (see vrm3d)
@@ -579,6 +806,10 @@ bool VRM<ST,CT,MAXMOM>::attempt_solution(const int32_t idiff,
       A(3,j) = dx*dx;
       A(4,j) = dx*dy;
       A(5,j) = dy*dy;
+      if (adapt_radii) {
+        A(3,j) += core_second_mom * std::pow(newr[jdx]*oohnu, 2);
+        A(5,j) += core_second_mom * std::pow(newr[jdx]*oohnu, 2);
+      }
     }
     if (num_moments > 2) {
       A(6,j) = dx*dx*dx;
@@ -593,6 +824,11 @@ bool VRM<ST,CT,MAXMOM>::attempt_solution(const int32_t idiff,
       A(12,j) = dx*dx*dy*dy;
       A(13,j) = dx*dy*dy*dy;
       A(14,j) = dy*dy*dy*dy;
+      if (adapt_radii) {
+        A(10,j) += core_fourth_mom * std::pow(newr[jdx]*oohnu, 4);
+        A(12,j) += core_fourth_mom * std::pow(newr[jdx]*oohnu, 4) / 3.0;
+        A(14,j) += core_fourth_mom * std::pow(newr[jdx]*oohnu, 4);
+      }
     }
   }
 
@@ -600,11 +836,20 @@ bool VRM<ST,CT,MAXMOM>::attempt_solution(const int32_t idiff,
   if (num_moments > 1) {
     b(3) = second_moment;
     b(5) = second_moment;
+    if (adapt_radii) {
+      b(3) += core_second_mom * std::pow(r[idiff]*oohnu, 2);
+      b(5) += core_second_mom * std::pow(r[idiff]*oohnu, 2);
+    }
   }
   if (num_moments > 3) {
     b(10) = fourth_moment;
     b(12) = fourth_moment / 3.0;
     b(14) = fourth_moment;
+    if (adapt_radii) {
+      b(10) += core_fourth_mom * std::pow(r[idiff]*oohnu, 4);
+      b(12) += core_fourth_mom * std::pow(r[idiff]*oohnu, 4) / 3.0;
+      b(14) += core_fourth_mom * std::pow(r[idiff]*oohnu, 4);
+    }
   }
   //std::cout << "  Here is the matrix A^T:\n" << A.transpose() << std::endl;
   //std::cout << "  Here is the right hand side b:\n\t" << b.transpose() << std::endl;
@@ -722,6 +967,40 @@ void VRM<ST,CT,MAXMOM>::from_json(const nlohmann::json simj) {
     }
 #endif
   }
+
+  if (simj.find("AMR") != simj.end()) {
+    nlohmann::json j = simj["AMR"];
+
+    if (j.find("radiusGradient") != j.end()) {
+      radius_lapse = j["radiusGradient"];
+      std::cout << "  setting radius_lapse= " << radius_lapse << std::endl;
+    }
+
+    if (j.find("byVorticity") != j.end()) {
+      adapt_by_vort = j["byVorticity"];
+      std::cout << "  setting adapt_by_vort= " << adapt_by_vort << std::endl;
+    }
+
+    if (j.find("spreadBelow") != j.end()) {
+      adapt_thresh = j["spreadBelow"];
+      std::cout << "  setting adapt_thresh= " << adapt_thresh << std::endl;
+    }
+
+    if (j.find("byDistance") != j.end()) {
+      adapt_by_distance = j["byDistance"];
+      std::cout << "  setting adapt_by_distance= " << adapt_by_distance << std::endl;
+    }
+
+    if (j.find("distanceRatioMin") != j.end()) {
+      adapt_dist_ratio_min = j["distanceRatioMin"];
+      std::cout << "  setting adapt_dist_ratio_min= " << adapt_dist_ratio_min << std::endl;
+    }
+
+    if (j.find("distanceRatioMax") != j.end()) {
+      adapt_dist_ratio_max = j["distanceRatioMax"];
+      std::cout << "  setting adapt_dist_ratio_max= " << adapt_dist_ratio_max << std::endl;
+    }
+  }
 }
 
 // create and write a json object for all diffusion parameters
@@ -734,5 +1013,65 @@ void VRM<ST,CT,MAXMOM>::add_to_json(nlohmann::json& simj) const {
   j["relativeThresholds"] = thresholds_are_relative;
   j["solver"] = use_solver ? "simplex" : "nnls";
   simj["VRM"] = j;
+
+  // set A-VRM params
+  nlohmann::json aj;
+  aj["radiusGradient"] = radius_lapse;
+  aj["byVorticity"] = adapt_by_vort;
+  aj["spreadBelow"] = adapt_thresh;
+  aj["byDistance"] = adapt_by_distance;
+  aj["distanceRatioMin"] = adapt_dist_ratio_min;
+  aj["distanceRatioMax"] = adapt_dist_ratio_max;
+  simj["AMR"] = aj;
 }
 
+#ifdef USE_IMGUI
+//
+// draw advanced options parts of the GUI
+//
+template <class ST, class CT, uint8_t MAXMOM>
+void VRM<ST,CT,MAXMOM>::draw_advanced() {
+
+  ImGui::Checkbox("Adapt by strength/vorticity", &adapt_by_vort);
+  ImGui::SameLine();
+  ShowHelpMarker("Temp");
+
+  if (adapt_by_vort) {
+    ImGui::PushItemWidth(-270);
+    float thisradgrad = radius_lapse;
+    ImGui::SliderFloat("Radius gradient", &thisradgrad, 0.01, 0.5f, "%.2f");
+    ImGui::SameLine();
+    ShowHelpMarker("During adaptive diffusion, enforce a maximum spatial gradient for particle radii.");
+    radius_lapse = thisradgrad;
+
+    float log_adapt_thresh = std::log10(adapt_thresh);
+    ImGui::SliderFloat("Threshold to adapt", &log_adapt_thresh, -12, 0, "%.1f");
+    ImGui::SameLine();
+    ShowHelpMarker("During diffusion, allow any particles with strength less than this power-of-ten threshold to grow in size.");
+    adapt_thresh = std::pow(10.f,log_adapt_thresh);
+    ImGui::PopItemWidth();
+  }
+
+  ImGui::Checkbox("Adapt by distance from origin", &adapt_by_distance);
+  ImGui::SameLine();
+  ShowHelpMarker("Adapt particle sizes based on their distance to the origin, where larger distances allow larger particles.");
+
+  if (adapt_by_distance) {
+    ImGui::PushItemWidth(-270);
+
+    float this_adrmax = adapt_dist_ratio_max;
+    ImGui::SliderFloat("Maximum radius per distance", &this_adrmax, 0.001, 0.1f, "%.3f");
+    ImGui::SameLine();
+    ShowHelpMarker("During adaptive diffusion, prevent particles from growing larger than this factor times the distance to the origin.");
+    adapt_dist_ratio_max = this_adrmax;
+
+    float this_adrmin = adapt_dist_ratio_min;
+    ImGui::SliderFloat("Minimum radius per distance", &this_adrmin, 0.001, 0.1f, "%.3f");
+    ImGui::SameLine();
+    ShowHelpMarker("During adaptive diffusion, grow particles that are smaller than this factor times the distance to the origin.");
+    adapt_dist_ratio_min = this_adrmin;
+
+    ImGui::PopItemWidth();
+  }
+}
+#endif

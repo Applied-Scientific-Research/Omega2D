@@ -1,8 +1,8 @@
 #
 # Omega2D
-# (c)2017-2021 Applied Scientific Research, Inc.
+# (c)2017-2023 Applied Scientific Research, Inc.
 #
-CMAKE_MINIMUM_REQUIRED( VERSION 2.8 )
+CMAKE_MINIMUM_REQUIRED( VERSION 3.4 )
 PROJECT( Omega2D )
 
 # User-serviceable variables here
@@ -16,7 +16,7 @@ SET (BUILD_BATCH FALSE CACHE BOOL "Build the batch (no GUI) version")
 SET (CMAKE_INSTALL_PREFIX CACHE PATH "Installation location for binaries, sample inputs, and licenses")
 SET (USE_OMP TRUE CACHE BOOL "Use OpenMP multithreading")
 SET (USE_VC FALSE CACHE BOOL "Use Vc for vector arithmetic")
-SET (USE_PLUGIN_AVRM FALSE CACHE BOOL "Enable adaptive VRM plugin")
+SET (USE_PLUGIN_AVRM FALSE CACHE BOOL "Enable experimental adaptive VRM plugin")
 SET (USE_PLUGIN_SIMPLEX FALSE CACHE BOOL "Enable simplex solver plugin for VRM")
 SET (USE_EXTERNAL_SUM "None" CACHE STRING "Enable external velocity solver, if any")
 SET_PROPERTY(CACHE USE_EXTERNAL_SUM PROPERTY STRINGS "None" "onbody" "fmm2d")

@@ -175,10 +175,8 @@ void Diffusion<S,A,I>::step(const double                _time,
   assert((S)_re != 0); // Can't divide by 0
   h_nu = (S)std::sqrt(_dt/_re);
 
-#ifdef PLUGIN_AVRM
   // ensure that it knows to allow or disallow adaptive radii
   if (curr_pd_type == pd_vrm) vrm.set_adaptive_radii(adaptive_radii);
-#endif
 
   //
   // always re-run the BEM calculation before shedding
@@ -428,7 +426,6 @@ void Diffusion<S,A,I>::draw_advanced() {
   vrm.set_simplex(use_simplex);
 #endif
 
-#ifdef PLUGIN_AVRM
   // show the toggle for AMR
   bool use_amr = get_amr();
   ImGui::Checkbox("Allow adaptive resolution", &use_amr);
@@ -437,7 +434,6 @@ void Diffusion<S,A,I>::draw_advanced() {
   set_amr(use_amr);
 
   if (use_amr) vrm.draw_advanced();
-#endif
 
   } else if (pd_type == pd_pse) {
 
@@ -506,7 +502,6 @@ void Diffusion<S,A,I>::from_json(const nlohmann::json j) {
   vrm.from_json(j);
   pse.from_json(j);
 
-#ifdef PLUGIN_AVRM
   // set adaptive-VRM-specific settings
   if (j.find("adaptiveSize") != j.end()) {
     if (j["adaptiveSize"]) {
@@ -514,7 +509,6 @@ void Diffusion<S,A,I>::from_json(const nlohmann::json j) {
       std::cout << "  enabling amr" << std::endl;
     }
   }
-#endif
 }
 
 // create and write a json object for all diffusion parameters
@@ -534,9 +528,7 @@ void Diffusion<S,A,I>::add_to_json(nlohmann::json& j) const {
     j["viscous"] = "vrm";
   }
 
-#ifdef PLUGIN_AVRM
   j["adaptiveSize"] = adaptive_radii;
-#endif
 
   // eventually write other parameters
   //j["core"] = core_func;
