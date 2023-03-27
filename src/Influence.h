@@ -31,6 +31,8 @@
 #ifdef EXTERNAL_VEL_SOLVE
 extern "C" float external_vel_solver_f_(int*, const float*, const float*, const float*, const float*,
                                         int*, const float*, const float*, float*, float*);
+extern "C" float external_vel_solver_tr_f_(int*, const float*, const float*, const float*, const float*,
+                                        int*, const float*, const float*, const float*, float*, float*);
 extern "C" float external_vel_solver_d_(int*, const double*, const double*, const double*, const double*,
                                         int*, const double*, const double*, double*, double*);
 #endif
@@ -76,8 +78,15 @@ void points_affect_points (const Points<S>& src, Points<S>& targ, const ResultsT
     int nt = targ.get_n();
 
     if (restype.compute_vel()) {
-    flops = external_vel_solver_f_(&ns, sx[0].data(), sx[1].data(),    ss.data(),    sr.data(), 
-                                   &nt, tx[0].data(), tx[1].data(), tu[0].data(), tu[1].data());
+      if (targ.is_inert()) {
+        flops = external_vel_solver_f_(&ns, sx[0].data(), sx[1].data(),    ss.data(),    sr.data(), 
+                                       &nt, tx[0].data(), tx[1].data(), tu[0].data(), tu[1].data());
+      } else {
+        // this is only supported by onbody
+        const Vector<S>&				tr = targ.get_rad();
+        flops = external_vel_solver_tr_f_(&ns, sx[0].data(), sx[1].data(),    ss.data(),    sr.data(), 
+                                          &nt, tx[0].data(), tx[1].data(), tr.data(), tu[0].data(), tu[1].data());
+      }
     }
 
     auto end = std::chrono::system_clock::now();
