@@ -121,6 +121,8 @@ Generate an X.264-encoded video from a series of png images with the following c
 ## To do
 Tasks to consider or implement:
 
+* Use steady_clock instead of system_clock for timing
+* Use OpenMP for VRM
 * Move boundary conditions to their own class, with normal and tangential vels, inlets/outlets, constant/formula, etc.
 * Add support for NACA wings to be created by reading geometry files in standard formats - this might mean enabling Kutta points (reactive Points)
 * Add an openmp setting to the CPU execution environment, to show the effects of multithreading
@@ -138,14 +140,13 @@ Tasks to consider or implement:
 * Add "got it" button to first section (the welcome section) to make it go away (forever?)
 * Ideal initial interface: lots of stuff hidden, just a graphical menu with circles, squares, vortex patches, etc. Each has handles that you can drag to resize and reposition the element; all sizes/locations quantized to 0.1 or 0.05. "Expert" box lets you change Re, dt, etc.
 * Instead of manipulating the projection matrix, have the mouse change the view matrix (assume model matrix is unity), see [here](https://solarianprogrammer.com/2013/05/22/opengl-101-matrices-projection-view-model/) for a nice write-up on the three OpenGL matrices
-* Support 2nd order time accuracy in VRM by caching values from first half to use in second half
 * Make more of the sliders dynamic (like dt ~~and color~~) - be able to add new particles while a sim is running
 * Right-click on the draw screen to add features - hard? can imgui handle it?
 * Create an OpenGL compute shader routine for the particle-particle influence, like in Omega3D
 * Add option to draw particles as thin white dots/lines "Draw elements"
 * Draw a freestream arrow in the LR corner
 * Let the user grab the fs arrow to dynamically change the freestream
-* Allow a formula for the freestream instead of it being constant
+* Allow a formula for the freestream instead of it being constant (use tinyexpr like for body motion)
 * Add field points in a grid over the visible domain, find vels, display as streaks - make this one of a few rendering options
 * Draw panels as polygons extending along the normal with a sharp edge on the body side and a gradient to zero on the flow side - then they can visually merge with the particles to make a visibly smooth and more-correct vorticity field
 * Reconsider templatizing on the scalar type. If you don't intend for floats or doubles in the same code, perhaps create a header with `using Scalar = float;` so you can flip back and forth easier. NBL
