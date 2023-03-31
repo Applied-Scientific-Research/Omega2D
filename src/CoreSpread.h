@@ -82,7 +82,7 @@ void CoreSpread<ST>::diffuse_all(const std::array<Vector<ST>,Dimensions>& pos,
   std::cout << "  Running CoreSpread with n " << n << std::endl;
 
   // start timer
-  auto start = std::chrono::system_clock::now();
+  auto start = std::chrono::steady_clock::now();
 
   const ST core_second_mom = get_core_second_mom<ST>(core_func);
 
@@ -94,7 +94,7 @@ void CoreSpread<ST>::diffuse_all(const std::array<Vector<ST>,Dimensions>& pos,
   }
 
   // finish timer and report
-  auto end = std::chrono::system_clock::now();
+  auto end = std::chrono::steady_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
   printf("    corespread.diffuse_all:\t[%.4f] seconds\n", (float)elapsed_seconds.count());
 }

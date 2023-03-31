@@ -165,7 +165,7 @@ void solve_bem(const double                         _time,
   // actually make or remake the A matrix
   if (rebuild_every_block or rebuild_some_blocks) {
 
-    auto start = std::chrono::system_clock::now();
+    auto start = std::chrono::steady_clock::now();
 
     // need this to inform bem that we need to re-init the solver
     _bem.panels_changed();
@@ -220,7 +220,7 @@ void solve_bem(const double                         _time,
 
     _bem.just_made_A();
 
-    auto end = std::chrono::system_clock::now();
+    auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = end-start;
     printf("    make A matrix:\t[%.4f] cpu seconds\n", (float)elapsed_seconds.count());
   }

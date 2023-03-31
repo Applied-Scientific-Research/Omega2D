@@ -35,7 +35,7 @@ template <class S>
 std::vector<S> vels_to_rhs_points (Points<S> const& targ) {
   std::cout << "    NOT converting vels to RHS vector for " << targ.to_string() << std::endl;
 
-  //auto start = std::chrono::system_clock::now();
+  //auto start = std::chrono::steady_clock::now();
   //float flops = 0.0;
 
   // size the return vector
@@ -43,7 +43,7 @@ std::vector<S> vels_to_rhs_points (Points<S> const& targ) {
   std::vector<S> rhs;
   rhs.resize(0);
 
-  //auto end = std::chrono::system_clock::now();
+  //auto end = std::chrono::steady_clock::now();
   //std::chrono::duration<double> elapsed_seconds = end-start;
   //const float gflops = 1.e-9 * flops / (float)elapsed_seconds.count();
   //printf("    points_on_points_coeff: [%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);

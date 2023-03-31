@@ -184,9 +184,9 @@ void BEM<S,I>::solve() {
   if (not solver_initialized) {
 
     // if A changes, we need to re-run this
-    auto istart = std::chrono::system_clock::now();
+    auto istart = std::chrono::steady_clock::now();
     solver.compute(A);
-    auto iend = std::chrono::system_clock::now();
+    auto iend = std::chrono::steady_clock::now();
 
     std::chrono::duration<double> ielapsed_seconds = iend-istart;
     printf("    solver.init:\t[%.6f] cpu seconds\n", (float)ielapsed_seconds.count());
@@ -198,9 +198,9 @@ void BEM<S,I>::solve() {
   // note that solveWithGuess() can seed the solution with last step's solution!
 
   // here is the matrix solution
-  auto start = std::chrono::system_clock::now();
+  auto start = std::chrono::steady_clock::now();
   strengths = solver.solve(b);
-  auto end = std::chrono::system_clock::now();
+  auto end = std::chrono::steady_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
   printf("    solver.solve:\t[%.6f] cpu seconds\n", (float)elapsed_seconds.count());
 
@@ -221,14 +221,14 @@ void BEM<S,I>::solve() {
   if (VERBOSE) printf("    estimated error: %g\n", solver.error());
 
   // find L2 norm of error
-  start = std::chrono::system_clock::now();
+  start = std::chrono::steady_clock::now();
   //assert(b.norm() != 0 && "Can't divide by 0");
   // b.norm() is 0 for first computation, so we let it be one for the error computation
   double b_norm = b.norm(); // norm() is L2 norm
   if (b_norm == 0) { b_norm = 1.0; }
   double relative_error = (A*strengths - b).norm() / b_norm;
   if (VERBOSE) printf("    L2 norm of error is %g\n", relative_error);
-  end = std::chrono::system_clock::now();
+  end = std::chrono::steady_clock::now();
   elapsed_seconds = end-start;
   if (VERBOSE) printf("    solver.error:\t[%.6f] cpu seconds\n", (float)elapsed_seconds.count());
 }

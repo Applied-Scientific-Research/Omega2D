@@ -169,7 +169,7 @@ size_t PSE<ST,CT>::add_new_boundary_parts(Vector<ST>& x,
                                           const ST particle_overlap) {
 
   // start timer
-  auto start = std::chrono::system_clock::now();
+  auto start = std::chrono::steady_clock::now();
 
   // make sure all vector sizes are identical
   assert(x.size()==y.size());
@@ -268,7 +268,7 @@ size_t PSE<ST,CT>::add_new_boundary_parts(Vector<ST>& x,
   std::cout << "    added " << (n - initial_n) << " buffer particles" << std::endl;
 
   // finish timer and report
-  auto end = std::chrono::system_clock::now();
+  auto end = std::chrono::steady_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
   printf("    buffering time:\t\t[%.4f] cpu seconds\n", (float)elapsed_seconds.count());
 
@@ -338,7 +338,7 @@ void PSE<ST,CT>::diffuse_all(std::array<Vector<ST>,2>& pos,
   //std::cout << "  Running PSE with n " << n << std::endl;
 
   // start timer
-  auto start = std::chrono::system_clock::now();
+  auto start = std::chrono::steady_clock::now();
 
   // reference or generate the local set of vectors
   Vector<ST>& x = pos[0];
@@ -620,7 +620,7 @@ void PSE<ST,CT>::diffuse_all(std::array<Vector<ST>,2>& pos,
   }
 
   // finish timer and report
-  auto end = std::chrono::system_clock::now();
+  auto end = std::chrono::steady_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
   printf("    pse.diffuse_all:\t[%.4f] seconds\n", (float)elapsed_seconds.count());
 }

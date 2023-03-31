@@ -59,7 +59,7 @@ size_t merge_close_particles(std::array<Vector<S>,2>& pos,
   std::cout << "  Merging close particles with n " << n << std::endl;
 
   // start timer
-  auto start = std::chrono::system_clock::now();
+  auto start = std::chrono::steady_clock::now();
 
   // reference or generate the local set of vectors
   Vector<S>& x = pos[0];
@@ -199,7 +199,7 @@ size_t merge_close_particles(std::array<Vector<S>,2>& pos,
   }
 
   // finish timer and report
-  auto end = std::chrono::system_clock::now();
+  auto end = std::chrono::steady_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
   printf("    merging time:\t[%.4f] seconds\n", (float)elapsed_seconds.count());
 

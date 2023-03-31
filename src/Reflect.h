@@ -176,7 +176,7 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
 
   //std::cout << "  inside reflect(Surfaces, Points)" << std::endl;
   std::cout << "  Reflecting" << _targ.to_string() << " from near" << _src.to_string() << std::endl;
-  auto start = std::chrono::system_clock::now();
+  auto start = std::chrono::steady_clock::now();
 
   // get handles for the vectors
   std::array<Vector<S>,Dimensions> const& sx = _src.get_pos();
@@ -344,7 +344,7 @@ void reflect_panp2 (Surfaces<S> const& _src, Points<S>& _targ) {
   std::cout << "    reflected " << num_reflected << " particles" << std::endl;
   const S flops = _targ.get_n() * (62.0 + 27.0*_src.get_npanels());
 
-  auto end = std::chrono::system_clock::now();
+  auto end = std::chrono::steady_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
   const float gflops = 1.e-9 * flops / (float)elapsed_seconds.count();
   printf("    reflect_panp2:\t[%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);
@@ -495,7 +495,7 @@ S clear_inner_panp2 (const int _method,
                      const S _ips) {
 
   std::cout << "  Clearing" << _targ.to_string() << " from near" << _src.to_string() << std::endl;
-  auto start = std::chrono::system_clock::now();
+  auto start = std::chrono::steady_clock::now();
 
   static bool made_cut_tables = false;
   static std::vector<std::tuple<S,S,S>> ct;
@@ -720,7 +720,7 @@ S clear_inner_panp2 (const int _method,
   // flops count here is taken from reflect - might be different here
   const S flops = (_targ.get_n()+num_cropped) * (62.0 + 27.0*_src.get_npanels());
 
-  auto end = std::chrono::system_clock::now();
+  auto end = std::chrono::steady_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
   const float gflops = 1.e-9 * flops / (float)elapsed_seconds.count();
   printf("    clear_inner_panp2:\t[%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);
@@ -775,7 +775,7 @@ Vector<S> get_nearest_distances(const Surfaces<S>& _src,
                                 const Points<S>&   _targ) {
 
   std::cout << "  Finding distances to " << _targ.to_string() << " from " << _src.to_string() << std::endl;
-  auto start = std::chrono::system_clock::now();
+  auto start = std::chrono::steady_clock::now();
 
   int32_t itest = -1;
   //int32_t itest = 46035;
@@ -816,7 +816,7 @@ Vector<S> get_nearest_distances(const Surfaces<S>& _src,
 
   const S flops = _targ.get_n() * (1.0 + 27.0*_src.get_npanels());
 
-  auto end = std::chrono::system_clock::now();
+  auto end = std::chrono::steady_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
   const float gflops = 1.e-9 * flops / (float)elapsed_seconds.count();
   printf("    get_nearest_distances: [%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);

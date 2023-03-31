@@ -80,7 +80,7 @@ void RVM<ST>::diffuse_all(std::array<Vector<ST>,2>& pos,
   std::cout << "  Running RVM with n " << n << std::endl;
 
   // start timer
-  auto start = std::chrono::system_clock::now();
+  auto start = std::chrono::steady_clock::now();
 
   // init the random number generator
   std::random_device rd{};
@@ -98,7 +98,7 @@ void RVM<ST>::diffuse_all(std::array<Vector<ST>,2>& pos,
   }
 
   // finish timer and report
-  auto end = std::chrono::system_clock::now();
+  auto end = std::chrono::steady_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
   printf("    rvm.diffuse_all:\t[%.4f] seconds\n", (float)elapsed_seconds.count());
 }

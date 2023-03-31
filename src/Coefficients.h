@@ -41,13 +41,13 @@
 
 template <class S>
 Vector<S> points_on_points_coeff (Points<S> const& src, Points<S>& targ) {
-  auto start = std::chrono::system_clock::now();
+  auto start = std::chrono::steady_clock::now();
 
   // when we need this, copy it from Influence.h
   Vector<S> coeffs;
   float flops = 0.0;
 
-  auto end = std::chrono::system_clock::now();
+  auto end = std::chrono::steady_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
   const float gflops = 1.e-9 * flops / (float)elapsed_seconds.count();
   printf("    points_on_points_coeff: [%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);
@@ -160,7 +160,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
 
   // use floats to prevent overruns
   float flops = 0.0;
-  //auto start = std::chrono::system_clock::now();
+  //auto start = std::chrono::steady_clock::now();
 
   // how large of a problem do we have?
   const size_t nsrc  = src.get_npanels();
@@ -564,7 +564,7 @@ Vector<S> panels_on_panels_coeff (Surfaces<S> const& src, Surfaces<S>& targ) {
     }
   }
 
-  //auto end = std::chrono::system_clock::now();
+  //auto end = std::chrono::steady_clock::now();
   //std::chrono::duration<double> elapsed_seconds = end-start;
   //const float gflops = 1.e-9 * flops / (float)elapsed_seconds.count();
   //printf("    matrix block:\t[%.4f] cpu seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);

@@ -60,7 +60,7 @@ void points_affect_points (const Points<S>& src, Points<S>& targ, const ResultsT
   assert (!restype.compute_psi() && "Point elements cannot compute streamfunction yet.");
   assert (!restype.compute_grad() && "Point elements cannot compute velocity gradients yet.");
 
-  auto start = std::chrono::system_clock::now();
+  auto start = std::chrono::steady_clock::now();
   float flops = (float)targ.get_n();
 
   // get references to use locally
@@ -89,7 +89,7 @@ void points_affect_points (const Points<S>& src, Points<S>& targ, const ResultsT
       }
     }
 
-    auto end = std::chrono::system_clock::now();
+    auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = end-start;
     const float gflops = 1.e-9 * flops / (float)elapsed_seconds.count();
     printf("    points_affect_points: [%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);
@@ -409,7 +409,7 @@ void points_affect_points (const Points<S>& src, Points<S>& targ, const ResultsT
   //
   }
 
-  auto end = std::chrono::system_clock::now();
+  auto end = std::chrono::steady_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
   const float gflops = 1.e-9 * flops / (float)elapsed_seconds.count();
   printf("    points_affect_points: [%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);
@@ -427,7 +427,7 @@ void panels_affect_points (const Surfaces<S>& src, Points<S>& targ, const Result
   assert (!restype.compute_psi() && "Surface elements cannot compute streamfunction yet.");
   assert (!restype.compute_grad() && "Surface elements cannot compute velocity gradients yet.");
 
-  auto start = std::chrono::system_clock::now();
+  auto start = std::chrono::steady_clock::now();
   float flops = (float)targ.get_n();
 
   // get references to use locally
@@ -607,7 +607,7 @@ void panels_affect_points (const Surfaces<S>& src, Points<S>& targ, const Result
     flops *= 2.0 + (float)flopsu_1v_0p<S,A>() * (float)src.get_npanels();
   }
 
-  auto end = std::chrono::system_clock::now();
+  auto end = std::chrono::steady_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
   const float gflops = 1.e-9 * flops / (float)elapsed_seconds.count();
   printf("    panels_affect_points: [%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);
@@ -638,7 +638,7 @@ void points_affect_panels (const Points<S>& src, Surfaces<S>& targ, const Result
   assert (!restype.compute_psi() && "Point elements cannot compute streamfunction yet.");
   assert (!restype.compute_grad() && "Point elements cannot compute velocity gradients yet.");
 
-  auto start = std::chrono::system_clock::now();
+  auto start = std::chrono::steady_clock::now();
   float flops = (float)targ.get_npanels();
 
   // get references to use locally
@@ -764,7 +764,7 @@ void points_affect_panels (const Points<S>& src, Surfaces<S>& targ, const Result
 
   flops *= 11.0 + (float)flopsu_1v_0p<S,A>() * (float)src.get_n();
 
-  auto end = std::chrono::system_clock::now();
+  auto end = std::chrono::steady_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
   const float gflops = 1.e-9 * flops / (float)elapsed_seconds.count();
   printf("    points_affect_panels: [%.4f] seconds at %.3f GFlop/s\n", (float)elapsed_seconds.count(), gflops);
