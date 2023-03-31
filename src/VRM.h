@@ -90,7 +90,7 @@ public:
 
 protected:
   // search for new target location
-  std::pair<ST,ST> fill_neighborhood_search(const int32_t,
+  std::pair<ST,ST> fill_neighborhood_search(const ST, const ST,
                                             const Vector<ST>&,
                                             const Vector<ST>&,
                                             const std::vector<int32_t>&,
@@ -219,7 +219,8 @@ void VRM<ST,CT,MAXMOM>::set_adaptive_radii(const bool _doamr) {
 // use a ring of sites to determine the location of a new particle
 //
 template <class ST, class CT, uint8_t MAXMOM>
-std::pair<ST,ST> VRM<ST,CT,MAXMOM>::fill_neighborhood_search(const int32_t idx,
+std::pair<ST,ST> VRM<ST,CT,MAXMOM>::fill_neighborhood_search(const ST xc,
+                                                             const ST yc,
                                                              const Vector<ST>& x,
                                                              const Vector<ST>& y,
                                                              const std::vector<int32_t>& inear,
@@ -228,8 +229,8 @@ std::pair<ST,ST> VRM<ST,CT,MAXMOM>::fill_neighborhood_search(const int32_t idx,
   // create array of potential sites
   std::array<ST,num_sites> tx,ty,nearest;
   for (size_t i=0; i<num_sites; ++i) {
-    tx[i] = x[idx] + nom_sep * xsite[i];
-    ty[i] = y[idx] + nom_sep * ysite[i];
+    tx[i] = xc + nom_sep * xsite[i];
+    ty[i] = yc + nom_sep * ysite[i];
   }
 
   // test all points vs. all sites
@@ -355,7 +356,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
     int32_t nshrink = 0;
     auto astart = std::chrono::steady_clock::now();
 
-    // note that an OpenMP loop here will need to use int32_t as the counter variable type
+    // note that OpenMP loops need int32_t as the counter variable type
     for (int32_t i=0; i<(int32_t)n; ++i) {
       // compute all new radii before performing any VRM
 
@@ -547,8 +548,10 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
   //size_t ntooclose = 0;
   size_t minneibs = 999999;
   size_t maxneibs = 0;
-  // note that an OpenMP loop here will need to use int32_t as the counter variable type
-  for (size_t i=0; i<initial_n; ++i) {
+
+  // note that OpenMP loops need int32_t as the counter variable type
+  //#pragma omp parallel for reduction(+:nsolved,nneibs) reduction(min:minneibs) reduction(max:maxneibs)
+  for (int32_t i=0; i<(int32_t)initial_n; ++i) {
 
     // find the nearest neighbor particles
     //std::cout << "\nDiffusing particle " << i << " with strength " << s[i] << std::endl;
@@ -608,9 +611,12 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
     //for (size_t j=0; j<inear.size(); ++j) std::cout << " " << inear[j];
     //std::cout << std::endl;
 
+    // for parallelization: make thread-local arrays
+    //std::vector<ST> l_x, l_y, l_r, l_newr, l_s, l_ds;
+
     // if there are less than, say, 6, we should just add some now
     while (inear.size() < minNearby) {
-      auto newpt = fill_neighborhood_search(i, x, y, inear, nom_sep);
+      auto newpt = fill_neighborhood_search(x[i], y[i], x, y, inear, nom_sep);
       // add the index to the near list
       inear.push_back(n);
       // add it to the master list
@@ -634,7 +640,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
       int32_t jclose = 0;
       ST distnear = std::numeric_limits<ST>::max();
       for (size_t j=0; j<inear.size(); ++j) {
-        const size_t inearj = static_cast<size_t>(inear[j]);
+        const int32_t inearj = inear[j];
         if (inearj != i) {
           const ST distsq = std::pow(x[i]-x[inearj], 2) + std::pow(y[i]-y[inearj], 2);
           if (distsq < distnear) {
@@ -661,14 +667,14 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
 
       // if that didn't work, add a particle and try again
       if (not haveSolution) {
-        auto newpt = fill_neighborhood_search(i, x, y, inear, nom_sep);
+        auto newpt = fill_neighborhood_search(x[i], y[i], x, y, inear, nom_sep);
 
         if (inear.size() == max_near) {
           // replace an old particle with this new one
           size_t ireplace = 1;	// default is 1 because diffusing particle is probably position 0
           for (size_t j=0; j<inear.size(); ++j) {
-            const size_t inj = static_cast<size_t>(inear[j]);
-            if (inj != i and inj < initial_n) {
+            const int32_t inj = inear[j];
+            if (inj != i and inj < (int32_t)initial_n) {
               ireplace = j;
               break;
             }
@@ -713,7 +719,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
     // apply those fractions to the delta vector
     //std::cout << "Added strengths" << std::endl;
     for (size_t j=0; j<inear.size(); ++j) {
-      size_t idx = inear[j];
+      int32_t idx = inear[j];
       if (idx == i) {
         // self-influence
         ds[idx] += s[i] * (fractions(j) - 1.0);
