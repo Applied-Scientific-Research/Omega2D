@@ -2,7 +2,7 @@
  * VRM.h - the Vorticity Redistribution Method for 2D vortex particles
  *                 with particle size adaptivity
  *
- * (c)2017-21 Applied Scientific Research, Inc.
+ * (c)2017-23 Applied Scientific Research, Inc.
  *            Mark J Stock <markjstock@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -89,20 +89,32 @@ public:
 #endif
 
 protected:
-  // search for new target location
+
+  // class-local point list
+  enum PtOrigin { globalorig, globalnew, threadlocal };
+  struct TestPt {
+    ST x;
+    ST y;
+    ST r;
+    ST newr;
+    ST ds;
+    int32_t idx;
+    PtOrigin from;
+    // constructor needs everything
+    TestPt(const ST _x, const ST _y, const ST _r, const ST _newr, const ST _ds, const int32_t _idx, const PtOrigin _from)
+      : x(_x), y(_y), r(_r), newr(_newr), ds(_ds), idx(_idx), from(_from)
+      {}
+    ~TestPt() = default;
+  };
+
+  // search for a new test point location
   std::pair<ST,ST> fill_neighborhood_search(const ST, const ST,
-                                            const Vector<ST>&,
-                                            const Vector<ST>&,
-                                            const std::vector<int32_t>&,
+                                            const std::vector<TestPt>&,
                                             const ST);
 
   // set up and call the solver
-  bool attempt_solution(const int32_t,
-                        std::vector<int32_t>&,
-                        Vector<ST>&,
-                        Vector<ST>&,
-                        Vector<ST>&,
-                        Vector<ST>&,
+  bool attempt_solution(const ST, const ST, const ST,
+                        const std::vector<TestPt>&,
                         const ST,
                         const CoreType,
                         Eigen::Matrix<CT, Eigen::Dynamic, 1>&);
@@ -217,13 +229,12 @@ void VRM<ST,CT,MAXMOM>::set_adaptive_radii(const bool _doamr) {
 
 //
 // use a ring of sites to determine the location of a new particle
+//   searching against a unified list of test points
 //
 template <class ST, class CT, uint8_t MAXMOM>
 std::pair<ST,ST> VRM<ST,CT,MAXMOM>::fill_neighborhood_search(const ST xc,
                                                              const ST yc,
-                                                             const Vector<ST>& x,
-                                                             const Vector<ST>& y,
-                                                             const std::vector<int32_t>& inear,
+                                                             const std::vector<TestPt>& pts,
                                                              const ST nom_sep) {
 
   // create array of potential sites
@@ -239,8 +250,8 @@ std::pair<ST,ST> VRM<ST,CT,MAXMOM>::fill_neighborhood_search(const ST xc,
   for (size_t i=0; i<num_sites; ++i) {
     // find the nearest particle to this site
     ST mindistsq = nom_sep * nom_sep;
-    for (size_t j=0; j<inear.size(); ++j) {
-      ST distsq = std::pow(x[inear[j]]-tx[i], 2) + std::pow(y[inear[j]]-ty[i], 2);
+    for (size_t j=0; j<pts.size(); ++j) {
+      ST distsq = std::pow(pts[j].x-tx[i], 2) + std::pow(pts[j].y-ty[i], 2);
       if (distsq < mindistsq) mindistsq = distsq;
     }
     nearest[i] = mindistsq;
@@ -568,8 +579,9 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
     // what is search radius?
     const ST search_rad = nom_sep * ((num_moments > 2) ? 2.5 : 1.6);
 
-    // initialize vector of indexes of nearest particles
-    std::vector<int32_t> inear;
+    // initialize vector of test points
+    std::vector<TestPt> pts;
+    pts.reserve(20);
 
     // switch on search method
     if (use_tree) {
@@ -580,12 +592,15 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
       //if (ret_matches.size() > 20) std::cout << "part " << i << " at " << x[i] << " " << y[i] << " " << z[i] << " has " << ret_matches.size() << " matches" << std::endl;
 
       // copy the indexes into my vector
-      for (size_t j=0; j<ret_matches.size(); ++j) inear.push_back((int32_t)ret_matches[j].first);
+      for (size_t j=0; j<ret_matches.size(); ++j) {
+        const int32_t jj = ret_matches[j].first;
+        pts.push_back(TestPt(x[jj],y[jj],r[jj],newr[jj],0.0,jj,globalorig));
+      }
 
       // now direct search over all newer particles
       for (size_t j=initial_n; j<n; ++j) {
         ST distsq = std::pow(x[i]-x[j], 2) + std::pow(y[i]-y[j], 2);
-        if (distsq < distsq_thresh) inear.push_back((int32_t)j);
+        if (distsq < distsq_thresh) pts.push_back(TestPt(x[j],y[j],r[j],newr[j],0.0,(int32_t)j,globalnew));
       }
       //std::cout << " and " << (inear.size()-nMatches) << " matches";
 
@@ -599,9 +614,13 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
       // direct search: look for all neighboring particles, include newly-created ones
       //   ideally this would be a tree search
       const ST distsq_thresh = std::pow(search_rad, 2);
-      for (size_t j=0; j<n; ++j) {
+      for (size_t j=0; j<initial_n; ++j) {
         ST distsq = std::pow(x[i]-x[j], 2) + std::pow(y[i]-y[j], 2);
-        if (distsq < distsq_thresh) inear.push_back((int32_t)j);
+        if (distsq < distsq_thresh) pts.push_back(TestPt(x[j],y[j],r[j],newr[j],0.0,(int32_t)j,globalorig));
+      }
+      for (size_t j=initial_n; j<n; ++j) {
+        ST distsq = std::pow(x[i]-x[j], 2) + std::pow(y[i]-y[j], 2);
+        if (distsq < distsq_thresh) pts.push_back(TestPt(x[j],y[j],r[j],newr[j],0.0,(int32_t)j,globalnew));
       }
       //std::cout << "radiusSearch(): radius " << search_rad << " found " << inear.size() << " matches";
 
@@ -611,23 +630,14 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
     //for (size_t j=0; j<inear.size(); ++j) std::cout << " " << inear[j];
     //std::cout << std::endl;
 
-    // for parallelization: make thread-local arrays
-    //std::vector<ST> l_x, l_y, l_r, l_newr, l_s, l_ds;
+    size_t numNewParts = 0;
 
-    // if there are less than, say, 6, we should just add some now
-    while (inear.size() < minNearby) {
-      auto newpt = fill_neighborhood_search(x[i], y[i], x, y, inear, nom_sep);
-      // add the index to the near list
-      inear.push_back(n);
-      // add it to the master list
-      x.push_back(newpt.first);
-      y.push_back(newpt.second);
-      const ST thisnewr = newr[i];
-      r.push_back(thisnewr);
-      newr.push_back(thisnewr);
-      s.push_back(0.0);
-      ds.push_back(0.0);
-      n++;
+    // if there are less than, say, 6 neighbors, we should just add some to the local list now
+    while (pts.size() < minNearby) {
+      auto newpt = fill_neighborhood_search(x[i], y[i], pts, nom_sep);
+      // add to the participating list as a thread-local new particle
+      pts.push_back(TestPt(newpt.first,newpt.second,r[i],newr[i],0.0,-1,threadlocal));
+      ++numNewParts;
       //std::cout << "  inear is";
       //for (int32_t j=0; j<inear.size(); ++j) std::cout << " " << inear[j];
       //std::cout << std::endl;
@@ -635,68 +645,66 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
     }
 
     // now remove close parts if we have more than max_near
-    while (inear.size() > max_near) {
+    while (pts.size() > max_near) {
       // look for the part closest to the diffusing particle
       int32_t jclose = 0;
-      ST distnear = std::numeric_limits<ST>::max();
-      for (size_t j=0; j<inear.size(); ++j) {
-        const int32_t inearj = inear[j];
-        if (inearj != i) {
-          const ST distsq = std::pow(x[i]-x[inearj], 2) + std::pow(y[i]-y[inearj], 2);
-          if (distsq < distnear) {
-            distnear = distsq;
+      ST distnearest = std::numeric_limits<ST>::max();
+      for (size_t j=0; j<pts.size(); ++j) {
+        if (pts[j].idx != i) {
+          const ST distsq = std::pow(x[i]-pts[j].x, 2) + std::pow(y[i]-pts[j].y, 2);
+          if (distsq < distnearest) {
+            distnearest = distsq;
             jclose = j;
           }
         }
       }
       // and remove it
       //std::cout << "removing pt near " << x[i] << " " << y[i] << std::endl;
-      inear.erase(inear.begin()+jclose);
+      pts.erase(pts.begin()+jclose);
     }
 
     bool haveSolution = false;
-    size_t numNewParts = 0;
 
     // assemble the underdetermined system
-    while (not haveSolution and ++numNewParts < maxNewParts) {
+    while (not haveSolution and numNewParts < maxNewParts) {
       //std::cout << "  attempt solution with " << inear.size() << " close particles" << std::endl;
 
       // this does the heavy lifting - assemble and solve the VRM equations for the 
-      //   diffusion from particle i to particles in inear
-      haveSolution = attempt_solution(i, inear, x, y, r, newr, h_nu, core_func, fractions);
+      //   diffusion from particle i to test points in pts
+      haveSolution = attempt_solution(x[i], y[i], r[i], pts, h_nu, core_func, fractions);
 
       // if that didn't work, add a particle and try again
       if (not haveSolution) {
-        auto newpt = fill_neighborhood_search(x[i], y[i], x, y, inear, nom_sep);
+        auto newpt = fill_neighborhood_search(x[i], y[i], pts, nom_sep);
 
-        if (inear.size() == max_near) {
-          // replace an old particle with this new one
+        // either make a new local test point or replace an existing entry in pts
+        if (pts.size() == max_near) {
+          // replace an existing point with this newly created one
           size_t ireplace = 1;	// default is 1 because diffusing particle is probably position 0
-          for (size_t j=0; j<inear.size(); ++j) {
-            const int32_t inj = inear[j];
-            if (inj != i and inj < (int32_t)initial_n) {
+          for (size_t j=0; j<pts.size(); ++j) {
+            if (pts[j].idx != i and pts[j].from != threadlocal) {
               ireplace = j;
               break;
             }
           }
-          // we are moving an original particle from the near list, but not the global list
-          // but we are adding a new particle to the global list, hence the n
-          inear[ireplace] = n;
+          // we are removing an original particle from the test list, but not the global list
+          pts[ireplace].x = newpt.first;
+          pts[ireplace].y = newpt.second;
+          pts[ireplace].r = r[i];
+          pts[ireplace].newr = newr[i];
+          pts[ireplace].ds = 0.0;
+          pts[ireplace].idx = -1;
+          pts[ireplace].from = threadlocal;
           //std::cout << "  replacing pt " << ireplace << " in the list of " << inear.size() << std::endl;
+          // we still iterate this because we want to quit out if we just can't find a solution
+          ++numNewParts;
         } else {
-          // add a new one to the inear list and the master particle lists
-          inear.push_back(n);
+          // add a new one to the local list of test points
+          // add it to the local list
+          pts.push_back(TestPt(newpt.first,newpt.second,r[i],newr[i],0.0,-1,threadlocal));
+          ++numNewParts;
         }
 
-        // add it to the master list
-        x.push_back(newpt.first);
-        y.push_back(newpt.second);
-        const ST thisnewr = newr[i];
-        r.push_back(thisnewr);
-        newr.push_back(thisnewr);
-        s.push_back(0.0);
-        ds.push_back(0.0);
-        n++;
         //std::cout << "    no solution, added part at " << newpt[0] << " " << newpt[1] << " " << newpt[2] << std::endl;
       }
     }
@@ -705,28 +713,47 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
     if (numNewParts >= maxNewParts) {
       std::cout << "Something went wrong" << std::endl;
       std::cout << "  at " << x[i] << " " << y[i] << std::endl;
-      std::cout << "  with " << inear.size() << " near neibs" << std::endl;
+      std::cout << "  with " << pts.size() << " near neibs" << std::endl;
       std::cout << "  needed numNewParts= " << numNewParts << std::endl;
       // ideally, in this situation, we would create 6 new particles around the original particle with optimal fractions,
       //   ignoring every other nearby particle - let merge take care of the higher density later
       exit(0);
     }
 
-    nneibs += inear.size();
-    if (inear.size() < minneibs) minneibs = inear.size();
-    if (inear.size() > maxneibs) maxneibs = inear.size();
+    nneibs += pts.size();
+    if (pts.size() < minneibs) minneibs = pts.size();
+    if (pts.size() > maxneibs) maxneibs = pts.size();
 
     // apply those fractions to the delta vector
     //std::cout << "Added strengths" << std::endl;
-    for (size_t j=0; j<inear.size(); ++j) {
-      int32_t idx = inear[j];
-      if (idx == i) {
+    // MAKE THIS THE CRITICAL SECTION, where local parts get added to global lists
+    //std::cout << "\nDiffused part " << i << " over " << pts.size() << " neibs\n";
+    for (size_t j=0; j<pts.size(); ++j) {
+      if (pts[j].idx == i) {
         // self-influence
-        ds[idx] += s[i] * (fractions(j) - 1.0);
+        //#pragma omp atomic
+        ds[i] += s[i] * (fractions(j) - 1.0);
+        //std::cout << "  self added " << (fractions(j) - 1.0) << "\n";
+      } else if (pts[j].from == threadlocal) {
+        // test point gets elevated to full particle
+        //#pragma omp critical
+        x.push_back(pts[j].x);
+        y.push_back(pts[j].y);
+        r.push_back(pts[j].r);
+        newr.push_back(pts[j].newr);
+        s.push_back(0.0);
+        ds.push_back(s[i]*fractions(j));
+        ++n;
+        //std::cout << "  new added " << fractions(j) << "\n";
       } else {
+        // test point was an existing particle
+        const size_t idx = pts[j].idx;
+        //#pragma omp atomic
         ds[idx] += s[i] * fractions(j);
+        //std::cout << "  existing added " << fractions(j) << "\n";
       }
       //std::cout << "  " << (s[i]*fractions(j)) << " to particle " << idx << std::endl;
+      //std::cout << "  now have " << n << " particles" << std::endl;
     }
 
   } // end loop over all current particles
@@ -753,12 +780,8 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
 // Set up and solve the VRM equations
 //
 template <class ST, class CT, uint8_t MAXMOM>
-bool VRM<ST,CT,MAXMOM>::attempt_solution(const int32_t idiff,
-                                         std::vector<int32_t>& inear,
-                                         Vector<ST>& x,
-                                         Vector<ST>& y,
-                                         Vector<ST>& r,
-                                         Vector<ST>& newr,
+bool VRM<ST,CT,MAXMOM>::attempt_solution(const ST xc, const ST yc, const ST rc,
+                                         const std::vector<TestPt>& pts,
                                          const ST h_nu,
                                          const CoreType core_func,
                                          Eigen::Matrix<CT, Eigen::Dynamic, 1>& fracout) {
@@ -796,19 +819,18 @@ bool VRM<ST,CT,MAXMOM>::attempt_solution(const int32_t idiff,
 
   // reset the arrays
   //std::cout << "\nSetting up Ax=b least-squares problem" << std::endl;
-  assert(inear.size() <= static_cast<size_t>(max_near) && "Too many neighbors in VRM");
+  assert(pts.size() <= static_cast<size_t>(max_near) && "Too many neighbors in VRM");
   b.setZero();
-  A.resize(num_rows, inear.size());
+  A.resize(num_rows, pts.size());
   A.setZero();
-  fractions.resize(inear.size());
+  fractions.resize(pts.size());
   fractions.setZero();
 
   // fill it in
-  for (size_t j=0; j<inear.size(); ++j) {
-    const int32_t jdx = inear[j];
+  for (size_t j=0; j<pts.size(); ++j) {
     // all distances are normalized to h_nu
-    CT dx = (x[idiff]-x[jdx]) * oohnu;
-    CT dy = (y[idiff]-y[jdx]) * oohnu;
+    CT dx = (xc-pts[j].x) * oohnu;
+    CT dy = (yc-pts[j].y) * oohnu;
     A(0,j) = 1.0;
     if (num_moments > 0) {
       A(1,j) = dx;
@@ -819,8 +841,9 @@ bool VRM<ST,CT,MAXMOM>::attempt_solution(const int32_t idiff,
       A(4,j) = dx*dy;
       A(5,j) = dy*dy;
       if (adapt_radii) {
-        A(3,j) += core_second_mom * std::pow(newr[jdx]*oohnu, 2);
-        A(5,j) += core_second_mom * std::pow(newr[jdx]*oohnu, 2);
+        const CT toadd = core_second_mom * std::pow(pts[j].newr * oohnu, 2);
+        A(3,j) += toadd;
+        A(5,j) += toadd;
       }
     }
     if (num_moments > 2) {
@@ -837,9 +860,10 @@ bool VRM<ST,CT,MAXMOM>::attempt_solution(const int32_t idiff,
       A(13,j) = dx*dy*dy*dy;
       A(14,j) = dy*dy*dy*dy;
       if (adapt_radii) {
-        A(10,j) += core_fourth_mom * std::pow(newr[jdx]*oohnu, 4);
-        A(12,j) += core_fourth_mom * std::pow(newr[jdx]*oohnu, 4) / 3.0;
-        A(14,j) += core_fourth_mom * std::pow(newr[jdx]*oohnu, 4);
+        const CT toadd = core_fourth_mom * std::pow(pts[j].newr * oohnu, 4);
+        A(10,j) += toadd;
+        A(12,j) += toadd / 3.0;
+        A(14,j) += toadd;
       }
     }
   }
@@ -849,8 +873,9 @@ bool VRM<ST,CT,MAXMOM>::attempt_solution(const int32_t idiff,
     b(3) = second_moment;
     b(5) = second_moment;
     if (adapt_radii) {
-      b(3) += core_second_mom * std::pow(r[idiff]*oohnu, 2);
-      b(5) += core_second_mom * std::pow(r[idiff]*oohnu, 2);
+      const CT toadd = core_second_mom * std::pow(rc*oohnu, 2);
+      b(3) += toadd;
+      b(5) += toadd;
     }
   }
   if (num_moments > 3) {
@@ -858,9 +883,10 @@ bool VRM<ST,CT,MAXMOM>::attempt_solution(const int32_t idiff,
     b(12) = fourth_moment / 3.0;
     b(14) = fourth_moment;
     if (adapt_radii) {
-      b(10) += core_fourth_mom * std::pow(r[idiff]*oohnu, 4);
-      b(12) += core_fourth_mom * std::pow(r[idiff]*oohnu, 4) / 3.0;
-      b(14) += core_fourth_mom * std::pow(r[idiff]*oohnu, 4);
+      const CT toadd = core_fourth_mom * std::pow(rc*oohnu, 4);
+      b(10) += toadd;
+      b(12) += toadd / 3.0;
+      b(14) += toadd;
     }
   }
   //std::cout << "  Here is the matrix A^T:\n" << A.transpose() << std::endl;
@@ -881,7 +907,7 @@ bool VRM<ST,CT,MAXMOM>::attempt_solution(const int32_t idiff,
       //std::cout << "  success! required " << nnls_solver.numLS() << " LS problems" << std::endl;
       //std::cout << "  check says " << nnls_solver.check(b) << std::endl;
     } else {
-      for (size_t j=0; j<inear.size(); ++j) fractions(j) = 0.f;
+      for (size_t j=0; j<pts.size(); ++j) fractions(j) = 0.f;
       //std::cout << "  fail!" << std::endl;
     }
 
