@@ -107,18 +107,6 @@ protected:
     ~TestPt() = default;
   };
 
-  // search for a new test point location
-  std::pair<ST,ST> fill_neighborhood_search(const ST, const ST,
-                                            const std::vector<TestPt>&,
-                                            const ST);
-
-  // set up and call the solver
-  bool attempt_solution(const ST, const ST, const ST,
-                        const std::vector<TestPt>&,
-                        const ST,
-                        const CoreType,
-                        Eigen::Matrix<CT, Eigen::Dynamic, 1>&);
-
 private:
   // solve VRM to how many moments?
   static const int32_t num_moments = MAXMOM;
@@ -130,6 +118,20 @@ private:
   static constexpr size_t num_sites = 30 * ((MAXMOM>2) ? 2 : 1);
   std::array<ST,num_sites> xsite,ysite;
   void initialize_sites();
+
+  // search for a new test point location
+  std::pair<ST,ST> fill_neighborhood_search(const ST, const ST,
+                                            const std::vector<TestPt>&,
+                                            const ST);
+
+  // set up and call the solver
+  bool attempt_solution(const ST, const ST, const ST,
+                        const std::vector<TestPt>&,
+                        const ST,
+                        const CoreType,
+                        Eigen::Matrix<CT, num_rows, Eigen::Dynamic, 0, num_rows, max_near>&,
+                        Eigen::Matrix<CT, num_rows, 1>&,
+                        Eigen::Matrix<CT, Eigen::Dynamic, 1, 0, max_near, 1>&);
 
   // for standard VRM
 
@@ -326,9 +328,6 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
     if (crit[i] > maxCrit) maxCrit = crit[i];
   }
 
-  // create the matrix elements, reusable, and dynamically allocated
-  //Eigen::Matrix<CT, Eigen::Dynamic, 1> fractions;
-
   const int32_t minNearby = 7;
   const int32_t maxNewParts = num_moments*8 - 4;
 
@@ -354,8 +353,6 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
   my_kd_tree_t mat_index(Dimensions, std::cref(xp));
   if (use_tree) mat_index.index->buildIndex();
 
-  std::vector<std::pair<EigenIndexType,ST> > ret_matches;
-  ret_matches.reserve(max_near);
   nanoflann::SearchParams params;
   params.sorted = true;
 
@@ -366,6 +363,9 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
     int32_t nvrm = 0;
     int32_t nshrink = 0;
     auto astart = std::chrono::steady_clock::now();
+
+    std::vector<std::pair<EigenIndexType,ST> > ret_matches;
+    ret_matches.reserve(max_near);
 
     // note that OpenMP loops need int32_t as the counter variable type
     for (int32_t i=0; i<(int32_t)n; ++i) {
@@ -560,8 +560,24 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
   size_t minneibs = 999999;
   size_t maxneibs = 0;
 
+  #pragma omp parallel
+  {
+
+  // create the matrix elements, reusable, and dynamically allocated
+  //Eigen::Matrix<CT, Eigen::Dynamic, 1> fractions;
+
+  // data for the search results
+  std::vector<std::pair<EigenIndexType,ST> > ret_matches;
+  ret_matches.reserve(max_near);
+
+  // the matricies that we will repeatedly work on
+  Eigen::Matrix<CT, num_rows, Eigen::Dynamic, 0, num_rows, max_near> A;
+  Eigen::Matrix<CT, num_rows, 1> b;
+  Eigen::Matrix<CT, Eigen::Dynamic, 1, 0, max_near, 1> fractions;
+  // can we instead pass these in, AND upon re-calling this function, only add the needed row?!?
+
   // note that OpenMP loops need int32_t as the counter variable type
-  #pragma omp parallel for private(ret_matches) reduction(+:nsolved,nneibs) reduction(min:minneibs) reduction(max:maxneibs)
+  #pragma omp for reduction(+:nsolved,nneibs) reduction(min:minneibs) reduction(max:maxneibs)
   for (int32_t i=0; i<(int32_t)initial_n; ++i) {
 
     // find the nearest neighbor particles
@@ -671,7 +687,6 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
     }
 
     bool haveSolution = false;
-    Eigen::Matrix<CT, Eigen::Dynamic, 1> fractions;
 
     // assemble the underdetermined system
     while (not haveSolution and numNewParts < maxNewParts) {
@@ -679,7 +694,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
 
       // this does the heavy lifting - assemble and solve the VRM equations for the 
       //   diffusion from particle i to test points in pts
-      haveSolution = attempt_solution(x[i], y[i], r[i], pts, h_nu, core_func, fractions);
+      haveSolution = attempt_solution(x[i], y[i], r[i], pts, h_nu, core_func, A, b, fractions);
 
       // if that didn't work, add a particle and try again
       if (not haveSolution) {
@@ -768,6 +783,9 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
 
   } // end loop over all current particles
 
+  }
+  // end omp parallel
+
   std::cout << "    neighbors: min/avg/max " << minneibs << "/" << ((ST)nneibs / (ST)nsolved) << "/" << maxneibs << std::endl;
   //std::cout << "  number of close pairs " << (ntooclose/2) << std::endl;
   std::cout << "    after VRM, n is " << n << std::endl;
@@ -794,15 +812,11 @@ bool VRM<ST,CT,MAXMOM>::attempt_solution(const ST xc, const ST yc, const ST rc,
                                          const std::vector<TestPt>& pts,
                                          const ST h_nu,
                                          const CoreType core_func,
-                                         Eigen::Matrix<CT, Eigen::Dynamic, 1>& fracout) {
+                                         Eigen::Matrix<CT, num_rows, Eigen::Dynamic, 0, num_rows, max_near>& A,
+                                         Eigen::Matrix<CT, num_rows, 1>& b,
+                                         Eigen::Matrix<CT, Eigen::Dynamic, 1, 0, max_near, 1>& fractions) {
 
   bool haveSolution = false;
-
-  // the matricies that we will repeatedly work on
-  Eigen::Matrix<CT, num_rows, Eigen::Dynamic, 0, num_rows, max_near> A;
-  Eigen::Matrix<CT, num_rows, 1> b;
-  Eigen::Matrix<CT, Eigen::Dynamic, 1, 0, max_near, 1> fractions;
-  // can we instead pass these in, AND upon re-calling this function, only add the needed row?!?
 
   // second moment in each direction
   // one dt should generate 4 hnu^2 of second moment, or when distances
@@ -969,7 +983,6 @@ bool VRM<ST,CT,MAXMOM>::attempt_solution(const ST xc, const ST yc, const ST rc,
   }
 
   // set output fractions and result
-  fracout = fractions;
   return haveSolution;
 }
 
