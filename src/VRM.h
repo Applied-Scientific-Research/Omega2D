@@ -43,7 +43,7 @@
 #include <iostream>
 #include <vector>
 
-enum SolverType { nnls, simplex };
+enum SolverType { nnls, simplex, lbfgsb };
 
 //
 // Class to hold VRM parameters and temporaries
@@ -327,7 +327,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
   }
 
   // create the matrix elements, reusable, and dynamically allocated
-  Eigen::Matrix<CT, Eigen::Dynamic, 1> fractions;
+  //Eigen::Matrix<CT, Eigen::Dynamic, 1> fractions;
 
   const int32_t minNearby = 7;
   const int32_t maxNewParts = num_moments*8 - 4;
@@ -561,7 +561,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
   size_t maxneibs = 0;
 
   // note that OpenMP loops need int32_t as the counter variable type
-  //#pragma omp parallel for reduction(+:nsolved,nneibs) reduction(min:minneibs) reduction(max:maxneibs)
+  #pragma omp parallel for private(ret_matches) reduction(+:nsolved,nneibs) reduction(min:minneibs) reduction(max:maxneibs)
   for (int32_t i=0; i<(int32_t)initial_n; ++i) {
 
     // find the nearest neighbor particles
@@ -598,9 +598,13 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
       }
 
       // now direct search over all newer particles
-      for (size_t j=initial_n; j<n; ++j) {
-        ST distsq = std::pow(x[i]-x[j], 2) + std::pow(y[i]-y[j], 2);
-        if (distsq < distsq_thresh) pts.push_back(TestPt(x[j],y[j],r[j],newr[j],0.0,(int32_t)j,globalnew));
+      #pragma omp critical (UpdateGlobalArrays)
+      {
+        // cannot do this while someone else is modifying the arrays
+        for (size_t j=initial_n; j<n; ++j) {
+          ST distsq = std::pow(x[i]-x[j], 2) + std::pow(y[i]-y[j], 2);
+          if (distsq < distsq_thresh) pts.push_back(TestPt(x[j],y[j],r[j],newr[j],0.0,(int32_t)j,globalnew));
+        }
       }
       //std::cout << " and " << (inear.size()-nMatches) << " matches";
 
@@ -618,9 +622,12 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
         ST distsq = std::pow(x[i]-x[j], 2) + std::pow(y[i]-y[j], 2);
         if (distsq < distsq_thresh) pts.push_back(TestPt(x[j],y[j],r[j],newr[j],0.0,(int32_t)j,globalorig));
       }
-      for (size_t j=initial_n; j<n; ++j) {
-        ST distsq = std::pow(x[i]-x[j], 2) + std::pow(y[i]-y[j], 2);
-        if (distsq < distsq_thresh) pts.push_back(TestPt(x[j],y[j],r[j],newr[j],0.0,(int32_t)j,globalnew));
+      #pragma omp critical (UpdateGlobalArrays)
+      {
+        for (size_t j=initial_n; j<n; ++j) {
+          ST distsq = std::pow(x[i]-x[j], 2) + std::pow(y[i]-y[j], 2);
+          if (distsq < distsq_thresh) pts.push_back(TestPt(x[j],y[j],r[j],newr[j],0.0,(int32_t)j,globalnew));
+        }
       }
       //std::cout << "radiusSearch(): radius " << search_rad << " found " << inear.size() << " matches";
 
@@ -664,6 +671,7 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
     }
 
     bool haveSolution = false;
+    Eigen::Matrix<CT, Eigen::Dynamic, 1> fractions;
 
     // assemble the underdetermined system
     while (not haveSolution and numNewParts < maxNewParts) {
@@ -731,24 +739,26 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
     for (size_t j=0; j<pts.size(); ++j) {
       if (pts[j].idx == i) {
         // self-influence
-        //#pragma omp atomic
+        #pragma omp atomic update
         ds[i] += s[i] * (fractions(j) - 1.0);
         //std::cout << "  self added " << (fractions(j) - 1.0) << "\n";
       } else if (pts[j].from == threadlocal) {
         // test point gets elevated to full particle
-        //#pragma omp critical
-        x.push_back(pts[j].x);
-        y.push_back(pts[j].y);
-        r.push_back(pts[j].r);
-        newr.push_back(pts[j].newr);
-        s.push_back(0.0);
-        ds.push_back(s[i]*fractions(j));
-        ++n;
+        #pragma omp critical (UpdateGlobalArrays)
+        {
+          x.push_back(pts[j].x);
+          y.push_back(pts[j].y);
+          r.push_back(pts[j].r);
+          newr.push_back(pts[j].newr);
+          s.push_back(0.0);
+          ds.push_back(s[i]*fractions(j));
+          ++n;
+        }
         //std::cout << "  new added " << fractions(j) << "\n";
       } else {
         // test point was an existing particle
         const size_t idx = pts[j].idx;
-        //#pragma omp atomic
+        #pragma omp atomic update
         ds[idx] += s[i] * fractions(j);
         //std::cout << "  existing added " << fractions(j) << "\n";
       }
@@ -789,9 +799,10 @@ bool VRM<ST,CT,MAXMOM>::attempt_solution(const ST xc, const ST yc, const ST rc,
   bool haveSolution = false;
 
   // the matricies that we will repeatedly work on
-  static Eigen::Matrix<CT, num_rows, Eigen::Dynamic, 0, num_rows, max_near> A;
-  static Eigen::Matrix<CT, num_rows, 1> b;
-  static Eigen::Matrix<CT, Eigen::Dynamic, 1, 0, max_near, 1> fractions;
+  Eigen::Matrix<CT, num_rows, Eigen::Dynamic, 0, num_rows, max_near> A;
+  Eigen::Matrix<CT, num_rows, 1> b;
+  Eigen::Matrix<CT, Eigen::Dynamic, 1, 0, max_near, 1> fractions;
+  // can we instead pass these in, AND upon re-calling this function, only add the needed row?!?
 
   // second moment in each direction
   // one dt should generate 4 hnu^2 of second moment, or when distances
@@ -828,6 +839,7 @@ bool VRM<ST,CT,MAXMOM>::attempt_solution(const ST xc, const ST yc, const ST rc,
 
   // fill it in
   for (size_t j=0; j<pts.size(); ++j) {
+    // on a subsequent call, we've already done this for j=0..size-2
     // all distances are normalized to h_nu
     CT dx = (xc-pts[j].x) * oohnu;
     CT dy = (yc-pts[j].y) * oohnu;
