@@ -358,16 +358,20 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
 
   // Adaptive radius pre-search
   if (adapt_radii) {
-    int32_t nignore = 0;
-    int32_t nspread = 0;
-    int32_t nvrm = 0;
     int32_t nshrink = 0;
+    int32_t nvrm = 0;
+    int32_t nspread = 0;
+    int32_t nignore = 0;
     auto astart = std::chrono::steady_clock::now();
+
+    #pragma omp parallel
+    {
 
     std::vector<std::pair<EigenIndexType,ST> > ret_matches;
     ret_matches.reserve(max_near);
 
     // note that OpenMP loops need int32_t as the counter variable type
+    #pragma omp for reduction(+:nshrink,nvrm,nspread,nignore)
     for (int32_t i=0; i<(int32_t)n; ++i) {
       // compute all new radii before performing any VRM
 
@@ -533,7 +537,10 @@ void VRM<ST,CT,MAXMOM>::diffuse_all(std::array<Vector<ST>,2>& pos,
         }
       }
 
-    }
+    } // end loop i over particles
+
+    } // end omp parallel
+
     std::cout << "    adapt: shrink/vrm/spread/ignore " << nshrink << "/" << nvrm << "/" << nspread << "/" << nignore << std::endl;
 
     // finish timer and report
