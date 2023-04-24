@@ -12,7 +12,7 @@ This open-source tool is aimed at users interested in understanding vortex metho
 
 
 ## Build the software
-This code uses some C++17 features (like `std::variant` and `<filesystem>`, so requires GCC 8, Clang 5, and MSVC 19.10 (Visual Studio 15 2017) or newer compilers.
+This code uses some C++17 features (like `std::variant` and `<filesystem>`, so requires GCC 8, Clang 5, MSVC 19.10 (Visual Studio 15 2017), or a newer compiler.
 
 #### Prerequisites
 Users will also need CMake, Eigen (version 3.3 or newer), and GLFW version 3 on their machines to build this, other requirements are included in this distribution. Get these on Fedora with
@@ -59,7 +59,7 @@ If you forgot to use ``--recurse-submodules`` when cloning, and cmake gives an e
 
     git submodule update --init
 
-If you were able to build and install Vc, then you should set `-DUSE_VC=ON` in the above `cmake` command, or set it in c`ccmake`.
+If you were able to build and install Vc, then you should set `-DUSE_VC=ON` in the above `cmake` command, or set it when you run `ccmake ..`.
 
 If you want to use [onbody](https://github.com/Applied-Scientific-Research/onbody) instead of the internal O(N^2) Biot-Savart integrator (and you should), make sure to set `USE_EXTERNAL_SUM` to `onbody`. This method is slower when the number of particles is under 50k-100k, but faster when above (and *much* faster when N gets really huge).
 
@@ -121,8 +121,6 @@ Generate an X.264-encoded video from a series of png images with the following c
 ## To do
 Tasks to consider or implement:
 
-* Use steady_clock instead of system_clock for timing
-* Use OpenMP for VRM
 * Move boundary conditions to their own class, with normal and tangential vels, inlets/outlets, constant/formula, etc.
 * Add support for NACA wings to be created by reading geometry files in standard formats - this might mean enabling Kutta points (reactive Points)
 * Add an openmp setting to the CPU execution environment, to show the effects of multithreading
@@ -144,8 +142,7 @@ Tasks to consider or implement:
 * Right-click on the draw screen to add features - hard? can imgui handle it?
 * Create an OpenGL compute shader routine for the particle-particle influence, like in Omega3D
 * Add option to draw particles as thin white dots/lines "Draw elements"
-* Draw a freestream arrow in the LR corner
-* Let the user grab the fs arrow to dynamically change the freestream
+* Draw a freestream arrow in the LR corner, and let the user grab the fs arrow to dynamically change the freestream
 * Allow a formula for the freestream instead of it being constant (use tinyexpr like for body motion)
 * Add field points in a grid over the visible domain, find vels, display as streaks - make this one of a few rendering options
 * Draw panels as polygons extending along the normal with a sharp edge on the body side and a gradient to zero on the flow side - then they can visually merge with the particles to make a visibly smooth and more-correct vorticity field
