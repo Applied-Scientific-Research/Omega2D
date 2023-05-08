@@ -83,8 +83,7 @@ IF( WIN32 )
   LINK_DIRECTORIES   ( "${GLFW3_ROOT}/lib-vc2017" )
   SET( FRAMEWORK_LIBS glfw3.lib )
 
-  SET (EIGEN_ROOT "${GL_LIBS_HOME}/eigen-3.3.7" CACHE STRING "Eigen root" )
-  INCLUDE_DIRECTORIES ( "${EIGEN_ROOT}" )
+  SET( EIGEN_ROOT "${GL_LIBS_HOME}/eigen-3.3.7" CACHE STRING "Eigen root" )
 
   # OpenMP for multithreading
   IF( USE_OMP )
@@ -137,9 +136,10 @@ ELSEIF( APPLE )
   #SET( FRAMEWORK_LIBS glfw3 )
   FIND_LIBRARY( FRAMEWORK_LIBS NAMES glfw3 glfw libglfw PATHS /usr/local/lib)
 
-  INCLUDE_DIRECTORIES ( "/usr/local/include" )
-  INCLUDE_DIRECTORIES ( "/usr/local/include/eigen3" )
+  #INCLUDE_DIRECTORIES ( "/usr/local/include" )
+  #INCLUDE_DIRECTORIES ( "/usr/local/include/eigen3" )
   #INCLUDE_DIRECTORIES ( "/usr/local/Cellar/eigen/3.3.4/include/eigen3" )
+  SET( EIGEN_ROOT "/usr/local/include/eigen3" CACHE STRING "Eigen root" )
 
   IF( USE_OMP )
     FIND_PACKAGE( OpenMP )
@@ -185,7 +185,7 @@ ELSEIF( UNIX )
   # but glad needs dl, which cmake doesn't think glfw needs
   SET( FRAMEWORK_LIBS glfw dl )
 
-  INCLUDE_DIRECTORIES ( "/usr/include/eigen3" )
+  SET( EIGEN_ROOT "/usr/include/eigen3" CACHE STRING "Eigen root" )
 
   # OpenMP for multithreading
   IF( USE_OMP )
@@ -223,7 +223,7 @@ ENDIF()
 
 # Enable plugins
 
-# adaptive VRM
+# experimental adaptive VRM
 IF( USE_PLUGIN_AVRM )
   SET (CPREPROCDEFS ${CPREPROCDEFS} -DPLUGIN_AVRM)
   INCLUDE_DIRECTORIES( "plugin-o2d-avrm" )
@@ -243,9 +243,6 @@ IF (${USE_EXTERNAL_SUM} STREQUAL "onbody")
   INCLUDE_DIRECTORIES( "extern/onbody/src" )
   SET (EXTERNAL_LIBS ${EXTERNAL_LIBS} bh2dvort)
   SET (CPREPROCDEFS ${CPREPROCDEFS} -DEXTERNAL_VEL_SOLVE)
-  #SET (FASTSUM_LIBS "libfastsumm.a" CACHE STRING "Static library exposing velocity summation function call" )
-  #FIND_LIBRARY( FASTSUM_LIBS NAMES Vc PATHS "${VC_ROOT}/lib" )
-  #SET( EXTERNAL_LIBS ${FASTSUM_LIBS} )
 ELSEIF( ${USE_EXTERNAL_SUM} STREQUAL "fmm2d" )
   SET (CPREPROCDEFS ${CPREPROCDEFS} -DEXTERNAL_VEL_SOLVE)
   SET (FASTSUM_LIBS "libfastsumm.a" CACHE STRING "Static library exposing velocity summation function call" )
@@ -262,13 +259,12 @@ SET( EXTERNAL_LIBS ${EXTERNAL_LIBS} gmsh-reader-static )
 IF (${USE_HO_HYBRID} STREQUAL "Fortran")
   ADD_SUBDIRECTORY( extern/HO-Fortran )
   INCLUDE_DIRECTORIES( "extern/HO-Fortran/src" )
-  #SET (EXTERNAL_LIBS ${EXTERNAL_LIBS} 2DVortTrans aplles_mp lapack gfortran )
   SET (EXTERNAL_LIBS ${EXTERNAL_LIBS} 2DVortTrans ${APLLES_LIBS} ${XML_LIBS} ${LAPACK_LIBS} gfortran )
   SET (CPREPROCDEFS ${CPREPROCDEFS} -DHOFORTRAN)
 ELSEIF( ${USE_HO_HYBRID} STREQUAL "CXX" )
   ADD_SUBDIRECTORY( extern/HO-CXX )
   INCLUDE_DIRECTORIES ("extern/HO-CXX/src" )
-  INCLUDE_DIRECTORIES ( "${EIGEN_ROOT}" )
+  #INCLUDE_DIRECTORIES ( "${EIGEN_ROOT}" )
   INCLUDE_DIRECTORIES ( "${AMGCL_ROOT}" )
   SET (EXTERNAL_LIBS ${EXTERNAL_LIBS} HO-CXX)
   SET (CPREPROCDEFS ${CPREPROCDEFS} -DHOCXX)
@@ -278,6 +274,7 @@ ENDIF()
 
 ADD_DEFINITIONS (${CPREPROCDEFS})
 
+INCLUDE_DIRECTORIES( "${EIGEN_ROOT}" )
 INCLUDE_DIRECTORIES( "lib" )
 # For some of the libraries who need glad
 INCLUDE_DIRECTORIES( "lib/glad" )
