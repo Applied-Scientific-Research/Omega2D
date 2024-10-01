@@ -2,8 +2,10 @@
 # Omega2D
 # (c)2017-2023 Applied Scientific Research, Inc.
 #
-CMAKE_MINIMUM_REQUIRED( VERSION 3.4 )
+CMAKE_MINIMUM_REQUIRED( VERSION 3.14 )
 PROJECT( Omega2D )
+
+include(FetchContent)
 
 # User-serviceable variables here
 SET_PROPERTY(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "RelWithDebInfo")
@@ -16,6 +18,7 @@ SET (BUILD_BATCH FALSE CACHE BOOL "Build the batch (no GUI) version")
 SET (CMAKE_INSTALL_PREFIX CACHE PATH "Installation location for binaries, sample inputs, and licenses")
 SET (USE_OMP TRUE CACHE BOOL "Use OpenMP multithreading")
 SET (USE_VC FALSE CACHE BOOL "Use Vc for vector arithmetic")
+SET (USE_ONBODY FALSE CACHE BOOL "Use onbody for fast velocity summations")
 SET (USE_PLUGIN_AVRM FALSE CACHE BOOL "Enable experimental adaptive VRM plugin")
 SET (USE_PLUGIN_SIMPLEX FALSE CACHE BOOL "Enable simplex solver plugin for VRM")
 SET (USE_EXTERNAL_SUM "None" CACHE STRING "Enable external velocity solver, if any")
@@ -69,6 +72,33 @@ ELSEIF (MSVC)
 ENDIF ()
 
 
+# Fetch 3rd party libraries (Vc, onbody, etc,)
+
+# mandatory libraries
+FetchContent_Declare(
+  gmsh-reader
+  GIT_REPOSITORY https://github.com/Applied-Scientific-Research/gmsh-reader.git
+  GIT_TAG 10b009620fc92d9fcacdcfb3085de60b5603c497
+)
+FetchContent_MakeAvailable(gmsh-reader)
+
+# optional libraries
+FetchContent_Declare(
+  Vc
+  URL https://github.com/VcDevel/Vc/archive/refs/tags/1.4.5.zip
+)
+IF( USE_VC )
+  FetchContent_MakeAvailable(Vc)
+  SET (EXTERNAL_LIBS ${EXTERNAL_LIBS} Vc)
+ENDIF ()
+
+FetchContent_Declare(
+  onbody
+  GIT_REPOSITORY https://github.com/Applied-Scientific-Research/onbody.git
+  GIT_TAG 45e9bbb9e71628fa37ea02e2d2471443e2e8a84c
+)
+
+
 # Define platform-specific libraries and options
 
 IF( WIN32 )
@@ -107,14 +137,15 @@ IF( WIN32 )
   # Vc for explicit vectorization
   IF( USE_VC )
     SET (CPREPROCDEFS ${CPREPROCDEFS} -DUSE_VC)
-    SET (VC_ROOT "${GL_LIBS_HOME}/Vc" CACHE STRING "Vc root" )
-    INCLUDE_DIRECTORIES( "${VC_ROOT}/include" )
-    FIND_LIBRARY( VC_LIBS NAMES Vc PATHS "${VC_ROOT}/lib" )
+    #SET (VC_ROOT "${GL_LIBS_HOME}/Vc" CACHE STRING "Vc root" )
+    #INCLUDE_DIRECTORIES( "${VC_ROOT}/include" )
+    #FIND_LIBRARY( VC_LIBS NAMES Vc PATHS "${VC_ROOT}/lib" )
   ELSE()
-    SET (VC_LIBS "")
+    #SET (VC_LIBS "")
   ENDIF()
   
-  SET( BASE_LIBS ${VC_LIBS} ${CMAKE_THREAD_LIBS_INIT} )
+  #SET( BASE_LIBS ${VC_LIBS} ${CMAKE_THREAD_LIBS_INIT} )
+  SET( BASE_LIBS ${CMAKE_THREAD_LIBS_INIT} )
   SET( GUI_LIBS ${FRAMEWORK_LIBS} opengl32 )
   SET_PROPERTY(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Omega2D)
 
@@ -154,15 +185,16 @@ ELSEIF( APPLE )
   # Vc for explicit vectorization
   IF( USE_VC )
     SET (CPREPROCDEFS ${CPREPROCDEFS} -DUSE_VC)
-    SET (VC_ROOT "/opt/Vc" CACHE STRING "Vc root" )
-    INCLUDE_DIRECTORIES( "${VC_ROOT}/include" )
-    FIND_LIBRARY( VC_LIBS NAMES Vc PATHS "${VC_ROOT}/lib" )
+    #SET (VC_ROOT "/opt/Vc" CACHE STRING "Vc root" )
+    #INCLUDE_DIRECTORIES( "${VC_ROOT}/include" )
+    #FIND_LIBRARY( VC_LIBS NAMES Vc PATHS "${VC_ROOT}/lib" )
   ELSE()
-    SET (VC_LIBS "")
+    #SET (VC_LIBS "")
   ENDIF()
 
   SET( CMAKE_MACOSX_RPATH 1 )
-  SET( BASE_LIBS ${VC_LIBS} ${CMAKE_THREAD_LIBS_INIT} )
+  #SET( BASE_LIBS ${VC_LIBS} ${CMAKE_THREAD_LIBS_INIT} )
+  SET( BASE_LIBS ${CMAKE_THREAD_LIBS_INIT} )
   SET( GUI_LIBS ${FRAMEWORK_LIBS} ${COCOA_LIBRARY} ${IOKIT_LIBRARY} ${COREVIDEO_LIBRARY} ${OpenGL_LIBRARY} )
 
 ELSEIF( UNIX )
@@ -209,14 +241,15 @@ ELSEIF( UNIX )
   # Vc for explicit vectorization
   IF( USE_VC )
     SET (CPREPROCDEFS ${CPREPROCDEFS} -DUSE_VC)
-    SET (VC_ROOT "/opt/Vc" CACHE STRING "Vc root" )
-    INCLUDE_DIRECTORIES( "${VC_ROOT}/include" )
-    FIND_LIBRARY( VC_LIBS NAMES Vc PATHS "${VC_ROOT}/lib" )
+    #SET (VC_ROOT "/opt/Vc" CACHE STRING "Vc root" )
+    #INCLUDE_DIRECTORIES( "${VC_ROOT}/include" )
+    #FIND_LIBRARY( VC_LIBS NAMES Vc PATHS "${VC_ROOT}/lib" )
   ELSE()
-    SET (VC_LIBS "")
+    #SET (VC_LIBS "")
   ENDIF()
 
-  SET( BASE_LIBS ${VC_LIBS} ${CMAKE_THREAD_LIBS_INIT} )
+  #SET( BASE_LIBS ${VC_LIBS} ${CMAKE_THREAD_LIBS_INIT} )
+  SET( BASE_LIBS ${CMAKE_THREAD_LIBS_INIT} )
   SET( GUI_LIBS ${FRAMEWORK_LIBS} ${GLFW_LIBRARIES} )
 ENDIF()
 
@@ -252,8 +285,8 @@ ELSE()
 ENDIF()
 
 # Enable submodules
-ADD_SUBDIRECTORY( extern/gmsh-reader )
-INCLUDE_DIRECTORIES( "extern/gmsh-reader/src" )
+#ADD_SUBDIRECTORY( extern/gmsh-reader )
+#INCLUDE_DIRECTORIES( "extern/gmsh-reader/src" )
 SET( EXTERNAL_LIBS ${EXTERNAL_LIBS} gmsh-reader-static )
 
 IF (${USE_HO_HYBRID} STREQUAL "Fortran")
