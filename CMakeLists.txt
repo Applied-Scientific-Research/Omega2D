@@ -78,14 +78,16 @@ ENDIF ()
 FetchContent_Declare(
   gmsh-reader
   GIT_REPOSITORY https://github.com/Applied-Scientific-Research/gmsh-reader.git
-  GIT_TAG 10b009620fc92d9fcacdcfb3085de60b5603c497
+  GIT_TAG e3a05114a4c5e8f139e9e4da75b0c001e10af6a5
 )
 FetchContent_MakeAvailable(gmsh-reader)
+SET (EXTERNAL_LIBS ${EXTERNAL_LIBS} gmsh-reader)
 
 # optional libraries
 FetchContent_Declare(
   Vc
   URL https://github.com/VcDevel/Vc/archive/refs/tags/1.4.5.zip
+  DOWNLOAD_EXTRACT_TIMESTAMP true
 )
 IF( USE_VC )
   FetchContent_MakeAvailable(Vc)
@@ -285,9 +287,6 @@ ELSE()
 ENDIF()
 
 # Enable submodules
-#ADD_SUBDIRECTORY( extern/gmsh-reader )
-#INCLUDE_DIRECTORIES( "extern/gmsh-reader/src" )
-SET( EXTERNAL_LIBS ${EXTERNAL_LIBS} gmsh-reader-static )
 
 IF (${USE_HO_HYBRID} STREQUAL "Fortran")
   ADD_SUBDIRECTORY( extern/HO-Fortran )
