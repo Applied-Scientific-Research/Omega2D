@@ -1,6 +1,6 @@
 #
 # Omega2D
-# (c)2017-2023 Applied Scientific Research, Inc.
+# (c)2017-24 Applied Scientific Research, Inc.
 #
 CMAKE_MINIMUM_REQUIRED( VERSION 3.14 )
 PROJECT( Omega2D )
@@ -18,13 +18,12 @@ SET (OMEGA2D_BUILD_BATCH FALSE CACHE BOOL "Build the batch (no GUI) version")
 SET (CMAKE_INSTALL_PREFIX CACHE PATH "Installation location for binaries, sample inputs, and licenses")
 SET (OMEGA2D_USE_OMP TRUE CACHE BOOL "Use OpenMP multithreading")
 SET (OMEGA2D_USE_VC FALSE CACHE BOOL "Use Vc for vector arithmetic")
-SET (USE_ONBODY FALSE CACHE BOOL "Use onbody for fast velocity summations")
-SET (OMEGA2D_USE_PLUGIN_AVRM FALSE CACHE BOOL "Enable experimental adaptive VRM plugin")
+SET (OMEGA2D_USE_ONBODY FALSE CACHE BOOL "Use onbody for fast velocity summations")
 SET (OMEGA2D_USE_PLUGIN_SIMPLEX FALSE CACHE BOOL "Enable simplex solver plugin for VRM")
-SET (USE_EXTERNAL_SUM "None" CACHE STRING "Enable external velocity solver, if any")
-SET_PROPERTY(CACHE USE_EXTERNAL_SUM PROPERTY STRINGS "None" "onbody" "fmm2d")
-SET (USE_HO_HYBRID "None" CACHE STRING "Select external hybrid solver, if any")
-SET_PROPERTY(CACHE USE_HO_HYBRID PROPERTY STRINGS "None" "CXX" "Fortran")
+#SET (USE_EXTERNAL_SUM "None" CACHE STRING "Enable external velocity solver, if any")
+#SET_PROPERTY(CACHE USE_EXTERNAL_SUM PROPERTY STRINGS "None" "onbody" "fmm2d")
+SET (OMEGA2D_USE_HO_HYBRID "None" CACHE STRING "Select external hybrid solver, if any")
+SET_PROPERTY(CACHE OMEGA2D_USE_HO_HYBRID PROPERTY STRINGS "None" "CXX" "Fortran")
 SET (OMEGA2D_DO_PROFILE FALSE CACHE BOOL "Enable profiling via gprof")
 SET (CMAKE_VERBOSE_MAKEFILE on)
 SET (CMAKE_EXPORT_COMPILE_COMMANDS on)
@@ -111,6 +110,11 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/Applied-Scientific-Research/onbody.git
   GIT_TAG 4ea9a0e5e6528e328dc06e11ec97dc17b3706bb1
 )
+IF( OMEGA2D_USE_ONBODY )
+  FetchContent_MakeAvailable(onbody)
+  SET (OMEGA2D_LIBS ${OMEGA2D_LIBS} bh2dvort)
+  SET (CPREPROCDEFS ${CPREPROCDEFS} -DEXTERNAL_VEL_SOLVE)
+ENDIF ()
 
 
 # Define platform-specific libraries and options
@@ -192,14 +196,7 @@ ENDIF()
 
 # Enable plugins
 
-# experimental adaptive VRM
-IF( OMEGA2D_USE_PLUGIN_AVRM )
-  SET (CPREPROCDEFS ${CPREPROCDEFS} -DPLUGIN_AVRM)
-  INCLUDE_DIRECTORIES( "plugin-o2d-avrm" )
-  # add VRMadaptive.h to HEADERS?
-ENDIF()
-
-# simplex solver
+# simplex VRM solver
 IF( OMEGA2D_USE_PLUGIN_SIMPLEX )
   SET (CPREPROCDEFS ${CPREPROCDEFS} -DPLUGIN_SIMPLEX)
   INCLUDE_DIRECTORIES( "plugin-o2d-simplex" )
@@ -207,27 +204,27 @@ IF( OMEGA2D_USE_PLUGIN_SIMPLEX )
 ENDIF()
 
 # external fast summation routine
-IF (${USE_EXTERNAL_SUM} STREQUAL "onbody")
-  ADD_SUBDIRECTORY( extern/onbody )
-  INCLUDE_DIRECTORIES( "extern/onbody/src" )
-  SET (OMEGA2D_LIBS ${OMEGA2D_LIBS} bh2dvort)
-  SET (CPREPROCDEFS ${CPREPROCDEFS} -DEXTERNAL_VEL_SOLVE)
-ELSEIF( ${USE_EXTERNAL_SUM} STREQUAL "fmm2d" )
-  SET (CPREPROCDEFS ${CPREPROCDEFS} -DEXTERNAL_VEL_SOLVE)
-  SET (FASTSUM_LIBS "libfastsumm.a" CACHE STRING "Static library exposing velocity summation function call" )
-  SET (OMEGA2D_LIBS ${FASTSUM_LIBS} gfortran)
-ELSE()
-  SET (FASTSUM_LIBS "")
-ENDIF()
+#IF (${USE_EXTERNAL_SUM} STREQUAL "onbody")
+#  ADD_SUBDIRECTORY( extern/onbody )
+#  INCLUDE_DIRECTORIES( "extern/onbody/src" )
+#  SET (OMEGA2D_LIBS ${OMEGA2D_LIBS} bh2dvort)
+#  SET (CPREPROCDEFS ${CPREPROCDEFS} -DEXTERNAL_VEL_SOLVE)
+#ELSEIF( ${USE_EXTERNAL_SUM} STREQUAL "fmm2d" )
+#  SET (CPREPROCDEFS ${CPREPROCDEFS} -DEXTERNAL_VEL_SOLVE)
+#  SET (FASTSUM_LIBS "libfastsumm.a" CACHE STRING "Static library exposing velocity summation function call" )
+#  SET (OMEGA2D_LIBS ${FASTSUM_LIBS} gfortran)
+#ELSE()
+#  SET (FASTSUM_LIBS "")
+#ENDIF()
 
 # Enable submodules
 
-IF (${USE_HO_HYBRID} STREQUAL "Fortran")
+IF (${OMEGA2D_USE_HO_HYBRID} STREQUAL "Fortran")
   ADD_SUBDIRECTORY( extern/HO-Fortran )
   INCLUDE_DIRECTORIES( "extern/HO-Fortran/src" )
   SET (OMEGA2D_LIBS ${OMEGA2D_LIBS} 2DVortTrans ${APLLES_LIBS} ${XML_LIBS} ${LAPACK_LIBS} gfortran )
   SET (CPREPROCDEFS ${CPREPROCDEFS} -DHOFORTRAN)
-ELSEIF( ${USE_HO_HYBRID} STREQUAL "CXX" )
+ELSEIF( ${OMEGA2D_USE_HO_HYBRID} STREQUAL "CXX" )
   ADD_SUBDIRECTORY( extern/HO-CXX )
   INCLUDE_DIRECTORIES ("extern/HO-CXX/src" )
   INCLUDE_DIRECTORIES ( "${AMGCL_ROOT}" )
