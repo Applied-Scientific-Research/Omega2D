@@ -108,7 +108,7 @@ ENDIF()
 FetchContent_Declare(
   onbody
   GIT_REPOSITORY https://github.com/Applied-Scientific-Research/onbody.git
-  GIT_TAG 4ea9a0e5e6528e328dc06e11ec97dc17b3706bb1
+  GIT_TAG 37204f21210321a59a69bdf63c88062ed862c96c
 )
 IF( OMEGA2D_USE_ONBODY )
   FetchContent_MakeAvailable(onbody)
