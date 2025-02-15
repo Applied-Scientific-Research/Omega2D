@@ -456,3 +456,64 @@ static inline void kernelu_1vos_0p (const S sx0, const S sy0,
   *sv = ss * (vstar*py - ustar*px);
 }
 
+// write a function to
+// find the velocity influence of 2d linear constant-strength vortex panel represented as
+// a sequence of vortex blobs on target point
+
+template <class S, class A> size_t flopsu_1vs_0p () { return 28 + 3 + flops_usf<S>(); }
+template <class S, class A>
+static inline void kernelu_1vs_0p (const S sx0, const S sy0,
+                                  const S sx1, const S sy1,
+                                  const S str, const S sr,
+                                  const S tx, const S ty,
+                                  A* const __restrict__ tu, A* const __restrict__ tv) {
+
+  // segment vector
+  const S px    = sx1 - sx0;
+  const S py    = sy1 - sy0;
+  // length of segment
+  const S panl  = px*px + py*py;
+  // number of sub points along this segment
+  const int nsub = 1 + my_sqrt<S>(panl) / sr;
+  // strength of each sub point
+  const S vs    = str / nsub;
+
+  // loop over sub points
+  for (int i = 0; i < nsub; i++) {
+    const S sx = sx0 + (i+0.5)/nsub * px;
+    const S sy = sy0 + (i+0.5)/nsub * py;
+    const S dx = tx - sx;
+    const S dy = ty - sy;
+    const S r2 = vs * core_func<S>(dx*dx + dy*dy, sr);
+    *tu -= r2 * dy;
+    *tv += r2 * dx;
+  }
+
+template <class S, class A> size_t flopsu_1vs_0b () { return 28 + 3 + flops_usf<S>(); }
+template <class S, class A>
+static inline void kernelu_1vs_0b (const S sx0, const S sy0,
+                                  const S sx1, const S sy1,
+                                  const S str, const S sr,
+                                  const S tx, const S ty, const S tr,
+                                  A* const __restrict__ tu, A* const __restrict__ tv) {
+
+  // segment vector
+  const S px    = sx1 - sx0;
+  const S py    = sy1 - sy0;
+  // length of segment
+  const S panl  = px*px + py*py;
+  // number of sub points along this segment
+  const int nsub = 1 + my_sqrt<S>(panl) / sr;
+  // strength of each sub point
+  const S vs    = str / nsub;
+
+  // loop over sub points
+  for (int i = 0; i < nsub; i++) {
+    const S sx = sx0 + (i+0.5)/nsub * px;
+    const S sy = sy0 + (i+0.5)/nsub * py;
+    const S dx = tx - sx;
+    const S dy = ty - sy;
+    const S r2 = vs * core_func<S>(dx*dx + dy*dy, sr, tr);
+    *tu -= r2 * dy;
+    *tv += r2 * dx;
+  }
